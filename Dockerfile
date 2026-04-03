@@ -51,4 +51,5 @@ USER quovibe
 EXPOSE 3000
 ENV NODE_ENV=production
 ENV DB_PATH=/app/data/portfolio.db
+ENV SCHEMA_PATH=/app/bootstrap/schema.db
 CMD ["sh", "/app/docker-entrypoint.sh"]

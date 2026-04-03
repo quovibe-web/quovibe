@@ -7,7 +7,7 @@ import Database from 'better-sqlite3';
 import * as cheerio from 'cheerio';
 import { v4 as uuidv4 } from 'uuid'; // uuid is already in packages/api/package.json
 import { verifySchema, applyExtensions } from '../db/verify';
-import { DB_PATH } from '../config';
+import { DB_PATH, SCHEMA_PATH } from '../config';
 
 const execFileAsync = promisify(execFile);
 
@@ -127,8 +127,8 @@ export async function runImport(xmlPath: string): Promise<ImportResult> {
     validateXmlFormat(tempXmlPath);
 
     // Step 4: Seed temp DB with empty schema so ppxml2db can INSERT without running ppxml2db_init.
-    // schema.db lives next to portfolio.db and already has all required tables.
-    const schemaDbPath = path.join(path.dirname(DB_PATH), 'schema.db');
+    // SCHEMA_PATH is configured via env (Docker: /app/bootstrap/schema.db).
+    const schemaDbPath = SCHEMA_PATH;
     if (fs.existsSync(schemaDbPath)) {
       fs.copyFileSync(schemaDbPath, tempDbPath);
     }
