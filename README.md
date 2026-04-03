@@ -6,6 +6,9 @@
 > [!IMPORTANT]
 > Built entirely through vibe coding — not a single line written by hand. Backed by 1729+ tests, 13 governance checks, and 12 Architecture Decision Records.
 
+> [!TIP]
+> Enjoying quovibe? [Support it here](https://ko-fi.com/Q5Q41VQUH7) ☕
+
 ---
 
 ## Features
