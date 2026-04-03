@@ -1,5 +1,8 @@
 # $quo|vibe
 
+<img width="1185" height="811" alt="image" src="https://github.com/user-attachments/assets/f6bf3497-4bba-4759-80c5-64e675bfe1ae" />
+
+
 > A web-based, self-hosted portfolio tracker built entirely with [Claude Code](https://claude.ai/code).
 > Import your portfolio XML and instantly access performance analytics, holdings, dividends, and asset allocation — running fully locally.
 
