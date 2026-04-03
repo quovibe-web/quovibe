@@ -101,6 +101,10 @@ Data lives in a named Docker volume (`quovibe_data`) — safe across image updat
 **Custom port:** `PORT=8080 docker compose up -d`
 
 **Backup:**
+
+You can export the portfolio database directly from the app: **Settings → Export Portfolio** downloads `portfolio.db` to your browser.
+
+Alternatively, copy the file from the Docker volume:
 ```bash
 # bash / macOS / Linux
 docker run --rm -v quovibe_data:/data -v $(pwd):/backup alpine cp /data/portfolio.db /backup/portfolio.db
