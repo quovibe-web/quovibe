@@ -128,9 +128,11 @@ Place `portfolio.db` in `data/` before starting.
 
 ## Importing your portfolio
 
-quovibe supports two import paths:
+quovibe supports three import paths:
 
-**In-app (recommended)** — upload your portfolio `.xml` file directly in the browser at `/import`. Works on first boot and from Settings at any time.
+**Start from scratch** — create an empty portfolio and add securities, accounts, and transactions manually from the app UI.
+
+**In-app XML import (recommended)** — upload your portfolio `.xml` file directly in the browser at `/import`. Works on first boot and from Settings at any time.
 
 **CLI via ppxml2db** — convert your XML to SQLite with [ppxml2db](https://github.com/pfalcon/ppxml2db), then point `DB_PATH` at the resulting `portfolio.db`.
 
