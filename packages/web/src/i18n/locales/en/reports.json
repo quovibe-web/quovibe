@@ -1,0 +1,198 @@
+{
+  "statementOfAssets": {
+    "title": "Statement of Assets",
+    "date": "Date",
+    "securities": "Securities",
+    "depositAccounts": "Deposit Accounts",
+    "totalMarketValue": "Total Market Value",
+    "cash": "Cash",
+    "subtitle": "Portfolio snapshot at period end",
+    "empty": "No securities in portfolio",
+    "columns": {
+      "name": "Name",
+      "shares": "Shares",
+      "priceShare": "Price/Share",
+      "marketValue": "Market Value",
+      "balance": "Balance",
+      "currency": "Currency"
+    }
+  },
+  "holdings": {
+    "title": "Holdings",
+    "subtitle": "Your portfolio composition",
+    "columns": {
+      "name": "Name",
+      "marketValue": "Market Value",
+      "portfolioPercent": "% Portfolio"
+    },
+    "totalMarketValue": "Total Market Value",
+    "largestPosition": "Largest Position",
+    "allocation": "Allocation",
+    "noHoldingsData": "No holdings data.",
+    "empty": "No holdings found"
+  },
+  "payments": {
+    "title": "Payments",
+    "subtitle": "Dividends, interest, and other income",
+    "gross": "Gross",
+    "net": "Net",
+    "groupBy": {
+      "month": "Month",
+      "quarter": "Quarter",
+      "year": "Year"
+    },
+    "earningsChart": "Earnings (Gross/Net)",
+    "dividends": "Dividends",
+    "interest": "Interest",
+    "dividendsPerGroup": "Dividends per {{groupBy}}",
+    "interestPerGroup": "Interest per {{groupBy}}",
+    "columns": {
+      "date": "Date",
+      "type": "Type",
+      "security": "Security",
+      "account": "Account",
+      "amount": "Amount"
+    },
+    "empty": "No payments in the selected period.",
+    "paymentCount_one": "{{count}} payment",
+    "paymentCount_other": "{{count}} payments",
+    "breakdown": {
+      "totalGross": "Total (gross)",
+      "totalNet": "Total (net)",
+      "error": "Unable to load breakdown data",
+      "byTitle": "by security",
+      "byAccount": "by account"
+    }
+  },
+  "returnsHeatmap": {
+    "title": "Returns Heatmap",
+    "subtitle": "Monthly TTWROR",
+    "ranges": {
+      "last3y": "Last 3 years",
+      "last5y": "Last 5 years",
+      "last10y": "Last 10 years",
+      "allTime": "All time"
+    },
+    "switchPalette": "Switch to default palette",
+    "switchColorblindPalette": "Switch to colorblind-safe palette",
+    "year": "Year",
+    "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    "monthsFull": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    "noData": "No data available.",
+    "yearTotal": "{{year}} total:"
+  },
+  "assetAllocation": {
+    "title": "Taxonomies",
+    "subtitle": "Allocation and rebalancing by taxonomy",
+    "noTaxonomies": "No taxonomies defined. Import a portfolio with taxonomy data to use this view.",
+    "date": "Date",
+    "columns": {
+      "category": "Category",
+      "marketValue": "Market Value",
+      "portfolioPercent": "% Portfolio",
+      "weight": "Weight %"
+    },
+    "total": "Total:",
+    "error": "Error:",
+    "noData": "No data",
+    "loadFailed": "Failed to load allocation data",
+    "filters": {
+      "activeOnly": "Active only",
+      "nonZeroOnly": "Value > 0"
+    },
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all"
+  },
+  "taxonomySeries": {
+    "title": "Data Series",
+    "subtitle": "Performance trends by category",
+    "noTaxonomies": "No taxonomies defined. Import a portfolio with taxonomy data to use this view.",
+    "selectCategory": "Select a category above to explore its performance data.",
+    "ttwror": "TTWROR",
+    "ttwrorPercent": "TTWROR %",
+    "marketValue": "Market Value",
+    "ttwrorPa": "TTWROR p.a.",
+    "irr": "IRR",
+    "mvb": "MVB",
+    "mve": "MVE",
+    "gain": "Gain",
+    "dividends": "Dividends",
+    "fees": "Fees",
+    "selectTaxonomy": "Taxonomy"
+  },
+  "taxonomyNodePicker": {
+    "loading": "Loading…",
+    "error": "Error:",
+    "failedToLoad": "Failed to load categories",
+    "noCategories": "No categories"
+  },
+  "rebalancing": {
+    "title": "Rebalancing",
+    "viewDefinition": "Definition",
+    "viewRebalancing": "Rebalancing",
+    "columns": {
+      "category": "Category",
+      "allocation": "Allocation %",
+      "weight": "Weight %",
+      "actualValue": "Actual Value",
+      "targetValue": "Target Value",
+      "deltaValue": "Delta",
+      "deltaPercent": "Delta %",
+      "rebalanceAmount": "Rebalance",
+      "rebalanceShares": "Shares"
+    },
+    "allocationSumWarning": "Allocation sum: {{sum}}% / {{expected}}%",
+    "noData": "No rebalancing data.",
+    "totalPortfolioValue": "Total Portfolio Value",
+    "excluded": "Excluded from rebalancing"
+  },
+  "taxonomyManagement": {
+    "newTaxonomy": "New Taxonomy",
+    "createTaxonomy": "Create Taxonomy",
+    "createDescription": "Create a new taxonomy from a template or start empty",
+    "deleteTaxonomy": "Delete Taxonomy",
+    "renameTaxonomy": "Rename Taxonomy",
+    "deleteConfirmTitle": "Delete Taxonomy",
+    "deleteConfirmMessage": "This will permanently delete the taxonomy, all its categories, and all assignments.",
+    "templateLabel": "Template",
+    "templateEmpty": "Empty",
+    "templateAssetClasses": "Asset Classes",
+    "templateIndustriesGics": "Industries (GICS, Sectors)",
+    "templateIndustry": "Industry",
+    "templateAssetAllocation": "Asset Allocation",
+    "templateRegions": "Regions",
+    "templateRegionsMsci": "Regions (MSCI)",
+    "templateTypeSecurity": "Type of Security",
+    "nameLabel": "Name",
+    "namePlaceholder": "Taxonomy name",
+    "addSubcategory": "Add Subcategory",
+    "addCategory": "Add Category",
+    "renameCategory": "Rename",
+    "changeColor": "Change Color",
+    "colorInUse": "Already in use",
+    "deleteCategory": "Delete Category",
+    "deleteCategoryConfirm": "This will delete the category. Subcategories will be moved to the parent. Assignments will be removed.",
+    "assignTo": "Assign to...",
+    "moveTo": "Move to...",
+    "editWeight": "Edit Weight",
+    "removeAssignment": "Remove Assignment",
+    "withoutClassification": "Without Classification",
+    "categoryName": "Category name",
+    "moveUp": "Move Up",
+    "moveDown": "Move Down",
+    "allAssigned": "All items are assigned",
+    "totalValue": "Total value",
+    "classified": "Classified",
+    "categoriesCount": "Categories",
+    "unclassifiedCount": "Unclassified",
+    "moveCategory": "Move to...",
+    "moveCategoryDescription": "Select the parent category for \"{{name}}\"",
+    "currentParent": "current",
+    "topLevel": "top level",
+    "categoryNameDescription": "Enter a name for this category",
+    "editWeightDescription": "Set the target weight percentage",
+    "assignCategoryDescription": "Select a category to assign",
+    "deleteError": "Error deleting taxonomy",
+    "renameDescription": "Enter a new name for this taxonomy"
+  }
+}

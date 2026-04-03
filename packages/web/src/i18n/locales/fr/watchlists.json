@@ -1,0 +1,51 @@
+{
+  "title": "Listes de suivi",
+  "tabs": {
+    "new": "Nouvelle liste",
+    "rename": "Renommer",
+    "duplicate": "Dupliquer",
+    "delete": "Supprimer",
+    "deleteConfirmTitle": "Supprimer la liste",
+    "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ? Les titres ne seront pas supprimés.",
+    "defaultName": "Nouvelle liste"
+  },
+  "table": {
+    "name": "Nom",
+    "ticker": "Ticker",
+    "price": "Cours",
+    "change": "Variation",
+    "trend": "Tendance 30j",
+    "currency": "Devise",
+    "lastQuote": "Dernier cours",
+    "noData": "Aucune donnée",
+    "noQuotes": "Aucune cotation"
+  },
+  "actions": {
+    "addSecurity": "Ajouter un titre",
+    "viewDetails": "Voir les détails",
+    "removeFromWatchlist": "Retirer de la liste",
+    "createNewInstrument": "Créer un nouvel instrument…",
+    "editSecurity": "Modifier"
+  },
+  "addDialog": {
+    "title": "Ajouter un titre à la liste",
+    "search": "Rechercher par nom, ISIN ou ticker...",
+    "existing": "Titres existants",
+    "createNew": "Créer un nouveau titre",
+    "alreadyAdded": "Déjà dans la liste",
+    "noResults": "Aucun titre trouvé",
+    "add": "Ajouter la sélection"
+  },
+  "empty": {
+    "title": "Aucune liste de suivi",
+    "description": "Créez votre première liste pour commencer à suivre des titres.",
+    "createFirst": "Créer une liste",
+    "noSecurities": "Aucun titre dans cette liste.",
+    "addSome": "Ajoutez-en quelques-uns pour commencer le suivi."
+  },
+  "widget": {
+    "selectWatchlist": "Sélectionner une liste",
+    "notFound": "Liste introuvable",
+    "configure": "Configurer"
+  }
+}

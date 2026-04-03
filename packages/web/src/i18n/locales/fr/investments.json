@@ -1,0 +1,76 @@
+{
+  "title": "Investissements",
+  "subtitle": "Votre portefeuille en un coup d'œil",
+  "columnGroups": {
+    "position": "Position",
+    "performance": "Performance",
+    "identity": "Identité"
+  },
+  "drawer": {
+    "loading": "Chargement...",
+    "performance": "Performance",
+    "identity": "Identité",
+    "viewDetail": "Détail complet",
+    "editSecurity": "Modifier le titre",
+    "viewTransactions": "Transactions",
+    "addIsin": "Ajouter l'ISIN →",
+    "refreshPrices": "Actualiser les cours"
+  },
+  "chart": {
+    "pie": "Camembert",
+    "treemap": "Treemap",
+    "off": "Désactivé"
+  },
+  "showRetired": "Afficher retirés",
+  "cashAccounts": "Comptes espèces",
+  "summary": {
+    "totalMV": "Valeur de marché totale",
+    "holdings": "Positions",
+    "cash": "Solde espèces",
+    "largest": "Plus grande position"
+  },
+  "columns": {
+    "name": "Nom",
+    "shares": "Parts",
+    "price": "Cours",
+    "pricePerShare": "Cours",
+    "marketValue": "Valeur de marché",
+    "percentage": "% du portefeuille",
+    "currency": "Devise",
+    "isin": "ISIN",
+    "ticker": "Ticker",
+    "latestQuote": "Dernier cours",
+    "latestDate": "Dernière date",
+    "irr": "IRR",
+    "ttwror": "TTWROR",
+    "ttwrorPa": "TTWROR p.a.",
+    "purchaseValue": "Valeur d'achat",
+    "mve": "VM fin",
+    "unrealizedGain": "Plus-value latente",
+    "realizedGain": "Gain réalisé",
+    "dividends": "Dividendes",
+    "fees": "Frais",
+    "taxes": "Impôts",
+    "irrNotConverged": "non convergé"
+  },
+  "columnToggle": {
+    "button": "Colonnes",
+    "header": "Afficher/masquer les colonnes",
+    "alwaysOn": "toujours visible",
+    "reset": "Réinitialiser"
+  },
+  "filter": {
+    "showingAccount": "Positions pour {{name}}",
+    "clearFilter": "Tout afficher"
+  },
+  "search": {
+    "placeholder": "Rechercher par nom, ISIN ou ticker…"
+  },
+  "totals": {
+    "label": "Total ({{count}} titres)"
+  },
+  "empty": {
+    "title": "Aucun titre",
+    "description": "Ajoutez votre premier titre pour commencer"
+  }
+}

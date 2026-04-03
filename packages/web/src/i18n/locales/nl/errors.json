@@ -1,0 +1,23 @@
+{
+  "import": {
+    "fileTooBig": "Het bestand is groter dan 50 MB. Controleer of u het juiste bestand vanuit uw portfolio-app heeft geëxporteerd.",
+    "invalidXml": "Het bestand is geen geldig XML.",
+    "invalidFormat": "Zorg ervoor dat u vanuit uw portfolio-app exporteert in XML-formaat met ID-attributen (niet versleuteld).",
+    "encrypted": "Het bestand lijkt versleuteld te zijn. Exporteer opnieuw vanuit uw portfolio-app en kies XML-formaat met ID-attributen.",
+    "conversionError": "Fout bij conversie. De vorige portefeuille is intact.",
+    "importInProgress": "Import is al bezig. Wacht tot deze is voltooid.",
+    "unknownError": "Onbekende fout.",
+    "details": "Details:"
+  },
+  "generic": {
+    "error": "Fout:",
+    "notFound": "Niet gevonden.",
+    "loading": "Laden…"
+  },
+  "boundary": {
+    "title": "Er is iets misgegaan",
+    "description": "Er is een onverwachte fout opgetreden. Probeer de pagina opnieuw te laden.",
+    "reload": "Pagina herladen",
+    "goHome": "Naar het dashboard"
+  }
+}

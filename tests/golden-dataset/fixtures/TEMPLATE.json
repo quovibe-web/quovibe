@@ -1,0 +1,21 @@
+{
+  "_comment": "Copy and fill with verified values from a reference portfolio.",
+  "source": "reference portfolio app vX.Y.Z",
+  "portfolio": "nome-portfolio",
+  "dbFile": "nome-file.db",
+  "reportingPeriod": { "start": "YYYY-MM-DD", "end": "YYYY-MM-DD" },
+  "costMethod": "MOVING_AVERAGE",
+  "expected": {
+    "portfolio": {
+      "ttwror": null, "ttwrorAnnualized": null, "irr": null,
+      "mvb": null, "mve": null, "delta": null
+    },
+    "securities": [],
+    "calculationPanel": {
+      "initialValue": null, "finalValue": null,
+      "capitalGainsRealized": null, "capitalGainsUnrealized": null,
+      "earnings": null, "fees": null, "taxes": null,
+      "performanceNeutralTransfers": null, "absoluteChange": null
+    }
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "title": "Contas",
+  "subtitle": "Overview of all portfolio and deposit accounts",
+  "types": {
+    "deposit": "Conta de caixa",
+    "portfolio": "Carteira"
+  },
+  "columns": {
+    "name": "Nome",
+    "currency": "Moeda",
+    "balance": "Saldo",
+    "referenceAccount": "Conta de referência"
+  },
+  "sections": {
+    "portfolios": "Carteiras",
+    "deposit": "Contas de caixa"
+  },
+  "actions": {
+    "newAccount": "+ Nova conta",
+    "delete": "Eliminar",
+    "deleteConfirm": "Eliminar a conta \"{{name}}\"?",
+    "cannotDelete": "Não é possível eliminar: esta conta tem {{count}} transação(ões).",
+    "reactivate": "Reativar",
+    "deactivate": "Desativar",
+    "newTransaction": "Nova transação",
+    "rename": "Renomear",
+    "changeLogo": "Alterar logótipo",
+    "retire": "Arquivar conta",
+    "reactivateAccount": "Reativar conta"
+  },
+  "menu": {
+    "stockSplit": "Desdobramento de ações…",
+    "corporateEvent": "Evento corporativo…"
+  },
+  "detail": {
+    "summary": "Resumo",
+    "currency": "Moeda",
+    "balance": "Saldo",
+    "referenceAccount": "Conta de referência",
+    "linkedPortfolios": "Carteiras ligadas",
+    "transactions": "Transações",
+    "transactionsCount": "Transações ({{count}})",
+    "noTransactions": "Sem transações para esta conta",
+    "tabs": {
+      "cashAccount": "Conta de caixa",
+      "transactions": "Todas as transações"
+    },
+    "viewHoldings": "Ver posições em Investimentos"
+  },
+  "summary": {
+    "totalAccounts": "Total de contas",
+    "portfolioBalance": "Saldo da carteira",
+    "depositBalance": "Saldo de caixa",
+    "totalValue": "Valor total da carteira",
+    "securities": "Títulos",
+    "cash": "Liquidez",
+    "return": "Rentabilidade (YTD)"
+  },
+  "empty": {
+    "noPortfolios": "Sem carteiras.",
+    "noDeposits": "Sem contas de caixa."
+  },
+  "dialog": {
+    "title": "Nova conta",
+    "description": "Criar uma nova conta de depósito ou títulos",
+    "name": "Nome",
+    "namePlaceholder": "Nome da conta…",
+    "type": "Tipo",
+    "typeDeposit": "Conta de caixa",
+    "typeSecurities": "Conta de títulos",
+    "currency": "Moeda",
+    "referenceAccount": "Conta de caixa de referência",
+    "selectDeposit": "Selecionar conta de caixa…",
+    "createNewDeposit": "+ Criar nova conta de caixa",
+    "newDepositAccount": "Nova conta de caixa",
+    "depositAccountName": "Nome da conta de caixa",
+    "depositNamePlaceholder": "ex. A minha conta à ordem",
+    "depositCurrency": "Moeda"
+  },
+  "toasts": {
+    "depositCreated": "Conta de caixa criada",
+    "securitiesCreated": "Conta de títulos criada",
+    "errorCreating": "Erro ao criar a conta"
+  },
+  "clickToChangeLogo": "Clique para alterar o logótipo",
+  "hub": {
+    "subtitle": "As suas contas de corretagem e depósitos independentes"
+  },
+  "card": {
+    "totalValue": "Valor total",
+    "securities": "Títulos",
+    "cash": "Liquidez",
+    "return": "Rentabilidade",
+    "viewDetails": "Ver detalhes completos",
+    "securitiesCount_one": "{{count}} título",
+    "securitiesCount_other": "{{count}} títulos"
+  },
+  "expanded": {
+    "securities": "Títulos",
+    "cash": "Liquidez",
+    "cashRatio": "Rácio de liquidez",
+    "lastActivity": "Última atividade",
+    "transactions": "Transações",
+    "moreSecurities": "+{{count}} mais",
+    "viewHoldings": "Ver posições"
+  },
+  "brokerage": {
+    "title": "Contas de Corretagem"
+  },
+  "standalone": {
+    "title": "Depósitos independentes"
+  },
+  "rename": {
+    "title": "Renomear contas",
+    "titleSingle": "Renomear conta",
+    "portfolioName": "Nome da carteira",
+    "depositName": "Nome da conta de depósito",
+    "description": "Renomear a conta selecionada"
+  },
+  "retired": {
+    "show": "Mostrar contas arquivadas",
+    "hide": "Ocultar contas arquivadas"
+  }
+}

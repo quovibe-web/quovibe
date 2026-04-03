@@ -1,0 +1,60 @@
+import { useWidgetCalculation } from '@/hooks/use-widget-calculation';
+import { useWidgetKpiMeta } from '@/hooks/use-widget-kpi-meta';
+import { useWidgetConfig } from '@/context/widget-config-context';
+import { usePrivacy } from '@/context/privacy-context';
+import { useCountUp } from '@/hooks/use-count-up';
+import { getColor } from '@/lib/colors';
+import { formatQuote } from '@/lib/formatters';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
+export default function WidgetSharpeRatio() {
+  const { data, isLoading, isError, error } = useWidgetCalculation();
+  const { isPrivate } = usePrivacy();
+  const { periodLabel } = useWidgetKpiMeta('widget.qualifier.period');
+  const { options } = useWidgetConfig();
+  const irr = data?.irr !== null ? parseFloat(data?.irr ?? '0') : null;
+  const vol = data ? parseFloat(data.volatility) : 0;
+  const riskFreeRate = typeof options.riskFreeRate === 'number' ? options.riskFreeRate : 0;
+  const sharpe = irr !== null && vol > 0 ? (irr - riskFreeRate) / vol : null;
+  const animatedSharpe = useCountUp(sharpe ?? 0, 1200, !isPrivate && sharpe !== null);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center flex-1 py-1">
+        <Skeleton className="h-9 w-28" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>{error?.message ?? 'Error'}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!data) return null;
+
+  const color =
+    isPrivate || sharpe === null
+      ? undefined
+      : sharpe > 0
+        ? getColor('success')
+        : sharpe < 0
+          ? getColor('danger')
+          : undefined;
+
+  return (
+    <div className="flex flex-col items-center justify-center flex-1 py-1">
+      <span
+        className="text-2xl font-semibold tabular-nums"
+        style={{ color }}
+      >
+        {isPrivate ? '••••••' : sharpe !== null ? formatQuote(animatedSharpe) : '—'}
+      </span>
+      <span className="text-xs text-muted-foreground mt-5">{periodLabel}</span>
+    </div>
+  );
+}

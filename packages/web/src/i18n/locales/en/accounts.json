@@ -1,0 +1,124 @@
+{
+  "title": "Accounts",
+  "subtitle": "Overview of all portfolio and deposit accounts",
+  "types": {
+    "deposit": "Deposit",
+    "portfolio": "Portfolio"
+  },
+  "columns": {
+    "name": "Name",
+    "currency": "Currency",
+    "balance": "Balance",
+    "referenceAccount": "Reference Account"
+  },
+  "sections": {
+    "portfolios": "Portfolios",
+    "deposit": "Deposit"
+  },
+  "actions": {
+    "newAccount": "+ New Account",
+    "delete": "Delete",
+    "deleteConfirm": "Delete account \"{{name}}\"?",
+    "cannotDelete": "Cannot delete: this account has {{count}} transaction(s).",
+    "reactivate": "Reactivate",
+    "deactivate": "Deactivate",
+    "newTransaction": "New Transaction",
+    "rename": "Rename",
+    "changeLogo": "Change logo",
+    "retire": "Retire account",
+    "reactivateAccount": "Reactivate account"
+  },
+  "menu": {
+    "stockSplit": "Stock Split…",
+    "corporateEvent": "Corporate Event…"
+  },
+  "detail": {
+    "summary": "Summary",
+    "currency": "Currency",
+    "balance": "Balance",
+    "referenceAccount": "Reference Account",
+    "linkedPortfolios": "Linked Portfolios",
+    "transactions": "Transactions",
+    "transactionsCount": "Transactions ({{count}})",
+    "noTransactions": "No transactions for this account",
+    "tabs": {
+      "cashAccount": "Cash Account",
+      "transactions": "All Transactions"
+    },
+    "viewHoldings": "View holdings in Investments"
+  },
+  "summary": {
+    "totalAccounts": "Total Accounts",
+    "portfolioBalance": "Portfolio Balance",
+    "depositBalance": "Deposit Balance",
+    "totalValue": "Total Portfolio Value",
+    "securities": "Securities",
+    "cash": "Cash",
+    "return": "Return (YTD)"
+  },
+  "empty": {
+    "noPortfolios": "No portfolios.",
+    "noDeposits": "No deposit accounts."
+  },
+  "dialog": {
+    "title": "New Account",
+    "description": "Create a new deposit or securities account",
+    "name": "Name",
+    "namePlaceholder": "Account name…",
+    "type": "Type",
+    "typeDeposit": "Deposit",
+    "typeSecurities": "Securities",
+    "currency": "Currency",
+    "referenceAccount": "Reference Deposit Account",
+    "selectDeposit": "Select deposit account…",
+    "createNewDeposit": "+ Create new deposit account",
+    "newDepositAccount": "New deposit account",
+    "depositAccountName": "Deposit Account Name",
+    "depositNamePlaceholder": "e.g. My Cash Account",
+    "depositCurrency": "Currency"
+  },
+  "toasts": {
+    "depositCreated": "Deposit account created",
+    "securitiesCreated": "Securities account created",
+    "errorCreating": "Error creating account"
+  },
+  "clickToChangeLogo": "Click to change logo",
+  "hub": {
+    "subtitle": "Your brokerage accounts and standalone deposits"
+  },
+  "card": {
+    "totalValue": "Total Value",
+    "securities": "Securities",
+    "cash": "Cash",
+    "return": "Return",
+    "viewDetails": "View full details",
+    "securitiesCount_one": "{{count}} security",
+    "securitiesCount_other": "{{count}} securities"
+  },
+  "expanded": {
+    "securities": "Securities",
+    "cash": "Cash",
+    "cashRatio": "Cash ratio",
+    "lastActivity": "Last activity",
+    "transactions": "Transactions",
+    "moreSecurities": "+{{count}} more",
+    "viewHoldings": "View holdings"
+  },
+  "brokerage": {
+    "title": "Brokerage Accounts"
+  },
+  "standalone": {
+    "title": "Standalone Deposits"
+  },
+  "rename": {
+    "title": "Rename Accounts",
+    "titleSingle": "Rename Account",
+    "portfolioName": "Portfolio Name",
+    "depositName": "Deposit Name",
+    "description": "Rename the selected account"
+  },
+  "retired": {
+    "show": "Show retired accounts",
+    "hide": "Hide retired accounts"
+  }
+}

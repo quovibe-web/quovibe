@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - development
+      - main
+  pull_request:
+    branches:
+      - development
+      - main
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build (typecheck)
+        run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Governance checks
+        run: pnpm check:governance
+
+      - name: Architecture checks
+        run: pnpm check:arch
+
+      - name: Tests
+        run: pnpm test

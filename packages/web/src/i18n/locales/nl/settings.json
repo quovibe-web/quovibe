@@ -1,0 +1,199 @@
+{
+  "title": "Instellingen",
+  "subtitle": "Portefeuilleconfiguratie",
+  "tabs": {
+    "portfolio": "Portefeuille",
+    "presentation": "Weergave",
+    "dataSources": "Gegevensbronnen",
+    "accounts": "Rekeningen",
+    "advanced": "Geavanceerd"
+  },
+  "sections": {
+    "general": "ALGEMEEN",
+    "currencies": "VALUTA'S",
+    "reportingPeriods": "RAPPORTAGEPERIODEN",
+    "display": "WEERGAVE",
+    "precision": "PRECISIE",
+    "quoteProviders": "KOERSLEVERANCIERS",
+    "database": "DATABASE",
+    "actions": "ACTIES"
+  },
+  "costMethod": {
+    "title": "Kostenmethode",
+    "label": "Methode",
+    "description": "Hoe de kostprijs van effecten te berekenen",
+    "fifo": "FIFO",
+    "movingAverage": "Voortschrijdend gemiddelde"
+  },
+  "calendar": {
+    "title": "Beurskalender",
+    "label": "Kalender",
+    "description": "Definieert handelsdagen en feestdagen"
+  },
+  "baseCurrency": {
+    "title": "Basisvaluta",
+    "label": "Valutacode",
+    "description": "Alle waarden worden omgerekend naar deze valuta",
+    "placeholder": "EUR"
+  },
+  "presentation": {
+    "language": "Taal",
+    "languageDescription": "Taal van de applicatie-interface",
+    "theme": "Thema",
+    "themeDescription": "Uiterlijk van de applicatie",
+    "themeLight": "Licht",
+    "themeDark": "Donker",
+    "themeSystem": "Systeem",
+    "sharesPrecision": "Precisie aandelen",
+    "sharesPrecisionDescription": "Decimalen voor aantallen aandelen",
+    "quotesPrecision": "Precisie koersen",
+    "quotesPrecisionDescription": "Decimalen voor koersen",
+    "showCurrencyCode": "Valutacode tonen",
+    "showCurrencyCodeDescription": "EUR/USD tonen in plaats van €/$",
+    "showPaSuffix": "p.a.-suffix tonen",
+    "showPaSuffixDescription": "'p.a.' tonen na geannualiseerde rendementen",
+    "privacyMode": "Privacymodus",
+    "privacyModeDescription": "Bedragen en waarden standaard verbergen"
+  },
+  "warnings": {
+    "recalculation": "Deze wijziging heeft invloed op alle berekeningen. Waarden worden herberekend."
+  },
+  "saved": "Opgeslagen",
+  "advanced": {
+    "dbPath": "Databasepad",
+    "dbSize": "Databasegrootte",
+    "securitiesCount": "Effecten",
+    "transactionsCount": "Transacties",
+    "version": "Versie"
+  },
+  "periods": {
+    "title": "Rapportageperioden",
+    "addPeriod": "Periode toevoegen",
+    "newPeriod": "Nieuwe periode",
+    "managePeriods": "Perioden beheren...",
+    "defaultBadge": "standaard",
+    "deletePeriod": "Periode verwijderen",
+    "moveUp": "Omhoog",
+    "moveDown": "Omlaag",
+    "noPeriods": "Nog geen aangepaste perioden gedefinieerd.",
+    "dialog": {
+      "title": "Nieuwe rapportageperiode",
+      "description": "Een nieuwe rapportageperiode definiëren",
+      "lastYearsMonths": "Laatste X jaar Y maanden",
+      "lastDays": "Laatste X dagen",
+      "lastTradingDays": "Laatste X handelsdagen",
+      "fromTo": "Van (excl.) tot",
+      "since": "Sinds (excl.)",
+      "year": "Jaar",
+      "currentSection": "Huidig",
+      "previousSection": "Vorig",
+      "week": "Week",
+      "month": "Maand",
+      "quarter": "Kwartaal",
+      "yearToDate": "Jaar (YTD)",
+      "day": "Dag",
+      "tradingDay": "Handelsdag",
+      "preview": "Voorbeeld",
+      "create": "Periode aanmaken",
+      "cancel": "Annuleren",
+      "years": "jaar",
+      "months": "maanden",
+      "days": "dagen"
+    },
+    "labels": {
+      "lastYears_one": "Laatste {{count}} jaar",
+      "lastYears_other": "Laatste {{count}} jaren",
+      "lastMonths_one": "Laatste {{count}} maand",
+      "lastMonths_other": "Laatste {{count}} maanden",
+      "lastYearsMonths": "Laatste {{years}}j {{months}}m",
+      "lastDays_one": "Laatste {{count}} dag",
+      "lastDays_other": "Laatste {{count}} dagen",
+      "lastTradingDays_one": "Laatste {{count}} handelsdag",
+      "lastTradingDays_other": "Laatste {{count}} handelsdagen",
+      "fromTo": "{{from}} — {{to}}",
+      "since": "Sinds {{date}}",
+      "currentWeek": "Huidige week",
+      "currentMonth": "Huidige maand",
+      "currentQuarter": "Huidig kwartaal",
+      "currentYTD": "Jaar tot heden (YTD)",
+      "previousDay": "Vorige dag",
+      "previousTradingDay": "Vorige handelsdag",
+      "previousWeek": "Vorige week",
+      "previousMonth": "Vorige maand",
+      "previousQuarter": "Vorig kwartaal",
+      "previousYear": "Vorig jaar"
+    }
+  },
+  "export": {
+    "title": "Exporteren",
+    "exportPortfolio": "Portefeuille exporteren"
+  },
+  "csvImport": {
+    "title": "CSV-import",
+    "description": "Importeer transacties uit CSV-bestanden.",
+    "button": "CSV importeren"
+  },
+  "dataManagement": {
+    "title": "Gegevensbeheer",
+    "replacePortfolio": "Portefeuille vervangen",
+    "uploadHelp": "Upload een nieuw XML-bestand om de huidige portefeuille te vervangen. De oude gegevens gaan verloren."
+  },
+  "import": {
+    "replaceTitle": "Portefeuille vervangen",
+    "replaceDescription": "Deze bewerking vervangt alle bestaande gegevens door de inhoud van het nieuwe XML-bestand. Deze actie is onomkeerbaar.",
+    "lastImport": "Laatste import:",
+    "confirmReplace": "Ik bevestig de vervanging van bestaande gegevens",
+    "importTitle": "Importeer uw portefeuille",
+    "importDescription": "Exporteer uw portfolio als XML (niet versleuteld) en upload het hier.",
+    "retry": "Opnieuw proberen",
+    "importButton": "Portefeuille importeren",
+    "startFromScratch": "Helemaal opnieuw beginnen",
+    "startDescription": "Begin met een lege portefeuille. U kunt later handmatig effecten en transacties toevoegen.",
+    "startButton": "Helemaal opnieuw beginnen",
+    "tagline": "Portfolio tracking, opnieuw uitgevonden",
+    "successTitle": "Portefeuille succesvol geïmporteerd",
+    "successMessage_one": "{{count}} rekening en {{securities}} effecten geïmporteerd.",
+    "successMessage_other": "{{count}} rekeningen en {{securities}} effecten geïmporteerd.",
+    "goToDashboard": "Naar dashboard",
+    "emptyConfirmTitle": "Beginnen met een lege portefeuille?",
+    "emptyConfirmDescription": "Er zijn geen historische gegevens. U kunt handmatig effecten en transacties toevoegen.",
+    "emptyError": "Fout bij initialisatie. Probeer het opnieuw.",
+    "initSuccessTitle": "Portefeuille aangemaakt",
+    "initSuccessDescription": "Lege portefeuille aangemaakt. U kunt nu rekeningen en effecten toevoegen.",
+    "dropzone": "Sleep het .xml-bestand hierheen of klik om te selecteren",
+    "dropzoneFormat": "Formaat: XML met ID-attributen, niet versleuteld",
+    "dropzoneHint": "(Bestand \u2192 Opslaan als \u2192 XML met ID-attributen). Max 50 MB",
+    "converting": "Converteren…",
+    "restarting": "Server wordt herstart… ({{accounts}} rekeningen, {{securities}} effecten geïmporteerd)",
+    "importSuccess": "Portefeuille geïmporteerd! ({{accounts}} rekeningen, {{securities}} effecten)",
+    "serverNotResponding": "De server reageert niet. Laad de pagina handmatig opnieuw."
+  },
+  "holidays": {
+    "noHolidays": "Geen feestdagen gedefinieerd voor deze kalender.",
+    "columns": {
+      "date": "Datum",
+      "day": "Dag",
+      "holiday": "Feestdag"
+    }
+  },
+  "quoteProviders": {
+    "title": "Koersleveranciers",
+    "alphaVantage": "Alpha Vantage",
+    "apiKey": "API-sleutel",
+    "apiKeyPlaceholder": "Voer je Alpha Vantage API-sleutel in",
+    "rateLimit": "Limiet",
+    "rateLimit25day": "25/dag (gratis)",
+    "rateLimit75min": "75/min (premium)",
+    "getApiKey": "Vraag een gratis API-sleutel aan op",
+    "apiKeyConfigured": "API-sleutel geconfigureerd",
+    "apiKeyNotConfigured": "Geen API-sleutel geconfigureerd"
+  },
+  "exchangeRates": {
+    "title": "Wisselkoersen",
+    "fetchButton": "Wisselkoersen bijwerken",
+    "fetching": "Bijwerken...",
+    "fetchSuccess": "{{count}} wisselkoersen bijgewerkt in {{duration}}ms",
+    "fetchError": "Fout bij het bijwerken van wisselkoersen",
+    "noForeignCurrencies": "Geen vreemde valuta gevonden in portefeuille"
+  }
+}

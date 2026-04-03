@@ -1,0 +1,45 @@
+{
+  "sections": {
+    "main": "Haupt",
+    "data": "Daten",
+    "analysis": "Analyse",
+    "taxonomies": "Taxonomien",
+    "system": "System"
+  },
+  "items": {
+    "dashboard": "Dashboard",
+    "accounts": "Konten",
+    "investments": "Investitionen",
+    "transactions": "Buchungen",
+    "analytics": "Auswertungen",
+    "assetAllocation": "Klassifizierungen",
+    "dataSeries": "Datenreihen",
+    "settings": "Einstellungen",
+    "watchlists": "Watchlists"
+  },
+  "period": "Zeitraum",
+  "presets": {
+    "1Y": "1Y",
+    "2Y": "2Y",
+    "3Y": "3Y",
+    "5Y": "5Y",
+    "YTD": "YTD",
+    "ALL": "ALL"
+  },
+  "privacy": {
+    "enable": "Diskreten Modus aktivieren",
+    "disable": "Diskreten Modus deaktivieren"
+  },
+  "theme": {
+    "light": "Helles Design",
+    "system": "Systemdesign",
+    "dark": "Dunkles Design",
+    "toggle": "Design wechseln"
+  },
+  "more": "Mehr",
+  "morePeriods": "Weitere Perioden",
+  "newPeriod": "Neue Periode...",
+  "managePeriods": "Perioden verwalten...",
+  "sheetTitle": "Navigation",
+  "reportingPeriod": "Berichtszeitraum"
+}

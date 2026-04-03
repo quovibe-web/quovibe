@@ -1,0 +1,124 @@
+{
+  "title": "Conti",
+  "subtitle": "Panoramica di tutti i conti titoli e deposito",
+  "types": {
+    "deposit": "Deposito",
+    "portfolio": "Portafoglio"
+  },
+  "columns": {
+    "name": "Nome",
+    "currency": "Valuta",
+    "balance": "Saldo",
+    "referenceAccount": "Conto di Riferimento"
+  },
+  "sections": {
+    "portfolios": "Portafogli",
+    "deposit": "Deposito"
+  },
+  "actions": {
+    "newAccount": "+ Nuovo Conto",
+    "delete": "Elimina",
+    "deleteConfirm": "Eliminare il conto \"{{name}}\"?",
+    "cannotDelete": "Impossibile eliminare: questo conto ha {{count}} transazione/i.",
+    "reactivate": "Riattiva",
+    "deactivate": "Disattiva",
+    "newTransaction": "Nuova Transazione",
+    "rename": "Rinomina",
+    "changeLogo": "Cambia logo",
+    "retire": "Archivia conto",
+    "reactivateAccount": "Riattiva conto"
+  },
+  "menu": {
+    "stockSplit": "Frazionamento Azionario…",
+    "corporateEvent": "Evento Societario…"
+  },
+  "detail": {
+    "summary": "Riepilogo",
+    "currency": "Valuta",
+    "balance": "Saldo",
+    "referenceAccount": "Conto di Riferimento",
+    "linkedPortfolios": "Portafogli Collegati",
+    "transactions": "Transazioni",
+    "transactionsCount": "Transazioni ({{count}})",
+    "noTransactions": "Nessuna transazione per questo conto",
+    "tabs": {
+      "cashAccount": "Conto Liquidità",
+      "transactions": "Tutte le Transazioni"
+    },
+    "viewHoldings": "Visualizza posizioni in Investimenti"
+  },
+  "summary": {
+    "totalAccounts": "Conti totali",
+    "portfolioBalance": "Saldo portafoglio",
+    "depositBalance": "Saldo deposito",
+    "totalValue": "Valore Totale Portafoglio",
+    "securities": "Titoli",
+    "cash": "Liquidità",
+    "return": "Rendimento (YTD)"
+  },
+  "empty": {
+    "noPortfolios": "Nessun portafoglio.",
+    "noDeposits": "Nessun conto deposito."
+  },
+  "dialog": {
+    "title": "Nuovo Conto",
+    "description": "Crea un nuovo conto deposito o titoli",
+    "name": "Nome",
+    "namePlaceholder": "Nome del conto…",
+    "type": "Tipo",
+    "typeDeposit": "Deposito",
+    "typeSecurities": "Titoli",
+    "currency": "Valuta",
+    "referenceAccount": "Conto Deposito di Riferimento",
+    "selectDeposit": "Seleziona conto deposito…",
+    "createNewDeposit": "+ Crea nuovo conto deposito",
+    "newDepositAccount": "Nuovo conto deposito",
+    "depositAccountName": "Nome Conto Deposito",
+    "depositNamePlaceholder": "es. Il Mio Conto Liquidità",
+    "depositCurrency": "Valuta"
+  },
+  "toasts": {
+    "depositCreated": "Conto deposito creato",
+    "securitiesCreated": "Conto titoli creato",
+    "errorCreating": "Errore nella creazione del conto"
+  },
+  "clickToChangeLogo": "Clicca per cambiare logo",
+  "hub": {
+    "subtitle": "I tuoi conti di intermediazione e depositi autonomi"
+  },
+  "card": {
+    "totalValue": "Valore Totale",
+    "securities": "Titoli",
+    "cash": "Liquidità",
+    "return": "Rendimento",
+    "viewDetails": "Visualizza dettagli completi",
+    "securitiesCount_one": "{{count}} titolo",
+    "securitiesCount_other": "{{count}} titoli"
+  },
+  "expanded": {
+    "securities": "Titoli",
+    "cash": "Liquidità",
+    "cashRatio": "Quota liquidità",
+    "lastActivity": "Ultima attività",
+    "transactions": "Transazioni",
+    "moreSecurities": "+{{count}} altri",
+    "viewHoldings": "Visualizza posizioni"
+  },
+  "brokerage": {
+    "title": "Conti Titoli"
+  },
+  "standalone": {
+    "title": "Depositi Autonomi"
+  },
+  "rename": {
+    "title": "Rinomina conti",
+    "titleSingle": "Rinomina conto",
+    "portfolioName": "Nome portafoglio",
+    "depositName": "Nome deposito",
+    "description": "Rinomina il conto selezionato"
+  },
+  "retired": {
+    "show": "Mostra conti archiviati",
+    "hide": "Nascondi conti archiviati"
+  }
+}

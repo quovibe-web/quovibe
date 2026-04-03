@@ -1,0 +1,21 @@
+services:
+  quovibe:
+    image: ghcr.io/quovibe-web/quovibe:latest
+    container_name: quovibe
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - quovibe_data:/app/data
+    environment:
+      - DB_PATH=/app/data/portfolio.db
+      - NODE_ENV=production
+    restart: unless-stopped
+    stop_grace_period: 15s
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/portfolio"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  quovibe_data:

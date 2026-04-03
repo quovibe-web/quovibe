@@ -1,0 +1,124 @@
+{
+  "title": "Konten",
+  "subtitle": "Overview of all portfolio and deposit accounts",
+  "types": {
+    "deposit": "Konto",
+    "portfolio": "Depot"
+  },
+  "columns": {
+    "name": "Name",
+    "currency": "Währung",
+    "balance": "Saldo",
+    "referenceAccount": "Referenzkonto"
+  },
+  "sections": {
+    "portfolios": "Depots",
+    "deposit": "Konten"
+  },
+  "actions": {
+    "newAccount": "+ Neues Konto",
+    "delete": "Löschen",
+    "deleteConfirm": "Konto \"{{name}}\" löschen?",
+    "cannotDelete": "Löschen nicht möglich: Dieses Konto hat {{count}} Buchung(en).",
+    "reactivate": "Reaktivieren",
+    "deactivate": "Deaktivieren",
+    "newTransaction": "Neue Buchung",
+    "rename": "Umbenennen",
+    "changeLogo": "Logo ändern",
+    "retire": "Konto archivieren",
+    "reactivateAccount": "Konto reaktivieren"
+  },
+  "menu": {
+    "stockSplit": "Aktiensplit…",
+    "corporateEvent": "Unternehmensereignis…"
+  },
+  "detail": {
+    "summary": "Übersicht",
+    "currency": "Währung",
+    "balance": "Saldo",
+    "referenceAccount": "Referenzkonto",
+    "linkedPortfolios": "Verknüpfte Depots",
+    "transactions": "Buchungen",
+    "transactionsCount": "Buchungen ({{count}})",
+    "noTransactions": "Keine Buchungen für dieses Konto",
+    "tabs": {
+      "cashAccount": "Verrechnungskonto",
+      "transactions": "Alle Buchungen"
+    },
+    "viewHoldings": "Positionen in Investitionen anzeigen"
+  },
+  "summary": {
+    "totalAccounts": "Konten gesamt",
+    "portfolioBalance": "Depotsaldo",
+    "depositBalance": "Kontosaldo",
+    "totalValue": "Gesamter Depotwert",
+    "securities": "Wertpapiere",
+    "cash": "Liquidität",
+    "return": "Rendite (YTD)"
+  },
+  "empty": {
+    "noPortfolios": "Keine Depots.",
+    "noDeposits": "Keine Konten."
+  },
+  "dialog": {
+    "title": "Neues Konto",
+    "description": "Ein neues Depot- oder Wertpapierkonto erstellen",
+    "name": "Name",
+    "namePlaceholder": "Kontoname…",
+    "type": "Typ",
+    "typeDeposit": "Konto",
+    "typeSecurities": "Depot",
+    "currency": "Währung",
+    "referenceAccount": "Referenz-Verrechnungskonto",
+    "selectDeposit": "Verrechnungskonto auswählen…",
+    "createNewDeposit": "+ Neues Verrechnungskonto erstellen",
+    "newDepositAccount": "Neues Verrechnungskonto",
+    "depositAccountName": "Name Verrechnungskonto",
+    "depositNamePlaceholder": "z.B. Mein Girokonto",
+    "depositCurrency": "Währung"
+  },
+  "toasts": {
+    "depositCreated": "Verrechnungskonto erstellt",
+    "securitiesCreated": "Depot erstellt",
+    "errorCreating": "Fehler beim Erstellen des Kontos"
+  },
+  "clickToChangeLogo": "Klicken um Logo zu ändern",
+  "hub": {
+    "subtitle": "Ihre Depots und eigenständigen Konten"
+  },
+  "card": {
+    "totalValue": "Gesamtwert",
+    "securities": "Wertpapiere",
+    "cash": "Liquidität",
+    "return": "Rendite",
+    "viewDetails": "Vollständige Details anzeigen",
+    "securitiesCount_one": "{{count}} Wertpapier",
+    "securitiesCount_other": "{{count}} Wertpapiere"
+  },
+  "expanded": {
+    "securities": "Wertpapiere",
+    "cash": "Liquidität",
+    "cashRatio": "Liquiditätsquote",
+    "lastActivity": "Letzte Aktivität",
+    "transactions": "Buchungen",
+    "moreSecurities": "+{{count}} weitere",
+    "viewHoldings": "Positionen anzeigen"
+  },
+  "brokerage": {
+    "title": "Wertpapierdepots"
+  },
+  "standalone": {
+    "title": "Eigenständige Konten"
+  },
+  "rename": {
+    "title": "Konten umbenennen",
+    "titleSingle": "Konto umbenennen",
+    "portfolioName": "Portfolioname",
+    "depositName": "Depotkontoname",
+    "description": "Das ausgewählte Konto umbenennen"
+  },
+  "retired": {
+    "show": "Archivierte Konten anzeigen",
+    "hide": "Archivierte Konten ausblenden"
+  }
+}

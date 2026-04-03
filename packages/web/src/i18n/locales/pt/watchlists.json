@@ -1,0 +1,51 @@
+{
+  "title": "Listas de acompanhamento",
+  "tabs": {
+    "new": "Nova lista",
+    "rename": "Renomear",
+    "duplicate": "Duplicar",
+    "delete": "Eliminar",
+    "deleteConfirmTitle": "Eliminar lista",
+    "deleteConfirmMessage": "Tem a certeza de que pretende eliminar \"{{name}}\"? Os títulos não serão eliminados.",
+    "defaultName": "Nova lista"
+  },
+  "table": {
+    "name": "Nome",
+    "ticker": "Ticker",
+    "price": "Preço",
+    "change": "Variação",
+    "trend": "Tendência 30d",
+    "currency": "Moeda",
+    "lastQuote": "Última cotação",
+    "noData": "Sem dados",
+    "noQuotes": "Sem cotações"
+  },
+  "actions": {
+    "addSecurity": "Adicionar título",
+    "viewDetails": "Ver detalhes",
+    "removeFromWatchlist": "Remover da lista",
+    "createNewInstrument": "Criar novo instrumento…",
+    "editSecurity": "Editar"
+  },
+  "addDialog": {
+    "title": "Adicionar título à lista",
+    "search": "Pesquisar por nome, ISIN ou ticker...",
+    "existing": "Títulos existentes",
+    "createNew": "Criar novo título",
+    "alreadyAdded": "Já na lista",
+    "noResults": "Nenhum título encontrado",
+    "add": "Adicionar selecionados"
+  },
+  "empty": {
+    "title": "Sem listas de acompanhamento",
+    "description": "Crie a sua primeira lista para começar a acompanhar títulos.",
+    "createFirst": "Criar lista",
+    "noSecurities": "Sem títulos nesta lista.",
+    "addSome": "Adicione alguns para começar a acompanhar."
+  },
+  "widget": {
+    "selectWatchlist": "Selecionar uma lista",
+    "notFound": "Lista não encontrada",
+    "configure": "Configurar"
+  }
+}

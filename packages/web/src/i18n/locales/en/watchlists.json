@@ -1,0 +1,51 @@
+{
+  "title": "Watchlists",
+  "tabs": {
+    "new": "New Watchlist",
+    "rename": "Rename",
+    "duplicate": "Duplicate",
+    "delete": "Delete",
+    "deleteConfirmTitle": "Delete Watchlist",
+    "deleteConfirmMessage": "Are you sure you want to delete \"{{name}}\"? The securities will not be deleted.",
+    "defaultName": "New Watchlist"
+  },
+  "table": {
+    "name": "Name",
+    "ticker": "Ticker",
+    "price": "Price",
+    "change": "Change",
+    "trend": "30d Trend",
+    "currency": "Currency",
+    "lastQuote": "Last Quote",
+    "noData": "No data",
+    "noQuotes": "No quotes"
+  },
+  "actions": {
+    "addSecurity": "Add Security",
+    "viewDetails": "View Details",
+    "removeFromWatchlist": "Remove from Watchlist",
+    "createNewInstrument": "Create new instrument…",
+    "editSecurity": "Edit"
+  },
+  "addDialog": {
+    "title": "Add Security to Watchlist",
+    "search": "Search by name, ISIN, or ticker...",
+    "existing": "Existing Securities",
+    "createNew": "Create New Security",
+    "alreadyAdded": "Already in watchlist",
+    "noResults": "No securities found",
+    "add": "Add Selected"
+  },
+  "empty": {
+    "title": "No Watchlists",
+    "description": "Create your first watchlist to start tracking securities.",
+    "createFirst": "Create Watchlist",
+    "noSecurities": "No securities in this watchlist.",
+    "addSome": "Add some to start tracking."
+  },
+  "widget": {
+    "selectWatchlist": "Select a watchlist",
+    "notFound": "Watchlist not found",
+    "configure": "Configure"
+  }
+}

@@ -1,0 +1,121 @@
+# Git worktrees
+.worktrees/
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# Database
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.bak.*
+!data/schema.db
+
+# Sidecar settings (generated at runtime, not versioned)
+data/quovibe.settings.json
+*.xml
+
+# Claude Code — local machine settings only
+.claude/settings.local.json
+# Session tracking marker (local, not versioned)
+.claude/.session-start
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Debug scripts
+packages/api/src/__debug__/
+
+# Debug artifacts
+debug-console-initial.txt
+
+# Test files
+PP_TEST_*.xml
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# SQLite misc
+*.sqlite
+*.sqlite3
+
+# Reference docs — local development only, never published
+docs/pp-reference/
+
+# Copyright audit — internal working document
+docs/PP-COPYRIGHT-AUDIT.md
+docs/audit/
+
+# Code review progress — internal development tracking
+docs/code-review/
+
+# Internal design docs — dev artifacts, not for public repo
+docs/design/
+docs/plans/
+docs/specs/
+docs/charts-reskin-spec.md
+docs/ADD_INSTRUMENT_CONTEXT.md
+
+# Behavior verification notes — internal dev only
+docs/pp-verified/
+
+# Development session log — internal only
+docs/CHANGELOG-SESSIONS.md
+
+# Engine governance rules — internal Claude Code instructions, never published
+# (references pp-reference docs which are also gitignored)
+.claude/rules/engine-governance.md
+
+# Old sessions log — internal dev only
+docs/quovibe-sessions-v2.md
+
+# Superpowers & tools (AI development artifacts — not for public repo)
+.superpowers/
+.agents/
+.claude/skills/
+skills-lock.json
+.playwright-mcp/
+docs/superpowers/
+
+# E2E tests (Playwright — excluded from public repo)
+packages/web/e2e/
+packages/e2e/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+analysis/
+trans_sample/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.mp4
+*.zip

@@ -1,0 +1,126 @@
+{
+  "title": "Konta",
+  "subtitle": "Overview of all portfolio and deposit accounts",
+  "types": {
+    "deposit": "Rachunek gotówkowy",
+    "portfolio": "Portfel"
+  },
+  "columns": {
+    "name": "Nazwa",
+    "currency": "Waluta",
+    "balance": "Saldo",
+    "referenceAccount": "Konto referencyjne"
+  },
+  "sections": {
+    "portfolios": "Portfele",
+    "deposit": "Rachunki gotówkowe"
+  },
+  "actions": {
+    "newAccount": "+ Nowe konto",
+    "delete": "Usuń",
+    "deleteConfirm": "Usunąć konto \"{{name}}\"?",
+    "cannotDelete": "Nie można usunąć: to konto ma {{count}} transakcji.",
+    "reactivate": "Reaktywuj",
+    "deactivate": "Dezaktywuj",
+    "newTransaction": "Nowa transakcja",
+    "rename": "Zmień nazwę",
+    "changeLogo": "Zmień logo",
+    "retire": "Archiwizuj konto",
+    "reactivateAccount": "Reaktywuj konto"
+  },
+  "menu": {
+    "stockSplit": "Podział akcji…",
+    "corporateEvent": "Zdarzenie korporacyjne…"
+  },
+  "detail": {
+    "summary": "Podsumowanie",
+    "currency": "Waluta",
+    "balance": "Saldo",
+    "referenceAccount": "Konto referencyjne",
+    "linkedPortfolios": "Powiązane portfele",
+    "transactions": "Transakcje",
+    "transactionsCount": "Transakcje ({{count}})",
+    "noTransactions": "Brak transakcji dla tego konta",
+    "tabs": {
+      "cashAccount": "Rachunek gotówkowy",
+      "transactions": "Wszystkie transakcje"
+    },
+    "viewHoldings": "Zobacz pozycje w Inwestycjach"
+  },
+  "summary": {
+    "totalAccounts": "Łączna liczba kont",
+    "portfolioBalance": "Saldo portfela",
+    "depositBalance": "Saldo gotówkowe",
+    "totalValue": "Łączna wartość portfela",
+    "securities": "Papiery wartościowe",
+    "cash": "Gotówka",
+    "return": "Stopa zwrotu (YTD)"
+  },
+  "empty": {
+    "noPortfolios": "Brak portfeli.",
+    "noDeposits": "Brak rachunków gotówkowych."
+  },
+  "dialog": {
+    "title": "Nowe konto",
+    "description": "Utwórz nowy rachunek depozytowy lub papierów wartościowych",
+    "name": "Nazwa",
+    "namePlaceholder": "Nazwa konta…",
+    "type": "Typ",
+    "typeDeposit": "Rachunek gotówkowy",
+    "typeSecurities": "Rachunek papierów wartościowych",
+    "currency": "Waluta",
+    "referenceAccount": "Referencyjny rachunek gotówkowy",
+    "selectDeposit": "Wybierz rachunek gotówkowy…",
+    "createNewDeposit": "+ Utwórz nowy rachunek gotówkowy",
+    "newDepositAccount": "Nowy rachunek gotówkowy",
+    "depositAccountName": "Nazwa rachunku gotówkowego",
+    "depositNamePlaceholder": "np. Moje konto bieżące",
+    "depositCurrency": "Waluta"
+  },
+  "toasts": {
+    "depositCreated": "Rachunek gotówkowy utworzony",
+    "securitiesCreated": "Rachunek papierów wartościowych utworzony",
+    "errorCreating": "Błąd podczas tworzenia konta"
+  },
+  "clickToChangeLogo": "Kliknij aby zmienić logo",
+  "hub": {
+    "subtitle": "Twoje rachunki maklerskie i samodzielne depozyty"
+  },
+  "card": {
+    "totalValue": "Łączna wartość",
+    "securities": "Papiery wartościowe",
+    "cash": "Gotówka",
+    "return": "Stopa zwrotu",
+    "viewDetails": "Zobacz pełne szczegóły",
+    "securitiesCount_one": "{{count}} papier wartościowy",
+    "securitiesCount_few": "{{count}} papiery wartościowe",
+    "securitiesCount_many": "{{count}} papierów wartościowych",
+    "securitiesCount_other": "{{count}} papierów wartościowych"
+  },
+  "expanded": {
+    "securities": "Papiery wartościowe",
+    "cash": "Gotówka",
+    "cashRatio": "Udział gotówki",
+    "lastActivity": "Ostatnia aktywność",
+    "transactions": "Transakcje",
+    "moreSecurities": "+{{count}} więcej",
+    "viewHoldings": "Zobacz pozycje"
+  },
+  "brokerage": {
+    "title": "Rachunki Maklerskie"
+  },
+  "standalone": {
+    "title": "Samodzielne depozyty"
+  },
+  "rename": {
+    "title": "Zmień nazwy kont",
+    "titleSingle": "Zmień nazwę konta",
+    "portfolioName": "Nazwa portfela",
+    "depositName": "Nazwa rachunku depozytowego",
+    "description": "Zmień nazwę wybranego konta"
+  },
+  "retired": {
+    "show": "Pokaż zarchiwizowane konta",
+    "hide": "Ukryj zarchiwizowane konta"
+  }
+}

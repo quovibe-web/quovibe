@@ -1,0 +1,199 @@
+{
+  "title": "Einstellungen",
+  "subtitle": "Portfolio-Konfiguration",
+  "tabs": {
+    "portfolio": "Portfolio",
+    "presentation": "Darstellung",
+    "dataSources": "Datenquellen",
+    "accounts": "Konten",
+    "advanced": "Erweitert"
+  },
+  "sections": {
+    "general": "ALLGEMEIN",
+    "currencies": "WÄHRUNGEN",
+    "reportingPeriods": "BERICHTSPERIODEN",
+    "display": "ANZEIGE",
+    "precision": "GENAUIGKEIT",
+    "quoteProviders": "KURSLIEFERANTEN",
+    "database": "DATENBANK",
+    "actions": "AKTIONEN"
+  },
+  "costMethod": {
+    "title": "Kostenmethode",
+    "label": "Methode",
+    "description": "Wie die Anschaffungskosten berechnet werden",
+    "fifo": "FIFO",
+    "movingAverage": "Gleitender Durchschnitt"
+  },
+  "calendar": {
+    "title": "Börsenkalender",
+    "label": "Kalender",
+    "description": "Definiert Handelstage und Feiertage"
+  },
+  "baseCurrency": {
+    "title": "Basiswährung",
+    "label": "Währungscode",
+    "description": "Alle Werte werden in diese Währung umgerechnet",
+    "placeholder": "EUR"
+  },
+  "presentation": {
+    "language": "Sprache",
+    "languageDescription": "Sprache der Benutzeroberfläche",
+    "theme": "Design",
+    "themeDescription": "Erscheinungsbild der Anwendung",
+    "themeLight": "Hell",
+    "themeDark": "Dunkel",
+    "themeSystem": "System",
+    "sharesPrecision": "Aktien-Genauigkeit",
+    "sharesPrecisionDescription": "Dezimalstellen für Aktienmengen",
+    "quotesPrecision": "Kurs-Genauigkeit",
+    "quotesPrecisionDescription": "Dezimalstellen für Kurse",
+    "showCurrencyCode": "Währungscode anzeigen",
+    "showCurrencyCodeDescription": "EUR/USD statt €/$ anzeigen",
+    "showPaSuffix": "p.a.-Suffix anzeigen",
+    "showPaSuffixDescription": "'p.a.' nach annualisierten Renditen anzeigen",
+    "privacyMode": "Datenschutzmodus",
+    "privacyModeDescription": "Beträge und Werte standardmäßig ausblenden"
+  },
+  "warnings": {
+    "recalculation": "Diese Änderung wirkt sich auf alle Berechnungen aus. Werte werden neu berechnet."
+  },
+  "saved": "Gespeichert",
+  "advanced": {
+    "dbPath": "Datenbankpfad",
+    "dbSize": "Datenbankgröße",
+    "securitiesCount": "Wertpapiere",
+    "transactionsCount": "Buchungen",
+    "version": "Version"
+  },
+  "periods": {
+    "title": "Berichtsperioden",
+    "addPeriod": "Periode hinzufügen",
+    "newPeriod": "Neue Periode",
+    "managePeriods": "Perioden verwalten...",
+    "defaultBadge": "Standard",
+    "deletePeriod": "Periode löschen",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
+    "noPeriods": "Noch keine benutzerdefinierten Perioden definiert.",
+    "dialog": {
+      "title": "Neue Berichtsperiode",
+      "description": "Einen neuen Berichtszeitraum definieren",
+      "lastYearsMonths": "Letzte X Jahre Y Monate",
+      "lastDays": "Letzte X Tage",
+      "lastTradingDays": "Letzte X Handelstage",
+      "fromTo": "Von (exkl.) bis",
+      "since": "Seit (exkl.)",
+      "year": "Jahr",
+      "currentSection": "Aktuell",
+      "previousSection": "Vorherig",
+      "week": "Woche",
+      "month": "Monat",
+      "quarter": "Quartal",
+      "yearToDate": "Jahr (YTD)",
+      "day": "Tag",
+      "tradingDay": "Handelstag",
+      "preview": "Vorschau",
+      "create": "Periode erstellen",
+      "cancel": "Abbrechen",
+      "years": "Jahre",
+      "months": "Monate",
+      "days": "Tage"
+    },
+    "labels": {
+      "lastYears_one": "Letztes {{count}} Jahr",
+      "lastYears_other": "Letzte {{count}} Jahre",
+      "lastMonths_one": "Letzter {{count}} Monat",
+      "lastMonths_other": "Letzte {{count}} Monate",
+      "lastYearsMonths": "Letzte {{years}}J {{months}}M",
+      "lastDays_one": "Letzter {{count}} Tag",
+      "lastDays_other": "Letzte {{count}} Tage",
+      "lastTradingDays_one": "Letzter {{count}} Handelstag",
+      "lastTradingDays_other": "Letzte {{count}} Handelstage",
+      "fromTo": "{{from}} — {{to}}",
+      "since": "Seit {{date}}",
+      "currentWeek": "Aktuelle Woche",
+      "currentMonth": "Aktueller Monat",
+      "currentQuarter": "Aktuelles Quartal",
+      "currentYTD": "Seit Jahresbeginn (YTD)",
+      "previousDay": "Vorheriger Tag",
+      "previousTradingDay": "Vorheriger Handelstag",
+      "previousWeek": "Vorherige Woche",
+      "previousMonth": "Vorheriger Monat",
+      "previousQuarter": "Vorheriges Quartal",
+      "previousYear": "Vorheriges Jahr"
+    }
+  },
+  "export": {
+    "title": "Export",
+    "exportPortfolio": "Portfolio exportieren"
+  },
+  "csvImport": {
+    "title": "CSV-Import",
+    "description": "Transaktionen aus CSV-Dateien importieren.",
+    "button": "CSV importieren"
+  },
+  "dataManagement": {
+    "title": "Datenverwaltung",
+    "replacePortfolio": "Portfolio ersetzen",
+    "uploadHelp": "Laden Sie eine neue XML-Datei hoch, um das aktuelle Portfolio zu ersetzen. Die alten Daten gehen verloren."
+  },
+  "import": {
+    "replaceTitle": "Portfolio ersetzen",
+    "replaceDescription": "Dieser Vorgang ersetzt alle bestehenden Daten durch den Inhalt der neuen XML-Datei. Diese Aktion ist unwiderruflich.",
+    "lastImport": "Letzter Import:",
+    "confirmReplace": "Ich bestätige den Ersatz der bestehenden Daten",
+    "importTitle": "Portfolio importieren",
+    "importDescription": "Exportieren Sie Ihr Portfolio als XML (nicht verschlüsselt) und laden Sie es hier hoch.",
+    "retry": "Erneut versuchen",
+    "importButton": "Portfolio importieren",
+    "startFromScratch": "Neu beginnen",
+    "startDescription": "Beginnen Sie mit einem leeren Portfolio. Sie können Wertpapiere und Buchungen später manuell hinzufügen.",
+    "startButton": "Neu beginnen",
+    "tagline": "Portfolio-Tracking, neu gedacht",
+    "successTitle": "Portfolio erfolgreich importiert",
+    "successMessage_one": "{{count}} Konto und {{securities}} Wertpapiere importiert.",
+    "successMessage_other": "{{count}} Konten und {{securities}} Wertpapiere importiert.",
+    "goToDashboard": "Zum Dashboard",
+    "emptyConfirmTitle": "Mit einem leeren Portfolio beginnen?",
+    "emptyConfirmDescription": "Es werden keine historischen Daten vorhanden sein. Sie können Wertpapiere und Buchungen manuell hinzufügen.",
+    "emptyError": "Fehler bei der Initialisierung. Bitte erneut versuchen.",
+    "initSuccessTitle": "Portfolio erstellt",
+    "initSuccessDescription": "Leeres Portfolio erstellt. Sie können jetzt Konten und Wertpapiere hinzufügen.",
+    "dropzone": "Ziehen Sie die .xml-Datei hierher oder klicken Sie zum Auswählen",
+    "dropzoneFormat": "Format: XML mit ID-Attributen, nicht verschlüsselt",
+    "dropzoneHint": "(Datei \u2192 Speichern unter \u2192 XML mit ID-Attributen). Max 50 MB",
+    "converting": "Konvertieren…",
+    "restarting": "Server wird neu gestartet… ({{accounts}} Konten, {{securities}} Wertpapiere importiert)",
+    "importSuccess": "Portfolio importiert! ({{accounts}} Konten, {{securities}} Wertpapiere)",
+    "serverNotResponding": "Der Server antwortet nicht. Laden Sie die Seite manuell neu."
+  },
+  "holidays": {
+    "noHolidays": "Keine Feiertage für diesen Kalender definiert.",
+    "columns": {
+      "date": "Datum",
+      "day": "Tag",
+      "holiday": "Feiertag"
+    }
+  },
+  "quoteProviders": {
+    "title": "Kurslieferanten",
+    "alphaVantage": "Alpha Vantage",
+    "apiKey": "API-Schlüssel",
+    "apiKeyPlaceholder": "Alpha Vantage API-Schlüssel eingeben",
+    "rateLimit": "Ratenlimit",
+    "rateLimit25day": "25/Tag (kostenlos)",
+    "rateLimit75min": "75/Min (Premium)",
+    "getApiKey": "Kostenlosen API-Schlüssel erhalten unter",
+    "apiKeyConfigured": "API-Schlüssel konfiguriert",
+    "apiKeyNotConfigured": "Kein API-Schlüssel konfiguriert"
+  },
+  "exchangeRates": {
+    "title": "Wechselkurse",
+    "fetchButton": "Wechselkurse aktualisieren",
+    "fetching": "Aktualisierung...",
+    "fetchSuccess": "{{count}} Wechselkurse in {{duration}}ms aktualisiert",
+    "fetchError": "Fehler beim Aktualisieren der Wechselkurse",
+    "noForeignCurrencies": "Keine Fremdwährungen im Portfolio erkannt"
+  }
+}

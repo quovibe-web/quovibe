@@ -1,0 +1,23 @@
+{
+  "import": {
+    "fileTooBig": "El archivo supera los 50 MB. Verifique que exportó el archivo correcto desde su aplicación de portafolio.",
+    "invalidXml": "El archivo no es un XML válido.",
+    "invalidFormat": "Asegúrese de exportar desde su aplicación de portafolio en formato XML con atributos ID (sin cifrar).",
+    "encrypted": "El archivo parece estar cifrado. Reexporte desde su aplicación de portafolio eligiendo el formato XML con atributos ID.",
+    "conversionError": "Error durante la conversión. La cartera anterior está intacta.",
+    "importInProgress": "Importación ya en curso. Espere a que finalice.",
+    "unknownError": "Error desconocido.",
+    "details": "Detalles:"
+  },
+  "generic": {
+    "error": "Error:",
+    "notFound": "No encontrado.",
+    "loading": "Cargando…"
+  },
+  "boundary": {
+    "title": "Algo ha salido mal",
+    "description": "Se ha producido un error inesperado. Por favor, intente recargar la página.",
+    "reload": "Recargar página",
+    "goHome": "Ir al panel de control"
+  }
+}

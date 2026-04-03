@@ -1,0 +1,352 @@
+import { useState, useEffect, useMemo } from 'react';
+import { format } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useAccounts } from '@/api/use-accounts';
+import { useSecurities } from '@/api/use-securities';
+import { useUpdateTransaction } from '@/api/use-transactions';
+import type { TransactionListItem } from '@/api/types';
+import { getDateLocale } from '@/lib/formatters';
+import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
+import { UnsavedChangesAlert } from '@/components/shared/UnsavedChangesAlert';
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  transaction: TransactionListItem | null;
+}
+
+export function EditSellDialog({ open, onOpenChange, transaction }: Props) {
+  const { t } = useTranslation('transactions');
+  const { data: accounts = [] } = useAccounts();
+  const { data: securities = [] } = useSecurities();
+  const updateMutation = useUpdateTransaction();
+
+  const portfolioAccounts = accounts.filter((a) => a.type === 'portfolio');
+
+  const [securityId, setSecurityId] = useState('');
+  const [accountId, setAccountId] = useState('');
+  const [date, setDate] = useState<Date>(new Date());
+  const [time, setTime] = useState<string>('00:00');
+  const [calOpen, setCalOpen] = useState(false);
+  const [shares, setShares] = useState('');
+  const [price, setPrice] = useState('');
+  const [fees, setFees] = useState('');
+  const [taxes, setTaxes] = useState('');
+  const [note, setNote] = useState('');
+  const [isDirty, setIsDirty] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { guardedOpenChange, showDialog, setShowDialog, discard } =
+    useUnsavedChangesGuard(isDirty, onOpenChange);
+
+  useEffect(() => {
+    if (!transaction) return;
+    setSecurityId(transaction.security ?? transaction.securityId ?? '');
+    setAccountId(transaction.account ?? '');
+    setDate(transaction.date ? new Date(transaction.date) : new Date());
+    setTime(transaction.date && transaction.date.length > 10 ? transaction.date.slice(11, 16) : '00:00');
+    setNote(transaction.note ?? '');
+
+    const sharesVal = parseFloat(transaction.shares ?? '0');
+    setShares(transaction.shares ?? '');
+
+    const feeUnit = transaction.units?.find((u) => u.type === 'FEE');
+    const taxUnit = transaction.units?.find((u) => u.type === 'TAX');
+
+    // ppxml2db convention: SELL amount = gross - fees - taxes → gross = amount + fees + taxes
+    const netAmount = parseFloat(transaction.amount ?? '0');
+    const feeVal = feeUnit ? Math.abs(parseFloat(feeUnit.amount ?? '0')) : 0;
+    const taxVal = taxUnit ? Math.abs(parseFloat(taxUnit.amount ?? '0')) : 0;
+    const grossAmount = netAmount + feeVal + taxVal;
+
+    if (sharesVal > 0) {
+      setPrice(String(grossAmount / sharesVal));
+    } else {
+      setPrice('');
+    }
+
+    setFees(feeVal ? String(feeVal) : '0');
+    setTaxes(taxVal ? String(taxVal) : '0');
+    setIsDirty(false);
+    setError(null);
+  }, [transaction]);
+
+  const selectedAccount = portfolioAccounts.find((a) => a.id === accountId);
+  const cashAccount = accounts.find((a) => a.id === selectedAccount?.referenceAccountId);
+
+  const sharesNum = parseFloat(shares) || 0;
+  const priceNum = parseFloat(price) || 0;
+  const feesNum = parseFloat(fees) || 0;
+  const taxesNum = parseFloat(taxes) || 0;
+  const subTotal = useMemo(() => sharesNum * priceNum, [sharesNum, priceNum]);
+  const creditNote = useMemo(() => subTotal - feesNum - taxesNum, [subTotal, feesNum, taxesNum]);
+
+  const currency = cashAccount?.currency ?? transaction?.currencyCode ?? 'EUR';
+
+  function handleSave() {
+    if (!transaction) return;
+    if (!securityId) { setError(t('validation.selectSecurity')); return; }
+    if (!accountId) { setError(t('validation.selectPortfolioAccount')); return; }
+    if (!shares || isNaN(sharesNum) || sharesNum <= 0) { setError(t('validation.invalidShares')); return; }
+    if (!price || isNaN(priceNum) || priceNum <= 0) { setError(t('validation.invalidPrice')); return; }
+
+    setError(null);
+    updateMutation.mutate(
+      {
+        id: transaction.uuid,
+        data: {
+          type: 'SELL',
+          securityId,
+          accountId,
+          date: format(date, 'yyyy-MM-dd') + 'T' + time,
+          amount: subTotal,
+          shares: sharesNum,
+          fees: feesNum > 0 ? feesNum : undefined,
+          taxes: taxesNum > 0 ? taxesNum : undefined,
+          note: note || undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(t('common:toasts.transactionUpdated'));
+          setIsDirty(false);
+          onOpenChange(false);
+        },
+        onError: () => {
+          setError(t('common:toasts.errorSaving'));
+        },
+      }
+    );
+  }
+
+  return (
+    <>
+      <Sheet open={open} onOpenChange={guardedOpenChange}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-xl p-0 flex flex-col"
+          showCloseButton={true}
+        >
+          <SheetHeader className="px-6 pt-6 pb-2 shrink-0">
+            <SheetTitle>{t('editTitles.sell')}</SheetTitle>
+            <SheetDescription className="sr-only">
+              {t('editTitles.sell')}
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto px-6 min-h-0">
+            <div className="space-y-4 py-2">
+              {/* Security */}
+              <div className="space-y-1">
+                <Label>{t('form.security')}</Label>
+                <Select value={securityId} onValueChange={(v) => { setSecurityId(v); setIsDirty(true); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('form.selectSecurity')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {securities.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Securities Account */}
+              <div className="space-y-1">
+                <Label>{t('form.securitiesAccount')}</Label>
+                <Select value={accountId} onValueChange={(v) => { setAccountId(v); setIsDirty(true); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('form.selectSecuritiesAccount')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {portfolioAccounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {cashAccount && (
+                  <p className="text-xs text-muted-foreground">
+                    {t('form.cashAccountLinked')} {cashAccount.name} ({cashAccount.currency})
+                  </p>
+                )}
+              </div>
+
+              {/* Date */}
+              <div className="space-y-1">
+                <Label>{t('common:date')}</Label>
+                <div className="flex items-center gap-2">
+                  <Popover open={calOpen} onOpenChange={setCalOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="flex-1 justify-start">
+                        <CalendarIcon className="h-4 w-4 mr-2" />
+                        {format(date, 'P', { locale: getDateLocale() })}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={(d) => { if (d) { setDate(d); setIsDirty(true); setCalOpen(false); } }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Input
+                    type="time"
+                    value={time}
+                    onChange={(e) => { setTime(e.target.value); setIsDirty(true); }}
+                    className="w-28"
+                  />
+                </div>
+              </div>
+
+              {/* Shares + Price */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>{t('columns.shares')}</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={shares}
+                    onChange={(e) => { setShares(e.target.value); setIsDirty(true); }}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>{t('form.price')}</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={price}
+                    onChange={(e) => { setPrice(e.target.value); setIsDirty(true); }}
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              {/* Gross Value (read-only) */}
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{t('form.grossValue')}</span>
+                <span className="font-medium">
+                  {subTotal.toFixed(2)} {currency}
+                </span>
+              </div>
+
+              {/* Fees */}
+              <div className="space-y-1">
+                <Label>{t('form.feesDeducted')}</Label>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={fees}
+                    onChange={(e) => { setFees(e.target.value); setIsDirty(true); }}
+                    placeholder="0.00"
+                    className="flex-1"
+                  />
+                  <span className="text-sm text-muted-foreground w-10">{currency}</span>
+                </div>
+              </div>
+
+              {/* Taxes */}
+              <div className="space-y-1">
+                <Label>{t('form.taxesDeducted')}</Label>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={taxes}
+                    onChange={(e) => { setTaxes(e.target.value); setIsDirty(true); }}
+                    placeholder="0.00"
+                    className="flex-1"
+                  />
+                  <span className="text-sm text-muted-foreground w-10">{currency}</span>
+                </div>
+              </div>
+
+              {/* Credit Note (read-only) */}
+              <div className="flex items-center justify-between text-sm border-t pt-2">
+                <span className="text-muted-foreground">{t('form.creditNote')}</span>
+                <span className="font-semibold">
+                  {creditNote.toFixed(2)} {currency}
+                </span>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-1">
+                <Label>{t('common:note')}</Label>
+                <Textarea
+                  value={note}
+                  onChange={(e) => { setNote(e.target.value); setIsDirty(true); }}
+                  placeholder={t('form.noteOptionalPlaceholder')}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <div className="h-4" />
+          </div>
+
+          {error && (
+            <p className="text-sm text-destructive px-6 py-1 shrink-0">{error}</p>
+          )}
+
+          <SheetFooter className="border-t px-6 py-3 shrink-0 flex flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => guardedOpenChange(false)}
+            >
+              {t('common:cancel')}
+            </Button>
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={handleSave}
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending ? t('common:saving') : t('common:save')}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      <UnsavedChangesAlert
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        onDiscard={discard}
+      />
+    </>
+  );
+}

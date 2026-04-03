@@ -1,0 +1,51 @@
+{
+  "title": "Volglijsten",
+  "tabs": {
+    "new": "Nieuwe volglijst",
+    "rename": "Hernoemen",
+    "duplicate": "Dupliceren",
+    "delete": "Verwijderen",
+    "deleteConfirmTitle": "Volglijst verwijderen",
+    "deleteConfirmMessage": "Weet u zeker dat u \"{{name}}\" wilt verwijderen? De effecten worden niet verwijderd.",
+    "defaultName": "Nieuwe volglijst"
+  },
+  "table": {
+    "name": "Naam",
+    "ticker": "Ticker",
+    "price": "Koers",
+    "change": "Wijziging",
+    "trend": "30d Trend",
+    "currency": "Valuta",
+    "lastQuote": "Laatste koers",
+    "noData": "Geen gegevens",
+    "noQuotes": "Geen koersen"
+  },
+  "actions": {
+    "addSecurity": "Effect toevoegen",
+    "viewDetails": "Details bekijken",
+    "removeFromWatchlist": "Verwijderen uit volglijst",
+    "createNewInstrument": "Nieuw instrument aanmaken…",
+    "editSecurity": "Bewerken"
+  },
+  "addDialog": {
+    "title": "Effect toevoegen aan volglijst",
+    "search": "Zoeken op naam, ISIN of ticker...",
+    "existing": "Bestaande effecten",
+    "createNew": "Nieuw effect aanmaken",
+    "alreadyAdded": "Al in volglijst",
+    "noResults": "Geen effecten gevonden",
+    "add": "Geselecteerde toevoegen"
+  },
+  "empty": {
+    "title": "Geen volglijsten",
+    "description": "Maak uw eerste volglijst aan om effecten te volgen.",
+    "createFirst": "Volglijst aanmaken",
+    "noSecurities": "Geen effecten in deze volglijst.",
+    "addSome": "Voeg er enkele toe om te beginnen met volgen."
+  },
+  "widget": {
+    "selectWatchlist": "Selecteer een volglijst",
+    "notFound": "Volglijst niet gevonden",
+    "configure": "Configureren"
+  }
+}

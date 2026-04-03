@@ -1,0 +1,23 @@
+{
+  "import": {
+    "fileTooBig": "O ficheiro excede 50 MB. Verifique se exportou o ficheiro correto da sua aplicação de portfólio.",
+    "invalidXml": "O ficheiro não é um XML válido.",
+    "invalidFormat": "Certifique-se de que exporta da sua aplicação de portfólio no formato XML com atributos ID (não encriptado).",
+    "encrypted": "O ficheiro parece estar encriptado. Reexporte da sua aplicação de portfólio escolhendo o formato XML com atributos ID.",
+    "conversionError": "Erro durante a conversão. A carteira anterior está intacta.",
+    "importInProgress": "Importação já em curso. Aguarde a conclusão.",
+    "unknownError": "Erro desconhecido.",
+    "details": "Detalhes:"
+  },
+  "generic": {
+    "error": "Erro:",
+    "notFound": "Não encontrado.",
+    "loading": "A carregar…"
+  },
+  "boundary": {
+    "title": "Algo correu mal",
+    "description": "Ocorreu um erro inesperado. Por favor, tente recarregar a página.",
+    "reload": "Recarregar página",
+    "goHome": "Ir para o painel"
+  }
+}

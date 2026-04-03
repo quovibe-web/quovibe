@@ -1,0 +1,23 @@
+{
+  "import": {
+    "fileTooBig": "Il file supera i 50 MB. Verifica di aver esportato il file corretto dalla tua app di portafoglio.",
+    "invalidXml": "Il file non è un XML valido.",
+    "invalidFormat": "Assicurati di esportare dalla tua app di portafoglio in formato XML con attributi ID (non criptato).",
+    "encrypted": "Il file sembra essere criptato. Riesporta dalla tua app di portafoglio scegliendo il formato XML con attributi ID.",
+    "conversionError": "Errore durante la conversione. Il portafoglio precedente è intatto.",
+    "importInProgress": "Importazione già in corso. Attendi il completamento.",
+    "unknownError": "Errore sconosciuto.",
+    "details": "Dettagli:"
+  },
+  "generic": {
+    "error": "Errore:",
+    "notFound": "Non trovato.",
+    "loading": "Caricamento…"
+  },
+  "boundary": {
+    "title": "Qualcosa è andato storto",
+    "description": "Si è verificato un errore imprevisto. Prova a ricaricare la pagina.",
+    "reload": "Ricarica la pagina",
+    "goHome": "Vai alla dashboard"
+  }
+}

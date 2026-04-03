@@ -1,0 +1,23 @@
+{
+  "import": {
+    "fileTooBig": "Le fichier dépasse 50 Mo. Vérifiez que vous avez exporté le bon fichier depuis votre application de portefeuille.",
+    "invalidXml": "Le fichier n'est pas un XML valide.",
+    "invalidFormat": "Assurez-vous d'exporter depuis votre application de portefeuille en format XML avec attributs ID (non chiffré).",
+    "encrypted": "Le fichier semble être chiffré. Réexportez depuis votre application de portefeuille en choisissant le format XML avec attributs ID.",
+    "conversionError": "Erreur lors de la conversion. Le portefeuille précédent est intact.",
+    "importInProgress": "Import déjà en cours. Attendez la fin du processus.",
+    "unknownError": "Erreur inconnue.",
+    "details": "Détails :"
+  },
+  "generic": {
+    "error": "Erreur :",
+    "notFound": "Non trouvé.",
+    "loading": "Chargement…"
+  },
+  "boundary": {
+    "title": "Une erreur est survenue",
+    "description": "Une erreur inattendue s'est produite. Veuillez recharger la page.",
+    "reload": "Recharger la page",
+    "goHome": "Aller au tableau de bord"
+  }
+}

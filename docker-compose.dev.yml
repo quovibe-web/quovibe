@@ -1,0 +1,19 @@
+services:
+  quovibe-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+      - "5173:5173"
+    volumes:
+      - ./packages:/app/packages
+      - /app/packages/shared/node_modules
+      - /app/packages/engine/node_modules
+      - /app/packages/api/node_modules
+      - /app/packages/web/node_modules
+      - ./data:/app/data
+    environment:
+      - DB_PATH=/app/data/portfolio.db
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=1

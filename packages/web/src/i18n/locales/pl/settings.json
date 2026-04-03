@@ -1,0 +1,209 @@
+{
+  "title": "Ustawienia",
+  "subtitle": "Konfiguracja portfela",
+  "tabs": {
+    "portfolio": "Portfel",
+    "presentation": "Prezentacja",
+    "dataSources": "Źródła danych",
+    "accounts": "Konta",
+    "advanced": "Zaawansowane"
+  },
+  "sections": {
+    "general": "OGÓLNE",
+    "currencies": "WALUTY",
+    "reportingPeriods": "OKRESY RAPORTOWANIA",
+    "display": "WYŚWIETLANIE",
+    "precision": "PRECYZJA",
+    "quoteProviders": "DOSTAWCY NOTOWAŃ",
+    "database": "BAZA DANYCH",
+    "actions": "AKCJE"
+  },
+  "costMethod": {
+    "title": "Metoda kosztowa",
+    "label": "Metoda",
+    "description": "Sposób obliczania kosztu nabycia papierów wartościowych",
+    "fifo": "FIFO",
+    "movingAverage": "Średnia krocząca"
+  },
+  "calendar": {
+    "title": "Kalendarz giełdowy",
+    "label": "Kalendarz",
+    "description": "Definiuje dni handlowe i święta"
+  },
+  "baseCurrency": {
+    "title": "Waluta bazowa",
+    "label": "Kod waluty",
+    "description": "Wszystkie wartości zostaną przeliczone na tę walutę",
+    "placeholder": "EUR"
+  },
+  "presentation": {
+    "language": "Język",
+    "languageDescription": "Język interfejsu aplikacji",
+    "theme": "Motyw",
+    "themeDescription": "Wygląd aplikacji",
+    "themeLight": "Jasny",
+    "themeDark": "Ciemny",
+    "themeSystem": "Systemowy",
+    "sharesPrecision": "Precyzja akcji",
+    "sharesPrecisionDescription": "Miejsca dziesiętne dla ilości akcji",
+    "quotesPrecision": "Precyzja notowań",
+    "quotesPrecisionDescription": "Miejsca dziesiętne dla notowań cen",
+    "showCurrencyCode": "Pokaż kod waluty",
+    "showCurrencyCodeDescription": "Wyświetlaj EUR/USD zamiast €/$",
+    "showPaSuffix": "Pokaż sufiks p.a.",
+    "showPaSuffixDescription": "Wyświetlaj 'p.a.' po zannualizowanych stopach zwrotu",
+    "privacyMode": "Tryb prywatności",
+    "privacyModeDescription": "Domyślnie ukrywaj kwoty i wartości"
+  },
+  "warnings": {
+    "recalculation": "Ta zmiana wpływa na wszystkie obliczenia. Wartości zostaną przeliczone."
+  },
+  "saved": "Zapisano",
+  "advanced": {
+    "dbPath": "Ścieżka bazy danych",
+    "dbSize": "Rozmiar bazy danych",
+    "securitiesCount": "Papiery wartościowe",
+    "transactionsCount": "Transakcje",
+    "version": "Wersja"
+  },
+  "periods": {
+    "title": "Okresy raportowania",
+    "addPeriod": "Dodaj okres",
+    "newPeriod": "Nowy okres",
+    "managePeriods": "Zarządzaj okresami...",
+    "defaultBadge": "domyślny",
+    "deletePeriod": "Usuń okres",
+    "moveUp": "Przesuń w górę",
+    "moveDown": "Przesuń w dół",
+    "noPeriods": "Nie zdefiniowano jeszcze niestandardowych okresów.",
+    "dialog": {
+      "title": "Nowy okres raportowania",
+      "description": "Zdefiniuj nowy okres raportowania",
+      "lastYearsMonths": "Ostatnie X lat Y miesięcy",
+      "lastDays": "Ostatnie X dni",
+      "lastTradingDays": "Ostatnie X dni handlowych",
+      "fromTo": "Od (wyłącznie) do",
+      "since": "Od (wyłącznie)",
+      "year": "Rok",
+      "currentSection": "Bieżący",
+      "previousSection": "Poprzedni",
+      "week": "Tydzień",
+      "month": "Miesiąc",
+      "quarter": "Kwartał",
+      "yearToDate": "Rok (YTD)",
+      "day": "Dzień",
+      "tradingDay": "Dzień handlowy",
+      "preview": "Podgląd",
+      "create": "Utwórz okres",
+      "cancel": "Anuluj",
+      "years": "lat",
+      "months": "miesięcy",
+      "days": "dni"
+    },
+    "labels": {
+      "lastYears_one": "Ostatni {{count}} rok",
+      "lastYears_few": "Ostatnie {{count}} lata",
+      "lastYears_many": "Ostatnich {{count}} lat",
+      "lastYears_other": "Ostatnich {{count}} lat",
+      "lastMonths_one": "Ostatni {{count}} miesiąc",
+      "lastMonths_few": "Ostatnie {{count}} miesiące",
+      "lastMonths_many": "Ostatnich {{count}} miesięcy",
+      "lastMonths_other": "Ostatnich {{count}} miesięcy",
+      "lastYearsMonths": "Ostatnie {{years}}l {{months}}m",
+      "lastDays_one": "Ostatni {{count}} dzień",
+      "lastDays_few": "Ostatnie {{count}} dni",
+      "lastDays_many": "Ostatnich {{count}} dni",
+      "lastDays_other": "Ostatnich {{count}} dni",
+      "lastTradingDays_one": "Ostatni {{count}} dzień handlowy",
+      "lastTradingDays_few": "Ostatnie {{count}} dni handlowe",
+      "lastTradingDays_many": "Ostatnich {{count}} dni handlowych",
+      "lastTradingDays_other": "Ostatnich {{count}} dni handlowych",
+      "fromTo": "{{from}} — {{to}}",
+      "since": "Od {{date}}",
+      "currentWeek": "Bieżący tydzień",
+      "currentMonth": "Bieżący miesiąc",
+      "currentQuarter": "Bieżący kwartał",
+      "currentYTD": "Od początku roku (YTD)",
+      "previousDay": "Poprzedni dzień",
+      "previousTradingDay": "Poprzedni dzień handlowy",
+      "previousWeek": "Poprzedni tydzień",
+      "previousMonth": "Poprzedni miesiąc",
+      "previousQuarter": "Poprzedni kwartał",
+      "previousYear": "Poprzedni rok"
+    }
+  },
+  "export": {
+    "title": "Eksport",
+    "exportPortfolio": "Eksportuj portfel"
+  },
+  "csvImport": {
+    "title": "Import CSV",
+    "description": "Importuj transakcje z plików CSV.",
+    "button": "Importuj CSV"
+  },
+  "dataManagement": {
+    "title": "Zarządzanie danymi",
+    "replacePortfolio": "Zastąp portfel",
+    "uploadHelp": "Prześlij nowy plik XML, aby zastąpić bieżący portfel. Stare dane zostaną utracone."
+  },
+  "import": {
+    "replaceTitle": "Zastąp portfel",
+    "replaceDescription": "Ta operacja zastąpi wszystkie istniejące dane zawartością nowego pliku XML. Ta czynność jest nieodwracalna.",
+    "lastImport": "Ostatni import:",
+    "confirmReplace": "Potwierdzam zastąpienie istniejących danych",
+    "importTitle": "Zaimportuj swój portfel",
+    "importDescription": "Wyeksportuj sw\u00f3j portfel jako XML (niezaszyfrowany), a nast\u0119pnie prze\u015blij tutaj.",
+    "retry": "Ponów",
+    "importButton": "Importuj portfel",
+    "startFromScratch": "Zacznij od zera",
+    "startDescription": "Zacznij z pustym portfelem. Możesz dodać papiery wartościowe i transakcje ręcznie później.",
+    "startButton": "Zacznij od zera",
+    "tagline": "Śledzenie portfela na nowo",
+    "successTitle": "Portfel zaimportowany pomyślnie",
+    "successMessage_one": "{{count}} konto i {{securities}} papierów wartościowych zaimportowanych.",
+    "successMessage_few": "{{count}} konta i {{securities}} papierów wartościowych zaimportowanych.",
+    "successMessage_many": "{{count}} kont i {{securities}} papierów wartościowych zaimportowanych.",
+    "successMessage_other": "{{count}} kont i {{securities}} papierów wartościowych zaimportowanych.",
+    "goToDashboard": "Przejdź do panelu",
+    "emptyConfirmTitle": "Rozpocząć z pustym portfelem?",
+    "emptyConfirmDescription": "Nie będzie danych historycznych. Możesz dodać papiery wartościowe i transakcje ręcznie.",
+    "emptyError": "Błąd podczas inicjalizacji. Spróbuj ponownie.",
+    "initSuccessTitle": "Portfel utworzony",
+    "initSuccessDescription": "Utworzono pusty portfel. Możesz teraz dodać konta i papiery wartościowe.",
+    "dropzone": "Przeciągnij plik .xml tutaj lub kliknij, aby wybrać",
+    "dropzoneFormat": "Format: XML z atrybutami ID, niezaszyfrowany",
+    "dropzoneHint": "(Plik \u2192 Zapisz jako \u2192 XML z atrybutami ID). Maks. 50 MB",
+    "converting": "Konwertowanie…",
+    "restarting": "Restartowanie serwera… ({{accounts}} kont, {{securities}} papierów wartościowych zaimportowanych)",
+    "importSuccess": "Portfel zaimportowany! ({{accounts}} kont, {{securities}} papierów wartościowych)",
+    "serverNotResponding": "Serwer nie odpowiada. Odśwież stronę ręcznie."
+  },
+  "holidays": {
+    "noHolidays": "Brak zdefiniowanych dni wolnych dla tego kalendarza.",
+    "columns": {
+      "date": "Data",
+      "day": "Dzień",
+      "holiday": "Święto"
+    }
+  },
+  "quoteProviders": {
+    "title": "Dostawcy notowań",
+    "alphaVantage": "Alpha Vantage",
+    "apiKey": "Klucz API",
+    "apiKeyPlaceholder": "Wprowadź klucz API Alpha Vantage",
+    "rateLimit": "Limit zapytań",
+    "rateLimit25day": "25/dzień (bezpłatny)",
+    "rateLimit75min": "75/min (premium)",
+    "getApiKey": "Uzyskaj darmowy klucz API na",
+    "apiKeyConfigured": "Klucz API skonfigurowany",
+    "apiKeyNotConfigured": "Brak klucza API"
+  },
+  "exchangeRates": {
+    "title": "Kursy walut",
+    "fetchButton": "Aktualizuj kursy walut",
+    "fetching": "Aktualizowanie...",
+    "fetchSuccess": "Zaktualizowano {{count}} kursów walut w {{duration}}ms",
+    "fetchError": "Błąd podczas aktualizacji kursów walut",
+    "noForeignCurrencies": "Brak walut obcych w portfelu"
+  }
+}

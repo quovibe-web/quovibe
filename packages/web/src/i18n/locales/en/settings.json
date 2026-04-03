@@ -1,0 +1,199 @@
+{
+  "title": "Settings",
+  "subtitle": "Portfolio configuration",
+  "tabs": {
+    "portfolio": "Portfolio",
+    "presentation": "Presentation",
+    "dataSources": "Data Sources",
+    "accounts": "Accounts",
+    "advanced": "Advanced"
+  },
+  "sections": {
+    "general": "GENERAL",
+    "currencies": "CURRENCIES",
+    "reportingPeriods": "REPORTING PERIODS",
+    "display": "DISPLAY",
+    "precision": "PRECISION",
+    "quoteProviders": "QUOTE PROVIDERS",
+    "database": "DATABASE",
+    "actions": "ACTIONS"
+  },
+  "costMethod": {
+    "title": "Cost Method",
+    "label": "Method",
+    "description": "How to calculate cost basis for securities",
+    "fifo": "FIFO",
+    "movingAverage": "Moving Average"
+  },
+  "calendar": {
+    "title": "Stock Exchange Calendar",
+    "label": "Calendar",
+    "description": "Defines trading days and holidays"
+  },
+  "baseCurrency": {
+    "title": "Base Currency",
+    "label": "Currency Code",
+    "description": "All values will be converted to this currency",
+    "placeholder": "EUR"
+  },
+  "presentation": {
+    "language": "Language",
+    "languageDescription": "Application interface language",
+    "theme": "Theme",
+    "themeDescription": "Application appearance",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "sharesPrecision": "Shares precision",
+    "sharesPrecisionDescription": "Decimal places for share quantities",
+    "quotesPrecision": "Quotes precision",
+    "quotesPrecisionDescription": "Decimal places for price quotes",
+    "showCurrencyCode": "Show currency code",
+    "showCurrencyCodeDescription": "Display EUR/USD instead of €/$",
+    "showPaSuffix": "Show p.a. suffix",
+    "showPaSuffixDescription": "Display 'p.a.' after annualized returns",
+    "privacyMode": "Privacy mode",
+    "privacyModeDescription": "Hide amounts and values by default"
+  },
+  "warnings": {
+    "recalculation": "This change affects all calculations. Values will be recalculated."
+  },
+  "saved": "Saved",
+  "advanced": {
+    "dbPath": "Database path",
+    "dbSize": "Database size",
+    "securitiesCount": "Securities",
+    "transactionsCount": "Transactions",
+    "version": "Version"
+  },
+  "periods": {
+    "title": "Reporting Periods",
+    "addPeriod": "Add period",
+    "newPeriod": "New period",
+    "managePeriods": "Manage periods...",
+    "defaultBadge": "default",
+    "deletePeriod": "Delete period",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "noPeriods": "No custom periods defined yet.",
+    "dialog": {
+      "title": "New Reporting Period",
+      "description": "Define a new reporting period",
+      "lastYearsMonths": "Last X years Y months",
+      "lastDays": "Last X days",
+      "lastTradingDays": "Last X trading days",
+      "fromTo": "From (excl.) to",
+      "since": "Since (excl.)",
+      "year": "Year",
+      "currentSection": "Current",
+      "previousSection": "Previous",
+      "week": "Week",
+      "month": "Month",
+      "quarter": "Quarter",
+      "yearToDate": "Year (YTD)",
+      "day": "Day",
+      "tradingDay": "Trading day",
+      "preview": "Preview",
+      "create": "Create period",
+      "cancel": "Cancel",
+      "years": "years",
+      "months": "months",
+      "days": "days"
+    },
+    "labels": {
+      "lastYears_one": "Last {{count}} year",
+      "lastYears_other": "Last {{count}} years",
+      "lastMonths_one": "Last {{count}} month",
+      "lastMonths_other": "Last {{count}} months",
+      "lastYearsMonths": "Last {{years}}y {{months}}m",
+      "lastDays_one": "Last {{count}} day",
+      "lastDays_other": "Last {{count}} days",
+      "lastTradingDays_one": "Last {{count}} trading day",
+      "lastTradingDays_other": "Last {{count}} trading days",
+      "fromTo": "{{from}} — {{to}}",
+      "since": "Since {{date}}",
+      "currentWeek": "Current week",
+      "currentMonth": "Current month",
+      "currentQuarter": "Current quarter",
+      "currentYTD": "Year to date (YTD)",
+      "previousDay": "Previous day",
+      "previousTradingDay": "Previous trading day",
+      "previousWeek": "Previous week",
+      "previousMonth": "Previous month",
+      "previousQuarter": "Previous quarter",
+      "previousYear": "Previous year"
+    }
+  },
+  "export": {
+    "title": "Export",
+    "exportPortfolio": "Export Portfolio"
+  },
+  "csvImport": {
+    "title": "CSV Import",
+    "description": "Import transactions from CSV files.",
+    "button": "Import CSV"
+  },
+  "dataManagement": {
+    "title": "Data Management",
+    "replacePortfolio": "Replace Portfolio",
+    "uploadHelp": "Upload a new XML file to replace the current portfolio. The old data will be lost."
+  },
+  "import": {
+    "replaceTitle": "Replace Portfolio",
+    "replaceDescription": "This operation will replace all existing data with the content of the new XML file. This action is irreversible.",
+    "lastImport": "Last import:",
+    "confirmReplace": "I confirm the replacement of existing data",
+    "importTitle": "Import your portfolio",
+    "importDescription": "Export your portfolio as XML (not encrypted), then upload it here.",
+    "retry": "Retry",
+    "importButton": "Import Portfolio",
+    "startFromScratch": "Start from scratch",
+    "startDescription": "Start with an empty portfolio. You can add securities and transactions manually later.",
+    "startButton": "Start from scratch",
+    "tagline": "Portfolio tracking, reimagined",
+    "successTitle": "Portfolio imported successfully",
+    "successMessage_one": "{{count}} account and {{securities}} securities imported.",
+    "successMessage_other": "{{count}} accounts and {{securities}} securities imported.",
+    "goToDashboard": "Go to Dashboard",
+    "emptyConfirmTitle": "Start with an empty portfolio?",
+    "emptyConfirmDescription": "There will be no historical data. You can add securities and transactions manually.",
+    "emptyError": "Error during initialization. Please try again.",
+    "initSuccessTitle": "Portfolio created",
+    "initSuccessDescription": "Empty portfolio created. You can now add accounts and securities.",
+    "dropzone": "Drag the .xml file here or click to select it",
+    "dropzoneFormat": "Format: XML with ID attributes, not encrypted",
+    "dropzoneHint": "(File \u2192 Save as \u2192 XML with ID attributes). Max 50 MB",
+    "converting": "Converting…",
+    "restarting": "Restarting server… ({{accounts}} accounts, {{securities}} securities imported)",
+    "importSuccess": "Portfolio imported! ({{accounts}} accounts, {{securities}} securities)",
+    "serverNotResponding": "The server is not responding. Reload the page manually."
+  },
+  "holidays": {
+    "noHolidays": "No holidays defined for this calendar.",
+    "columns": {
+      "date": "Date",
+      "day": "Day",
+      "holiday": "Holiday"
+    }
+  },
+  "quoteProviders": {
+    "title": "Quote Providers",
+    "alphaVantage": "Alpha Vantage",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter your Alpha Vantage API key",
+    "rateLimit": "Rate Limit",
+    "rateLimit25day": "25/day (free)",
+    "rateLimit75min": "75/min (premium)",
+    "getApiKey": "Get a free API key at",
+    "apiKeyConfigured": "API key configured",
+    "apiKeyNotConfigured": "No API key configured"
+  },
+  "exchangeRates": {
+    "title": "Exchange Rates",
+    "fetchButton": "Update Exchange Rates",
+    "fetching": "Updating...",
+    "fetchSuccess": "Updated {{count}} exchange rates in {{duration}}ms",
+    "fetchError": "Failed to update exchange rates",
+    "noForeignCurrencies": "No foreign currencies detected in portfolio"
+  }
+}

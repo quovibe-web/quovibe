@@ -1,0 +1,23 @@
+{
+  "import": {
+    "fileTooBig": "The file exceeds 50 MB. Verify that you exported the correct file from your portfolio app.",
+    "invalidXml": "The file is not valid XML.",
+    "invalidFormat": "Make sure you export from your portfolio app in XML format with ID attributes (not encrypted).",
+    "encrypted": "The file appears to be encrypted. Re-export from your portfolio app choosing XML format with ID attributes.",
+    "conversionError": "Error during conversion. The previous portfolio is intact.",
+    "importInProgress": "Import already in progress. Wait for completion.",
+    "unknownError": "Unknown error.",
+    "details": "Details:"
+  },
+  "generic": {
+    "error": "Error:",
+    "notFound": "Not found.",
+    "loading": "Loading…"
+  },
+  "boundary": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred. Please try reloading the page.",
+    "reload": "Reload page",
+    "goHome": "Go to dashboard"
+  }
+}

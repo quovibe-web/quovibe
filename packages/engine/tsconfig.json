@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "module": "CommonJS",
+    "moduleResolution": "node10",
+    "paths": {
+      "@quovibe/shared": ["../../packages/shared/dist/index"]
+    }
+  },
+  "include": ["src"]
+}

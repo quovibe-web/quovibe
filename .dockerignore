@@ -1,0 +1,109 @@
+# Dependencies
+node_modules
+packages/*/node_modules
+
+# Git / CI config (not needed in image)
+.git
+.gitignore
+.github/
+
+# Docs (internal dev artifacts — not needed in image)
+docs/
+
+# AI/dev tooling
+.claude/
+.superpowers/
+.agents/
+.worktrees/
+.playwright-mcp/
+skills-lock.json
+
+# Scripts (governance/dev tooling — not needed in image)
+scripts/
+
+# Build output
+dist/
+build/
+packages/*/dist/
+packages/*/build/
+
+# Environment files
+.env
+.env.*
+.env.local
+
+# Test / coverage
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+playwright/.cache/
+analysis/
+packages/e2e/
+packages/web/e2e/
+tests/
+
+# Database files (schema.db is copied explicitly in Dockerfile)
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.bak.*
+data/quovibe.settings.json
+*.sqlite
+*.sqlite3
+!data/schema.db
+
+# Markdown (except README at root)
+*.md
+!README.md
+
+# Media / binary assets
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.mp4
+*.zip
+*.xml
+*.tar
+*.gz
+*.tgz
+*.bz2
+
+# TLS / secret files (safety net)
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+
+# TypeScript incremental build artifacts
+*.tsbuildinfo
+
+# Sample data (gitignored dev artifact)
+trans_sample/
+
+# Docker/compose files not needed inside build
+Dockerfile.dev
+docker-compose*.yml
+
+# Dev-only config not needed for build
+vitest.config.ts
+eslint.config.mjs
+
+# Debug artifacts
+debug-console-initial.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log

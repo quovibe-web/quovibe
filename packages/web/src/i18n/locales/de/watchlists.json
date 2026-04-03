@@ -1,0 +1,51 @@
+{
+  "title": "Watchlists",
+  "tabs": {
+    "new": "Neue Watchlist",
+    "rename": "Umbenennen",
+    "duplicate": "Duplizieren",
+    "delete": "Löschen",
+    "deleteConfirmTitle": "Watchlist löschen",
+    "deleteConfirmMessage": "Möchten Sie \"{{name}}\" wirklich löschen? Die Wertpapiere werden nicht gelöscht.",
+    "defaultName": "Neue Watchlist"
+  },
+  "table": {
+    "name": "Name",
+    "ticker": "Ticker",
+    "price": "Kurs",
+    "change": "Änderung",
+    "trend": "30T-Trend",
+    "currency": "Währung",
+    "lastQuote": "Letzter Kurs",
+    "noData": "Keine Daten",
+    "noQuotes": "Keine Kurse"
+  },
+  "actions": {
+    "addSecurity": "Wertpapier hinzufügen",
+    "viewDetails": "Details anzeigen",
+    "removeFromWatchlist": "Aus Watchlist entfernen",
+    "createNewInstrument": "Neues Instrument erstellen…",
+    "editSecurity": "Bearbeiten"
+  },
+  "addDialog": {
+    "title": "Wertpapier zur Watchlist hinzufügen",
+    "search": "Nach Name, ISIN oder Ticker suchen...",
+    "existing": "Vorhandene Wertpapiere",
+    "createNew": "Neues Wertpapier erstellen",
+    "alreadyAdded": "Bereits in der Watchlist",
+    "noResults": "Keine Wertpapiere gefunden",
+    "add": "Ausgewählte hinzufügen"
+  },
+  "empty": {
+    "title": "Keine Watchlists",
+    "description": "Erstellen Sie Ihre erste Watchlist, um Wertpapiere zu verfolgen.",
+    "createFirst": "Watchlist erstellen",
+    "noSecurities": "Keine Wertpapiere in dieser Watchlist.",
+    "addSome": "Fügen Sie einige hinzu, um mit der Verfolgung zu beginnen."
+  },
+  "widget": {
+    "selectWatchlist": "Watchlist auswählen",
+    "notFound": "Watchlist nicht gefunden",
+    "configure": "Konfigurieren"
+  }
+}

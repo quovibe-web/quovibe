@@ -1,0 +1,199 @@
+{
+  "title": "Paramètres",
+  "subtitle": "Configuration du portefeuille",
+  "tabs": {
+    "portfolio": "Portefeuille",
+    "presentation": "Présentation",
+    "dataSources": "Sources de données",
+    "accounts": "Comptes",
+    "advanced": "Avancé"
+  },
+  "sections": {
+    "general": "GÉNÉRAL",
+    "currencies": "DEVISES",
+    "reportingPeriods": "PÉRIODES DE RAPPORT",
+    "display": "AFFICHAGE",
+    "precision": "PRÉCISION",
+    "quoteProviders": "FOURNISSEURS DE COTATIONS",
+    "database": "BASE DE DONNÉES",
+    "actions": "ACTIONS"
+  },
+  "costMethod": {
+    "title": "Méthode de coût",
+    "label": "Méthode",
+    "description": "Comment calculer le coût de revient des titres",
+    "fifo": "FIFO",
+    "movingAverage": "Moyenne mobile"
+  },
+  "calendar": {
+    "title": "Calendrier boursier",
+    "label": "Calendrier",
+    "description": "Définit les jours de bourse et les jours fériés"
+  },
+  "baseCurrency": {
+    "title": "Devise de base",
+    "label": "Code devise",
+    "description": "Toutes les valeurs seront converties dans cette devise",
+    "placeholder": "EUR"
+  },
+  "presentation": {
+    "language": "Langue",
+    "languageDescription": "Langue de l'interface de l'application",
+    "theme": "Thème",
+    "themeDescription": "Apparence de l'application",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "themeSystem": "Système",
+    "sharesPrecision": "Précision actions",
+    "sharesPrecisionDescription": "Décimales pour les quantités d'actions",
+    "quotesPrecision": "Précision cotations",
+    "quotesPrecisionDescription": "Décimales pour les cotations",
+    "showCurrencyCode": "Afficher le code devise",
+    "showCurrencyCodeDescription": "Afficher EUR/USD au lieu de €/$",
+    "showPaSuffix": "Afficher le suffixe p.a.",
+    "showPaSuffixDescription": "Afficher 'p.a.' après les rendements annualisés",
+    "privacyMode": "Mode confidentialité",
+    "privacyModeDescription": "Masquer les montants et les valeurs par défaut"
+  },
+  "warnings": {
+    "recalculation": "Ce changement affecte tous les calculs. Les valeurs seront recalculées."
+  },
+  "saved": "Enregistré",
+  "advanced": {
+    "dbPath": "Chemin de la base de données",
+    "dbSize": "Taille de la base de données",
+    "securitiesCount": "Titres",
+    "transactionsCount": "Transactions",
+    "version": "Version"
+  },
+  "periods": {
+    "title": "Périodes de rapport",
+    "addPeriod": "Ajouter une période",
+    "newPeriod": "Nouvelle période",
+    "managePeriods": "Gérer les périodes...",
+    "defaultBadge": "par défaut",
+    "deletePeriod": "Supprimer la période",
+    "moveUp": "Monter",
+    "moveDown": "Descendre",
+    "noPeriods": "Aucune période personnalisée définie.",
+    "dialog": {
+      "title": "Nouvelle Période de Rapport",
+      "description": "Définir une nouvelle période de rapport",
+      "lastYearsMonths": "Derniers X ans Y mois",
+      "lastDays": "Derniers X jours",
+      "lastTradingDays": "Derniers X jours de bourse",
+      "fromTo": "Du (excl.) au",
+      "since": "Depuis (excl.)",
+      "year": "Année",
+      "currentSection": "En cours",
+      "previousSection": "Précédent",
+      "week": "Semaine",
+      "month": "Mois",
+      "quarter": "Trimestre",
+      "yearToDate": "Année (YTD)",
+      "day": "Jour",
+      "tradingDay": "Jour de bourse",
+      "preview": "Aperçu",
+      "create": "Créer la période",
+      "cancel": "Annuler",
+      "years": "ans",
+      "months": "mois",
+      "days": "jours"
+    },
+    "labels": {
+      "lastYears_one": "Dernier {{count}} an",
+      "lastYears_other": "Derniers {{count}} ans",
+      "lastMonths_one": "Dernier {{count}} mois",
+      "lastMonths_other": "Derniers {{count}} mois",
+      "lastYearsMonths": "Derniers {{years}}a {{months}}m",
+      "lastDays_one": "Dernier {{count}} jour",
+      "lastDays_other": "Derniers {{count}} jours",
+      "lastTradingDays_one": "Dernier {{count}} jour de bourse",
+      "lastTradingDays_other": "Derniers {{count}} jours de bourse",
+      "fromTo": "{{from}} — {{to}}",
+      "since": "Depuis {{date}}",
+      "currentWeek": "Semaine en cours",
+      "currentMonth": "Mois en cours",
+      "currentQuarter": "Trimestre en cours",
+      "currentYTD": "Depuis le début de l'année (YTD)",
+      "previousDay": "Jour précédent",
+      "previousTradingDay": "Jour de bourse précédent",
+      "previousWeek": "Semaine précédente",
+      "previousMonth": "Mois précédent",
+      "previousQuarter": "Trimestre précédent",
+      "previousYear": "Année précédente"
+    }
+  },
+  "export": {
+    "title": "Exporter",
+    "exportPortfolio": "Exporter le portefeuille"
+  },
+  "csvImport": {
+    "title": "Import CSV",
+    "description": "Importer des transactions depuis des fichiers CSV.",
+    "button": "Importer CSV"
+  },
+  "dataManagement": {
+    "title": "Gestion des données",
+    "replacePortfolio": "Remplacer le portefeuille",
+    "uploadHelp": "Téléchargez un nouveau fichier XML pour remplacer le portefeuille actuel. Les anciennes données seront perdues."
+  },
+  "import": {
+    "replaceTitle": "Remplacer le portefeuille",
+    "replaceDescription": "Cette opération remplacera toutes les données existantes par le contenu du nouveau fichier XML. Cette action est irréversible.",
+    "lastImport": "Dernier import :",
+    "confirmReplace": "Je confirme le remplacement des données existantes",
+    "importTitle": "Importez votre portefeuille",
+    "importDescription": "Exportez votre portefeuille en XML (non chiffré), puis téléchargez-le ici.",
+    "retry": "Réessayer",
+    "importButton": "Importer le portefeuille",
+    "startFromScratch": "Commencer à zéro",
+    "startDescription": "Commencez avec un portefeuille vide. Vous pourrez ajouter des titres et des transactions manuellement plus tard.",
+    "startButton": "Commencer à zéro",
+    "tagline": "Le suivi de portefeuille, réinventé",
+    "successTitle": "Portefeuille importé avec succès",
+    "successMessage_one": "{{count}} compte et {{securities}} titres importés.",
+    "successMessage_other": "{{count}} comptes et {{securities}} titres importés.",
+    "goToDashboard": "Aller au tableau de bord",
+    "emptyConfirmTitle": "Commencer avec un portefeuille vide ?",
+    "emptyConfirmDescription": "Il n'y aura pas de données historiques. Vous pourrez ajouter des titres et des transactions manuellement.",
+    "emptyError": "Erreur lors de l'initialisation. Veuillez réessayer.",
+    "initSuccessTitle": "Portefeuille créé",
+    "initSuccessDescription": "Portefeuille vide créé. Vous pouvez maintenant ajouter des comptes et des titres.",
+    "dropzone": "Glissez le fichier .xml ici ou cliquez pour le sélectionner",
+    "dropzoneFormat": "Format : XML avec attributs ID, non chiffré",
+    "dropzoneHint": "(Fichier \u2192 Enregistrer sous \u2192 XML avec attributs ID). Max 50 Mo",
+    "converting": "Conversion…",
+    "restarting": "Redémarrage du serveur… ({{accounts}} comptes, {{securities}} titres importés)",
+    "importSuccess": "Portefeuille importé ! ({{accounts}} comptes, {{securities}} titres)",
+    "serverNotResponding": "Le serveur ne répond pas. Rechargez la page manuellement."
+  },
+  "holidays": {
+    "noHolidays": "Aucun jour férié défini pour ce calendrier.",
+    "columns": {
+      "date": "Date",
+      "day": "Jour",
+      "holiday": "Jour férié"
+    }
+  },
+  "quoteProviders": {
+    "title": "Fournisseurs de cotations",
+    "alphaVantage": "Alpha Vantage",
+    "apiKey": "Clé API",
+    "apiKeyPlaceholder": "Entrez votre clé API Alpha Vantage",
+    "rateLimit": "Limite de débit",
+    "rateLimit25day": "25/jour (gratuit)",
+    "rateLimit75min": "75/min (premium)",
+    "getApiKey": "Obtenez une clé API gratuite sur",
+    "apiKeyConfigured": "Clé API configurée",
+    "apiKeyNotConfigured": "Clé API non configurée"
+  },
+  "exchangeRates": {
+    "title": "Taux de change",
+    "fetchButton": "Mettre à jour les taux de change",
+    "fetching": "Mise à jour...",
+    "fetchSuccess": "{{count}} taux de change mis à jour en {{duration}}ms",
+    "fetchError": "Erreur lors de la mise à jour des taux de change",
+    "noForeignCurrencies": "Aucune devise étrangère détectée dans le portefeuille"
+  }
+}

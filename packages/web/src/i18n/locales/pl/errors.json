@@ -1,0 +1,23 @@
+{
+  "import": {
+    "fileTooBig": "Plik przekracza 50 MB. Sprawdź, czy wyeksportowałeś właściwy plik z aplikacji portfela.",
+    "invalidXml": "Plik nie jest prawidłowym XML.",
+    "invalidFormat": "Upewnij się, że eksportujesz z aplikacji portfela w formacie XML z atrybutami ID (niezaszyfrowany).",
+    "encrypted": "Plik wydaje się być zaszyfrowany. Ponownie wyeksportuj z aplikacji portfela, wybierając format XML z atrybutami ID.",
+    "conversionError": "Błąd podczas konwersji. Poprzedni portfel jest nienaruszony.",
+    "importInProgress": "Import już trwa. Poczekaj na zakończenie.",
+    "unknownError": "Nieznany błąd.",
+    "details": "Szczegóły:"
+  },
+  "generic": {
+    "error": "Błąd:",
+    "notFound": "Nie znaleziono.",
+    "loading": "Ładowanie…"
+  },
+  "boundary": {
+    "title": "Coś poszło nie tak",
+    "description": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie załadować stronę.",
+    "reload": "Odśwież stronę",
+    "goHome": "Przejdź do pulpitu nawigacyjnego"
+  }
+}

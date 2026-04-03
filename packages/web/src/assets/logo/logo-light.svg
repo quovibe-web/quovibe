@@ -1,0 +1,18 @@
+<svg viewBox="0 0 260 70" fill="none" xmlns="http://www.w3.org/2000/svg" width="260" height="70">
+  <defs>
+    <linearGradient id="g" x1="0" y1="70" x2="70" y2="0">
+      <stop offset="0%" stop-color="#0e7490"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <!-- $ prompt -->
+  <text x="0" y="34" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="40" font-weight="300" fill="#7c3aed" opacity="0.5">$</text>
+  <!-- quo -->
+  <text x="26" y="34" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="40" font-weight="800" fill="#0e7490" letter-spacing="-1.5">quo</text>
+  <!-- Sparkline -->
+  <path d="M128 28 L136 22 L142 25 L150 12 L156 16 L164 6 L172 10 L180 2" 
+        stroke="url(#g)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="180" cy="2" r="2.5" fill="#7c3aed"/>
+  <!-- vibe -->
+  <text x="0" y="64" font-family="'Outfit', system-ui, sans-serif" font-size="40" font-weight="200" fill="#c4c4d0" letter-spacing="10">vibe</text>
+</svg>

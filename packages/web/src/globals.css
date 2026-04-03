@@ -1,0 +1,277 @@
+@import "tailwindcss";
+
+@theme {
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* ──────────────────────────────────────────────
+     Brand palette (light mode defaults)
+     ────────────────────────────────────────────── */
+  /* Legacy brand aliases removed — use --color-primary and --color-chart-* instead */
+
+  /* ──────────────────────────────────────────────
+     Surfaces (light) — Cool institutional slate
+     ────────────────────────────────────────────── */
+  --qv-bg: #f4f5f7;
+  --qv-surface: #ffffff;
+  --qv-surface-elevated: #f0f1f4;
+  --qv-surface-3: #e4e5e9;
+  --qv-border: #d4d6dc;
+  --qv-border-strong: #b4b7bf;
+  --qv-text-primary: #09090b;
+  --qv-text-muted: #71717a;
+  --qv-text-faint: #a1a1aa;
+
+  /* Semantic (light) */
+  --qv-success: #0a8f6c;
+  --qv-danger: #c8222e;
+  --qv-warning: #b86e00;
+  --qv-info: #0284c7;
+  --qv-positive: #059669;
+  --qv-negative: #dc2626;
+
+  /* ──────────────────────────────────────────────
+     shadcn remapping → brand tokens
+     ────────────────────────────────────────────── */
+  --color-background: var(--qv-bg);
+  --color-foreground: var(--qv-text-primary);
+  --color-card: var(--qv-surface);
+  --color-card-foreground: var(--qv-text-primary);
+  --color-popover: var(--qv-surface);
+  --color-popover-foreground: var(--qv-text-primary);
+  --color-primary: hsl(225, 32%, 46%);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--qv-surface-elevated);
+  --color-secondary-foreground: var(--qv-text-primary);
+  --color-muted: var(--qv-surface-elevated);
+  --color-muted-foreground: var(--qv-text-muted);
+  --color-accent: var(--qv-surface-elevated);
+  --color-accent-foreground: var(--qv-text-primary);
+  --color-destructive: var(--qv-danger);
+  --color-border: var(--qv-border);
+  --color-input: var(--qv-border);
+  --color-ring: hsl(225 30% 50% / 0.35);
+
+  /* Chart palette — institutional tinted neutrals (8 colors) */
+  --color-chart-1: hsl(220, 28%, 52%);
+  --color-chart-2: hsl(175, 25%, 48%);
+  --color-chart-3: hsl(35, 30%, 52%);
+  --color-chart-4: hsl(350, 25%, 52%);
+  --color-chart-5: hsl(245, 25%, 56%);
+  --color-chart-6: hsl(155, 22%, 48%);
+  --color-chart-7: hsl(25, 30%, 52%);
+  --color-chart-8: hsl(195, 28%, 48%);
+
+  /* Sidebar */
+  --color-sidebar: var(--qv-surface);
+  --color-sidebar-foreground: var(--qv-text-primary);
+  --color-sidebar-primary: hsl(225, 32%, 46%);
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: var(--qv-surface-elevated);
+  --color-sidebar-accent-foreground: var(--qv-text-primary);
+  --color-sidebar-border: var(--qv-border);
+  --color-sidebar-ring: hsl(225, 30%, 50%);
+
+  /* Financial semantic */
+  --color-profit: var(--qv-positive);
+  --color-loss: var(--qv-negative);
+  --color-dividend: var(--color-chart-1);
+
+  /* Radius — institutional, not toy */
+  --radius: 0.5rem;
+  --radius-sm: 0.375rem;
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ──────────────────────────────────────────────
+   DARK MODE — Institutional zinc dark room
+   ────────────────────────────────────────────── */
+html.dark {
+  /* Legacy brand aliases removed — use --color-primary and --color-chart-* instead */
+
+  /* Canvas & Surfaces (4-layer hierarchy via lightness delta) */
+  --qv-bg: #09090b;
+  --qv-surface: #18181b;
+  --qv-surface-elevated: rgba(39, 39, 42, 0.80);
+  --qv-surface-3: rgba(63, 63, 70, 0.60);
+
+  /* Borders (opacity-based for layered surfaces) */
+  --qv-border: rgba(255, 255, 255, 0.07);
+  --qv-border-strong: rgba(255, 255, 255, 0.13);
+
+  /* Typography (NEVER pure white) */
+  --qv-text-primary: #f4f4f5;
+  --qv-text-muted: #a1a1aa;
+  --qv-text-faint: #71717a;
+
+  /* Financial accents (desaturated, legible on dark) */
+  --qv-success: #34d399;
+  --qv-danger: #fb7185;
+  --qv-warning: #fbbf24;
+  --qv-info: #38bdf8;
+  --qv-positive: rgba(52, 211, 153, 0.90);
+  --qv-negative: rgba(251, 113, 133, 0.90);
+
+  /* shadcn dark overrides */
+  --color-primary: hsl(225, 30%, 52%);
+  --color-primary-foreground: #ffffff;
+  --color-popover: var(--qv-surface);
+  --color-ring: hsl(225 30% 55% / 0.35);
+
+  /* Chart palette — slightly brighter for dark backgrounds */
+  --color-chart-1: hsl(220, 33%, 60%);
+  --color-chart-2: hsl(175, 30%, 56%);
+  --color-chart-3: hsl(35, 35%, 60%);
+  --color-chart-4: hsl(350, 30%, 60%);
+  --color-chart-5: hsl(245, 30%, 64%);
+  --color-chart-6: hsl(155, 27%, 56%);
+  --color-chart-7: hsl(25, 35%, 60%);
+  --color-chart-8: hsl(195, 33%, 56%);
+
+  /* Sidebar */
+  --color-sidebar: var(--qv-surface);
+  --color-sidebar-primary: hsl(225, 30%, 52%);
+  --color-sidebar-primary-foreground: #ffffff;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  html, body {
+    overflow: hidden;
+    height: 100%;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  html.theme-transitioning *,
+  html.theme-transitioning *::before,
+  html.theme-transitioning *::after {
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
+  }
+
+  /* Tabular numbers for financial data alignment */
+  .tabular-nums,
+  [data-slot="table-cell"],
+  [data-tabular] {
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Light mode atmospheric body gradient */
+  html:not(.dark) body {
+    background-image:
+      radial-gradient(ellipse 75% 45% at 15% 0%, rgba(80, 95, 143, 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 35% at 88% 100%, rgba(80, 95, 143, 0.04) 0%, transparent 55%);
+  }
+
+  /* Light mode depth: cards float above tinted background */
+  html:not(.dark) [data-slot="card"] {
+    box-shadow: 0 1px 3px rgba(9, 9, 11, 0.06), 0 4px 12px rgba(9, 9, 11, 0.04);
+  }
+
+  html:not(.dark) [data-slot="card"]:hover {
+    box-shadow: 0 2px 6px rgba(9, 9, 11, 0.08), 0 8px 20px rgba(9, 9, 11, 0.06);
+  }
+
+  /* Dark mode: elevation via border + lightness delta, NO shadows */
+  html.dark [data-slot="card"] {
+    box-shadow: none;
+    border-color: var(--qv-border);
+  }
+
+  /* Light mode table header distinction */
+  html:not(.dark) [data-slot="table-header"] tr {
+    background-color: var(--qv-surface-elevated);
+  }
+
+  /* Dark mode table header distinction */
+  html.dark [data-slot="table-header"] tr {
+    background-color: var(--qv-surface);
+  }
+}
+
+/* Brand utilities removed — gradient no longer part of the palette */
+
+/* Page entrance animation — opacity only, no layout shift */
+@keyframes qv-page-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@utility qv-page {
+  animation: qv-page-enter 150ms ease-out;
+}
+
+/* Staggered children reveal */
+@keyframes qv-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Shimmer for skeletons */
+@keyframes qv-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Fade-in for data reveals */
+@keyframes qv-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@utility qv-fade-in {
+  animation: qv-fade-in 0.3s ease-out;
+}
+
+
+/* Interactive surface transitions (apply to nav items, table rows, cards) */
+@utility transition-surface {
+  transition: background-color 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out;
+}
+
+/* Safe area for mobile bottom nav */
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Hide scrollbar while keeping scroll functionality */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Clamp dashboard widget spans on narrow screens */
+@media (max-width: 639px) {
+  .qv-dashboard-grid > * {
+    grid-column: span 1 !important;
+  }
+}

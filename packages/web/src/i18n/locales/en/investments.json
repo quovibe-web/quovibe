@@ -1,0 +1,76 @@
+{
+  "title": "Investments",
+  "subtitle": "Your portfolio at a glance",
+  "chart": {
+    "pie": "Pie",
+    "treemap": "Treemap",
+    "off": "Off"
+  },
+  "showRetired": "Show retired",
+  "cashAccounts": "Cash Accounts",
+  "summary": {
+    "totalMV": "Total Market Value",
+    "holdings": "Holdings",
+    "cash": "Cash Balance",
+    "largest": "Largest Position"
+  },
+  "columns": {
+    "name": "Name",
+    "shares": "Shares",
+    "price": "Price/Share",
+    "pricePerShare": "Price/Share",
+    "marketValue": "Market Value",
+    "percentage": "% of Portfolio",
+    "currency": "Currency",
+    "isin": "ISIN",
+    "ticker": "Ticker",
+    "latestQuote": "Latest Quote",
+    "latestDate": "Latest Date",
+    "irr": "IRR",
+    "ttwror": "TTWROR",
+    "ttwrorPa": "TTWROR p.a.",
+    "purchaseValue": "Purchase Value",
+    "mve": "MVE",
+    "unrealizedGain": "Unrealized Gain",
+    "realizedGain": "Realized Gain",
+    "dividends": "Dividends",
+    "fees": "Fees",
+    "taxes": "Taxes",
+    "irrNotConverged": "not converged"
+  },
+  "columnGroups": {
+    "position": "Position",
+    "performance": "Performance",
+    "identity": "Identity"
+  },
+  "columnToggle": {
+    "button": "Columns",
+    "header": "Toggle columns",
+    "alwaysOn": "always on",
+    "reset": "Reset to defaults"
+  },
+  "drawer": {
+    "loading": "Loading...",
+    "performance": "Performance",
+    "identity": "Identity",
+    "viewDetail": "View Full Detail",
+    "editSecurity": "Edit Security",
+    "viewTransactions": "Transactions",
+    "addIsin": "Add ISIN ���",
+    "refreshPrices": "Refresh prices"
+  },
+  "filter": {
+    "showingAccount": "Showing holdings for {{name}}",
+    "clearFilter": "Show all"
+  },
+  "search": {
+    "placeholder": "Search by name, ISIN, or ticker…"
+  },
+  "totals": {
+    "label": "Total ({{count}} securities)"
+  },
+  "empty": {
+    "title": "No securities yet",
+    "description": "Add your first security to get started"
+  }
+}

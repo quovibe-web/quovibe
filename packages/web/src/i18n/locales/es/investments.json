@@ -1,0 +1,76 @@
+{
+  "title": "Inversiones",
+  "subtitle": "Tu cartera de un vistazo",
+  "columnGroups": {
+    "position": "Posición",
+    "performance": "Rendimiento",
+    "identity": "Identidad"
+  },
+  "drawer": {
+    "loading": "Cargando...",
+    "performance": "Rendimiento",
+    "identity": "Identidad",
+    "viewDetail": "Ver detalle completo",
+    "editSecurity": "Editar valor",
+    "viewTransactions": "Transacciones",
+    "addIsin": "Añadir ISIN →",
+    "refreshPrices": "Actualizar precios"
+  },
+  "chart": {
+    "pie": "Circular",
+    "treemap": "Treemap",
+    "off": "Desactivado"
+  },
+  "showRetired": "Mostrar retirados",
+  "cashAccounts": "Cuentas de efectivo",
+  "summary": {
+    "totalMV": "Valor de mercado total",
+    "holdings": "Posiciones",
+    "cash": "Saldo efectivo",
+    "largest": "Mayor posición"
+  },
+  "columns": {
+    "name": "Nombre",
+    "shares": "Participaciones",
+    "price": "Precio/Participación",
+    "pricePerShare": "Precio/Participación",
+    "marketValue": "Valor de mercado",
+    "percentage": "% de la cartera",
+    "currency": "Moneda",
+    "isin": "ISIN",
+    "ticker": "Ticker",
+    "latestQuote": "Última cotización",
+    "latestDate": "Última fecha",
+    "irr": "IRR",
+    "ttwror": "TTWROR",
+    "ttwrorPa": "TTWROR p.a.",
+    "purchaseValue": "Valor de compra",
+    "mve": "VM final",
+    "unrealizedGain": "Ganancia no realizada",
+    "realizedGain": "Ganancia realizada",
+    "dividends": "Dividendos",
+    "fees": "Comisiones",
+    "taxes": "Impuestos",
+    "irrNotConverged": "no convergente"
+  },
+  "columnToggle": {
+    "button": "Columnas",
+    "header": "Mostrar/ocultar columnas",
+    "alwaysOn": "siempre visible",
+    "reset": "Restablecer predeterminados"
+  },
+  "filter": {
+    "showingAccount": "Mostrando posiciones de {{name}}",
+    "clearFilter": "Mostrar todos"
+  },
+  "search": {
+    "placeholder": "Buscar por nombre, ISIN o ticker…"
+  },
+  "totals": {
+    "label": "Total ({{count}} valores)"
+  },
+  "empty": {
+    "title": "Sin valores",
+    "description": "Añade tu primer valor para empezar"
+  }
+}

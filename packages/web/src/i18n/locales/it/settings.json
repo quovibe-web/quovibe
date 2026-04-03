@@ -1,0 +1,199 @@
+{
+  "title": "Impostazioni",
+  "subtitle": "Configurazione del portafoglio",
+  "tabs": {
+    "portfolio": "Portfolio",
+    "presentation": "Presentazione",
+    "dataSources": "Fonti dati",
+    "accounts": "Conti",
+    "advanced": "Avanzate"
+  },
+  "sections": {
+    "general": "GENERALE",
+    "currencies": "VALUTE",
+    "reportingPeriods": "PERIODI DI RENDICONTAZIONE",
+    "display": "VISUALIZZAZIONE",
+    "precision": "PRECISIONE",
+    "quoteProviders": "FORNITORI DI QUOTAZIONI",
+    "database": "DATABASE",
+    "actions": "AZIONI"
+  },
+  "costMethod": {
+    "title": "Metodo di Costo",
+    "label": "Metodo",
+    "description": "Come calcolare il costo di carico dei titoli",
+    "fifo": "FIFO",
+    "movingAverage": "Media Mobile"
+  },
+  "calendar": {
+    "title": "Calendario della Borsa",
+    "label": "Calendario",
+    "description": "Definisce i giorni di negoziazione e le festività"
+  },
+  "baseCurrency": {
+    "title": "Valuta di Base",
+    "label": "Codice Valuta",
+    "description": "Tutti i valori saranno convertiti in questa valuta",
+    "placeholder": "EUR"
+  },
+  "presentation": {
+    "language": "Lingua",
+    "languageDescription": "Lingua dell'interfaccia dell'applicazione",
+    "theme": "Tema",
+    "themeDescription": "Aspetto dell'applicazione",
+    "themeLight": "Chiaro",
+    "themeDark": "Scuro",
+    "themeSystem": "Sistema",
+    "sharesPrecision": "Precisione azioni",
+    "sharesPrecisionDescription": "Cifre decimali per le quantità di azioni",
+    "quotesPrecision": "Precisione quotazioni",
+    "quotesPrecisionDescription": "Cifre decimali per le quotazioni",
+    "showCurrencyCode": "Mostra codice valuta",
+    "showCurrencyCodeDescription": "Visualizza EUR/USD invece di €/$",
+    "showPaSuffix": "Mostra suffisso p.a.",
+    "showPaSuffixDescription": "Visualizza 'p.a.' dopo i rendimenti annualizzati",
+    "privacyMode": "Modalità privacy",
+    "privacyModeDescription": "Nascondi importi e valori per impostazione predefinita"
+  },
+  "warnings": {
+    "recalculation": "Questa modifica influisce su tutti i calcoli. I valori saranno ricalcolati."
+  },
+  "saved": "Salvato",
+  "advanced": {
+    "dbPath": "Percorso database",
+    "dbSize": "Dimensione database",
+    "securitiesCount": "Titoli",
+    "transactionsCount": "Transazioni",
+    "version": "Versione"
+  },
+  "periods": {
+    "title": "Periodi di Rendicontazione",
+    "addPeriod": "Aggiungi periodo",
+    "newPeriod": "Nuovo periodo",
+    "managePeriods": "Gestisci periodi...",
+    "defaultBadge": "predefinito",
+    "deletePeriod": "Elimina periodo",
+    "moveUp": "Sposta su",
+    "moveDown": "Sposta giù",
+    "noPeriods": "Nessun periodo personalizzato ancora definito.",
+    "dialog": {
+      "title": "Nuovo Periodo di Rendicontazione",
+      "description": "Definisci un nuovo periodo di rendicontazione",
+      "lastYearsMonths": "Ultimi X anni Y mesi",
+      "lastDays": "Ultimi X giorni",
+      "lastTradingDays": "Ultimi X giorni di negoziazione",
+      "fromTo": "Dal (escl.) al",
+      "since": "Dal (escl.)",
+      "year": "Anno",
+      "currentSection": "Corrente",
+      "previousSection": "Precedente",
+      "week": "Settimana",
+      "month": "Mese",
+      "quarter": "Trimestre",
+      "yearToDate": "Anno (YTD)",
+      "day": "Giorno",
+      "tradingDay": "Giorno di negoziazione",
+      "preview": "Anteprima",
+      "create": "Crea periodo",
+      "cancel": "Annulla",
+      "years": "anni",
+      "months": "mesi",
+      "days": "giorni"
+    },
+    "labels": {
+      "lastYears_one": "Ultimo {{count}} anno",
+      "lastYears_other": "Ultimi {{count}} anni",
+      "lastMonths_one": "Ultimo {{count}} mese",
+      "lastMonths_other": "Ultimi {{count}} mesi",
+      "lastYearsMonths": "Ultimi {{years}}a {{months}}m",
+      "lastDays_one": "Ultimo {{count}} giorno",
+      "lastDays_other": "Ultimi {{count}} giorni",
+      "lastTradingDays_one": "Ultimo {{count}} giorno di negoziazione",
+      "lastTradingDays_other": "Ultimi {{count}} giorni di negoziazione",
+      "fromTo": "{{from}} — {{to}}",
+      "since": "Dal {{date}}",
+      "currentWeek": "Settimana corrente",
+      "currentMonth": "Mese corrente",
+      "currentQuarter": "Trimestre corrente",
+      "currentYTD": "Dall'inizio dell'anno (YTD)",
+      "previousDay": "Giorno precedente",
+      "previousTradingDay": "Giorno di negoziazione precedente",
+      "previousWeek": "Settimana precedente",
+      "previousMonth": "Mese precedente",
+      "previousQuarter": "Trimestre precedente",
+      "previousYear": "Anno precedente"
+    }
+  },
+  "export": {
+    "title": "Esporta",
+    "exportPortfolio": "Esporta Portafoglio"
+  },
+  "csvImport": {
+    "title": "Importazione CSV",
+    "description": "Importa transazioni da file CSV.",
+    "button": "Importa CSV"
+  },
+  "dataManagement": {
+    "title": "Gestione Dati",
+    "replacePortfolio": "Sostituisci Portafoglio",
+    "uploadHelp": "Carica un nuovo file XML per sostituire il portafoglio corrente. I vecchi dati saranno persi."
+  },
+  "import": {
+    "replaceTitle": "Sostituisci Portafoglio",
+    "replaceDescription": "Questa operazione sostituirà tutti i dati esistenti con il contenuto del nuovo file XML. Questa azione è irreversibile.",
+    "lastImport": "Ultima importazione:",
+    "confirmReplace": "Confermo la sostituzione dei dati esistenti",
+    "importTitle": "Importa il tuo portafoglio",
+    "importDescription": "Esporta il tuo portafoglio come XML (non criptato), poi caricalo qui.",
+    "retry": "Riprova",
+    "importButton": "Importa Portafoglio",
+    "startFromScratch": "Inizia da zero",
+    "startDescription": "Inizia con un portafoglio vuoto. Potrai aggiungere titoli e transazioni manualmente in seguito.",
+    "startButton": "Inizia da zero",
+    "tagline": "Il tracking del portafoglio, reinventato",
+    "successTitle": "Portafoglio importato con successo",
+    "successMessage_one": "{{count}} conto e {{securities}} titoli importati.",
+    "successMessage_other": "{{count}} conti e {{securities}} titoli importati.",
+    "goToDashboard": "Vai alla Dashboard",
+    "emptyConfirmTitle": "Iniziare con un portafoglio vuoto?",
+    "emptyConfirmDescription": "Non ci saranno dati storici. Potrai aggiungere titoli e transazioni manualmente.",
+    "emptyError": "Errore durante l'inizializzazione. Riprova.",
+    "initSuccessTitle": "Portafoglio creato",
+    "initSuccessDescription": "Portafoglio vuoto creato. Ora puoi aggiungere conti e titoli.",
+    "dropzone": "Trascina il file .xml qui o clicca per selezionarlo",
+    "dropzoneFormat": "Formato: XML con attributi ID, non criptato",
+    "dropzoneHint": "(File \u2192 Salva come \u2192 XML con attributi ID). Max 50 MB",
+    "converting": "Conversione…",
+    "restarting": "Riavvio del server… ({{accounts}} conti, {{securities}} titoli importati)",
+    "importSuccess": "Portafoglio importato! ({{accounts}} conti, {{securities}} titoli)",
+    "serverNotResponding": "Il server non risponde. Ricarica la pagina manualmente."
+  },
+  "holidays": {
+    "noHolidays": "Nessuna festività definita per questo calendario.",
+    "columns": {
+      "date": "Data",
+      "day": "Giorno",
+      "holiday": "Festività"
+    }
+  },
+  "quoteProviders": {
+    "title": "Fornitori di quotazioni",
+    "alphaVantage": "Alpha Vantage",
+    "apiKey": "Chiave API",
+    "apiKeyPlaceholder": "Inserisci la tua chiave API Alpha Vantage",
+    "rateLimit": "Limite di frequenza",
+    "rateLimit25day": "25/giorno (gratuito)",
+    "rateLimit75min": "75/min (premium)",
+    "getApiKey": "Ottieni una chiave API gratuita su",
+    "apiKeyConfigured": "Chiave API configurata",
+    "apiKeyNotConfigured": "Chiave API non configurata"
+  },
+  "exchangeRates": {
+    "title": "Tassi di Cambio",
+    "fetchButton": "Aggiorna Tassi di Cambio",
+    "fetching": "Aggiornamento...",
+    "fetchSuccess": "Aggiornati {{count}} tassi di cambio in {{duration}}ms",
+    "fetchError": "Errore nell'aggiornamento dei tassi di cambio",
+    "noForeignCurrencies": "Nessuna valuta estera rilevata nel portafoglio"
+  }
+}

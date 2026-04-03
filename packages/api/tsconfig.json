@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "module": "CommonJS",
+    "moduleResolution": "node10",
+    "ignoreDeprecations": "5.0",
+    "paths": {
+      "@quovibe/shared": ["../shared/dist/index"],
+      "@quovibe/engine": ["../engine/dist/index"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["src/__debug__"]
+}

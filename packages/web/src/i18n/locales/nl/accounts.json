@@ -1,0 +1,124 @@
+{
+  "title": "Rekeningen",
+  "subtitle": "Overview of all portfolio and deposit accounts",
+  "types": {
+    "deposit": "Geldrekening",
+    "portfolio": "Portefeuille"
+  },
+  "columns": {
+    "name": "Naam",
+    "currency": "Valuta",
+    "balance": "Saldo",
+    "referenceAccount": "Referentierekening"
+  },
+  "sections": {
+    "portfolios": "Portefeuilles",
+    "deposit": "Geldrekeningen"
+  },
+  "actions": {
+    "newAccount": "+ Nieuwe rekening",
+    "delete": "Verwijderen",
+    "deleteConfirm": "Rekening \"{{name}}\" verwijderen?",
+    "cannotDelete": "Kan niet verwijderen: deze rekening heeft {{count}} transactie(s).",
+    "reactivate": "Heractiveren",
+    "deactivate": "Deactiveren",
+    "newTransaction": "Nieuwe transactie",
+    "rename": "Hernoemen",
+    "changeLogo": "Logo wijzigen",
+    "retire": "Rekening archiveren",
+    "reactivateAccount": "Rekening heractiveren"
+  },
+  "menu": {
+    "stockSplit": "Aandelensplitsing…",
+    "corporateEvent": "Bedrijfsgebeurtenis…"
+  },
+  "detail": {
+    "summary": "Overzicht",
+    "currency": "Valuta",
+    "balance": "Saldo",
+    "referenceAccount": "Referentierekening",
+    "linkedPortfolios": "Gekoppelde portefeuilles",
+    "transactions": "Transacties",
+    "transactionsCount": "Transacties ({{count}})",
+    "noTransactions": "Geen transacties voor deze rekening",
+    "tabs": {
+      "cashAccount": "Geldrekening",
+      "transactions": "Alle transacties"
+    },
+    "viewHoldings": "Posities bekijken in Beleggingen"
+  },
+  "summary": {
+    "totalAccounts": "Totaal rekeningen",
+    "portfolioBalance": "Portefeuillesaldo",
+    "depositBalance": "Geldrekeningsaldo",
+    "totalValue": "Totale portefeuillewaarde",
+    "securities": "Effecten",
+    "cash": "Liquiditeiten",
+    "return": "Rendement (YTD)"
+  },
+  "empty": {
+    "noPortfolios": "Geen portefeuilles.",
+    "noDeposits": "Geen geldrekeningen."
+  },
+  "dialog": {
+    "title": "Nieuwe rekening",
+    "description": "Een nieuwe deposito- of effectenrekening aanmaken",
+    "name": "Naam",
+    "namePlaceholder": "Rekeningnaam…",
+    "type": "Type",
+    "typeDeposit": "Geldrekening",
+    "typeSecurities": "Effectenrekening",
+    "currency": "Valuta",
+    "referenceAccount": "Referentie-geldrekening",
+    "selectDeposit": "Selecteer geldrekening…",
+    "createNewDeposit": "+ Nieuwe geldrekening aanmaken",
+    "newDepositAccount": "Nieuwe geldrekening",
+    "depositAccountName": "Naam geldrekening",
+    "depositNamePlaceholder": "bijv. Mijn betaalrekening",
+    "depositCurrency": "Valuta"
+  },
+  "toasts": {
+    "depositCreated": "Geldrekening aangemaakt",
+    "securitiesCreated": "Effectenrekening aangemaakt",
+    "errorCreating": "Fout bij aanmaken van rekening"
+  },
+  "clickToChangeLogo": "Klik om logo te wijzigen",
+  "hub": {
+    "subtitle": "Uw effectenrekeningen en zelfstandige geldrekeningen"
+  },
+  "card": {
+    "totalValue": "Totale waarde",
+    "securities": "Effecten",
+    "cash": "Liquiditeiten",
+    "return": "Rendement",
+    "viewDetails": "Volledige details bekijken",
+    "securitiesCount_one": "{{count}} effect",
+    "securitiesCount_other": "{{count}} effecten"
+  },
+  "expanded": {
+    "securities": "Effecten",
+    "cash": "Liquiditeiten",
+    "cashRatio": "Liquiditeitsratio",
+    "lastActivity": "Laatste activiteit",
+    "transactions": "Transacties",
+    "moreSecurities": "+{{count}} meer",
+    "viewHoldings": "Posities bekijken"
+  },
+  "brokerage": {
+    "title": "Effectenrekeningen"
+  },
+  "standalone": {
+    "title": "Zelfstandige geldrekeningen"
+  },
+  "rename": {
+    "title": "Rekeningen hernoemen",
+    "titleSingle": "Rekening hernoemen",
+    "portfolioName": "Portefeuillenaam",
+    "depositName": "Depositonaam",
+    "description": "De geselecteerde rekening hernoemen"
+  },
+  "retired": {
+    "show": "Gearchiveerde rekeningen tonen",
+    "hide": "Gearchiveerde rekeningen verbergen"
+  }
+}

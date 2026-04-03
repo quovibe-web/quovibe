@@ -1,0 +1,124 @@
+{
+  "title": "Comptes",
+  "subtitle": "Overview of all portfolio and deposit accounts",
+  "types": {
+    "deposit": "Compte espèces",
+    "portfolio": "Portefeuille"
+  },
+  "columns": {
+    "name": "Nom",
+    "currency": "Devise",
+    "balance": "Solde",
+    "referenceAccount": "Compte de référence"
+  },
+  "sections": {
+    "portfolios": "Portefeuilles",
+    "deposit": "Comptes espèces"
+  },
+  "actions": {
+    "newAccount": "+ Nouveau compte",
+    "delete": "Supprimer",
+    "deleteConfirm": "Supprimer le compte \"{{name}}\" ?",
+    "cannotDelete": "Impossible de supprimer : ce compte a {{count}} transaction(s).",
+    "reactivate": "Réactiver",
+    "deactivate": "Désactiver",
+    "newTransaction": "Nouvelle transaction",
+    "rename": "Renommer",
+    "changeLogo": "Changer le logo",
+    "retire": "Archiver le compte",
+    "reactivateAccount": "Réactiver le compte"
+  },
+  "menu": {
+    "stockSplit": "Division d'actions…",
+    "corporateEvent": "Événement d'entreprise…"
+  },
+  "detail": {
+    "summary": "Résumé",
+    "currency": "Devise",
+    "balance": "Solde",
+    "referenceAccount": "Compte de référence",
+    "linkedPortfolios": "Portefeuilles liés",
+    "transactions": "Transactions",
+    "transactionsCount": "Transactions ({{count}})",
+    "noTransactions": "Aucune transaction pour ce compte",
+    "tabs": {
+      "cashAccount": "Compte espèces",
+      "transactions": "Toutes les transactions"
+    },
+    "viewHoldings": "Voir les positions dans Investissements"
+  },
+  "summary": {
+    "totalAccounts": "Total des comptes",
+    "portfolioBalance": "Solde du portefeuille",
+    "depositBalance": "Solde espèces",
+    "totalValue": "Valeur totale du portefeuille",
+    "securities": "Valeurs mobilières",
+    "cash": "Liquidités",
+    "return": "Rendement (YTD)"
+  },
+  "empty": {
+    "noPortfolios": "Aucun portefeuille.",
+    "noDeposits": "Aucun compte espèces."
+  },
+  "dialog": {
+    "title": "Nouveau compte",
+    "description": "Créer un nouveau compte dépôt ou titres",
+    "name": "Nom",
+    "namePlaceholder": "Nom du compte…",
+    "type": "Type",
+    "typeDeposit": "Compte espèces",
+    "typeSecurities": "Compte-titres",
+    "currency": "Devise",
+    "referenceAccount": "Compte espèces de référence",
+    "selectDeposit": "Sélectionner un compte espèces…",
+    "createNewDeposit": "+ Créer un nouveau compte espèces",
+    "newDepositAccount": "Nouveau compte espèces",
+    "depositAccountName": "Nom du compte espèces",
+    "depositNamePlaceholder": "ex. Mon compte courant",
+    "depositCurrency": "Devise"
+  },
+  "toasts": {
+    "depositCreated": "Compte espèces créé",
+    "securitiesCreated": "Compte-titres créé",
+    "errorCreating": "Erreur lors de la création du compte"
+  },
+  "clickToChangeLogo": "Cliquer pour changer le logo",
+  "hub": {
+    "subtitle": "Vos comptes de courtage et dépôts autonomes"
+  },
+  "card": {
+    "totalValue": "Valeur totale",
+    "securities": "Valeurs mobilières",
+    "cash": "Liquidités",
+    "return": "Rendement",
+    "viewDetails": "Voir les détails complets",
+    "securitiesCount_one": "{{count}} valeur",
+    "securitiesCount_other": "{{count}} valeurs"
+  },
+  "expanded": {
+    "securities": "Valeurs mobilières",
+    "cash": "Liquidités",
+    "cashRatio": "Ratio de liquidités",
+    "lastActivity": "Dernière activité",
+    "transactions": "Transactions",
+    "moreSecurities": "+{{count}} autres",
+    "viewHoldings": "Voir les positions"
+  },
+  "brokerage": {
+    "title": "Comptes-Titres"
+  },
+  "standalone": {
+    "title": "Dépôts autonomes"
+  },
+  "rename": {
+    "title": "Renommer les comptes",
+    "titleSingle": "Renommer le compte",
+    "portfolioName": "Nom du portefeuille",
+    "depositName": "Nom du compte de dépôt",
+    "description": "Renommer le compte sélectionné"
+  },
+  "retired": {
+    "show": "Afficher les comptes archivés",
+    "hide": "Masquer les comptes archivés"
+  }
+}

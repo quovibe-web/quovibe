@@ -1,0 +1,51 @@
+{
+  "title": "Listas de seguimiento",
+  "tabs": {
+    "new": "Nueva lista",
+    "rename": "Renombrar",
+    "duplicate": "Duplicar",
+    "delete": "Eliminar",
+    "deleteConfirmTitle": "Eliminar lista",
+    "deleteConfirmMessage": "¿Está seguro de que desea eliminar \"{{name}}\"? Los valores no se eliminarán.",
+    "defaultName": "Nueva lista"
+  },
+  "table": {
+    "name": "Nombre",
+    "ticker": "Ticker",
+    "price": "Precio",
+    "change": "Variación",
+    "trend": "Tendencia 30d",
+    "currency": "Divisa",
+    "lastQuote": "Última cotización",
+    "noData": "Sin datos",
+    "noQuotes": "Sin cotizaciones"
+  },
+  "actions": {
+    "addSecurity": "Añadir valor",
+    "viewDetails": "Ver detalles",
+    "removeFromWatchlist": "Quitar de la lista",
+    "createNewInstrument": "Crear nuevo instrumento…",
+    "editSecurity": "Editar"
+  },
+  "addDialog": {
+    "title": "Añadir valor a la lista",
+    "search": "Buscar por nombre, ISIN o ticker...",
+    "existing": "Valores existentes",
+    "createNew": "Crear nuevo valor",
+    "alreadyAdded": "Ya está en la lista",
+    "noResults": "No se encontraron valores",
+    "add": "Añadir selección"
+  },
+  "empty": {
+    "title": "No hay listas de seguimiento",
+    "description": "Cree su primera lista para empezar a seguir valores.",
+    "createFirst": "Crear lista",
+    "noSecurities": "No hay valores en esta lista.",
+    "addSome": "Añada algunos para empezar el seguimiento."
+  },
+  "widget": {
+    "selectWatchlist": "Seleccionar una lista",
+    "notFound": "Lista no encontrada",
+    "configure": "Configurar"
+  }
+}

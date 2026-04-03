@@ -1,0 +1,199 @@
+{
+  "title": "Configuración",
+  "subtitle": "Configuración de la cartera",
+  "tabs": {
+    "portfolio": "Cartera",
+    "presentation": "Presentación",
+    "dataSources": "Fuentes de datos",
+    "accounts": "Cuentas",
+    "advanced": "Avanzado"
+  },
+  "sections": {
+    "general": "GENERAL",
+    "currencies": "MONEDAS",
+    "reportingPeriods": "PERIODOS DE INFORMACIÓN",
+    "display": "VISUALIZACIÓN",
+    "precision": "PRECISIÓN",
+    "quoteProviders": "PROVEEDORES DE COTIZACIONES",
+    "database": "BASE DE DATOS",
+    "actions": "ACCIONES"
+  },
+  "costMethod": {
+    "title": "Método de coste",
+    "label": "Método",
+    "description": "Cómo calcular el coste de adquisición de los valores",
+    "fifo": "FIFO",
+    "movingAverage": "Media móvil"
+  },
+  "calendar": {
+    "title": "Calendario bursátil",
+    "label": "Calendario",
+    "description": "Define los días de negociación y festivos"
+  },
+  "baseCurrency": {
+    "title": "Moneda base",
+    "label": "Código de moneda",
+    "description": "Todos los valores se convertirán a esta moneda",
+    "placeholder": "EUR"
+  },
+  "presentation": {
+    "language": "Idioma",
+    "languageDescription": "Idioma de la interfaz de la aplicación",
+    "theme": "Tema",
+    "themeDescription": "Apariencia de la aplicación",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeSystem": "Sistema",
+    "sharesPrecision": "Precisión acciones",
+    "sharesPrecisionDescription": "Decimales para cantidades de acciones",
+    "quotesPrecision": "Precisión cotizaciones",
+    "quotesPrecisionDescription": "Decimales para cotizaciones de precios",
+    "showCurrencyCode": "Mostrar código de moneda",
+    "showCurrencyCodeDescription": "Mostrar EUR/USD en lugar de €/$",
+    "showPaSuffix": "Mostrar sufijo p.a.",
+    "showPaSuffixDescription": "Mostrar 'p.a.' después de los rendimientos anualizados",
+    "privacyMode": "Modo privacidad",
+    "privacyModeDescription": "Ocultar importes y valores por defecto"
+  },
+  "warnings": {
+    "recalculation": "Este cambio afecta a todos los cálculos. Los valores se recalcularán."
+  },
+  "saved": "Guardado",
+  "advanced": {
+    "dbPath": "Ruta de la base de datos",
+    "dbSize": "Tamaño de la base de datos",
+    "securitiesCount": "Valores",
+    "transactionsCount": "Transacciones",
+    "version": "Versión"
+  },
+  "periods": {
+    "title": "Periodos de información",
+    "addPeriod": "Añadir periodo",
+    "newPeriod": "Nuevo periodo",
+    "managePeriods": "Gestionar periodos...",
+    "defaultBadge": "predeterminado",
+    "deletePeriod": "Eliminar periodo",
+    "moveUp": "Subir",
+    "moveDown": "Bajar",
+    "noPeriods": "Aún no se han definido periodos personalizados.",
+    "dialog": {
+      "title": "Nuevo periodo de información",
+      "description": "Definir un nuevo periodo de información",
+      "lastYearsMonths": "Últimos X años Y meses",
+      "lastDays": "Últimos X días",
+      "lastTradingDays": "Últimos X días de negociación",
+      "fromTo": "Desde (excl.) hasta",
+      "since": "Desde (excl.)",
+      "year": "Año",
+      "currentSection": "Actual",
+      "previousSection": "Anterior",
+      "week": "Semana",
+      "month": "Mes",
+      "quarter": "Trimestre",
+      "yearToDate": "Año (YTD)",
+      "day": "Día",
+      "tradingDay": "Día de negociación",
+      "preview": "Vista previa",
+      "create": "Crear periodo",
+      "cancel": "Cancelar",
+      "years": "años",
+      "months": "meses",
+      "days": "días"
+    },
+    "labels": {
+      "lastYears_one": "Último {{count}} año",
+      "lastYears_other": "Últimos {{count}} años",
+      "lastMonths_one": "Último {{count}} mes",
+      "lastMonths_other": "Últimos {{count}} meses",
+      "lastYearsMonths": "Últimos {{years}}a {{months}}m",
+      "lastDays_one": "Último {{count}} día",
+      "lastDays_other": "Últimos {{count}} días",
+      "lastTradingDays_one": "Último {{count}} día de negociación",
+      "lastTradingDays_other": "Últimos {{count}} días de negociación",
+      "fromTo": "{{from}} — {{to}}",
+      "since": "Desde {{date}}",
+      "currentWeek": "Semana actual",
+      "currentMonth": "Mes actual",
+      "currentQuarter": "Trimestre actual",
+      "currentYTD": "Año en curso (YTD)",
+      "previousDay": "Día anterior",
+      "previousTradingDay": "Día de negociación anterior",
+      "previousWeek": "Semana anterior",
+      "previousMonth": "Mes anterior",
+      "previousQuarter": "Trimestre anterior",
+      "previousYear": "Año anterior"
+    }
+  },
+  "export": {
+    "title": "Exportar",
+    "exportPortfolio": "Exportar cartera"
+  },
+  "csvImport": {
+    "title": "Importación CSV",
+    "description": "Importar transacciones desde archivos CSV.",
+    "button": "Importar CSV"
+  },
+  "dataManagement": {
+    "title": "Gestión de datos",
+    "replacePortfolio": "Reemplazar cartera",
+    "uploadHelp": "Suba un nuevo archivo XML para reemplazar la cartera actual. Los datos antiguos se perderán."
+  },
+  "import": {
+    "replaceTitle": "Reemplazar cartera",
+    "replaceDescription": "Esta operación reemplazará todos los datos existentes con el contenido del nuevo archivo XML. Esta acción es irreversible.",
+    "lastImport": "Última importación:",
+    "confirmReplace": "Confirmo el reemplazo de los datos existentes",
+    "importTitle": "Importe su cartera",
+    "importDescription": "Exporte su portafolio como XML (sin cifrar) y luego súbalo aquí.",
+    "retry": "Reintentar",
+    "importButton": "Importar cartera",
+    "startFromScratch": "Empezar desde cero",
+    "startDescription": "Comience con una cartera vacía. Podrá añadir valores y transacciones manualmente más tarde.",
+    "startButton": "Empezar desde cero",
+    "tagline": "Seguimiento de cartera, reinventado",
+    "successTitle": "Cartera importada con éxito",
+    "successMessage_one": "{{count}} cuenta y {{securities}} valores importados.",
+    "successMessage_other": "{{count}} cuentas y {{securities}} valores importados.",
+    "goToDashboard": "Ir al panel",
+    "emptyConfirmTitle": "¿Empezar con una cartera vacía?",
+    "emptyConfirmDescription": "No habrá datos históricos. Podrá añadir valores y transacciones manualmente.",
+    "emptyError": "Error durante la inicialización. Inténtelo de nuevo.",
+    "initSuccessTitle": "Cartera creada",
+    "initSuccessDescription": "Cartera vacía creada. Ahora puedes añadir cuentas y valores.",
+    "dropzone": "Arrastre el archivo .xml aquí o haga clic para seleccionarlo",
+    "dropzoneFormat": "Formato: XML con atributos ID, sin cifrar",
+    "dropzoneHint": "(Archivo \u2192 Guardar como \u2192 XML con atributos ID). M\u00e1x 50 MB",
+    "converting": "Convirtiendo…",
+    "restarting": "Reiniciando servidor… ({{accounts}} cuentas, {{securities}} valores importados)",
+    "importSuccess": "¡Cartera importada! ({{accounts}} cuentas, {{securities}} valores)",
+    "serverNotResponding": "El servidor no responde. Recargue la página manualmente."
+  },
+  "holidays": {
+    "noHolidays": "No hay festivos definidos para este calendario.",
+    "columns": {
+      "date": "Fecha",
+      "day": "Día",
+      "holiday": "Festivo"
+    }
+  },
+  "quoteProviders": {
+    "title": "Proveedores de cotizaciones",
+    "alphaVantage": "Alpha Vantage",
+    "apiKey": "Clave API",
+    "apiKeyPlaceholder": "Introduce tu clave API de Alpha Vantage",
+    "rateLimit": "Límite de tasa",
+    "rateLimit25day": "25/día (gratuito)",
+    "rateLimit75min": "75/min (premium)",
+    "getApiKey": "Obtén una clave API gratuita en",
+    "apiKeyConfigured": "Clave API configurada",
+    "apiKeyNotConfigured": "Clave API no configurada"
+  },
+  "exchangeRates": {
+    "title": "Tipos de cambio",
+    "fetchButton": "Actualizar tipos de cambio",
+    "fetching": "Actualizando...",
+    "fetchSuccess": "{{count}} tipos de cambio actualizados en {{duration}}ms",
+    "fetchError": "Error al actualizar los tipos de cambio",
+    "noForeignCurrencies": "No se detectaron divisas extranjeras en la cartera"
+  }
+}

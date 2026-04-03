@@ -1,0 +1,76 @@
+{
+  "title": "Investimentos",
+  "subtitle": "O seu portfólio num relance",
+  "columnGroups": {
+    "position": "Posição",
+    "performance": "Desempenho",
+    "identity": "Identidade"
+  },
+  "drawer": {
+    "loading": "Carregando...",
+    "performance": "Desempenho",
+    "identity": "Identidade",
+    "viewDetail": "Ver detalhe completo",
+    "editSecurity": "Editar título",
+    "viewTransactions": "Transações",
+    "addIsin": "Adicionar ISIN →",
+    "refreshPrices": "Atualizar preços"
+  },
+  "chart": {
+    "pie": "Circular",
+    "treemap": "Treemap",
+    "off": "Desativado"
+  },
+  "showRetired": "Mostrar retirados",
+  "cashAccounts": "Contas à ordem",
+  "summary": {
+    "totalMV": "Valor de mercado total",
+    "holdings": "Posições",
+    "cash": "Saldo em caixa",
+    "largest": "Maior posição"
+  },
+  "columns": {
+    "name": "Nome",
+    "shares": "Participações",
+    "price": "Preço/Participação",
+    "pricePerShare": "Preço/Participação",
+    "marketValue": "Valor de mercado",
+    "percentage": "% do portfólio",
+    "currency": "Moeda",
+    "isin": "ISIN",
+    "ticker": "Ticker",
+    "latestQuote": "Última cotação",
+    "latestDate": "Última data",
+    "irr": "IRR",
+    "ttwror": "TTWROR",
+    "ttwrorPa": "TTWROR p.a.",
+    "purchaseValue": "Valor de compra",
+    "mve": "VM final",
+    "unrealizedGain": "Ganho não realizado",
+    "realizedGain": "Ganho realizado",
+    "dividends": "Dividendos",
+    "fees": "Taxas",
+    "taxes": "Impostos",
+    "irrNotConverged": "não convergente"
+  },
+  "columnToggle": {
+    "button": "Colunas",
+    "header": "Mostrar/ocultar colunas",
+    "alwaysOn": "sempre visível",
+    "reset": "Restaurar padrão"
+  },
+  "filter": {
+    "showingAccount": "Posições para {{name}}",
+    "clearFilter": "Mostrar todos"
+  },
+  "search": {
+    "placeholder": "Pesquisar por nome, ISIN ou ticker…"
+  },
+  "totals": {
+    "label": "Total ({{count}} títulos)"
+  },
+  "empty": {
+    "title": "Sem títulos",
+    "description": "Adicione o seu primeiro título para começar"
+  }
+}

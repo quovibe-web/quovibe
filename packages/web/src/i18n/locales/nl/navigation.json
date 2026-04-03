@@ -1,0 +1,45 @@
+{
+  "sections": {
+    "main": "Hoofd",
+    "data": "Gegevens",
+    "analysis": "Analyse",
+    "taxonomies": "Taxonomieën",
+    "system": "Systeem"
+  },
+  "items": {
+    "dashboard": "Dashboard",
+    "accounts": "Rekeningen",
+    "investments": "Beleggingen",
+    "transactions": "Transacties",
+    "analytics": "Analyses",
+    "assetAllocation": "Taxonomieën",
+    "dataSeries": "Gegevensreeksen",
+    "settings": "Instellingen",
+    "watchlists": "Volglijsten"
+  },
+  "period": "Periode",
+  "presets": {
+    "1Y": "1Y",
+    "2Y": "2Y",
+    "3Y": "3Y",
+    "5Y": "5Y",
+    "YTD": "YTD",
+    "ALL": "ALL"
+  },
+  "privacy": {
+    "enable": "Discrete modus inschakelen",
+    "disable": "Discrete modus uitschakelen"
+  },
+  "theme": {
+    "light": "Licht thema",
+    "system": "Systeemthema",
+    "dark": "Donker thema",
+    "toggle": "Thema wisselen"
+  },
+  "more": "Meer",
+  "morePeriods": "Meer perioden",
+  "newPeriod": "Nieuwe periode...",
+  "managePeriods": "Perioden beheren...",
+  "sheetTitle": "Navigatie",
+  "reportingPeriod": "Rapportageperiode"
+}

@@ -1,0 +1,23 @@
+{
+  "import": {
+    "fileTooBig": "Die Datei überschreitet 50 MB. Überprüfen Sie, ob Sie die richtige Datei aus Ihrer Portfolio-App exportiert haben.",
+    "invalidXml": "Die Datei ist kein gültiges XML.",
+    "invalidFormat": "Stellen Sie sicher, dass Sie aus Ihrer Portfolio-App im XML-Format mit ID-Attributen exportieren (nicht verschlüsselt).",
+    "encrypted": "Die Datei scheint verschlüsselt zu sein. Exportieren Sie erneut aus Ihrer Portfolio-App und wählen Sie das XML-Format mit ID-Attributen.",
+    "conversionError": "Fehler bei der Konvertierung. Das vorherige Portfolio ist intakt.",
+    "importInProgress": "Import läuft bereits. Warten Sie auf den Abschluss.",
+    "unknownError": "Unbekannter Fehler.",
+    "details": "Details:"
+  },
+  "generic": {
+    "error": "Fehler:",
+    "notFound": "Nicht gefunden.",
+    "loading": "Laden…"
+  },
+  "boundary": {
+    "title": "Etwas ist schiefgelaufen",
+    "description": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie, die Seite neu zu laden.",
+    "reload": "Seite neu laden",
+    "goHome": "Zum Dashboard"
+  }
+}

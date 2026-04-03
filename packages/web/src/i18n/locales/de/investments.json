@@ -1,0 +1,76 @@
+{
+  "title": "Investitionen",
+  "subtitle": "Ihr Portfolio auf einen Blick",
+  "columnGroups": {
+    "position": "Position",
+    "performance": "Performance",
+    "identity": "Identität"
+  },
+  "drawer": {
+    "loading": "Wird geladen...",
+    "performance": "Performance",
+    "identity": "Identität",
+    "viewDetail": "Vollständige Details",
+    "editSecurity": "Wertpapier bearbeiten",
+    "viewTransactions": "Transaktionen",
+    "addIsin": "ISIN hinzufügen →",
+    "refreshPrices": "Kurse aktualisieren"
+  },
+  "chart": {
+    "pie": "Torte",
+    "treemap": "Treemap",
+    "off": "Aus"
+  },
+  "showRetired": "Inaktive anzeigen",
+  "cashAccounts": "Verrechnungskonten",
+  "summary": {
+    "totalMV": "Gesamtwert",
+    "holdings": "Positionen",
+    "cash": "Kontosaldo",
+    "largest": "Größte Position"
+  },
+  "columns": {
+    "name": "Name",
+    "shares": "Anteile",
+    "price": "Kurs",
+    "pricePerShare": "Kurs",
+    "marketValue": "Marktwert",
+    "percentage": "% des Portfolios",
+    "currency": "Währung",
+    "isin": "ISIN",
+    "ticker": "Ticker",
+    "latestQuote": "Letzter Kurs",
+    "latestDate": "Letztes Datum",
+    "irr": "IRR",
+    "ttwror": "TTWROR",
+    "ttwrorPa": "TTWROR p.a.",
+    "purchaseValue": "Einstandswert",
+    "mve": "MW Ende",
+    "unrealizedGain": "Unrealisierter Gewinn",
+    "realizedGain": "Realisierter Gewinn",
+    "dividends": "Dividenden",
+    "fees": "Gebühren",
+    "taxes": "Steuern",
+    "irrNotConverged": "nicht konvergiert"
+  },
+  "columnToggle": {
+    "button": "Spalten",
+    "header": "Spalten ein-/ausblenden",
+    "alwaysOn": "immer sichtbar",
+    "reset": "Auf Standard zurücksetzen"
+  },
+  "filter": {
+    "showingAccount": "Positionen für {{name}}",
+    "clearFilter": "Alle anzeigen"
+  },
+  "search": {
+    "placeholder": "Nach Name, ISIN oder Ticker suchen…"
+  },
+  "totals": {
+    "label": "Gesamt ({{count}} Wertpapiere)"
+  },
+  "empty": {
+    "title": "Noch keine Wertpapiere",
+    "description": "Fügen Sie Ihr erstes Wertpapier hinzu"
+  }
+}

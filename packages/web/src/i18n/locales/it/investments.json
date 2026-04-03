@@ -1,0 +1,76 @@
+{
+  "title": "Investimenti",
+  "subtitle": "Il tuo portafoglio a colpo d'occhio",
+  "columnGroups": {
+    "position": "Posizione",
+    "performance": "Performance",
+    "identity": "Identità"
+  },
+  "drawer": {
+    "loading": "Caricamento...",
+    "performance": "Performance",
+    "identity": "Identità",
+    "viewDetail": "Dettaglio completo",
+    "editSecurity": "Modifica titolo",
+    "viewTransactions": "Transazioni",
+    "addIsin": "Aggiungi ISIN →",
+    "refreshPrices": "Aggiorna prezzi"
+  },
+  "chart": {
+    "pie": "Torta",
+    "treemap": "Treemap",
+    "off": "Off"
+  },
+  "showRetired": "Mostra ritirati",
+  "cashAccounts": "Conti deposito",
+  "summary": {
+    "totalMV": "Valore di mercato totale",
+    "holdings": "Posizioni",
+    "cash": "Saldo cassa",
+    "largest": "Posizione più grande"
+  },
+  "columns": {
+    "name": "Nome",
+    "shares": "Quote",
+    "price": "Prezzo/Quota",
+    "pricePerShare": "Prezzo/Quota",
+    "marketValue": "Valore di mercato",
+    "percentage": "% del portafoglio",
+    "currency": "Valuta",
+    "isin": "ISIN",
+    "ticker": "Ticker",
+    "latestQuote": "Ultima quotazione",
+    "latestDate": "Ultima data",
+    "irr": "IRR",
+    "ttwror": "TTWROR",
+    "ttwrorPa": "TTWROR p.a.",
+    "purchaseValue": "Valore di acquisto",
+    "mve": "VMF",
+    "unrealizedGain": "Plus/minusvalenza",
+    "realizedGain": "Guadagno realizzato",
+    "dividends": "Dividendi",
+    "fees": "Commissioni",
+    "taxes": "Imposte",
+    "irrNotConverged": "non convergente"
+  },
+  "columnToggle": {
+    "button": "Colonne",
+    "header": "Mostra/nascondi colonne",
+    "alwaysOn": "sempre visibile",
+    "reset": "Ripristina predefiniti"
+  },
+  "filter": {
+    "showingAccount": "Posizioni per {{name}}",
+    "clearFilter": "Mostra tutti"
+  },
+  "search": {
+    "placeholder": "Cerca per nome, ISIN o ticker…"
+  },
+  "totals": {
+    "label": "Totale ({{count}} titoli)"
+  },
+  "empty": {
+    "title": "Nessun titolo",
+    "description": "Aggiungi il tuo primo titolo per iniziare"
+  }
+}

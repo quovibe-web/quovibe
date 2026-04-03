@@ -1,0 +1,19 @@
+FROM node:24
+RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN apt-get update && apt-get install -y python3 python3-lxml make g++ && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+
+# Installa dipendenze (usa il lockfile per coerenza)
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages/shared/package.json    ./packages/shared/
+COPY packages/engine/package.json    ./packages/engine/
+COPY packages/api/package.json       ./packages/api/
+COPY packages/web/package.json       ./packages/web/
+RUN pnpm install
+
+# Copia sorgenti (il volume in docker-compose.dev.yml sovrascrive packages/ in dev)
+COPY . .
+
+EXPOSE 3000 5173
+
+CMD ["pnpm", "dev"]

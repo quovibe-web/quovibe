@@ -1,0 +1,51 @@
+{
+  "title": "Listy obserwowanych",
+  "tabs": {
+    "new": "Nowa lista",
+    "rename": "Zmień nazwę",
+    "duplicate": "Duplikuj",
+    "delete": "Usuń",
+    "deleteConfirmTitle": "Usuń listę",
+    "deleteConfirmMessage": "Czy na pewno chcesz usunąć \"{{name}}\"? Papiery wartościowe nie zostaną usunięte.",
+    "defaultName": "Nowa lista"
+  },
+  "table": {
+    "name": "Nazwa",
+    "ticker": "Ticker",
+    "price": "Kurs",
+    "change": "Zmiana",
+    "trend": "Trend 30d",
+    "currency": "Waluta",
+    "lastQuote": "Ostatni kurs",
+    "noData": "Brak danych",
+    "noQuotes": "Brak kursów"
+  },
+  "actions": {
+    "addSecurity": "Dodaj papier wartościowy",
+    "viewDetails": "Pokaż szczegóły",
+    "removeFromWatchlist": "Usuń z listy",
+    "createNewInstrument": "Utwórz nowy instrument…",
+    "editSecurity": "Edytuj"
+  },
+  "addDialog": {
+    "title": "Dodaj papier wartościowy do listy",
+    "search": "Szukaj po nazwie, ISIN lub tickerze...",
+    "existing": "Istniejące papiery wartościowe",
+    "createNew": "Utwórz nowy papier wartościowy",
+    "alreadyAdded": "Już na liście",
+    "noResults": "Nie znaleziono papierów wartościowych",
+    "add": "Dodaj wybrane"
+  },
+  "empty": {
+    "title": "Brak list obserwowanych",
+    "description": "Utwórz pierwszą listę, aby zacząć śledzić papiery wartościowe.",
+    "createFirst": "Utwórz listę",
+    "noSecurities": "Brak papierów wartościowych na tej liście.",
+    "addSome": "Dodaj kilka, aby rozpocząć śledzenie."
+  },
+  "widget": {
+    "selectWatchlist": "Wybierz listę",
+    "notFound": "Lista nie znaleziona",
+    "configure": "Konfiguruj"
+  }
+}

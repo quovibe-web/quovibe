@@ -1,0 +1,45 @@
+{
+  "sections": {
+    "main": "Main",
+    "data": "Data",
+    "analysis": "Analysis",
+    "taxonomies": "Taxonomies",
+    "system": "System"
+  },
+  "items": {
+    "dashboard": "Dashboard",
+    "accounts": "Accounts",
+    "investments": "Investments",
+    "transactions": "Transactions",
+    "analytics": "Analytics",
+    "assetAllocation": "Taxonomies",
+    "dataSeries": "Data Series",
+    "settings": "Settings",
+    "watchlists": "Watchlists"
+  },
+  "period": "Period",
+  "presets": {
+    "1Y": "1Y",
+    "2Y": "2Y",
+    "3Y": "3Y",
+    "5Y": "5Y",
+    "YTD": "YTD",
+    "ALL": "ALL"
+  },
+  "privacy": {
+    "enable": "Enable discrete mode",
+    "disable": "Disable discrete mode"
+  },
+  "theme": {
+    "light": "Light theme",
+    "system": "System theme",
+    "dark": "Dark theme",
+    "toggle": "Toggle theme"
+  },
+  "more": "More",
+  "morePeriods": "More periods",
+  "newPeriod": "New period...",
+  "managePeriods": "Manage periods...",
+  "sheetTitle": "Navigation",
+  "reportingPeriod": "Reporting Period"
+}

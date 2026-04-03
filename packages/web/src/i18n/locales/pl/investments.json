@@ -1,0 +1,76 @@
+{
+  "title": "Inwestycje",
+  "subtitle": "Twój portfel w skrócie",
+  "columnGroups": {
+    "position": "Pozycja",
+    "performance": "Wyniki",
+    "identity": "Identyfikacja"
+  },
+  "drawer": {
+    "loading": "Ładowanie...",
+    "performance": "Wyniki",
+    "identity": "Identyfikacja",
+    "viewDetail": "Pełne szczegóły",
+    "editSecurity": "Edytuj papier",
+    "viewTransactions": "Transakcje",
+    "addIsin": "Dodaj ISIN →",
+    "refreshPrices": "Odśwież ceny"
+  },
+  "chart": {
+    "pie": "Kołowy",
+    "treemap": "Treemap",
+    "off": "Wyłączony"
+  },
+  "showRetired": "Pokaż wycofane",
+  "cashAccounts": "Konta pieniężne",
+  "summary": {
+    "totalMV": "Całkowita wartość rynkowa",
+    "holdings": "Pozycje",
+    "cash": "Saldo gotówkowe",
+    "largest": "Największa pozycja"
+  },
+  "columns": {
+    "name": "Nazwa",
+    "shares": "Udziały",
+    "price": "Cena/Udział",
+    "pricePerShare": "Cena/Udział",
+    "marketValue": "Wartość rynkowa",
+    "percentage": "% portfela",
+    "currency": "Waluta",
+    "isin": "ISIN",
+    "ticker": "Ticker",
+    "latestQuote": "Ostatni kurs",
+    "latestDate": "Ostatnia data",
+    "irr": "IRR",
+    "ttwror": "TTWROR",
+    "ttwrorPa": "TTWROR p.a.",
+    "purchaseValue": "Wartość zakupu",
+    "mve": "WR końcowa",
+    "unrealizedGain": "Niezrealizowany zysk",
+    "realizedGain": "Zrealizowany zysk",
+    "dividends": "Dywidendy",
+    "fees": "Opłaty",
+    "taxes": "Podatki",
+    "irrNotConverged": "brak zbieżności"
+  },
+  "columnToggle": {
+    "button": "Kolumny",
+    "header": "Pokaż/ukryj kolumny",
+    "alwaysOn": "zawsze widoczne",
+    "reset": "Przywróć domyślne"
+  },
+  "filter": {
+    "showingAccount": "Pozycje dla {{name}}",
+    "clearFilter": "Pokaż wszystkie"
+  },
+  "search": {
+    "placeholder": "Szukaj po nazwie, ISIN lub ticker…"
+  },
+  "totals": {
+    "label": "Razem ({{count}} papierów)"
+  },
+  "empty": {
+    "title": "Brak papierów wartościowych",
+    "description": "Dodaj swój pierwszy papier wartościowy, aby rozpocząć"
+  }
+}
