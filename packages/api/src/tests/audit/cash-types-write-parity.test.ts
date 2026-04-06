@@ -424,11 +424,12 @@ describe.skipIf(!hasSqliteBindings)('GROUP D — INTEREST + INTEREST_CHARGE', ()
     dbPath = uniqueDbPath('interest');
     sqlite = createTestDb(dbPath);
 
-    // INTEREST: fixture row 1 — amount=31.78 (net), taxes=11.17
+    // INTEREST: fixture row 1 — gross=42.95, taxes=11.17
+    // ppxml2db stores amount = gross - fees - taxes = 42.95 - 0 - 11.17 = 31.78 → 3178 hecto
     interestId = createTransaction(null, sqlite, {
       type: TransactionType.INTEREST,
       date: '2023-12-27T07:00',
-      amount: 31.78,
+      amount: 42.95,
       accountId: DEPOSIT_UUID,
       currencyCode: 'EUR',
       fees: 0,

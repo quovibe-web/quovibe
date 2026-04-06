@@ -7,15 +7,27 @@ import { convertTransactionToDb } from './unit-conversion';
 
 type UnitType = 'FEE' | 'TAX' | 'FOREX';
 
-// ppxml2db convention: xact.amount is the net settlement amount.
-//   Outflow (BUY etc.): amount = gross + fees + taxes
-//   Inflow  (SELL etc.): amount = gross - fees - taxes
+// ppxml2db convention (see docs/pp-reference/calculation-model.md Section 2):
+//   Outflow/debit types: amount = gross + fees + taxes
+//   Inflow/credit types: amount = gross - fees - taxes
 const OUTFLOW_TX_TYPES: ReadonlySet<string> = new Set([
   TransactionType.BUY,
+  TransactionType.DELIVERY_INBOUND,
+  TransactionType.REMOVAL,
+  TransactionType.INTEREST_CHARGE,
+  TransactionType.FEES,
+  TransactionType.TAXES,
+  TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
 ]);
 const INFLOW_TX_TYPES: ReadonlySet<string> = new Set([
   TransactionType.SELL,
   TransactionType.DIVIDEND,
+  TransactionType.DELIVERY_OUTBOUND,
+  TransactionType.DEPOSIT,
+  TransactionType.INTEREST,
+  TransactionType.FEES_REFUND,
+  TransactionType.TAX_REFUND,
+  TransactionType.SECURITY_TRANSFER,
 ]);
 
 function computeNetAmountDb(

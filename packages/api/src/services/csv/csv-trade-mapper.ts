@@ -19,19 +19,49 @@ const GROUP_C_SHARES_ONLY = new Set<TransactionType>([
   TransactionType.DELIVERY_INBOUND, TransactionType.DELIVERY_OUTBOUND,
 ]);
 
+const GROUP_D_SECURITY_TRANSFER = new Set<TransactionType>([
+  TransactionType.SECURITY_TRANSFER,
+]);
+
+const GROUP_E_ACCOUNT_TRANSFER = new Set<TransactionType>([
+  TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+]);
+
 const SHARE_REQUIRED_TYPES = new Set<TransactionType>([
   TransactionType.BUY, TransactionType.SELL,
   TransactionType.DELIVERY_INBOUND, TransactionType.DELIVERY_OUTBOUND,
+  TransactionType.SECURITY_TRANSFER,
 ]);
 
 const SECURITY_REQUIRED_TYPES = new Set<TransactionType>([
   TransactionType.BUY, TransactionType.SELL,
   TransactionType.DIVIDEND,
   TransactionType.DELIVERY_INBOUND, TransactionType.DELIVERY_OUTBOUND,
+  TransactionType.SECURITY_TRANSFER,
 ]);
 
-const OUTFLOW_TYPES = new Set<TransactionType>([TransactionType.BUY]);
-const INFLOW_TYPES = new Set<TransactionType>([TransactionType.SELL, TransactionType.DIVIDEND]);
+// ppxml2db convention (see docs/pp-reference/calculation-model.md Section 2):
+//   Outflow/debit types: amount = gross + fees + taxes
+//   Inflow/credit types: amount = gross - fees - taxes
+const OUTFLOW_TYPES = new Set<TransactionType>([
+  TransactionType.BUY,
+  TransactionType.DELIVERY_INBOUND,
+  TransactionType.REMOVAL,
+  TransactionType.INTEREST_CHARGE,
+  TransactionType.FEES,
+  TransactionType.TAXES,
+  TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+]);
+const INFLOW_TYPES = new Set<TransactionType>([
+  TransactionType.SELL,
+  TransactionType.DIVIDEND,
+  TransactionType.DELIVERY_OUTBOUND,
+  TransactionType.DEPOSIT,
+  TransactionType.INTEREST,
+  TransactionType.FEES_REFUND,
+  TransactionType.TAX_REFUND,
+  TransactionType.SECURITY_TRANSFER,
+]);
 
 // ─── Types ────────────────────────────────────────
 
@@ -224,6 +254,118 @@ export function mapTradeRows(
         source: 'CSV_IMPORT',
         fees: feesDb,
         taxes: taxesDb,
+      });
+    } else if (GROUP_D_SECURITY_TRANSFER.has(txType)) {
+      // SECURITY_TRANSFER: 2 xact rows (portfolio→portfolio) + 1 cross-entry
+      if (!row.crossAccountId) {
+        errors.push({
+          row: row.rowNumber,
+          column: 'crossAccountId',
+          code: 'MISSING_CROSS_ACCOUNT',
+          message: 'csvImport.errors.missingCrossAccount',
+        });
+        continue;
+      }
+
+      // Source row: TRANSFER_OUT on source portfolio
+      const srcXactId = uuidv4();
+      transactions.push({
+        id: srcXactId,
+        type: 'TRANSFER_OUT',
+        date: row.date,
+        currency,
+        amount: netAmount,
+        shares: sharesDb,
+        note: row.note ?? null,
+        securityId,
+        accountId: ctx.portfolioId,
+        acctype: 'portfolio',
+        source: 'CSV_IMPORT',
+        fees: feesDb,
+        taxes: taxesDb,
+      });
+
+      // Destination row: TRANSFER_IN on destination portfolio
+      const destXactId = uuidv4();
+      transactions.push({
+        id: destXactId,
+        type: 'TRANSFER_IN',
+        date: row.date,
+        currency,
+        amount: netAmount,
+        shares: sharesDb,
+        note: row.note ?? null,
+        securityId,
+        accountId: row.crossAccountId,
+        acctype: 'portfolio',
+        source: 'CSV_IMPORT',
+        fees: 0,
+        taxes: 0,
+      });
+
+      // Cross-entry: portfolio-transfer
+      crossEntries.push({
+        fromXact: srcXactId,
+        fromAcc: ctx.portfolioId,
+        toXact: destXactId,
+        toAcc: row.crossAccountId,
+        type: 'portfolio-transfer',
+      });
+    } else if (GROUP_E_ACCOUNT_TRANSFER.has(txType)) {
+      // TRANSFER_BETWEEN_ACCOUNTS: 2 xact rows (deposit→deposit) + 1 cross-entry
+      if (!row.crossAccountId) {
+        errors.push({
+          row: row.rowNumber,
+          column: 'crossAccountId',
+          code: 'MISSING_CROSS_ACCOUNT',
+          message: 'csvImport.errors.missingCrossAccount',
+        });
+        continue;
+      }
+
+      // Source row: TRANSFER_OUT on source deposit account
+      const srcXactId = uuidv4();
+      transactions.push({
+        id: srcXactId,
+        type: 'TRANSFER_OUT',
+        date: row.date,
+        currency,
+        amount: netAmount,
+        shares: 0,
+        note: row.note ?? null,
+        securityId: null,
+        accountId: ctx.depositAccountId,
+        acctype: 'account',
+        source: 'CSV_IMPORT',
+        fees: feesDb,
+        taxes: taxesDb,
+      });
+
+      // Destination row: TRANSFER_IN on destination deposit account
+      const destXactId = uuidv4();
+      transactions.push({
+        id: destXactId,
+        type: 'TRANSFER_IN',
+        date: row.date,
+        currency,
+        amount: netAmount,
+        shares: 0,
+        note: row.note ?? null,
+        securityId: null,
+        accountId: row.crossAccountId,
+        acctype: 'account',
+        source: 'CSV_IMPORT',
+        fees: 0,
+        taxes: 0,
+      });
+
+      // Cross-entry: account-transfer
+      crossEntries.push({
+        fromXact: srcXactId,
+        fromAcc: ctx.depositAccountId,
+        toXact: destXactId,
+        toAcc: row.crossAccountId,
+        type: 'account-transfer',
       });
     }
   }

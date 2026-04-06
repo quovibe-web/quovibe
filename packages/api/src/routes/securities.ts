@@ -265,6 +265,10 @@ const createSecurity: RequestHandler = async (req, res) => {
   });
 
   const rows = await db.select().from(securities).where(eq(securities.id, id));
+  if (rows.length === 0) {
+    res.status(500).json({ error: 'Failed to retrieve created security' });
+    return;
+  }
   const r = rows[0];
   res.status(201).json({
     ...r,
@@ -288,6 +292,10 @@ const updateSecurity: RequestHandler = async (req, res) => {
   updateSecurityService(sqlite, id, input);
 
   const updated = await db.select().from(securities).where(eq(securities.id, id));
+  if (updated.length === 0) {
+    res.status(404).json({ error: 'Security not found after update' });
+    return;
+  }
   const r = updated[0];
   res.json({
     ...r,

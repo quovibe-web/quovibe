@@ -82,6 +82,7 @@ interface RawXactRow {
   source: string | null;
   updatedAt: string | null;
   units_raw: string | null;
+  ceType: string | null;
 }
 
 // Extended type used internally in this module to carry accountId through the pipeline.
@@ -111,11 +112,20 @@ function parseRawRow(row: RawXactRow): PerfTransaction {
       })
     : [];
 
-  // Disambiguate TRANSFER_OUT/IN: ppxml2db uses them for both DELIVERY_OUTBOUND/INBOUND and
-  // TRANSFER_BETWEEN_ACCOUNTS. Deliveries always have shares > 0; account transfers have shares = 0/null.
+  // Disambiguate TRANSFER_OUT/IN: ppxml2db uses them for both DELIVERY_OUTBOUND/INBOUND,
+  // TRANSFER_BETWEEN_ACCOUNTS, and SECURITY_TRANSFER.
+  // - Security transfers (portfolio-transfer cross-entry): shares move between security accounts,
+  //   NOT a portfolio-level cashflow.
+  // - Deliveries: shares > 0, no portfolio-transfer cross-entry.
+  // - Account transfers: shares = 0/null.
   let normalizedType = normalizeXactType(row.type);
   let isTransferOut: boolean | undefined;
-  if (normalizedType === TransactionType.DELIVERY_OUTBOUND && (row.shares == null || row.shares === 0)) {
+
+  if (row.ceType === 'portfolio-transfer') {
+    // Security transfer: shares move between security accounts within the portfolio.
+    // NOT a portfolio-level cashflow — must NOT be mapped to DELIVERY_*.
+    normalizedType = TransactionType.SECURITY_TRANSFER;
+  } else if (normalizedType === TransactionType.DELIVERY_OUTBOUND && (row.shares == null || row.shares === 0)) {
     isTransferOut = true;
     normalizedType = TransactionType.TRANSFER_BETWEEN_ACCOUNTS;
   } else if (normalizedType === TransactionType.DELIVERY_INBOUND && (row.shares == null || row.shares === 0)) {
@@ -145,7 +155,12 @@ function parseRawRow(row: RawXactRow): PerfTransaction {
 export function fetchAllTransactions(sqlite: BetterSqlite3.Database): PerfTransaction[] {
   const rows = sqlite
     .prepare(
-      `SELECT x.*, GROUP_CONCAT(u.type || ':' || u.amount, '|') as units_raw
+      `SELECT x.*,
+              GROUP_CONCAT(u.type || ':' || u.amount, '|') as units_raw,
+              (SELECT ce.type FROM xact_cross_entry ce
+               WHERE ce.from_xact = x.uuid OR ce.to_xact = x.uuid
+               ORDER BY ce.type DESC NULLS LAST
+               LIMIT 1) AS ceType
        FROM xact x
        LEFT JOIN xact_unit u ON u.xact = x.uuid
        GROUP BY x.uuid
@@ -538,6 +553,9 @@ export function buildDailyCashMap(
         // Cash transfers normalised from TRANSFER_IN/OUT: use isTransferOut to determine direction.
         // Amount is always positive in ppxml2db; outbound = cash leaves, inbound = cash enters.
         return (tx as PerfTransaction).isTransferOut ? gross.negated() : gross;
+      case TransactionType.SECURITY_TRANSFER:
+        // Security transfers move shares between security accounts — no cash impact.
+        return new Decimal(0);
       default:
         return new Decimal(0);
     }
@@ -966,13 +984,20 @@ function fetchPntItems(
   accountNameMap: Map<string, string>,
 ): PntItem[] {
   // TRANSFER_IN/OUT with shares=0 or null are TRANSFER_BETWEEN_ACCOUNTS (not PNT).
-  // Only include TRANSFER_IN/OUT when shares > 0 (real DELIVERY_INBOUND/OUTBOUND).
+  // Only include TRANSFER_IN/OUT when shares > 0 (real DELIVERY_INBOUND/OUTBOUND),
+  // and exclude security transfers (portfolio-transfer cross-entry) which are internal movements.
   const rows = sqlite.prepare(
     `SELECT x.uuid, x.type, SUBSTR(x.date, 1, 10) AS date, x.amount, x.account
      FROM xact x
      WHERE (
        x.type IN ('DEPOSIT', 'REMOVAL')
-       OR (x.type IN ('TRANSFER_IN', 'TRANSFER_OUT') AND COALESCE(x.shares, 0) > 0)
+       OR (x.type IN ('TRANSFER_IN', 'TRANSFER_OUT')
+           AND COALESCE(x.shares, 0) > 0
+           AND NOT EXISTS (
+             SELECT 1 FROM xact_cross_entry ce
+             WHERE ce.type = 'portfolio-transfer'
+               AND (ce.from_xact = x.uuid OR ce.to_xact = x.uuid)
+           ))
      )
        AND SUBSTR(x.date, 1, 10) >= ? AND SUBSTR(x.date, 1, 10) <= ?
      ORDER BY x.date ASC`,
