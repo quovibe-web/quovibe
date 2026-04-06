@@ -69,6 +69,7 @@ export const csvErrorCodes = [
   'INVALID_DATE', 'INVALID_NUMBER', 'MISSING_REQUIRED',
   'UNKNOWN_TYPE', 'INVALID_PRICE', 'NEGATIVE_SHARES',
   'MISSING_SECURITY', 'MISSING_SHARES', 'DUPLICATE_DATE',
+  'MISSING_CROSS_ACCOUNT',
 ] as const;
 export type CsvErrorCode = (typeof csvErrorCodes)[number];
 
@@ -95,6 +96,7 @@ export interface NormalizedTradeRow {
   taxes?: number;
   currency?: string;
   note?: string;
+  crossAccountId?: string;  // destination account for SECURITY_TRANSFER / TRANSFER_BETWEEN_ACCOUNTS
 }
 
 export interface NormalizedPriceRow {

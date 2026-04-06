@@ -323,6 +323,139 @@ describe('mapTradeRows', () => {
     });
   });
 
+  describe('Group D — SECURITY_TRANSFER (dual portfolio-transfer)', () => {
+    it('produces 2 xact rows + 1 portfolio-transfer cross-entry', () => {
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 1,
+        date: '2024-05-01',
+        type: TransactionType.SECURITY_TRANSFER,
+        securityName: 'Apple Inc',
+        shares: 15,
+        amount: 2000,
+        fees: 10,
+        taxes: 0,
+        crossAccountId: 'port-dest',
+      }];
+
+      const result = mapTradeRows(rows, ctx);
+      expect(result.errors).toHaveLength(0);
+      expect(result.transactions).toHaveLength(2);
+      expect(result.crossEntries).toHaveLength(1);
+
+      // Source row: TRANSFER_OUT on source portfolio
+      const srcRow = result.transactions[0];
+      expect(srcRow.type).toBe('TRANSFER_OUT');
+      expect(srcRow.accountId).toBe('port-1');
+      expect(srcRow.acctype).toBe('portfolio');
+      expect(srcRow.securityId).toBe('sec-apple');
+      expect(srcRow.shares).toBe(1500000000); // 15 * 10^8
+      expect(srcRow.fees).toBe(1000); // 10 * 100
+      expect(srcRow.taxes).toBe(0);
+
+      // Destination row: TRANSFER_IN on destination portfolio
+      const destRow = result.transactions[1];
+      expect(destRow.type).toBe('TRANSFER_IN');
+      expect(destRow.accountId).toBe('port-dest');
+      expect(destRow.acctype).toBe('portfolio');
+      expect(destRow.securityId).toBe('sec-apple');
+      expect(destRow.shares).toBe(1500000000); // same shares
+      expect(destRow.fees).toBe(0);  // no fees on destination
+      expect(destRow.taxes).toBe(0);
+
+      // Cross-entry: portfolio-transfer
+      const ce = result.crossEntries[0];
+      expect(ce.fromXact).toBe(srcRow.id);
+      expect(ce.fromAcc).toBe('port-1');
+      expect(ce.toXact).toBe(destRow.id);
+      expect(ce.toAcc).toBe('port-dest');
+      expect(ce.type).toBe('portfolio-transfer');
+    });
+
+    it('without crossAccountId produces MISSING_CROSS_ACCOUNT error', () => {
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 7,
+        date: '2024-05-01',
+        type: TransactionType.SECURITY_TRANSFER,
+        securityName: 'Apple Inc',
+        shares: 15,
+        amount: 2000,
+        // no crossAccountId
+      }];
+
+      const result = mapTradeRows(rows, ctx);
+      expect(result.transactions).toHaveLength(0);
+      expect(result.crossEntries).toHaveLength(0);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].code).toBe('MISSING_CROSS_ACCOUNT');
+      expect(result.errors[0].row).toBe(7);
+    });
+  });
+
+  describe('Group E — TRANSFER_BETWEEN_ACCOUNTS (dual account-transfer)', () => {
+    it('produces 2 xact rows + 1 account-transfer cross-entry', () => {
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 1,
+        date: '2024-06-01',
+        type: TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+        securityName: '',
+        amount: 3000,
+        fees: 5,
+        taxes: 0,
+        crossAccountId: 'dep-dest',
+      }];
+
+      const result = mapTradeRows(rows, ctx);
+      expect(result.errors).toHaveLength(0);
+      expect(result.transactions).toHaveLength(2);
+      expect(result.crossEntries).toHaveLength(1);
+
+      // Source row: TRANSFER_OUT on source deposit account
+      const srcRow = result.transactions[0];
+      expect(srcRow.type).toBe('TRANSFER_OUT');
+      expect(srcRow.accountId).toBe('dep-1');
+      expect(srcRow.acctype).toBe('account');
+      expect(srcRow.securityId).toBeNull();
+      expect(srcRow.shares).toBe(0);
+      expect(srcRow.fees).toBe(500); // 5 * 100
+
+      // Destination row: TRANSFER_IN on destination deposit account
+      const destRow = result.transactions[1];
+      expect(destRow.type).toBe('TRANSFER_IN');
+      expect(destRow.accountId).toBe('dep-dest');
+      expect(destRow.acctype).toBe('account');
+      expect(destRow.securityId).toBeNull();
+      expect(destRow.shares).toBe(0);
+      expect(destRow.fees).toBe(0);  // no fees on destination
+      expect(destRow.taxes).toBe(0);
+
+      // Cross-entry: account-transfer
+      const ce = result.crossEntries[0];
+      expect(ce.fromXact).toBe(srcRow.id);
+      expect(ce.fromAcc).toBe('dep-1');
+      expect(ce.toXact).toBe(destRow.id);
+      expect(ce.toAcc).toBe('dep-dest');
+      expect(ce.type).toBe('account-transfer');
+    });
+
+    it('without crossAccountId produces MISSING_CROSS_ACCOUNT error', () => {
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 9,
+        date: '2024-06-01',
+        type: TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+        securityName: '',
+        amount: 3000,
+        // no crossAccountId
+      }];
+
+      const result = mapTradeRows(rows, ctx);
+      expect(result.transactions).toHaveLength(0);
+      expect(result.crossEntries).toHaveLength(0);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].code).toBe('MISSING_CROSS_ACCOUNT');
+      expect(result.errors[0].row).toBe(9);
+    });
+  });
+
   describe('Multiple rows', () => {
     it('processes mixed transaction types', () => {
       const rows: NormalizedTradeRow[] = [
