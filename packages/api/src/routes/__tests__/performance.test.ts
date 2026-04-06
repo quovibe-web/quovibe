@@ -1333,5 +1333,14 @@ describe.skipIf(!hasSqliteBindings)('Security transfers excluded from PNT', () =
       (i) => i.type === 'DELIVERY_INBOUND' || i.type === 'DELIVERY_OUTBOUND',
     );
     expect(deliveryItems).toHaveLength(0);
+
+    // TTWROR should reflect only the real investment return (BUY at 100, end at 120)
+    // and must NOT be distorted by the security transfer.
+    // Portfolio: deposit 10000, buy 50 shares at 100 (cost 5000), end value = 50*120 + 5000 cash = 11000
+    // Expected TTWROR ≈ 10% (11000/10000 - 1). The exact value depends on holding-period
+    // boundaries, but it must be positive and not wildly off due to phantom delivery cashflows.
+    const ttwror = parseFloat(res.body.ttwror);
+    expect(ttwror).toBeGreaterThan(0);
+    expect(ttwror).toBeLessThan(0.25); // upper sanity bound — 10% ± margin
   });
 });

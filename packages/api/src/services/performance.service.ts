@@ -159,6 +159,7 @@ export function fetchAllTransactions(sqlite: BetterSqlite3.Database): PerfTransa
               GROUP_CONCAT(u.type || ':' || u.amount, '|') as units_raw,
               (SELECT ce.type FROM xact_cross_entry ce
                WHERE ce.from_xact = x.uuid OR ce.to_xact = x.uuid
+               ORDER BY ce.type DESC NULLS LAST
                LIMIT 1) AS ceType
        FROM xact x
        LEFT JOIN xact_unit u ON u.xact = x.uuid
@@ -992,10 +993,10 @@ function fetchPntItems(
        x.type IN ('DEPOSIT', 'REMOVAL')
        OR (x.type IN ('TRANSFER_IN', 'TRANSFER_OUT')
            AND COALESCE(x.shares, 0) > 0
-           AND x.uuid NOT IN (
-             SELECT ce.from_xact FROM xact_cross_entry ce WHERE ce.type = 'portfolio-transfer'
-             UNION ALL
-             SELECT ce.to_xact FROM xact_cross_entry ce WHERE ce.type = 'portfolio-transfer'
+           AND NOT EXISTS (
+             SELECT 1 FROM xact_cross_entry ce
+             WHERE ce.type = 'portfolio-transfer'
+               AND (ce.from_xact = x.uuid OR ce.to_xact = x.uuid)
            ))
      )
        AND SUBSTR(x.date, 1, 10) >= ? AND SUBSTR(x.date, 1, 10) <= ?
