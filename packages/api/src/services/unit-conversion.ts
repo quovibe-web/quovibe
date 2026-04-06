@@ -8,6 +8,7 @@ import Decimal from 'decimal.js';
 /** Converts a JS float to Decimal safely via toPrecision(15) to avoid
  *  floating-point representation artifacts (e.g. 0.1 + 0.2 -> 0.30000000000000004). */
 export function safeDecimal(value: number): Decimal {
+  if (value == null || Number.isNaN(value)) return new Decimal(0);
   return new Decimal(value.toPrecision(15));
 }
 
