@@ -322,7 +322,7 @@ function SortableColumnHeader(props: ColumnHeaderProps) {
       dndNodeRef={setNodeRef}
       dndActivatorRef={setActivatorNodeRef}
       dndListeners={listeners as Record<string, unknown>}
-      dndAttributes={attributes as Record<string, unknown>}
+      dndAttributes={attributes as unknown as Record<string, unknown>}
       isDragging={isDragging}
       dropIndicatorSide={dropIndicatorSide}
     />
@@ -641,7 +641,7 @@ export function DataTable<TData, TValue>({
 
   // Build set of locked column IDs from column defs (logo, actions, etc.)
   const lockedIds = useMemo(
-    () => new Set(columns.filter((c) => (c.meta as { locked?: boolean } | undefined)?.locked).map((c) => ('id' in c ? c.id : ('accessorKey' in c ? String(c.accessorKey) : '')))),
+    () => new Set(columns.filter((c) => (c.meta as { locked?: boolean } | undefined)?.locked).map((c) => ('id' in c ? c.id ?? '' : ('accessorKey' in c ? String(c.accessorKey) : '')))),
     [columns],
   );
 
