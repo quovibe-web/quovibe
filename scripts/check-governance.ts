@@ -597,33 +597,30 @@ if (existsSync(signRegistryPath)) {
       }
     }
 
-    // Check 2: OUTFLOW_TX_TYPES should only contain BUY (per registry: BUY = gross+fees+taxes)
+    // Check 2: OUTFLOW_TX_TYPES must contain all 7 outflow types (ppxml2db convention: amount = gross+fees+taxes)
+    // See docs/pp-reference/calculation-model.md Section 2.
+    const EXPECTED_OUTFLOW = ['BUY', 'DELIVERY_INBOUND', 'REMOVAL', 'INTEREST_CHARGE', 'FEES', 'TAXES', 'TRANSFER_BETWEEN_ACCOUNTS'];
     const outflowMatch = txCode.match(/OUTFLOW_TX_TYPES.*?new Set\(\[([\s\S]*?)\]\)/);
     if (outflowMatch) {
       const outflowTypes = outflowMatch[1];
-      if (!outflowTypes.includes('BUY')) {
-        fail('OUTFLOW_TX_TYPES missing BUY');
-        signViolations++;
-      }
-      // BUY should be the ONLY outflow type
-      const otherTypes = outflowTypes.replace(/TransactionType\.BUY/g, '').replace(/[,\s]/g, '');
-      if (otherTypes.length > 0) {
-        fail(`OUTFLOW_TX_TYPES has unexpected types beyond BUY: ${outflowTypes.trim()}`);
-        signViolations++;
+      for (const t of EXPECTED_OUTFLOW) {
+        if (!outflowTypes.includes(t)) {
+          fail(`OUTFLOW_TX_TYPES missing ${t}`);
+          signViolations++;
+        }
       }
     }
 
-    // Check 3: INFLOW_TX_TYPES should contain SELL and DIVIDEND (per registry: net = gross-fees-taxes)
+    // Check 3: INFLOW_TX_TYPES must contain all 8 inflow types (ppxml2db convention: amount = gross-fees-taxes)
+    const EXPECTED_INFLOW = ['SELL', 'DIVIDEND', 'DELIVERY_OUTBOUND', 'DEPOSIT', 'INTEREST', 'FEES_REFUND', 'TAX_REFUND', 'SECURITY_TRANSFER'];
     const inflowMatch = txCode.match(/INFLOW_TX_TYPES.*?new Set\(\[([\s\S]*?)\]\)/);
     if (inflowMatch) {
       const inflowTypes = inflowMatch[1];
-      if (!inflowTypes.includes('SELL')) {
-        fail('INFLOW_TX_TYPES missing SELL');
-        signViolations++;
-      }
-      if (!inflowTypes.includes('DIVIDEND')) {
-        fail('INFLOW_TX_TYPES missing DIVIDEND');
-        signViolations++;
+      for (const t of EXPECTED_INFLOW) {
+        if (!inflowTypes.includes(t)) {
+          fail(`INFLOW_TX_TYPES missing ${t}`);
+          signViolations++;
+        }
       }
     }
   }
