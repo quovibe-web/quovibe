@@ -225,6 +225,10 @@ const createAccount: RequestHandler = async (req, res) => {
   );
 
   const rows = await db.select().from(accounts).where(eq(accounts.id, id));
+  if (rows.length === 0) {
+    res.status(500).json({ error: 'Failed to retrieve created account' });
+    return;
+  }
   res.status(201).json({ ...rows[0], balance: '0' });
 };
 
@@ -258,6 +262,10 @@ const updateAccount: RequestHandler = async (req, res) => {
   }
 
   const updated = await db.select().from(accounts).where(eq(accounts.id, id));
+  if (updated.length === 0) {
+    res.status(404).json({ error: 'Account not found after update' });
+    return;
+  }
   const updatedAccount = updated[0];
   let updatedCurrency = updatedAccount.currency;
   if (updatedAccount.type === 'portfolio' && updatedAccount.referenceAccountId) {

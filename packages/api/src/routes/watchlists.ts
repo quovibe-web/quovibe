@@ -138,6 +138,10 @@ const updateWatchlist: RequestHandler = async (req, res) => {
   }
 
   const updated = await db.select().from(watchlists).where(eq(watchlists.id, id));
+  if (updated.length === 0) {
+    res.status(404).json({ error: 'Watchlist not found after update' });
+    return;
+  }
   const wl = updated[0];
   res.json({ id: wl.id, name: wl.name, order: wl._order });
 };
