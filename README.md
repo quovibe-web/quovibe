@@ -1,13 +1,19 @@
 # $quo|vibe
 
+[![CI](https://github.com/quovibe-web/quovibe/actions/workflows/ci.yml/badge.svg)](https://github.com/quovibe-web/quovibe/actions/workflows/ci.yml)
+[![GitHub release](https://img.shields.io/github/v/release/quovibe-web/quovibe)](https://github.com/quovibe-web/quovibe/releases)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-blue?logo=docker)](https://ghcr.io/quovibe-web/quovibe)
+[![Ko-fi](https://img.shields.io/badge/support-Ko--fi-ff5e5b?logo=ko-fi)](https://ko-fi.com/Q5Q41VQUH7)
+
 <img width="1185" height="811" alt="image" src="https://github.com/user-attachments/assets/f6bf3497-4bba-4759-80c5-64e675bfe1ae" />
 
 
-> A web-based, self-hosted portfolio tracker built entirely with [Claude Code](https://claude.ai/code).
+> A web-based, self-hosted portfolio tracker developed with the assistance of AI ([Claude Code](https://claude.ai/code)).
 > Import your portfolio XML and instantly access performance analytics, holdings, dividends, and asset allocation — running fully locally.
 
 > [!IMPORTANT]
-> Built entirely through vibe coding — not a single line written by hand. Backed by 1729+ tests, 13 governance checks, and 12 Architecture Decision Records.
+> Backed by 1742+ tests, 14 governance checks, and 12 Architecture Decision Records.
 
 > [!TIP]
 > Enjoying quovibe? [Support it here](https://ko-fi.com/Q5Q41VQUH7) ☕
