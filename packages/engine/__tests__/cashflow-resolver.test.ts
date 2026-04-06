@@ -107,6 +107,14 @@ describe('resolvePortfolioCashflows', () => {
     const [cf] = resolvePortfolioCashflows([removal]);
     expect(cf.amount.toNumber()).toBeLessThan(0);
   });
+
+  it('excludes SECURITY_TRANSFER from portfolio cashflows', () => {
+    const transfer = makeTx({ type: TransactionType.SECURITY_TRANSFER, amount: 5000, shares: 100 });
+    const deposit = makeTx({ type: TransactionType.DEPOSIT, amount: 1000 });
+    const cfs = resolvePortfolioCashflows([transfer, deposit]);
+    expect(cfs).toHaveLength(1);
+    expect(cfs[0].type).toBe(TransactionType.DEPOSIT);
+  });
 });
 
 describe('convertAmount (FX)', () => {

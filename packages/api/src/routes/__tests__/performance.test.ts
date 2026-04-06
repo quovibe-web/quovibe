@@ -1236,3 +1236,102 @@ describe.skipIf(!hasSqliteBindings)('GET /api/performance/returns — taxonomy a
     expect(val).toBeGreaterThan(-0.10);
   });
 });
+
+// ─── Security transfer exclusion from PNT ───────────────────────────────────
+// Security transfers (portfolio-transfer cross-entry) are internal share movements
+// and must NOT appear as portfolio-level cashflows or PNT items.
+
+const ST_SEC_ID = 'st-sec-001';
+const ST_PORT_A = 'st-port-a';
+const ST_PORT_B = 'st-port-b';
+const ST_DEP_A = 'st-dep-a';
+const ST_DEP_B = 'st-dep-b';
+
+function seedSecurityTransferData(sqlite: Database.Database) {
+  sqlite.prepare(`INSERT INTO security (uuid, name, currency) VALUES (?, ?, ?)`)
+    .run(ST_SEC_ID, 'Transfer Corp', 'EUR');
+
+  // Two portfolio accounts with linked deposits
+  sqlite.prepare(`INSERT INTO account (uuid, name, type, currency, referenceAccount) VALUES (?, ?, ?, ?, ?)`)
+    .run(ST_PORT_A, 'Portfolio A', 'portfolio', null, ST_DEP_A);
+  sqlite.prepare(`INSERT INTO account (uuid, name, type, currency) VALUES (?, ?, ?, ?)`)
+    .run(ST_DEP_A, 'Cash A', 'account', 'EUR');
+  sqlite.prepare(`INSERT INTO account (uuid, name, type, currency, referenceAccount) VALUES (?, ?, ?, ?, ?)`)
+    .run(ST_PORT_B, 'Portfolio B', 'portfolio', null, ST_DEP_B);
+  sqlite.prepare(`INSERT INTO account (uuid, name, type, currency) VALUES (?, ?, ?, ?)`)
+    .run(ST_DEP_B, 'Cash B', 'account', 'EUR');
+
+  // DEPOSIT 10000 to Cash A
+  sqlite.prepare(`INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run('st-dep-001', 'DEPOSIT', '2024-01-15', 'EUR', 10000 * 100, 0, null, ST_DEP_A);
+
+  // BUY 50 shares at 100 EUR in Portfolio A (dual-entry)
+  sqlite.prepare(`INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run('st-buy-001', 'BUY', '2024-02-01', 'EUR', 5000 * 100, 50 * 1e8, ST_SEC_ID, ST_PORT_A);
+  sqlite.prepare(`INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run('st-buy-001-cash', 'BUY', '2024-02-01', 'EUR', 5000 * 100, 0, null, ST_DEP_A);
+  sqlite.prepare(`INSERT INTO xact_cross_entry (from_xact, from_acc, to_xact, to_acc) VALUES (?, ?, ?, ?)`)
+    .run('st-buy-001', ST_PORT_A, 'st-buy-001-cash', ST_DEP_A);
+
+  // SECURITY TRANSFER: move 25 shares from Portfolio A to Portfolio B on 2024-06-01
+  // ppxml2db encodes this as TRANSFER_OUT + TRANSFER_IN with shares > 0,
+  // linked by xact_cross_entry.type = 'portfolio-transfer'
+  sqlite.prepare(`INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run('st-tout-001', 'TRANSFER_OUT', '2024-06-01', 'EUR', 2500 * 100, 25 * 1e8, ST_SEC_ID, ST_PORT_A);
+  sqlite.prepare(`INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run('st-tin-001', 'TRANSFER_IN', '2024-06-01', 'EUR', 2500 * 100, 25 * 1e8, ST_SEC_ID, ST_PORT_B);
+  sqlite.prepare(`INSERT INTO xact_cross_entry (from_xact, from_acc, to_xact, to_acc, type) VALUES (?, ?, ?, ?, ?)`)
+    .run('st-tout-001', ST_PORT_A, 'st-tin-001', ST_PORT_B, 'portfolio-transfer');
+
+  // Prices
+  const prices: [string, number][] = [
+    ['2023-12-29', 95 * 1e8],
+    ['2024-02-01', 100 * 1e8],
+    ['2024-06-01', 110 * 1e8],
+    ['2024-12-31', 120 * 1e8],
+  ];
+  const ins = sqlite.prepare(`INSERT OR REPLACE INTO price (security, tstamp, value) VALUES (?, ?, ?)`);
+  for (const [date, value] of prices) ins.run(ST_SEC_ID, date, value);
+
+  sqlite.prepare(`INSERT INTO latest_price (security, tstamp, value) VALUES (?, ?, ?)`)
+    .run(ST_SEC_ID, '2024-12-31', 120 * 1e8);
+}
+
+describe.skipIf(!hasSqliteBindings)('Security transfers excluded from PNT', () => {
+  let app: ReturnType<typeof createApp>;
+  let sqlite: Database.Database;
+
+  beforeEach(() => {
+    const testDb = createTestDb();
+    sqlite = testDb.sqlite;
+    app = createApp(testDb.db as Parameters<typeof createApp>[0], sqlite);
+    seedSecurityTransferData(sqlite);
+  });
+
+  it('PNT items do not include security transfer entries', async () => {
+    const res = await request(app)
+      .get('/api/performance/calculation?periodStart=2024-01-01&periodEnd=2024-12-31');
+
+    expect(res.status).toBe(200);
+    const pnt = res.body.performanceNeutralTransfers as {
+      deposits: string;
+      deliveryInbound: string;
+      deliveryOutbound: string;
+      total: string;
+      items: Array<{ type: string; amount: string }>;
+    };
+
+    // Only the DEPOSIT of 10000 should be in PNT — no DELIVERY_INBOUND/OUTBOUND from the transfer
+    expect(parseFloat(pnt.deposits)).toBeCloseTo(10000, 2);
+    expect(parseFloat(pnt.deliveryInbound)).toBeCloseTo(0, 2);
+    expect(parseFloat(pnt.deliveryOutbound)).toBeCloseTo(0, 2);
+    // Total PNT = deposits only
+    expect(parseFloat(pnt.total)).toBeCloseTo(10000, 2);
+
+    // Items array should only have the DEPOSIT, not DELIVERY_INBOUND/OUTBOUND
+    const deliveryItems = pnt.items.filter(
+      (i) => i.type === 'DELIVERY_INBOUND' || i.type === 'DELIVERY_OUTBOUND',
+    );
+    expect(deliveryItems).toHaveLength(0);
+  });
+});
