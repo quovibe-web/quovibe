@@ -349,6 +349,8 @@ describe('mapTradeRows', () => {
       expect(srcRow.acctype).toBe('portfolio');
       expect(srcRow.securityId).toBe('sec-apple');
       expect(srcRow.shares).toBe(1500000000); // 15 * 10^8
+      // SECURITY_TRANSFER is INFLOW: net = (gross - fees - taxes) * 100 = (2000 - 10 - 0) * 100
+      expect(srcRow.amount).toBe(199000);
       expect(srcRow.fees).toBe(1000); // 10 * 100
       expect(srcRow.taxes).toBe(0);
 
@@ -359,6 +361,7 @@ describe('mapTradeRows', () => {
       expect(destRow.acctype).toBe('portfolio');
       expect(destRow.securityId).toBe('sec-apple');
       expect(destRow.shares).toBe(1500000000); // same shares
+      expect(destRow.amount).toBe(199000); // same net amount as source
       expect(destRow.fees).toBe(0);  // no fees on destination
       expect(destRow.taxes).toBe(0);
 

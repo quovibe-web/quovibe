@@ -50,7 +50,7 @@ export type CreateCsvImportConfigInput = z.infer<typeof csvImportConfigSchema>;
 
 export const tradeColumnFields = [
   'date', 'type', 'security', 'shares', 'amount',
-  'fees', 'taxes', 'currency', 'note', 'isin', 'ticker',
+  'fees', 'taxes', 'currency', 'note', 'isin', 'ticker', 'crossAccount',
 ] as const;
 export type TradeColumnField = (typeof tradeColumnFields)[number];
 

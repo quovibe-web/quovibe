@@ -152,6 +152,7 @@ export async function previewTradeImport(
     const noteIdx = input.columnMapping['note'];
     const isinIdx = input.columnMapping['isin'];
     const tickerIdx = input.columnMapping['ticker'];
+    const crossAccountIdx = input.columnMapping['crossAccount'];
 
     // Parse date
     const rawDate = dateIdx != null ? fields[dateIdx] ?? '' : '';
@@ -210,6 +211,10 @@ export async function previewTradeImport(
     if (noteIdx != null) {
       const note = (fields[noteIdx] ?? '').trim();
       if (note) normalized.note = note;
+    }
+    if (crossAccountIdx != null) {
+      const crossAccount = (fields[crossAccountIdx] ?? '').trim();
+      if (crossAccount) normalized.crossAccountId = crossAccount;
     }
 
     normalizedRows.push(normalized);
@@ -416,6 +421,11 @@ export async function executeTradeImport(
       if (noteIdx != null) {
         const note = (fields[noteIdx] ?? '').trim();
         if (note) row.note = note;
+      }
+      const crossAccountIdx = input.config.columnMapping['crossAccount'];
+      if (crossAccountIdx != null) {
+        const crossAccount = (fields[crossAccountIdx] ?? '').trim();
+        if (crossAccount) row.crossAccountId = crossAccount;
       }
 
       normalizedRows.push(row);
