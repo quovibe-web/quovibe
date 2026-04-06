@@ -30,8 +30,28 @@ const SECURITY_REQUIRED_TYPES = new Set<TransactionType>([
   TransactionType.DELIVERY_INBOUND, TransactionType.DELIVERY_OUTBOUND,
 ]);
 
-const OUTFLOW_TYPES = new Set<TransactionType>([TransactionType.BUY]);
-const INFLOW_TYPES = new Set<TransactionType>([TransactionType.SELL, TransactionType.DIVIDEND]);
+// ppxml2db convention (see docs/pp-reference/calculation-model.md Section 2):
+//   Outflow/debit types: amount = gross + fees + taxes
+//   Inflow/credit types: amount = gross - fees - taxes
+const OUTFLOW_TYPES = new Set<TransactionType>([
+  TransactionType.BUY,
+  TransactionType.DELIVERY_INBOUND,
+  TransactionType.REMOVAL,
+  TransactionType.INTEREST_CHARGE,
+  TransactionType.FEES,
+  TransactionType.TAXES,
+  TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+]);
+const INFLOW_TYPES = new Set<TransactionType>([
+  TransactionType.SELL,
+  TransactionType.DIVIDEND,
+  TransactionType.DELIVERY_OUTBOUND,
+  TransactionType.DEPOSIT,
+  TransactionType.INTEREST,
+  TransactionType.FEES_REFUND,
+  TransactionType.TAX_REFUND,
+  TransactionType.SECURITY_TRANSFER,
+]);
 
 // ─── Types ────────────────────────────────────────
 

@@ -193,6 +193,136 @@ describe('mapTradeRows', () => {
     });
   });
 
+  describe('Net amount convention — ppxml2db alignment', () => {
+    it('DELIVERY_INBOUND with fees/taxes: outflow → net = (gross + fees + taxes) * 100', () => {
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 1,
+        date: '2024-04-01',
+        type: TransactionType.DELIVERY_INBOUND,
+        securityName: 'Apple Inc',
+        shares: 20,
+        amount: 3000,
+        fees: 15,
+        taxes: 5,
+      }];
+
+      const result = mapTradeRows(rows, ctx);
+      expect(result.errors).toHaveLength(0);
+      expect(result.transactions).toHaveLength(1);
+      // Outflow: net = (3000 + 15 + 5) * 100 = 302000
+      expect(result.transactions[0].amount).toBe(302000);
+    });
+
+    it('DELIVERY_OUTBOUND with fees/taxes: inflow → net = (gross - fees - taxes) * 100', () => {
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 1,
+        date: '2024-04-01',
+        type: TransactionType.DELIVERY_OUTBOUND,
+        securityName: 'Apple Inc',
+        shares: 20,
+        amount: 3000,
+        fees: 15,
+        taxes: 5,
+      }];
+
+      const result = mapTradeRows(rows, ctx);
+      expect(result.errors).toHaveLength(0);
+      expect(result.transactions).toHaveLength(1);
+      // Inflow: net = (3000 - 15 - 5) * 100 = 298000
+      expect(result.transactions[0].amount).toBe(298000);
+    });
+
+    it('INTEREST_CHARGE with fees/taxes: outflow → net = (gross + fees + taxes) * 100', () => {
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 1,
+        date: '2024-04-01',
+        type: TransactionType.INTEREST_CHARGE,
+        securityName: '',
+        amount: 200,
+        fees: 10,
+        taxes: 3,
+      }];
+
+      const result = mapTradeRows(rows, ctx);
+      expect(result.errors).toHaveLength(0);
+      expect(result.transactions).toHaveLength(1);
+      // Outflow: net = (200 + 10 + 3) * 100 = 21300
+      expect(result.transactions[0].amount).toBe(21300);
+    });
+
+    it('INTEREST with fees/taxes: inflow → net = (gross - fees - taxes) * 100', () => {
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 1,
+        date: '2024-04-01',
+        type: TransactionType.INTEREST,
+        securityName: '',
+        amount: 200,
+        fees: 10,
+        taxes: 3,
+      }];
+
+      const result = mapTradeRows(rows, ctx);
+      expect(result.errors).toHaveLength(0);
+      expect(result.transactions).toHaveLength(1);
+      // Inflow: net = (200 - 10 - 3) * 100 = 18700
+      expect(result.transactions[0].amount).toBe(18700);
+    });
+
+    it('FEES with taxes: outflow → net = (gross + 0 + taxes) * 100', () => {
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 1,
+        date: '2024-04-01',
+        type: TransactionType.FEES,
+        securityName: '',
+        amount: 50,
+        fees: 0,
+        taxes: 8,
+      }];
+
+      const result = mapTradeRows(rows, ctx);
+      expect(result.errors).toHaveLength(0);
+      expect(result.transactions).toHaveLength(1);
+      // Outflow: net = (50 + 0 + 8) * 100 = 5800
+      expect(result.transactions[0].amount).toBe(5800);
+    });
+
+    it('DEPOSIT with fees: inflow → net = (gross - fees - 0) * 100', () => {
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 1,
+        date: '2024-04-01',
+        type: TransactionType.DEPOSIT,
+        securityName: '',
+        amount: 5000,
+        fees: 25,
+        taxes: 0,
+      }];
+
+      const result = mapTradeRows(rows, ctx);
+      expect(result.errors).toHaveLength(0);
+      expect(result.transactions).toHaveLength(1);
+      // Inflow: net = (5000 - 25 - 0) * 100 = 497500
+      expect(result.transactions[0].amount).toBe(497500);
+    });
+
+    it('REMOVAL with fees: outflow → net = (gross + fees + 0) * 100', () => {
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 1,
+        date: '2024-04-01',
+        type: TransactionType.REMOVAL,
+        securityName: '',
+        amount: 5000,
+        fees: 25,
+        taxes: 0,
+      }];
+
+      const result = mapTradeRows(rows, ctx);
+      expect(result.errors).toHaveLength(0);
+      expect(result.transactions).toHaveLength(1);
+      // Outflow: net = (5000 + 25 + 0) * 100 = 502500
+      expect(result.transactions[0].amount).toBe(502500);
+    });
+  });
+
   describe('Multiple rows', () => {
     it('processes mixed transaction types', () => {
       const rows: NormalizedTradeRow[] = [

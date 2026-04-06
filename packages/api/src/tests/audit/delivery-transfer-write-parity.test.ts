@@ -380,8 +380,8 @@ describe.skipIf(!hasSqliteBindings)('GROUP C — DELIVERY amount and units', () 
     expect(readUnits(sqlite, id)).toHaveLength(0);
   });
 
-  it('C2: DELIVERY_INBOUND with fees — xact.amount remains 0 (D8 parity)', () => {
-    // D8: DELIVERY is shares-only; fees must NOT pollute xact.amount
+  it('C2: DELIVERY_INBOUND with fees — xact.amount = (gross + fees + taxes) (outflow convention)', () => {
+    // ppxml2db convention: DELIVERY_INBOUND is outflow, amount = gross + fees + taxes
     const id = createTransaction(null, sqlite, {
       type: TransactionType.DELIVERY_INBOUND,
       date: '2025-03-02',
@@ -392,7 +392,8 @@ describe.skipIf(!hasSqliteBindings)('GROUP C — DELIVERY amount and units', () 
       fees: 10,
     });
     const row = readXact(sqlite, id)!;
-    expect(row.amount).toBe(0);
+    // outflow: (0 + 10 + 0) * 100 = 1000
+    expect(row.amount).toBe(1000);
   });
 
   it('C3: DELIVERY_INBOUND with fees — FEE xact_unit created, amount = fees × 100', () => {
@@ -428,7 +429,8 @@ describe.skipIf(!hasSqliteBindings)('GROUP C — DELIVERY amount and units', () 
     expect(units[0].amount).toBe(725); // 7.25 × 100
   });
 
-  it('C5: DELIVERY_OUTBOUND with fees — xact.amount remains 0 (D8 parity)', () => {
+  it('C5: DELIVERY_OUTBOUND with fees — xact.amount = (gross - fees - taxes) (inflow convention)', () => {
+    // ppxml2db convention: DELIVERY_OUTBOUND is inflow, amount = gross - fees - taxes
     const id = createTransaction(null, sqlite, {
       type: TransactionType.DELIVERY_OUTBOUND,
       date: '2025-03-05',
@@ -439,7 +441,8 @@ describe.skipIf(!hasSqliteBindings)('GROUP C — DELIVERY amount and units', () 
       fees: 5,
     });
     const row = readXact(sqlite, id)!;
-    expect(row.amount).toBe(0);
+    // inflow: (0 - 5 - 0) * 100 = -500
+    expect(row.amount).toBe(-500);
   });
 
   it('C6: no xact_cross_entry for either delivery type', () => {
