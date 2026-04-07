@@ -84,8 +84,7 @@ export function ChartLegendOverlay({ chart, items, onToggleVisibility, className
 
   return (
     <div className={cn(
-      'absolute top-2 left-2 z-10 flex flex-wrap gap-x-4 gap-y-1 text-xs',
-      'rounded-md bg-background/80 px-2 py-1 backdrop-blur-sm',
+      'flex flex-wrap gap-x-4 gap-y-1 text-xs py-1',
       className,
     )}>
       {items.map((item) => (
@@ -503,7 +502,7 @@ export function ExtendedChartLegendOverlay({
   if (items.length === 0) return null;
 
   return (
-    <div className={cn('group/ext-legend absolute top-2 left-2 z-10 flex flex-wrap gap-x-1 gap-y-0.5 text-xs rounded-md bg-background/80 px-2 py-1 backdrop-blur-sm', className)}>
+    <div className={cn('group/ext-legend flex flex-wrap gap-x-1 gap-y-0.5 text-xs py-1', className)}>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={items.map((i) => i.id)} strategy={horizontalListSortingStrategy}>
           {items.map((item) => (

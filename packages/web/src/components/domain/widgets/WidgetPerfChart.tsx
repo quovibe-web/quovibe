@@ -211,27 +211,13 @@ export default function WidgetPerfChart() {
           {tDash('noChartData')}
         </div>
       )}
-      <div className="flex justify-end mb-1">
-        <ChartToolbar
-          chartId={CHART_ID}
-          activeType={chartType}
-          hasOhlc={false}
-          onTypeChange={handleTypeChange}
+      <div className="flex items-center justify-between mb-1">
+        <ChartLegendOverlay
+          chart={chartRef.current}
+          items={legendItems}
         />
-      </div>
-      <div
-        className={cn(
-          'relative h-full',
-          isLoading && 'invisible',
-          isFetching && !isLoading && 'opacity-60 transition-opacity duration-200',
-        )}
-        style={{
-          filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
-          transition: 'filter 0.2s ease',
-        }}
-      >
-        {/* Cumulative / Annualized toggle — sits above the chart container */}
-        <div className="absolute -top-12 right-0 z-10">
+        <div className="flex items-center gap-1">
+          {/* Cumulative / Annualized toggle */}
           <div className="inline-flex rounded-md border border-border bg-muted/50 p-0.5">
             <button
               className={cn(
@@ -256,14 +242,26 @@ export default function WidgetPerfChart() {
               {t('chart.annualizedPa')}
             </button>
           </div>
+          <ChartToolbar
+            chartId={CHART_ID}
+            activeType={chartType}
+            hasOhlc={false}
+            onTypeChange={handleTypeChange}
+          />
         </div>
-
+      </div>
+      <div
+        className={cn(
+          'relative h-full',
+          isLoading && 'invisible',
+          isFetching && !isLoading && 'opacity-60 transition-opacity duration-200',
+        )}
+        style={{
+          filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
+          transition: 'filter 0.2s ease',
+        }}
+      >
         <div ref={containerRef} className="w-full h-full" />
-
-        <ChartLegendOverlay
-          chart={chartRef.current}
-          items={legendItems}
-        />
       </div>
     </div>
   );

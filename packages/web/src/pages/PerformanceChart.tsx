@@ -533,6 +533,19 @@ export default function PerformanceChart() {
             <ChartSkeleton height={360} />
           ) : (
             <FadeIn>
+            <div className="flex items-center justify-between mb-1">
+              <ExtendedChartLegendOverlay
+                chart={chartRef.current}
+                items={legendItems}
+                onToggleVisibility={handleToggleVisibility}
+                onColorChange={handleColorChange}
+                onLineStyleChange={handleLineStyleChange}
+                onAreaFillToggle={handleAreaFillToggle}
+                onRemove={handleRemoveSeries}
+                onReorder={handleReorder}
+                onIsolate={handleIsolate}
+              />
+            </div>
             <div
               ref={chartContainerRef}
               className={cn(
@@ -545,18 +558,6 @@ export default function PerformanceChart() {
               }}
             >
               <div ref={containerRef} className="w-full" style={{ height: 360 }} />
-
-              <ExtendedChartLegendOverlay
-                chart={chartRef.current}
-                items={legendItems}
-                onToggleVisibility={handleToggleVisibility}
-                onColorChange={handleColorChange}
-                onLineStyleChange={handleLineStyleChange}
-                onAreaFillToggle={handleAreaFillToggle}
-                onRemove={handleRemoveSeries}
-                onReorder={handleReorder}
-                onIsolate={handleIsolate}
-              />
             </div>
             </FadeIn>
           )}

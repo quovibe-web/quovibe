@@ -149,7 +149,11 @@ export default function WidgetDrawdownChart() {
           {t('noChartData')}
         </div>
       )}
-      <div className="flex justify-end mb-1">
+      <div className="flex items-center justify-between mb-1">
+        <ChartLegendOverlay
+          chart={chartRef.current}
+          items={legendItems}
+        />
         <ChartToolbar
           chartId={CHART_ID}
           activeType={chartType}
@@ -169,10 +173,6 @@ export default function WidgetDrawdownChart() {
         }}
       >
         <div ref={containerRef} className="w-full h-full" />
-        <ChartLegendOverlay
-          chart={chartRef.current}
-          items={legendItems}
-        />
       </div>
     </div>
   );

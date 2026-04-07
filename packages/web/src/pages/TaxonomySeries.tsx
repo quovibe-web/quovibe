@@ -319,7 +319,11 @@ export default function TaxonomySeries() {
             ) : (
               <>
                 {/* Chart */}
-                <div className="flex justify-end mb-1">
+                <div className="flex items-center justify-between mb-1">
+                  <ChartLegendOverlay
+                    chart={chartRef.current}
+                    items={legendItems}
+                  />
                   <ChartToolbar
                     chartId={CHART_ID}
                     activeType={chartType}
@@ -336,10 +340,6 @@ export default function TaxonomySeries() {
                   }}
                 >
                   <div ref={containerRef} className="w-full h-full" />
-                  <ChartLegendOverlay
-                    chart={chartRef.current}
-                    items={legendItems}
-                  />
                 </div>
 
                 {/* Metric tiles grid */}

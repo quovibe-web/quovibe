@@ -336,7 +336,11 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
 
   return (
     <FadeIn>
-      <div className="flex justify-end mb-1">
+      <div className="flex items-center justify-between mb-1">
+        <ChartLegendOverlay
+          chart={chartRef.current}
+          items={legendItems}
+        />
         <ChartToolbar
             chartId={CHART_ID}
             activeType={effectiveType}
@@ -356,11 +360,6 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
         }}
       >
         <div ref={containerRef} className="w-full h-full" />
-
-        <ChartLegendOverlay
-          chart={chartRef.current}
-          items={legendItems}
-        />
 
         {/* Marker click tooltip */}
         {tooltip.visible && (
