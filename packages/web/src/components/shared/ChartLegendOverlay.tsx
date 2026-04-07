@@ -83,7 +83,11 @@ export function ChartLegendOverlay({ chart, items, onToggleVisibility, className
   if (items.length === 0) return null;
 
   return (
-    <div className={cn('absolute top-2 left-2 z-10 flex flex-wrap gap-x-4 gap-y-1 text-xs', className)}>
+    <div className={cn(
+      'absolute top-2 left-2 z-10 flex flex-wrap gap-x-4 gap-y-1 text-xs',
+      'rounded-md bg-background/80 px-2 py-1 backdrop-blur-sm',
+      className,
+    )}>
       {items.map((item) => (
         <div key={item.id} className="flex items-center gap-1.5">
           {onToggleVisibility && (
@@ -98,11 +102,11 @@ export function ChartLegendOverlay({ chart, items, onToggleVisibility, className
             className="inline-block h-2 w-2 rounded-full"
             style={{ backgroundColor: item.color }}
           />
-          <span className={cn('text-muted-foreground', !item.visible && 'line-through opacity-50')}>
+          <span className={cn('text-foreground', !item.visible && 'line-through opacity-50')}>
             {item.label}
           </span>
           {crosshairValues.has(item.id) && (
-            <span className={cn('font-mono font-medium', isPrivate && 'blur-sm')}>
+            <span className={cn('font-mono font-medium text-foreground', isPrivate && 'blur-sm')}>
               {crosshairValues.get(item.id)}
             </span>
           )}
@@ -356,13 +360,13 @@ function SortableExtendedItem({
           )}
 
           {/* Label */}
-          <span className={cn('text-muted-foreground whitespace-nowrap', !item.visible && 'line-through opacity-50')}>
+          <span className={cn('text-foreground whitespace-nowrap', !item.visible && 'line-through opacity-50')}>
             {item.label}
           </span>
 
           {/* Crosshair value */}
           {crosshairValue && (
-            <span className={cn('font-mono font-medium whitespace-nowrap', isPrivate && 'blur-sm')}>
+            <span className={cn('font-mono font-medium whitespace-nowrap text-foreground', isPrivate && 'blur-sm')}>
               {crosshairValue}
             </span>
           )}
@@ -499,7 +503,7 @@ export function ExtendedChartLegendOverlay({
   if (items.length === 0) return null;
 
   return (
-    <div className={cn('group/ext-legend absolute top-2 left-2 z-10 flex flex-wrap gap-x-1 gap-y-0.5 text-xs', className)}>
+    <div className={cn('group/ext-legend absolute top-2 left-2 z-10 flex flex-wrap gap-x-1 gap-y-0.5 text-xs rounded-md bg-background/80 px-2 py-1 backdrop-blur-sm', className)}>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={items.map((i) => i.id)} strategy={horizontalListSortingStrategy}>
           {items.map((item) => (
