@@ -204,7 +204,7 @@ export default function WidgetPerfChart() {
   }
 
   return (
-    <div className="relative" style={{ height: 250 }}>
+    <div className="relative" style={{ height: 270 }}>
       {isLoading && <Skeleton className="absolute inset-0 rounded-lg z-20" />}
       {!isLoading && !chartData.length && (
         <div className="flex items-center justify-center h-full text-sm text-muted-foreground">

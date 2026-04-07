@@ -557,7 +557,7 @@ export default function PerformanceChart() {
                 transition: 'filter 0.2s ease',
               }}
             >
-              <div ref={containerRef} className="w-full" style={{ height: 360 }} />
+              <div ref={containerRef} className="w-full" style={{ height: 380 }} />
             </div>
             </FadeIn>
           )}
