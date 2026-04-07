@@ -55,7 +55,7 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
   const { quotesPrecision } = useDisplayPreferences();
 
   // Determine OHLC availability from data
-  const hasOhlc = prices.length > 0 && prices[0].open != null;
+  const hasOhlc = prices.length > 0 && prices.some(p => p.open != null);
 
   const [chartType, setChartType] = useState<ChartSeriesType>(
     () => {
