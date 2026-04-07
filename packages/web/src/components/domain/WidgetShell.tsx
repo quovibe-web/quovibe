@@ -154,11 +154,7 @@ export function WidgetShell({
               >
                 {title}
               </span>
-              {qualifier && (
-                <span className="text-xs text-muted-foreground/60 font-normal normal-case tracking-normal">
-                  · {qualifier}
-                </span>
-              )}
+              {/* qualifier removed — title abbreviation (cum./ann.) already conveys the info */}
             </>
           )}
           {/* Data series label — inline with title */}
