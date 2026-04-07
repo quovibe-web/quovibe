@@ -338,11 +338,11 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
     <FadeIn>
       <div className="flex justify-end mb-1">
         <ChartToolbar
-          chartId={CHART_ID}
-          activeType={effectiveType}
-          hasOhlc={hasOhlc}
-          onTypeChange={handleTypeChange}
-        />
+            chartId={CHART_ID}
+            activeType={effectiveType}
+            hasOhlc={hasOhlc}
+            onTypeChange={handleTypeChange}
+          />
       </div>
       <div
         className={cn(
