@@ -84,5 +84,13 @@
     "movedTo": "Colonne {{name}} déplacée en position {{index}} sur {{total}}.",
     "dropped": "Colonne {{name}} déposée en position {{index}} sur {{total}}.",
     "cancelled": "Réorganisation annulée. Colonne {{name}} revenue en position {{index}}."
+  },
+  "chartTypes": {
+    "line": "Ligne",
+    "area": "Zone",
+    "candlestick": "Chandelier",
+    "bar": "Barre OHLC",
+    "baseline": "Ligne de base",
+    "histogram": "Histogramme"
   }
 }
