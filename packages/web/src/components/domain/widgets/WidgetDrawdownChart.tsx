@@ -1,48 +1,136 @@
-import { useId, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  AreaChart,
-  Area,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+  AreaSeries, LineSeries, BaselineSeries, HistogramSeries,
+  type ISeriesApi, type SeriesType,
+} from 'lightweight-charts';
 import { useWidgetChartCalculation } from '@/hooks/use-widget-chart-calculation';
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
-import { useChartTheme } from '@/hooks/use-chart-theme';
-import { useChartTicks } from '@/hooks/use-chart-ticks';
-import { formatPercentage, formatDate } from '@/lib/formatters';
+import { useLightweightChart } from '@/hooks/use-lightweight-chart';
+import { formatPercentage } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
+import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ChartTooltip, ChartTooltipRow } from '@/components/shared/ChartTooltip';
+import { ChartToolbar } from '@/components/shared/ChartToolbar';
+import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
 import { FadeIn } from '@/components/shared/FadeIn';
+
+const CHART_ID = 'widget-drawdown';
 
 export default function WidgetDrawdownChart() {
   const { t } = useTranslation('dashboard');
   const { isPrivate } = usePrivacy();
   const { danger } = useChartColors();
-  const { gridColor, gridOpacity, tickColor, cursorColor, cursorDasharray } = useChartTheme();
 
-  const uid = useId();
-  const gradientId = `colorDdWidget-${uid.replace(/:/g, '')}`;
+  const [chartType, setChartType] = useState<ChartSeriesType>(
+    () => getSavedChartType(CHART_ID) ?? 'area',
+  );
+
+  const { containerRef, chartRef } = useLightweightChart({
+    options: {
+      rightPriceScale: {
+        scaleMargins: { top: 0.1, bottom: 0.1 },
+      },
+      leftPriceScale: { visible: false },
+    },
+  });
+
+  const seriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
+  // Incremented after each series rebuild to trigger a re-render so legendItems picks up
+  // the fresh seriesRef.current (refs don't cause re-renders on their own).
+  const [seriesVersion, setSeriesVersion] = useState(0);
 
   const { data, isLoading, isError, error, isFetching } = useWidgetChartCalculation();
 
-  const chartData = useMemo(
-    () =>
-      (data ?? []).map((p) => ({
-        date: p.date,
-        drawdown: -parseFloat(p.drawdown),
-      })),
-    [data],
-  );
+  const rawChartData = (data ?? [])
+    .map((p) => ({
+      time: p.date as string,
+      value: -parseFloat(p.drawdown),
+    }))
+    .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
 
-  const chartDates = useMemo(() => chartData.map((d) => d.date), [chartData]);
-  const { ticks, tickFormatter } = useChartTicks(chartDates);
+  // Create or recreate the series when chart type or colors change
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !rawChartData.length) return;
+
+    // Remove existing series
+    if (seriesRef.current) {
+      chart.removeSeries(seriesRef.current);
+      seriesRef.current = null;
+    }
+
+    let series: ISeriesApi<SeriesType>;
+
+    switch (chartType) {
+      case 'line':
+        series = chart.addSeries(LineSeries, {
+          color: danger,
+          lineWidth: 2,
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        break;
+      case 'baseline':
+        series = chart.addSeries(BaselineSeries, {
+          baseValue: { type: 'price', price: 0 },
+          topLineColor: danger,
+          topFillColor1: danger + '40',
+          topFillColor2: 'transparent',
+          bottomLineColor: danger,
+          bottomFillColor1: 'transparent',
+          bottomFillColor2: 'transparent',
+          lineWidth: 2,
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        break;
+      case 'histogram':
+        series = chart.addSeries(HistogramSeries, {
+          color: danger + 'b0',
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        break;
+      case 'area':
+      default:
+        series = chart.addSeries(AreaSeries, {
+          lineColor: danger,
+          topColor: danger + '40',
+          bottomColor: 'transparent',
+          lineWidth: 2,
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        break;
+    }
+
+    series.setData(rawChartData);
+    chart.timeScale().fitContent();
+    seriesRef.current = series;
+    setSeriesVersion((v) => v + 1); // native-ok — triggers re-render to refresh legendItems
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartType, danger, data]);
+
+  // Build legend items — depends on seriesVersion so it re-derives after every series rebuild
+  const legendItems: LegendSeriesItem[] = seriesVersion > 0 && seriesRef.current
+    ? [
+        {
+          id: 'drawdown',
+          label: t('widgetTypes.drawdown-chart'),
+          color: danger,
+          series: seriesRef.current,
+          visible: true,
+          formatValue: (v: number) => formatPercentage(v),
+        },
+      ]
+    : [];
+
+  const handleTypeChange = (type: ChartSeriesType) => {
+    setChartType(type);
+  };
 
   if (isLoading) {
     return (
@@ -58,7 +146,7 @@ export default function WidgetDrawdownChart() {
       </Alert>
     );
   }
-  if (!chartData.length) {
+  if (!rawChartData.length) {
     return (
       <div className="flex items-center justify-center h-full min-h-[200px] text-sm text-muted-foreground">
         {t('noChartData')}
@@ -68,73 +156,29 @@ export default function WidgetDrawdownChart() {
 
   return (
     <FadeIn>
-    <div
-      className={cn(isFetching && !isLoading && 'opacity-60 transition-opacity duration-200')}
-      style={{
-        filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
-        transition: 'filter 0.2s ease',
-      }}
-    >
-      <ResponsiveContainer width="100%" height={280}>
-        <AreaChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={danger} stopOpacity={0.25} />
-              <stop offset="95%" stopColor={danger} stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke={gridColor}
-            strokeOpacity={gridOpacity}
-            vertical={false}
-          />
-          <XAxis
-            dataKey="date"
-            tick={{ fill: tickColor, fontSize: 10 }}
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-            ticks={ticks}
-            tickFormatter={tickFormatter}
-          />
-          <YAxis
-            tick={{ fill: tickColor, fontSize: 10, style: { fontFeatureSettings: '"tnum"' } }}
-            tickLine={false}
-            axisLine={false}
-            tickMargin={4}
-            tickFormatter={(v: number) => formatPercentage(v)}
-            width={55}
-          />
-          <Tooltip
-            cursor={{ stroke: cursorColor, strokeDasharray: cursorDasharray }}
-            content={({ active, payload, label }) => {
-              if (!active || !payload?.length) return null;
-              const val = payload[0].value as number;
-              return (
-                <ChartTooltip label={formatDate(label as string)}>
-                  <ChartTooltipRow
-                    color={danger}
-                    label={t('widgetTypes.drawdown-chart')}
-                    value={formatPercentage(val)}
-                  />
-                </ChartTooltip>
-              );
-            }}
-          />
-          <Area
-            type="monotone"
-            dataKey="drawdown"
-            stroke={danger}
-            fill={`url(#${gradientId})`}
-            strokeWidth={2}
-            dot={false}
-            animationDuration={800}
-            animationEasing="ease-out"
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
+      <div
+        className={cn(
+          'group/chart relative',
+          isFetching && !isLoading && 'opacity-60 transition-opacity duration-200',
+        )}
+        style={{
+          height: 280,
+          filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
+          transition: 'filter 0.2s ease',
+        }}
+      >
+        <div ref={containerRef} className="w-full h-full" />
+        <ChartLegendOverlay
+          chart={chartRef.current}
+          items={legendItems}
+        />
+        <ChartToolbar
+          chartId={CHART_ID}
+          activeType={chartType}
+          hasOhlc={false}
+          onTypeChange={handleTypeChange}
+        />
+      </div>
     </FadeIn>
   );
 }
