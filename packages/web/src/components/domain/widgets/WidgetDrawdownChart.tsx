@@ -109,6 +109,15 @@ export default function WidgetDrawdownChart() {
         break;
     }
 
+    series.priceScale().applyOptions({
+      mode: 0,
+    });
+    series.applyOptions({
+      priceFormat: {
+        type: 'custom',
+        formatter: (price: number) => `${(price * 100).toFixed(2)}%`, // native-ok
+      },
+    } as Record<string, unknown>);
     series.setData(rawChartData);
     chart.timeScale().fitContent();
     seriesRef.current = series;

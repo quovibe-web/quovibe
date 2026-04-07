@@ -174,6 +174,16 @@ export default function TaxonomySeries() {
         break;
     }
 
+    // Format Y-axis: percentage for TTWROR mode, default for MV
+    if (chartMode === 'ttwror') {
+      series.applyOptions({
+        priceFormat: {
+          type: 'custom',
+          formatter: (price: number) => `${(price * 100).toFixed(2)}%`, // native-ok
+        },
+      } as Record<string, unknown>);
+    }
+
     series.setData(chartData);
     chart.timeScale().fitContent();
     seriesRef.current = series;

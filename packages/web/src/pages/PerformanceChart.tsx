@@ -447,6 +447,21 @@ export default function PerformanceChart() {
       });
     }
 
+    // Format right price scale as percentage (TTWROR values are fractions)
+    chart.priceScale('right').applyOptions({
+      mode: 0,
+    });
+    // Apply percentage formatter to the portfolio series (drives right scale labels)
+    const portfolioEntry = seriesMapRef.current.get('portfolio-default');
+    if (portfolioEntry) {
+      portfolioEntry.series.applyOptions({
+        priceFormat: {
+          type: 'custom',
+          formatter: (price: number) => `${(price * 100).toFixed(2)}%`, // native-ok
+        },
+      } as Record<string, unknown>);
+    }
+
     chart.timeScale().fitContent();
     seriesBuildCount.current += 1; // native-ok
     // Schedule legend re-derivation on next microtask to avoid setState-during-render

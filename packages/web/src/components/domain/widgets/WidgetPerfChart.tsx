@@ -158,6 +158,14 @@ export default function WidgetPerfChart() {
       priceScaleId: 'left',
     });
 
+    // Format TTWROR axis as percentage
+    ttwrorSeries.applyOptions({
+      priceFormat: {
+        type: 'custom',
+        formatter: (price: number) => `${(price * 100).toFixed(2)}%`, // native-ok
+      },
+    } as Record<string, unknown>);
+
     mvSeries.setData(mvData);
     ttwrorSeries.setData(ttwrorData);
     chart.timeScale().fitContent();
