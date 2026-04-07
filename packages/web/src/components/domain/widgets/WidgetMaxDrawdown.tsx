@@ -1,11 +1,11 @@
 import { useWidgetCalculation } from '@/hooks/use-widget-calculation';
 import { useWidgetKpiMeta } from '@/hooks/use-widget-kpi-meta';
-import { formatPercentage } from '@/lib/formatters';
 import { usePrivacy } from '@/context/privacy-context';
-import { useCountUp } from '@/hooks/use-count-up';
 import { getColor } from '@/lib/colors';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import NumberFlow from '@number-flow/react';
+import i18n from '@/i18n';
 
 export default function WidgetMaxDrawdown() {
   const { data, isLoading, isError, error } = useWidgetCalculation();
@@ -13,7 +13,6 @@ export default function WidgetMaxDrawdown() {
   const { periodLabel } = useWidgetKpiMeta('widget.qualifier.period');
   const mdd = data ? parseFloat(data.maxDrawdown) : 0;
   const displayVal = mdd === 0 ? 0 : -mdd;
-  const animated = useCountUp(displayVal, 1200, !isPrivate);
 
   if (isLoading) {
     return (
@@ -39,7 +38,14 @@ export default function WidgetMaxDrawdown() {
         className="text-2xl font-semibold tabular-nums"
         style={{ color: isPrivate || mdd === 0 ? undefined : getColor('danger') }}
       >
-        {isPrivate ? '••••••' : formatPercentage(animated)}
+        {isPrivate ? '••••••' : (
+          <NumberFlow
+            className="muted-fraction"
+            value={displayVal}
+            locales={i18n.language}
+            format={{ style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }}
+          />
+        )}
       </span>
       <span className="text-xs text-muted-foreground mt-5">{periodLabel}</span>
     </div>
