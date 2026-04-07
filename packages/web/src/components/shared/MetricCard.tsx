@@ -7,10 +7,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import NumberFlow from '@number-flow/react';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { usePrivacy } from '@/context/privacy-context';
-import { useCountUp } from '@/hooks/use-count-up';
-import { formatPercentage } from '@/lib/formatters';
+import i18n from '@/i18n';
 import { COLORS } from '@/lib/colors';
 import { cn } from '@/lib/utils';
 import type { MetricDefinition, MetricValue } from '@/lib/metric-registry';
@@ -44,9 +44,6 @@ export function MetricCard({
   const secondary = value?.secondary;
   const irrConverged = value?.irrConverged;
 
-  // Animate the main KPI value from 0 → target; disabled in privacy mode
-  const animatedPrimary = useCountUp(primary, 600, !isPrivate);
-
   const isPositive = primary >= 0;
   const valueColor =
     definition.colorize && !isPrivate
@@ -69,7 +66,7 @@ export function MetricCard({
     if (definition.format === 'currency') {
       return (
         <CurrencyDisplay
-          value={animatedPrimary}
+          value={primary}
           colorize={definition.colorize}
           className="text-2xl font-semibold tabular-nums"
         />
@@ -79,7 +76,16 @@ export function MetricCard({
     if (definition.format === 'percentage') {
       return (
         <span className="text-2xl font-semibold tabular-nums" style={{ color: valueColor }}>
-          {formatPercentage(animatedPrimary)}
+          <NumberFlow
+            className="muted-fraction"
+            value={primary}
+            locales={i18n.language}
+            format={{
+              style: 'percent',
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }}
+          />
         </span>
       );
     }
@@ -88,7 +94,7 @@ export function MetricCard({
       return (
         <div className="flex flex-col gap-0.5">
           <CurrencyDisplay
-            value={animatedPrimary}
+            value={primary}
             colorize={definition.colorize}
             className="text-2xl font-semibold tabular-nums"
           />
@@ -104,7 +110,16 @@ export function MetricCard({
                     : undefined,
               }}
             >
-              {formatPercentage(secondary)}
+              <NumberFlow
+                className="muted-fraction"
+                value={secondary}
+                locales={i18n.language}
+                format={{
+                  style: 'percent',
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }}
+              />
             </span>
           )}
         </div>
