@@ -55,10 +55,7 @@ export function useLightweightChart(
           const entry = entries[0];
           if (entry && chartRef.current) {
             const { width, height } = entry.contentRect;
-            if (width > 0 && height > 0) { // native-ok
-              chartRef.current.resize(width, height);
-              chartRef.current.timeScale().fitContent();
-            }
+            if (width > 0 && height > 0) chartRef.current.resize(width, height); // native-ok
           }
         });
         resizeObs.observe(container);
