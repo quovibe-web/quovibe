@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQueries, keepPreviousData } from '@tanstack/react-query';
 import { useChartConfig } from './use-chart-config';
 import { useReportingPeriod } from './use-performance';
@@ -104,14 +105,23 @@ export function useChartSeries() {
     })),
   });
 
-  const result: ResolvedSeries[] = seriesList.map((config, i) => ({
-    config,
-    data: queries[i]?.data ?? [],
-    isLoading: queries[i]?.isLoading ?? false,
-    error: (queries[i]?.error as Error) ?? null,
-  }));
-
   const isLoading = queries.some((q) => q.isLoading);
+
+  // Stable key: only recompute when query data, loading states, or configs change
+  const queryKey = queries.map((q) => `${q.dataUpdatedAt ?? 0}:${q.isLoading}`).join('|');
+  const configKey = JSON.stringify(seriesList.map((s) => s.id));
+
+  const result: ResolvedSeries[] = useMemo(
+    () =>
+      seriesList.map((cfg, i) => ({
+        config: cfg,
+        data: queries[i]?.data ?? [],
+        isLoading: queries[i]?.isLoading ?? false,
+        error: (queries[i]?.error as Error) ?? null,
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryKey, configKey],
+  );
 
   return { series: result, isLoading };
 }

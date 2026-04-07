@@ -383,7 +383,7 @@ export default function PerformanceChart() {
     }
 
     chart.timeScale().fitContent();
-    // Legend re-derives via chartConfig/chartSeries/ready deps in useMemo — no setState needed here
+    setLegendTrigger((v) => v + 1); // native-ok — seriesMapRef is a ref, must trigger re-render for legend
 
   }, [displayData, chartSeries, ttwrorMode, periodStart, dividend, palette[0], ready]);
 

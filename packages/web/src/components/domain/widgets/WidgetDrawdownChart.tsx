@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
   AreaSeries, LineSeries, BaselineSeries, HistogramSeries,
@@ -17,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
+import { useWidgetToolbarPortal } from '@/components/domain/WidgetShell';
 
 
 const CHART_ID = 'widget-drawdown';
@@ -25,6 +27,7 @@ export default function WidgetDrawdownChart() {
   const { t } = useTranslation('dashboard');
   const { isPrivate } = usePrivacy();
   const { danger } = useChartColors();
+  const toolbarTarget = useWidgetToolbarPortal();
 
   const [chartType, setChartType] = useState<ChartSeriesType>(
     () => getSavedChartType(CHART_ID) ?? 'area',
@@ -119,25 +122,30 @@ export default function WidgetDrawdownChart() {
     );
   }
 
+  const toolbarElement = (
+    <ChartToolbar
+      chartId={CHART_ID}
+      activeType={chartType}
+      hasOhlc={false}
+      onTypeChange={handleTypeChange}
+    />
+  );
+
   return (
     <div className="flex flex-col" style={{ height: 280 }}>
+      {toolbarTarget && createPortal(toolbarElement, toolbarTarget)}
       {isLoading && <Skeleton className="absolute inset-0 rounded-lg z-20" />}
       {!isLoading && !rawChartData.length && (
         <div className="flex items-center justify-center flex-1 text-sm text-muted-foreground">
           {t('noChartData')}
         </div>
       )}
-      <div className="flex items-center justify-between shrink-0">
+      <div className="flex items-center shrink-0 mb-1">
         <ChartLegendOverlay
           chart={chartRef.current}
           items={legendItems}
         />
-        <ChartToolbar
-          chartId={CHART_ID}
-          activeType={chartType}
-          hasOhlc={false}
-          onTypeChange={handleTypeChange}
-        />
+        {!toolbarTarget && toolbarElement}
       </div>
       <div
         className={cn(

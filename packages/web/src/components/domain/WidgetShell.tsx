@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, createContext, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GripHorizontal, MoreHorizontal, Clock, X } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -23,6 +23,21 @@ import { useWidgetKpiMeta } from '@/hooks/use-widget-kpi-meta';
 import { useDashboardConfig, useSaveDashboard } from '@/api/use-dashboard-config';
 import { formatPeriodShortLabel } from '@/lib/period-utils';
 
+/* ── Toolbar portal context ──────────────────────────────────────── */
+
+interface WidgetShellContextValue {
+  toolbarTarget: HTMLElement | null;
+}
+
+const WidgetShellContext = createContext<WidgetShellContextValue>({ toolbarTarget: null });
+
+/** Hook for child widgets to portal toolbar content into the WidgetShell header. */
+export function useWidgetToolbarPortal(): HTMLElement | null {
+  return useContext(WidgetShellContext).toolbarTarget;
+}
+
+/* ── Component ───────────────────────────────────────────────────── */
+
 interface WidgetShellProps {
   widgetId: string;
   dashboardId: string;
@@ -37,8 +52,6 @@ interface WidgetShellProps {
   dragHandleAttributes?: Record<string, unknown>;
   /** Index for stagger-in animation delay */
   index?: number;
-  /** Optional toolbar rendered in the header row (e.g. chart type switcher) */
-  toolbar?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -54,7 +67,6 @@ export function WidgetShell({
   dragHandleListeners,
   dragHandleAttributes,
   index = 0,
-  toolbar,
   children,
 }: WidgetShellProps) {
   const { t } = useTranslation('dashboard');
@@ -67,6 +79,7 @@ export function WidgetShell({
   const saveDashboard = useSaveDashboard();
   const [editValue, setEditValue] = useState(title);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [toolbarEl, setToolbarEl] = useState<HTMLElement | null>(null);
 
   // Resolve qualifier for LINE 1 (next to title)
   const { qualifier } = useWidgetKpiMeta(qualifierKey ?? null);
@@ -162,7 +175,10 @@ export function WidgetShell({
           )}
           {/* Data series label — inline with title */}
           {dataSeriesLabel && (
-            <span className="text-sm text-primary truncate">{dataSeriesLabel}</span>
+            <>
+              <span className="text-muted-foreground/40 text-xs select-none">•</span>
+              <span className="text-sm text-primary truncate">{dataSeriesLabel}</span>
+            </>
           )}
           {periodOverride && (
             <span
@@ -183,10 +199,10 @@ export function WidgetShell({
               </button>
             </span>
           )}
-          {/* Optional toolbar slot */}
-          {toolbar}
-          {/* Spacer pushes kebab to the right */}
+          {/* Spacer pushes toolbar + kebab to the right */}
           <div className="flex-1" />
+          {/* Toolbar portal target — chart widgets render their controls here via createPortal */}
+          <div ref={setToolbarEl} className="flex items-center gap-4" />
           {/* Kebab menu — always visible */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -224,7 +240,9 @@ export function WidgetShell({
         </CardHeader>
         {/* LINE 2 removed — data series label merged into LINE 1 */}
         <CardContent className="flex-1 pt-0">
-          {children}
+          <WidgetShellContext.Provider value={{ toolbarTarget: toolbarEl }}>
+            {children}
+          </WidgetShellContext.Provider>
         </CardContent>
       </Card>
       <DataSeriesDialog

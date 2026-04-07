@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
   AreaSeries, LineSeries, BaselineSeries, HistogramSeries,
@@ -17,33 +18,35 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
+import { useWidgetToolbarPortal } from '@/components/domain/WidgetShell';
 
 
 const CHART_ID = 'widget-perf';
+
+type MetricMode = 'mv' | 'ttwror' | 'ttwrorPa';
 
 export default function WidgetPerfChart() {
   const { t } = useTranslation('performance');
   const { t: tDash } = useTranslation('dashboard');
   const { isPrivate } = usePrivacy();
-  const { profit, dividend } = useChartColors();
+  const { profit, loss } = useChartColors();
+  const toolbarTarget = useWidgetToolbarPortal();
 
-  const [ttwrorMode, setTtwrorMode] = useState<'cumulative' | 'annualized'>('cumulative');
+  const [metric, setMetric] = useState<MetricMode>('mv');
   const [chartType, setChartType] = useState<ChartSeriesType>(
     () => getSavedChartType(CHART_ID) ?? 'area',
   );
 
+  const isPercentage = metric !== 'mv';
+
   const { containerRef, chartRef, ready } = useLightweightChart({
     options: {
       rightPriceScale: { visible: true },
-      leftPriceScale: { visible: true },
+      leftPriceScale: { visible: false },
     },
   });
 
-  // Refs for both series
-  const mvSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
-  const ttwrorSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
-  // Incremented after each series rebuild to trigger a re-render so legendItems picks up
-  // the fresh refs (refs don't cause re-renders on their own).
+  const seriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
   const [seriesVersion, setSeriesVersion] = useState(0);
 
   const { data, isLoading, isError, error, isFetching, periodStart } = useWidgetChartCalculation();
@@ -58,110 +61,81 @@ export default function WidgetPerfChart() {
     [data],
   );
 
-  const displayData = useMemo(() => {
-    if (ttwrorMode === 'cumulative') return chartData;
-    const start = parseISO(periodStart);
-    return chartData.map((p) => ({
-      ...p,
-      ttwror: computeTtwrorPa(p.ttwror, differenceInDays(parseISO(p.date), start)),
-    }));
-  }, [chartData, ttwrorMode, periodStart]);
-
-  const mvData = useMemo(
-    () =>
-      displayData
+  const seriesData = useMemo(() => {
+    if (metric === 'mv') {
+      return chartData
         .map((p) => ({ time: p.date, value: p.marketValue }))
-        .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)), // native-ok
-    [displayData],
-  );
+        .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
+    }
+    const start = parseISO(periodStart);
+    return chartData
+      .map((p) => ({
+        time: p.date,
+        value: metric === 'ttwrorPa'
+          ? computeTtwrorPa(p.ttwror, differenceInDays(parseISO(p.date), start))
+          : p.ttwror,
+      }))
+      .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
+  }, [chartData, metric, periodStart]);
 
-  const ttwrorData = useMemo(
-    () =>
-      displayData
-        .map((p) => ({ time: p.date, value: p.ttwror }))
-        .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)), // native-ok
-    [displayData],
-  );
-
-  // Create or recreate the MV series when chart type or colors change.
-  // TTWROR series is always a line — recreate when colors or data change.
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart || !ready || !mvData.length) return;
+    if (!chart || !ready || !seriesData.length) return;
 
-    // Remove existing series (guard: chart may be destroyed during unmount)
     try {
-      if (mvSeriesRef.current) {
-        chart.removeSeries(mvSeriesRef.current);
-        mvSeriesRef.current = null;
+      if (seriesRef.current) {
+        chart.removeSeries(seriesRef.current);
+        seriesRef.current = null;
       }
-      if (ttwrorSeriesRef.current) {
-        chart.removeSeries(ttwrorSeriesRef.current);
-        ttwrorSeriesRef.current = null;
-      }
-    } catch { mvSeriesRef.current = null; ttwrorSeriesRef.current = null; return; }
+    } catch { seriesRef.current = null; return; }
 
-    // Market Value series (right price scale) — type follows chartType
     const SERIES_MAP = {
       Line: LineSeries, Area: AreaSeries, Baseline: BaselineSeries, Histogram: HistogramSeries,
     } as const;
 
+    const basePrice = isPercentage ? 0 : (seriesData.length > 0 ? seriesData[0].value : 0); // native-ok
     const { seriesType, options } = buildSeriesOptions(chartType, {
       color: profit,
-      basePrice: 0,
+      basePrice,
       profitColor: profit,
-      lossColor: profit,
+      lossColor: loss,
       priceScaleId: 'right',
     });
     const Constructor = SERIES_MAP[seriesType as keyof typeof SERIES_MAP] ?? LineSeries;
-    const mvSeries: ISeriesApi<SeriesType> = chart.addSeries(Constructor, options);
+    const series: ISeriesApi<SeriesType> = chart.addSeries(Constructor, options);
 
-    // TTWROR series (left price scale) — always a line
-    const ttwrorSeries = chart.addSeries(LineSeries, {
-      color: dividend,
-      lineWidth: 2,
-      lastValueVisible: false,
-      priceLineVisible: false,
-      priceScaleId: 'left',
-    });
+    if (isPercentage) {
+      series.applyOptions({
+        priceFormat: {
+          type: 'custom',
+          formatter: (price: number) => `${(price * 100).toFixed(2)}%`, // native-ok
+        },
+      } as Record<string, unknown>);
+    }
 
-    // Format TTWROR axis as percentage
-    ttwrorSeries.applyOptions({
-      priceFormat: {
-        type: 'custom',
-        formatter: (price: number) => `${(price * 100).toFixed(2)}%`, // native-ok
-      },
-    } as Record<string, unknown>);
-
-    mvSeries.setData(mvData);
-    ttwrorSeries.setData(ttwrorData);
+    series.setData(seriesData);
     chart.timeScale().fitContent();
+    seriesRef.current = series;
+    setSeriesVersion((v) => v + 1); // native-ok
+  }, [chartType, profit, loss, metric, data, ready]);
 
-    mvSeriesRef.current = mvSeries;
-    ttwrorSeriesRef.current = ttwrorSeries;
-    setSeriesVersion((v) => v + 1); // native-ok — triggers re-render to refresh legendItems
-  }, [chartType, profit, dividend, data, ttwrorMode, ready]);
+  const metricLabel = metric === 'mv'
+    ? t('chart.marketValue')
+    : metric === 'ttwror'
+      ? t('chart.ttwror')
+      : t('chart.ttwrorPa');
 
-  const ttwrorLabel = ttwrorMode === 'cumulative' ? t('chart.ttwror') : t('chart.ttwrorPa');
-
-  // Build legend items — depends on seriesVersion so it re-derives after every series rebuild
-  const legendItems: LegendSeriesItem[] = seriesVersion > 0 && mvSeriesRef.current && ttwrorSeriesRef.current
+  const legendItems: LegendSeriesItem[] = seriesVersion > 0 && seriesRef.current
     ? [
         {
-          id: 'mv',
-          label: t('chart.marketValue'),
+          id: 'main',
+          label: metricLabel,
           color: profit,
-          series: mvSeriesRef.current,
+          series: seriesRef.current,
           visible: true,
-          formatValue: (v: number) => formatCurrency(v),
-        },
-        {
-          id: 'ttwror',
-          label: ttwrorLabel,
-          color: dividend,
-          series: ttwrorSeriesRef.current,
-          visible: true,
-          formatValue: (v: number) => formatPercentage(v),
+          formatValue: isPercentage
+            ? (v: number) => formatPercentage(v)
+            : (v: number) => formatCurrency(v),
         },
       ]
     : [];
@@ -178,52 +152,68 @@ export default function WidgetPerfChart() {
     );
   }
 
+  const toolbarElement = (
+    <>
+      {/* Metric toggle: MV / Cumulative / p.a. */}
+      <div className="inline-flex rounded-md border border-border bg-muted/50 p-0.5">
+        <button
+          className={cn(
+            'px-2 py-0.5 text-[10px] font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+            metric === 'mv'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+          onClick={() => setMetric('mv')}
+        >
+          MV
+        </button>
+        <button
+          className={cn(
+            'px-2 py-0.5 text-[10px] font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+            metric === 'ttwror'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+          onClick={() => setMetric('ttwror')}
+        >
+          {t('chart.cumulative')}
+        </button>
+        <button
+          className={cn(
+            'px-2 py-0.5 text-[10px] font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+            metric === 'ttwrorPa'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+          onClick={() => setMetric('ttwrorPa')}
+        >
+          {t('chart.annualizedPa')}
+        </button>
+      </div>
+      <ChartToolbar
+        chartId={CHART_ID}
+        activeType={chartType}
+        hasOhlc={false}
+        onTypeChange={handleTypeChange}
+      />
+    </>
+  );
+
   return (
-    <div className="flex flex-col" style={{ height: 250 }}>
+    <div className="flex flex-col" style={{ height: 280 }}>
+      {toolbarTarget && createPortal(toolbarElement, toolbarTarget)}
       {isLoading && <Skeleton className="absolute inset-0 rounded-lg z-20" />}
       {!isLoading && !chartData.length && (
         <div className="flex items-center justify-center flex-1 text-sm text-muted-foreground">
           {tDash('noChartData')}
         </div>
       )}
-      <div className="flex items-center justify-between shrink-0">
+      <div className="flex items-center shrink-0 mb-1">
         <ChartLegendOverlay
           chart={chartRef.current}
           items={legendItems}
         />
-        <div className="flex items-center gap-1">
-          {/* Cumulative / Annualized toggle */}
-          <div className="inline-flex rounded-md border border-border bg-muted/50 p-0.5">
-            <button
-              className={cn(
-                'px-2 py-0.5 text-[10px] font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-                ttwrorMode === 'cumulative'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-              onClick={() => setTtwrorMode('cumulative')}
-            >
-              {t('chart.cumulative')}
-            </button>
-            <button
-              className={cn(
-                'px-2 py-0.5 text-[10px] font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-                ttwrorMode === 'annualized'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-              onClick={() => setTtwrorMode('annualized')}
-            >
-              {t('chart.annualizedPa')}
-            </button>
-          </div>
-          <ChartToolbar
-            chartId={CHART_ID}
-            activeType={chartType}
-            hasOhlc={false}
-            onTypeChange={handleTypeChange}
-          />
-        </div>
+        {!toolbarTarget && toolbarElement}
       </div>
       <div
         className={cn(
