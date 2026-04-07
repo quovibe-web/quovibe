@@ -544,38 +544,37 @@ export default function PerformanceChart() {
           <CardTitle className="text-base">{t('chart.entirePortfolio')}</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <ChartSkeleton height={360} />
-          ) : (
-            <FadeIn>
-            <div className="flex items-center justify-between mb-1">
-              <ExtendedChartLegendOverlay
-                chart={chartRef.current}
-                items={legendItems}
-                onToggleVisibility={handleToggleVisibility}
-                onColorChange={handleColorChange}
-                onLineStyleChange={handleLineStyleChange}
-                onAreaFillToggle={handleAreaFillToggle}
-                onRemove={handleRemoveSeries}
-                onReorder={handleReorder}
-                onIsolate={handleIsolate}
-              />
+          <div className="relative" style={{ minHeight: 360 }}>
+            {isLoading && <ChartSkeleton height={360} />}
+            <div className={cn(isLoading && 'invisible')}>
+              <div className="flex items-center justify-between mb-1">
+                <ExtendedChartLegendOverlay
+                  chart={chartRef.current}
+                  items={legendItems}
+                  onToggleVisibility={handleToggleVisibility}
+                  onColorChange={handleColorChange}
+                  onLineStyleChange={handleLineStyleChange}
+                  onAreaFillToggle={handleAreaFillToggle}
+                  onRemove={handleRemoveSeries}
+                  onReorder={handleReorder}
+                  onIsolate={handleIsolate}
+                />
+              </div>
+              <div
+                ref={chartContainerRef}
+                className={cn(
+                  'relative',
+                  isFetching && !isLoading && 'opacity-60 transition-opacity duration-200',
+                )}
+                style={{
+                  filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
+                  transition: 'filter 0.2s ease',
+                }}
+              >
+                <div ref={containerRef} className="w-full" style={{ height: 360 }} />
+              </div>
             </div>
-            <div
-              ref={chartContainerRef}
-              className={cn(
-                'group/chart relative',
-                isFetching && !isLoading && 'opacity-60 transition-opacity duration-200',
-              )}
-              style={{
-                filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
-                transition: 'filter 0.2s ease',
-              }}
-            >
-              <div ref={containerRef} className="w-full" style={{ height: 360 }} />
-            </div>
-            </FadeIn>
-          )}
+          </div>
         </CardContent>
         <DataSeriesPickerDialog open={configOpen} onOpenChange={setConfigOpen} />
     </Card>
