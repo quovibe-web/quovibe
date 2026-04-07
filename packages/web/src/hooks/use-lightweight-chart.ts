@@ -28,6 +28,9 @@ export function useLightweightChart(
 
   // Ref callback: fires when the container div mounts/unmounts in the DOM
   const containerRef = useCallback((node: HTMLDivElement | null) => {
+    // Same node — no-op (prevents infinite loop from re-renders)
+    if (node === containerNodeRef.current && chartRef.current) return;
+
     // Cleanup previous chart if container changes
     if (containerNodeRef.current && containerNodeRef.current !== node) {
       observerRef.current?.disconnect();
