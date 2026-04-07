@@ -1,6 +1,7 @@
 {
   "title": "Dashboard",
   "hero": {
+    "portfolioValue": "Portefeuillewaarde",
     "configureMetrics": "Statistieken configureren",
     "selectMetrics": "Statistieken selecteren"
   },

@@ -1,6 +1,7 @@
 {
   "title": "Tableau de bord",
   "hero": {
+    "portfolioValue": "Valeur du portefeuille",
     "configureMetrics": "Configurer les métriques",
     "selectMetrics": "Sélectionner les métriques"
   },

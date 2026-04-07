@@ -1,6 +1,7 @@
 {
   "title": "Dashboard",
   "hero": {
+    "portfolioValue": "Portfolio Value",
     "configureMetrics": "Configure metrics",
     "selectMetrics": "Select metrics"
   },

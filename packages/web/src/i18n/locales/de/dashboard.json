@@ -1,6 +1,7 @@
 {
   "title": "Dashboard",
   "hero": {
+    "portfolioValue": "Portfoliowert",
     "configureMetrics": "Kennzahlen konfigurieren",
     "selectMetrics": "Kennzahlen auswählen"
   },

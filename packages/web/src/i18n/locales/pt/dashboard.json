@@ -1,6 +1,7 @@
 {
   "title": "Painel",
   "hero": {
+    "portfolioValue": "Valor da carteira",
     "configureMetrics": "Configurar métricas",
     "selectMetrics": "Selecionar métricas"
   },
