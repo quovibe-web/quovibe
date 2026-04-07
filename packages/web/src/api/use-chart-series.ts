@@ -119,7 +119,6 @@ export function useChartSeries() {
         isLoading: queries[i]?.isLoading ?? false,
         error: (queries[i]?.error as Error) ?? null,
       })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [queryKey, configKey],
   );
 

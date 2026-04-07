@@ -82,7 +82,7 @@ export function WidgetShell({
   const [toolbarEl, setToolbarEl] = useState<HTMLElement | null>(null);
 
   // Resolve qualifier for LINE 1 (next to title)
-  const { qualifier } = useWidgetKpiMeta(qualifierKey ?? null);
+  useWidgetKpiMeta(qualifierKey ?? null);
 
   // Resolve data series label for LINE 2
   const { dataSeries, periodOverride, setPeriodOverride, options, setOptions } = useWidgetConfig();

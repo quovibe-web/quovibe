@@ -24,7 +24,6 @@ import {
   ExtendedChartLegendOverlay,
   type ExtendedLegendSeriesItem,
 } from '@/components/shared/ChartLegendOverlay';
-import { FadeIn } from '@/components/shared/FadeIn';
 import { useAnalyticsContext } from '@/context/analytics-context';
 import { DataSeriesPickerDialog } from '@/components/domain/DataSeriesPickerDialog';
 import { cn } from '@/lib/utils';
