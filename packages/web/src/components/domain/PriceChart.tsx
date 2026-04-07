@@ -54,7 +54,7 @@ const CHART_ID = 'price-chart';
 export function PriceChart({ prices, transactions = [], isFetching, toolbarPortalId }: PriceChartProps) {
   const { t } = useTranslation('securities');
   const { isPrivate } = usePrivacy();
-  const { profit, loss, violet, palette } = useChartColors();
+  const { profit, loss, warning, palette } = useChartColors();
   const { quotesPrecision } = useDisplayPreferences();
 
   // Determine OHLC availability from data
@@ -300,7 +300,7 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
           position: tx.type === 'SELL' ? 'aboveBar' as const : 'belowBar' as const,
           color: tx.type === 'BUY' ? profit
             : tx.type === 'SELL' ? loss
-            : violet,
+            : warning,
           shape: tx.type === 'BUY' ? 'arrowUp' as const
             : tx.type === 'SELL' ? 'arrowDown' as const
             : 'square' as const,
@@ -317,12 +317,12 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
     chart.timeScale().fitContent();
     setSeriesVersion(v => v + 1); // native-ok
 
-  }, [effectiveType, profit, loss, violet, palette[0], prices, transactions, hasVolume, ready]);
+  }, [effectiveType, profit, loss, warning, palette[0], prices, transactions, hasVolume, ready]);
 
   function markerColor(type: string) {
     if (type === 'BUY') return profit;
     if (type === 'SELL') return loss;
-    return violet;
+    return warning;
   }
 
   const handleTypeChange = (type: ChartSeriesType) => {
