@@ -35,11 +35,7 @@ export function ChartToolbar({ chartId, activeType, hasOhlc, onTypeChange, class
   };
 
   return (
-    <div className={cn(
-      'absolute top-2 right-2 z-10 flex gap-0.5 rounded-md border bg-background/80 p-0.5 backdrop-blur-sm',
-      'opacity-0 transition-opacity group-hover/chart:opacity-100',
-      className,
-    )}>
+    <div className={cn('flex gap-0.5 rounded-md border bg-muted/50 p-0.5', className)}>
       {types.map((type) => {
         const Icon = ICONS[type];
         return (
@@ -49,8 +45,8 @@ export function ChartToolbar({ chartId, activeType, hasOhlc, onTypeChange, class
             className={cn(
               'rounded p-1.5 transition-colors',
               activeType === type
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:bg-background/50 hover:text-foreground',
             )}
             title={t(`chartTypes.${type}`)}
           >

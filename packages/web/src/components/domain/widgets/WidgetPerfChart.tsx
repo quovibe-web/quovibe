@@ -211,9 +211,17 @@ export default function WidgetPerfChart() {
           {tDash('noChartData')}
         </div>
       )}
+      <div className="flex justify-end mb-1">
+        <ChartToolbar
+          chartId={CHART_ID}
+          activeType={chartType}
+          hasOhlc={false}
+          onTypeChange={handleTypeChange}
+        />
+      </div>
       <div
         className={cn(
-          'group/chart relative h-full',
+          'relative h-full',
           isLoading && 'invisible',
           isFetching && !isLoading && 'opacity-60 transition-opacity duration-200',
         )}
@@ -255,12 +263,6 @@ export default function WidgetPerfChart() {
         <ChartLegendOverlay
           chart={chartRef.current}
           items={legendItems}
-        />
-        <ChartToolbar
-          chartId={CHART_ID}
-          activeType={chartType}
-          hasOhlc={false}
-          onTypeChange={handleTypeChange}
         />
       </div>
     </div>

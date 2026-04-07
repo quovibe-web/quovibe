@@ -336,9 +336,17 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
 
   return (
     <FadeIn>
+      <div className="flex justify-end mb-1">
+        <ChartToolbar
+          chartId={CHART_ID}
+          activeType={effectiveType}
+          hasOhlc={hasOhlc}
+          onTypeChange={handleTypeChange}
+        />
+      </div>
       <div
         className={cn(
-          'group/chart relative',
+          'relative',
           isFetching && 'opacity-60 transition-opacity duration-200',
         )}
         style={{
@@ -352,13 +360,6 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
         <ChartLegendOverlay
           chart={chartRef.current}
           items={legendItems}
-        />
-
-        <ChartToolbar
-          chartId={CHART_ID}
-          activeType={effectiveType}
-          hasOhlc={hasOhlc}
-          onTypeChange={handleTypeChange}
         />
 
         {/* Marker click tooltip */}
