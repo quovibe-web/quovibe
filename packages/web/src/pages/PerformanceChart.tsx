@@ -143,7 +143,7 @@ export default function PerformanceChart() {
     const chart = chartRef.current;
     const entry = seriesMapRef.current.get(id);
     if (chart && entry) {
-      chart.removeSeries(entry.series);
+      try { chart.removeSeries(entry.series); } catch { /* chart destroyed */ }
       seriesMapRef.current.delete(id);
     }
 
@@ -296,15 +296,21 @@ export default function PerformanceChart() {
     const chart = chartRef.current;
     if (!chart || displayData.length === 0) return; // native-ok
 
-    // Remove all existing series
-    for (const [, entry] of seriesMapRef.current) {
-      chart.removeSeries(entry.series);
-    }
-    seriesMapRef.current.clear();
+    // Remove all existing series (guard: chart may be destroyed during unmount)
+    try {
+      for (const [, entry] of seriesMapRef.current) {
+        chart.removeSeries(entry.series);
+      }
+      seriesMapRef.current.clear();
 
-    if (barSeriesRef.current) {
-      chart.removeSeries(barSeriesRef.current);
+      if (barSeriesRef.current) {
+        chart.removeSeries(barSeriesRef.current);
+        barSeriesRef.current = null;
+      }
+    } catch {
+      seriesMapRef.current.clear();
       barSeriesRef.current = null;
+      return;
     }
 
     const periodStartDate = parseISO(periodStart);

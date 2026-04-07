@@ -142,11 +142,13 @@ export default function TaxonomySeries() {
     const chart = chartRef.current;
     if (!chart || !chartData.length) return;
 
-    // Remove existing series
-    if (seriesRef.current) {
-      chart.removeSeries(seriesRef.current);
-      seriesRef.current = null;
-    }
+    // Remove existing series (guard: chart may be destroyed during unmount)
+    try {
+      if (seriesRef.current) {
+        chart.removeSeries(seriesRef.current);
+        seriesRef.current = null;
+      }
+    } catch { seriesRef.current = null; return; }
 
     let series: ISeriesApi<SeriesType>;
 

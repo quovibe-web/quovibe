@@ -99,10 +99,12 @@ function PaymentBarChart({
     const chart = chartRef.current;
     if (!chart) return;
 
-    if (seriesRef.current) {
-      chart.removeSeries(seriesRef.current);
-      seriesRef.current = null;
-    }
+    try {
+      if (seriesRef.current) {
+        chart.removeSeries(seriesRef.current);
+        seriesRef.current = null;
+      }
+    } catch { seriesRef.current = null; return; }
 
     if (chartData.length === 0) return;
 

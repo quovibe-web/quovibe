@@ -145,18 +145,26 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
     const chart = chartRef.current;
     if (!chart || sortedPrices.length === 0) return; // native-ok
 
-    // Remove existing series
-    if (markersPluginRef.current) {
-      markersPluginRef.current.detach();
-      markersPluginRef.current = null;
-    }
-    if (volumeSeriesRef.current) {
-      chart.removeSeries(volumeSeriesRef.current);
-      volumeSeriesRef.current = null;
-    }
-    if (seriesRef.current) {
-      chart.removeSeries(seriesRef.current);
+    // Remove existing series (guard: chart may have been destroyed by hook cleanup)
+    try {
+      if (markersPluginRef.current) {
+        markersPluginRef.current.detach();
+        markersPluginRef.current = null;
+      }
+      if (volumeSeriesRef.current) {
+        chart.removeSeries(volumeSeriesRef.current);
+        volumeSeriesRef.current = null;
+      }
+      if (seriesRef.current) {
+        chart.removeSeries(seriesRef.current);
+        seriesRef.current = null;
+      }
+    } catch {
+      // Chart already destroyed during unmount — safe to ignore
       seriesRef.current = null;
+      volumeSeriesRef.current = null;
+      markersPluginRef.current = null;
+      return;
     }
 
     let series: ISeriesApi<SeriesType>;

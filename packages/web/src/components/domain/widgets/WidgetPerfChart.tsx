@@ -88,15 +88,17 @@ export default function WidgetPerfChart() {
     const chart = chartRef.current;
     if (!chart || !mvData.length) return;
 
-    // Remove existing series
-    if (mvSeriesRef.current) {
-      chart.removeSeries(mvSeriesRef.current);
-      mvSeriesRef.current = null;
-    }
-    if (ttwrorSeriesRef.current) {
-      chart.removeSeries(ttwrorSeriesRef.current);
-      ttwrorSeriesRef.current = null;
-    }
+    // Remove existing series (guard: chart may be destroyed during unmount)
+    try {
+      if (mvSeriesRef.current) {
+        chart.removeSeries(mvSeriesRef.current);
+        mvSeriesRef.current = null;
+      }
+      if (ttwrorSeriesRef.current) {
+        chart.removeSeries(ttwrorSeriesRef.current);
+        ttwrorSeriesRef.current = null;
+      }
+    } catch { mvSeriesRef.current = null; ttwrorSeriesRef.current = null; return; }
 
     // Market Value series (right price scale) — type follows chartType
     let mvSeries: ISeriesApi<SeriesType>;
