@@ -25,6 +25,7 @@ export function useSecurityDetail(id: string) {
     queryFn: () => apiFetch<SecurityDetailResponse>(`/api/securities/${id}`),
     enabled: !!id,
     placeholderData: keepPreviousData,
+    refetchInterval: 60_000,
   });
 }
 

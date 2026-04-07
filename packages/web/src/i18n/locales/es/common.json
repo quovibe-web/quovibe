@@ -84,5 +84,13 @@
     "movedTo": "Columna {{name}} movida a la posición {{index}} de {{total}}.",
     "dropped": "Columna {{name}} colocada en la posición {{index}} de {{total}}.",
     "cancelled": "Reordenación cancelada. Columna {{name}} devuelta a la posición {{index}}."
+  },
+  "chartTypes": {
+    "line": "Línea",
+    "area": "Área",
+    "candlestick": "Vela",
+    "bar": "Barra OHLC",
+    "baseline": "Línea base",
+    "histogram": "Histograma"
   }
 }

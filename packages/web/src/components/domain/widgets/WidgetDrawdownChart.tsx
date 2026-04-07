@@ -1,56 +1,119 @@
-import { useId, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  AreaChart,
-  Area,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+  AreaSeries, LineSeries, BaselineSeries, HistogramSeries,
+  PriceScaleMode,
+  type ISeriesApi, type SeriesType,
+} from 'lightweight-charts';
 import { useWidgetChartCalculation } from '@/hooks/use-widget-chart-calculation';
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
-import { useChartTheme } from '@/hooks/use-chart-theme';
-import { useChartTicks } from '@/hooks/use-chart-ticks';
-import { formatPercentage, formatDate } from '@/lib/formatters';
+import { useLightweightChart } from '@/hooks/use-lightweight-chart';
+import { formatPercentage } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
+import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
+import { buildSeriesOptions } from '@/lib/chart-series-factory';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ChartTooltip, ChartTooltipRow } from '@/components/shared/ChartTooltip';
-import { FadeIn } from '@/components/shared/FadeIn';
+import { ChartToolbar } from '@/components/shared/ChartToolbar';
+import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
+import { useWidgetToolbarPortal } from '@/components/domain/WidgetShell';
+
+
+const CHART_ID = 'widget-drawdown';
 
 export default function WidgetDrawdownChart() {
   const { t } = useTranslation('dashboard');
   const { isPrivate } = usePrivacy();
   const { danger } = useChartColors();
-  const { gridColor, gridOpacity, tickColor, cursorColor, cursorDasharray } = useChartTheme();
+  const toolbarTarget = useWidgetToolbarPortal();
 
-  const uid = useId();
-  const gradientId = `colorDdWidget-${uid.replace(/:/g, '')}`;
+  const [chartType, setChartType] = useState<ChartSeriesType>(
+    () => getSavedChartType(CHART_ID) ?? 'area',
+  );
+
+  const { containerRef, chartRef, ready } = useLightweightChart({
+    options: {
+      rightPriceScale: {
+        scaleMargins: { top: 0.1, bottom: 0.1 },
+      },
+      leftPriceScale: { visible: false },
+    },
+  });
+
+  const seriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
+  // Incremented after each series rebuild to trigger a re-render so legendItems picks up
+  // the fresh seriesRef.current (refs don't cause re-renders on their own).
+  const [seriesVersion, setSeriesVersion] = useState(0);
 
   const { data, isLoading, isError, error, isFetching } = useWidgetChartCalculation();
 
-  const chartData = useMemo(
+  const rawChartData = useMemo(
     () =>
-      (data ?? []).map((p) => ({
-        date: p.date,
-        drawdown: -parseFloat(p.drawdown),
-      })),
+      (data ?? [])
+        .map((p) => ({
+          time: p.date as string,
+          value: -parseFloat(p.drawdown),
+        }))
+        .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)), // native-ok
     [data],
   );
 
-  const chartDates = useMemo(() => chartData.map((d) => d.date), [chartData]);
-  const { ticks, tickFormatter } = useChartTicks(chartDates);
+  // Create or recreate the series when chart type or colors change
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !ready || !rawChartData.length) return;
 
-  if (isLoading) {
-    return (
-      <div className="relative" style={{ height: 280 }}>
-        <Skeleton className="w-full h-full rounded-lg" />
-      </div>
-    );
-  }
+    // Remove existing series (guard: chart may be destroyed during unmount)
+    try {
+      if (seriesRef.current) {
+        chart.removeSeries(seriesRef.current);
+        seriesRef.current = null;
+      }
+    } catch { seriesRef.current = null; return; }
+
+    const SERIES_MAP = {
+      Line: LineSeries, Area: AreaSeries, Baseline: BaselineSeries, Histogram: HistogramSeries,
+    } as const;
+
+    const { seriesType, options } = buildSeriesOptions(chartType, { color: danger });
+    const Constructor = SERIES_MAP[seriesType as keyof typeof SERIES_MAP] ?? LineSeries;
+    const series: ISeriesApi<SeriesType> = chart.addSeries(Constructor, options);
+
+    series.priceScale().applyOptions({
+      mode: PriceScaleMode.Normal,
+    });
+    series.applyOptions({
+      priceFormat: {
+        type: 'custom',
+        formatter: (price: number) => `${(price * 100).toFixed(2)}%`, // native-ok
+      },
+    } as Record<string, unknown>);
+    series.setData(rawChartData);
+    chart.timeScale().fitContent();
+    seriesRef.current = series;
+    setSeriesVersion((v) => v + 1); // native-ok — triggers re-render to refresh legendItems
+  }, [chartType, danger, data, ready]);
+
+  // Build legend items — depends on seriesVersion so it re-derives after every series rebuild
+  const legendItems: LegendSeriesItem[] = seriesVersion > 0 && seriesRef.current
+    ? [
+        {
+          id: 'drawdown',
+          label: t('widgetTypes.drawdown-chart'),
+          color: danger,
+          series: seriesRef.current,
+          visible: true,
+          formatValue: (v: number) => formatPercentage(v),
+        },
+      ]
+    : [];
+
+  const handleTypeChange = (type: ChartSeriesType) => {
+    setChartType(type);
+  };
+
   if (isError) {
     return (
       <Alert variant="destructive">
@@ -58,83 +121,45 @@ export default function WidgetDrawdownChart() {
       </Alert>
     );
   }
-  if (!chartData.length) {
-    return (
-      <div className="flex items-center justify-center h-full min-h-[200px] text-sm text-muted-foreground">
-        {t('noChartData')}
-      </div>
-    );
-  }
+
+  const toolbarElement = (
+    <ChartToolbar
+      chartId={CHART_ID}
+      activeType={chartType}
+      hasOhlc={false}
+      onTypeChange={handleTypeChange}
+    />
+  );
 
   return (
-    <FadeIn>
-    <div
-      className={cn(isFetching && !isLoading && 'opacity-60 transition-opacity duration-200')}
-      style={{
-        filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
-        transition: 'filter 0.2s ease',
-      }}
-    >
-      <ResponsiveContainer width="100%" height={280}>
-        <AreaChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={danger} stopOpacity={0.25} />
-              <stop offset="95%" stopColor={danger} stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke={gridColor}
-            strokeOpacity={gridOpacity}
-            vertical={false}
-          />
-          <XAxis
-            dataKey="date"
-            tick={{ fill: tickColor, fontSize: 10 }}
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-            ticks={ticks}
-            tickFormatter={tickFormatter}
-          />
-          <YAxis
-            tick={{ fill: tickColor, fontSize: 10, style: { fontFeatureSettings: '"tnum"' } }}
-            tickLine={false}
-            axisLine={false}
-            tickMargin={4}
-            tickFormatter={(v: number) => formatPercentage(v)}
-            width={55}
-          />
-          <Tooltip
-            cursor={{ stroke: cursorColor, strokeDasharray: cursorDasharray }}
-            content={({ active, payload, label }) => {
-              if (!active || !payload?.length) return null;
-              const val = payload[0].value as number;
-              return (
-                <ChartTooltip label={formatDate(label as string)}>
-                  <ChartTooltipRow
-                    color={danger}
-                    label={t('widgetTypes.drawdown-chart')}
-                    value={formatPercentage(val)}
-                  />
-                </ChartTooltip>
-              );
-            }}
-          />
-          <Area
-            type="monotone"
-            dataKey="drawdown"
-            stroke={danger}
-            fill={`url(#${gradientId})`}
-            strokeWidth={2}
-            dot={false}
-            animationDuration={800}
-            animationEasing="ease-out"
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+    <div className="flex flex-col" style={{ height: 280 }}>
+      {toolbarTarget && createPortal(toolbarElement, toolbarTarget)}
+      {isLoading && <Skeleton className="absolute inset-0 rounded-lg z-20" />}
+      {!isLoading && !rawChartData.length && (
+        <div className="flex items-center justify-center flex-1 text-sm text-muted-foreground">
+          {t('noChartData')}
+        </div>
+      )}
+      <div className="flex items-center shrink-0 mb-1">
+        <ChartLegendOverlay
+          chart={chartRef.current}
+          items={legendItems}
+        />
+        {!toolbarTarget && toolbarElement}
+      </div>
+      <div
+        className={cn(
+          'relative flex-1 min-h-0',
+          isLoading && 'invisible',
+          isFetching && !isLoading && 'opacity-60 transition-opacity duration-200',
+        )}
+        style={{
+          filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
+          transition: 'filter 0.2s ease',
+        }}
+      >
+        <div ref={containerRef} className="w-full h-full" />
+      </div>
     </div>
-    </FadeIn>
   );
 }

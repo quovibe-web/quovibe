@@ -57,8 +57,8 @@ function createTestDb() {
     CREATE TABLE taxonomy_assignment_data (
       assignment INTEGER NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL, value TEXT NOT NULL
     );
-    CREATE TABLE latest_price (security TEXT PRIMARY KEY, tstamp TEXT, value INTEGER NOT NULL, high INTEGER, low INTEGER, volume INTEGER);
-    CREATE TABLE price (security TEXT, tstamp TEXT NOT NULL, value INTEGER NOT NULL, high INTEGER, low INTEGER, volume INTEGER, PRIMARY KEY (security, tstamp));
+    CREATE TABLE latest_price (security TEXT PRIMARY KEY, tstamp TEXT, value INTEGER NOT NULL, open INTEGER, high INTEGER, low INTEGER, volume INTEGER);
+    CREATE TABLE price (security TEXT, tstamp TEXT NOT NULL, value INTEGER NOT NULL, open INTEGER, high INTEGER, low INTEGER, volume INTEGER, PRIMARY KEY (security, tstamp));
     CREATE TABLE property (name TEXT PRIMARY KEY, special INTEGER NOT NULL DEFAULT 0, value TEXT NOT NULL);
     CREATE TABLE xact (
       _id INTEGER PRIMARY KEY AUTOINCREMENT,

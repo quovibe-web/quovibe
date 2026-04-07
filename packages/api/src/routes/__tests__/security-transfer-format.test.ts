@@ -68,10 +68,12 @@ function createTestDb() {
     );
     CREATE TABLE latest_price (
       security TEXT PRIMARY KEY, tstamp TEXT, value INTEGER NOT NULL,
+      open INTEGER,
       high INTEGER, low INTEGER, volume INTEGER
     );
     CREATE TABLE price (
       security TEXT, tstamp TEXT NOT NULL, value INTEGER NOT NULL,
+      open INTEGER,
       high INTEGER, low INTEGER, volume INTEGER, PRIMARY KEY (security, tstamp)
     );
     CREATE TABLE taxonomy (

@@ -84,5 +84,13 @@
     "movedTo": "Spalte {{name}} verschoben auf Position {{index}} von {{total}}.",
     "dropped": "Spalte {{name}} abgelegt auf Position {{index}} von {{total}}.",
     "cancelled": "Neuordnung abgebrochen. Spalte {{name}} zurück auf Position {{index}}."
+  },
+  "chartTypes": {
+    "line": "Linie",
+    "area": "Fläche",
+    "candlestick": "Kerze",
+    "bar": "OHLC-Balken",
+    "baseline": "Basislinie",
+    "histogram": "Histogramm"
   }
 }

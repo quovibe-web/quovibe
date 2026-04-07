@@ -84,5 +84,13 @@
     "movedTo": "Column {{name}} moved to position {{index}} of {{total}}.",
     "dropped": "Column {{name}} dropped at position {{index}} of {{total}}.",
     "cancelled": "Reorder cancelled. Column {{name}} returned to position {{index}}."
+  },
+  "chartTypes": {
+    "line": "Line",
+    "area": "Area",
+    "candlestick": "Candlestick",
+    "bar": "OHLC Bar",
+    "baseline": "Baseline",
+    "histogram": "Histogram"
   }
 }

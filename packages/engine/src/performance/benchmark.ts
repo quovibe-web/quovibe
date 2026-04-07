@@ -1,12 +1,11 @@
 import Decimal from 'decimal.js';
-import { eachDayOfInterval, parseISO, format, subDays } from 'date-fns';
+import { eachDayOfInterval, parseISO, format } from 'date-fns';
 import { carryForwardPrices } from './ttwror';
 
 export interface BenchmarkInput {
   prices: Array<{ date: string; value: Decimal }>;
   periodStart: string;
   periodEnd: string;
-  portfolioCumulativeSeries?: Array<{ date: string; ttwrorCumulative: Decimal }>;
 }
 
 export interface BenchmarkDailyPoint {
@@ -15,7 +14,7 @@ export interface BenchmarkDailyPoint {
 }
 
 export function computeBenchmarkSeries(input: BenchmarkInput): BenchmarkDailyPoint[] {
-  const { prices, periodStart, periodEnd, portfolioCumulativeSeries } = input;
+  const { prices, periodStart, periodEnd } = input;
   const ZERO = new Decimal(0);
   const ONE = new Decimal(1);
 
@@ -37,7 +36,7 @@ export function computeBenchmarkSeries(input: BenchmarkInput): BenchmarkDailyPoi
     end: parseISO(periodEnd),
   });
 
-  // --- Common case: price available at period start ---
+  // --- Common case: price available at period start (real or carry-forwarded) ---
   if (basePriceOnStart) {
     const result: BenchmarkDailyPoint[] = [];
     let cumulativeProduct = ONE;
@@ -64,7 +63,7 @@ export function computeBenchmarkSeries(input: BenchmarkInput): BenchmarkDailyPoi
     return result;
   }
 
-  // --- Daimler edge case: no price on or before periodStart ---
+  // --- No price at period start: truncate to first available price ---
   let firstPriceDateStr: string | null = null;
   for (const day of days) {
     const dateStr = format(day, 'yyyy-MM-dd');
@@ -76,46 +75,27 @@ export function computeBenchmarkSeries(input: BenchmarkInput): BenchmarkDailyPoi
 
   if (!firstPriceDateStr) return [];
 
-  const portfolioCumMap = new Map<string, Decimal>();
-  if (portfolioCumulativeSeries) {
-    for (const p of portfolioCumulativeSeries) {
-      portfolioCumMap.set(p.date, p.ttwrorCumulative);
-    }
-  }
-
   const result: BenchmarkDailyPoint[] = [];
-  let benchmarkProduct: Decimal | null = null;
-  let prevPrice: Decimal | null = null;
+  let cumulativeProduct = ONE;
+  let prevPrice = filledPrices.get(firstPriceDateStr)!;
 
-  for (let i = 0; i < days.length; i++) { // native-ok
-    const dateStr = format(days[i], 'yyyy-MM-dd');
-
-    if (dateStr < firstPriceDateStr) {
-      const portfolioCum = portfolioCumMap.get(dateStr) ?? ZERO;
-      result.push({ date: dateStr, cumulative: portfolioCum });
-      continue;
-    }
+  for (const day of days) {
+    const dateStr = format(day, 'yyyy-MM-dd');
+    if (dateStr < firstPriceDateStr) continue;
 
     if (dateStr === firstPriceDateStr) {
-      const dayBefore = format(subDays(parseISO(firstPriceDateStr), 1), 'yyyy-MM-dd');
-      const portfolioCumBefore = portfolioCumMap.get(dayBefore) ?? ZERO;
-      benchmarkProduct = ONE.plus(portfolioCumBefore);
-      prevPrice = filledPrices.get(dateStr)!;
-      result.push({ date: dateStr, cumulative: benchmarkProduct.minus(ONE) });
+      result.push({ date: dateStr, cumulative: ZERO });
       continue;
     }
 
     const price = filledPrices.get(dateStr);
-    if (price && prevPrice && benchmarkProduct) {
+    if (price) {
       const dailyFactor = price.div(prevPrice);
-      benchmarkProduct = benchmarkProduct.times(dailyFactor);
+      cumulativeProduct = cumulativeProduct.times(dailyFactor);
       prevPrice = price;
     }
 
-    result.push({
-      date: dateStr,
-      cumulative: benchmarkProduct ? benchmarkProduct.minus(ONE) : ZERO,
-    });
+    result.push({ date: dateStr, cumulative: cumulativeProduct.minus(ONE) });
   }
 
   return result;

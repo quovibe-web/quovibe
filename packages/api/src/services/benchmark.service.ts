@@ -1,18 +1,13 @@
 import Decimal from 'decimal.js';
 import type BetterSqlite3 from 'better-sqlite3';
-import { differenceInCalendarDays, parseISO, format, eachDayOfInterval } from 'date-fns';
+import { differenceInCalendarDays, parseISO, format } from 'date-fns';
 import type { BenchmarkSeriesItem } from '@quovibe/shared';
 import { isTradingDay } from '@quovibe/shared';
 import {
   computeBenchmarkSeries,
   getRateFromMap,
-  resolvePortfolioCashflows,
-  buildDailySnapshotsWithCarry,
-  carryForwardPrices,
-  computeTTWROR,
 } from '@quovibe/engine';
 import type { ChartInterval } from './performance.service';
-import { fetchAllTransactions, fetchPricesForPeriod } from './performance.service';
 import { buildRateMap } from './fx.service';
 import { safeDecimal } from './unit-conversion';
 
@@ -102,54 +97,6 @@ function sampleSeries(
   return sampled;
 }
 
-// ─── Portfolio cumulative series (Daimler optimization) ───────────────────────
-
-/**
- * Computes the portfolio TTWROR cumulative series for the given period.
- * Only called when a security has no price on/before the period start date
- * (the "Daimler edge case" in computeBenchmarkSeries).
- *
- * Builds a daily total market value from all securities, then runs TTWROR.
- */
-function fetchPortfolioCumulativeSeries(
-  sqlite: BetterSqlite3.Database,
-  period: { start: string; end: string },
-): Array<{ date: string; ttwrorCumulative: Decimal }> {
-  const allTxs = fetchAllTransactions(sqlite);
-  const pricesBySecAndDate = fetchPricesForPeriod(sqlite, period.start, period.end);
-
-  // Build daily total market value across all securities
-  const days = eachDayOfInterval({ start: parseISO(period.start), end: parseISO(period.end) });
-
-  // Aggregate all security price maps into a single portfolio MV map
-  // We use carryForwardPrices per security and sum, then combine
-  const allSecMVByDate = new Map<string, Decimal>();
-
-  for (const [, priceMap] of pricesBySecAndDate) {
-    const filled = carryForwardPrices(priceMap, period.start, period.end);
-    for (const day of days) {
-      const dateStr = format(day, 'yyyy-MM-dd');
-      const price = filled.get(dateStr);
-      if (price) {
-        allSecMVByDate.set(
-          dateStr,
-          (allSecMVByDate.get(dateStr) ?? new Decimal(0)).plus(price),
-        );
-      }
-    }
-  }
-
-  const periodDays = differenceInCalendarDays(parseISO(period.end), parseISO(period.start)); // native-ok
-  const portfolioCashflows = resolvePortfolioCashflows(allTxs);
-  const snapshots = buildDailySnapshotsWithCarry(portfolioCashflows, allSecMVByDate, period);
-  const ttwrorResult = computeTTWROR(snapshots, periodDays);
-
-  return ttwrorResult.dailyReturns.map((dr) => ({
-    date: dr.date,
-    ttwrorCumulative: dr.cumR,
-  }));
-}
-
 // ─── Main service function ────────────────────────────────────────────────────
 
 /**
@@ -169,9 +116,6 @@ export function getBenchmarkSeries(
   // 90-day lookback before period start for forward-fill seeding
   const lookbackDate = new Date(parseISO(period.start).getTime() - 90 * 24 * 60 * 60 * 1000); // native-ok
   const lookbackStart = format(lookbackDate, 'yyyy-MM-dd');
-
-  // Lazy portfolio cumulative series (only fetched once, if needed for Daimler edge case)
-  let portfolioCumulativeSeries: Array<{ date: string; ttwrorCumulative: Decimal }> | undefined;
 
   const results: BenchmarkSeriesItem[] = [];
 
@@ -237,20 +181,11 @@ export function getBenchmarkSeries(
       prices.push({ date, value: price });
     }
 
-    // Daimler optimization: only fetch portfolio cumulative if needed
-    const hasPriceOnOrBeforePeriodStart = prices.some((p) => p.date <= period.start);
-    if (!hasPriceOnOrBeforePeriodStart && portfolioCumulativeSeries === undefined) {
-      portfolioCumulativeSeries = fetchPortfolioCumulativeSeries(sqlite, period);
-    }
-
     // Compute benchmark series via engine
     const rawSeries = computeBenchmarkSeries({
       prices,
       periodStart: period.start,
       periodEnd: period.end,
-      portfolioCumulativeSeries: hasPriceOnOrBeforePeriodStart
-        ? undefined
-        : portfolioCumulativeSeries,
     });
 
     // Convert Decimal → number for the response

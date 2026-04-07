@@ -1,47 +1,15 @@
-import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ComposedChart, Area, Line, ResponsiveContainer } from 'recharts';
 import { useMovers } from '@/api/use-movers';
 import { usePrivacy } from '@/context/privacy-context';
 import { useWidgetKpiMeta } from '@/hooks/use-widget-kpi-meta';
 import { formatPercentage } from '@/lib/formatters';
+import { getColor } from '@/lib/colors';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FadeIn } from '@/components/shared/FadeIn';
+import { Sparkline } from '@/components/shared/Sparkline';
 import type { MoverEntry } from '@/api/types';
-
-function Sparkline({ data, color }: { data: Array<{ date: string; cumR: string }>; color: string }) {
-  const uid = useId();
-  const gradientId = `sparkGrad-${uid.replace(/:/g, '')}`;
-  const chartData = data.map((d) => ({ date: d.date, cumR: parseFloat(d.cumR) }));
-
-  return (
-    <ResponsiveContainer width="100%" height={32}>
-      <ComposedChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
-        <defs>
-          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={0.2} />
-            <stop offset="100%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <Area
-          dataKey="cumR"
-          fill={`url(#${gradientId})`}
-          stroke="none"
-          isAnimationActive={false}
-        />
-        <Line
-          dataKey="cumR"
-          stroke={color}
-          strokeWidth={1.5}
-          dot={false}
-          isAnimationActive={false}
-        />
-      </ComposedChart>
-    </ResponsiveContainer>
-  );
-}
 
 function MoverRow({
   entry,
@@ -66,7 +34,13 @@ function MoverRow({
           transition: 'filter 0.2s ease',
         }}
       >
-        <Sparkline data={entry.sparkline} color={color} />
+        <Sparkline
+          data={entry.sparkline.map((d) => parseFloat(d.cumR))}
+          width={72}
+          height={32}
+          color={color}
+          fillOpacity={0.15}
+        />
       </div>
       <div
         className="w-[70px] shrink-0 text-right text-sm font-semibold tabular-nums"
@@ -84,8 +58,8 @@ export default function WidgetMovers() {
   const { isPrivate } = usePrivacy();
   const { periodLabel } = useWidgetKpiMeta(null);
 
-  const positiveColor = 'var(--qv-positive, #4ade80)';
-  const negativeColor = 'var(--qv-negative, #f87171)';
+  const positiveColor = getColor('profit');
+  const negativeColor = getColor('loss');
 
   if (isLoading) {
     return (

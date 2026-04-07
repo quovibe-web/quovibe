@@ -15,10 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useChartConfig, useSaveChartConfig } from '@/api/use-chart-config';
 import { useSecurities } from '@/api/use-securities';
 import { cn } from '@/lib/utils';
-import type { DataSeriesConfig, ChartConfig, DataSeriesType, LineStyle, BarInterval } from '@quovibe/shared';
+import type { DataSeriesConfig, ChartConfig, DataSeriesType, LineStyle } from '@quovibe/shared';
 import { generateSeriesId } from '@quovibe/shared';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 
 const MAX_SERIES = 10;
 
@@ -119,32 +117,6 @@ export function DataSeriesPickerDialog({ open, onOpenChange }: Props) {
   // Check if portfolio types are already added
   const hasPortfolio = draft.some((s) => s.type === 'portfolio');
 
-  const periodicBarsSeries = draft.find((s) => s.type === 'periodic_bars');
-  const hasPeriodicBars = !!periodicBarsSeries;
-
-  function togglePeriodicBars() {
-    if (hasPeriodicBars) {
-      setDraft((prev) => prev.filter((s) => s.type !== 'periodic_bars'));
-    } else {
-      setDraft((prev) => [
-        ...prev,
-        {
-          id: generateSeriesId(),
-          type: 'periodic_bars' as const,
-          visible: true,
-          lineStyle: 'solid' as const,
-          barInterval: 'monthly' as BarInterval,
-        },
-      ]);
-    }
-  }
-
-  function setBarInterval(interval: BarInterval) {
-    setDraft((prev) =>
-      prev.map((s) => s.type === 'periodic_bars' ? { ...s, barInterval: interval } : s),
-    );
-  }
-
   // Track which security IDs are already in draft by type
   const draftBenchmarkIds = useMemo(
     () => new Set(draft.filter((s) => s.type === 'benchmark').map((s) => s.securityId)),
@@ -189,10 +161,6 @@ export function DataSeriesPickerDialog({ open, onOpenChange }: Props) {
       }
       case 'account':
         return s.accountId ?? 'Account';
-      case 'periodic_bars': {
-        const intervalKey = `chart.interval${(s.barInterval ?? 'monthly').charAt(0).toUpperCase() + (s.barInterval ?? 'monthly').slice(1)}`;
-        return `${t(intervalKey as 'chart.intervalMonthly')} ${t('chart.performanceLabel')}`;
-      }
     }
   }
 
@@ -206,8 +174,6 @@ export function DataSeriesPickerDialog({ open, onOpenChange }: Props) {
         return t('chart.seriesTypeBadge_account');
       case 'benchmark':
         return t('chart.seriesTypeBadge_benchmark');
-      case 'periodic_bars':
-        return t('chart.seriesTypeBadge_periodicBars');
     }
   }
 
@@ -392,44 +358,6 @@ export function DataSeriesPickerDialog({ open, onOpenChange }: Props) {
                   </ul>
                 </TabsContent>
               </Tabs>
-              {/* Periodic Bars Section */}
-              <div className="border-t border-border pt-3 mt-3">
-                <div className="flex items-center justify-between mb-2">
-                  <Label htmlFor="periodic-bars-toggle" className="text-sm font-medium">
-                    {t('chart.periodicBars')}
-                  </Label>
-                  <Switch
-                    id="periodic-bars-toggle"
-                    checked={hasPeriodicBars}
-                    onCheckedChange={togglePeriodicBars}
-                  />
-                </div>
-                {hasPeriodicBars && (
-                  <div className="space-y-2 pl-1">
-                    <p className="text-xs text-muted-foreground">{t('chart.periodicBarsDescription')}</p>
-                    <div className="flex gap-1.5 flex-wrap">
-                      {(['daily', 'weekly', 'monthly', 'quarterly', 'yearly'] as BarInterval[]).map(
-                        (interval) => (
-                          <button
-                            key={interval}
-                            type="button"
-                            aria-pressed={periodicBarsSeries?.barInterval === interval}
-                            className={cn(
-                              'px-2.5 py-1 rounded-md text-xs font-medium transition-colors border',
-                              periodicBarsSeries?.barInterval === interval
-                                ? 'bg-primary text-primary-foreground border-primary'
-                                : 'border-border text-muted-foreground hover:text-foreground hover:bg-accent',
-                            )}
-                            onClick={() => setBarInterval(interval)}
-                          >
-                            {t(`chart.interval${interval.charAt(0).toUpperCase() + interval.slice(1)}` as 'chart.intervalMonthly')}
-                          </button>
-                        ),
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQueries, keepPreviousData } from '@tanstack/react-query';
 import { useChartConfig } from './use-chart-config';
 import { useReportingPeriod } from './use-performance';
@@ -43,8 +44,6 @@ function buildQueryKey(
       return ['chart-series', 'benchmark', series.securityId, periodStart, periodEnd];
     case 'account':
       return ['chart-series', 'account', series.accountId, periodStart, periodEnd];
-    case 'periodic_bars':
-      return ['chart-series', 'periodic_bars', periodStart, periodEnd];
   }
 }
 
@@ -86,8 +85,6 @@ async function fetchSeriesData(
     case 'account':
       // Deferred — return empty array
       return [];
-    case 'periodic_bars':
-      return [];
   }
 }
 
@@ -104,17 +101,27 @@ export function useChartSeries() {
       enabled: s.visible,
       placeholderData: keepPreviousData,
       staleTime: 5 * 60 * 1000,
+      refetchInterval: 60_000,
     })),
   });
 
-  const result: ResolvedSeries[] = seriesList.map((config, i) => ({
-    config,
-    data: queries[i]?.data ?? [],
-    isLoading: queries[i]?.isLoading ?? false,
-    error: (queries[i]?.error as Error) ?? null,
-  }));
-
   const isLoading = queries.some((q) => q.isLoading);
+
+  // Stable key: only recompute when query data, loading states, or configs change
+  const queryKey = queries.map((q) => `${q.dataUpdatedAt ?? 0}:${q.isLoading}`).join('|');
+  const configKey = JSON.stringify(seriesList.map((s) => s.id));
+
+  const result: ResolvedSeries[] = useMemo(
+    () =>
+      seriesList.map((cfg, i) => ({
+        config: cfg,
+        data: queries[i]?.data ?? [],
+        isLoading: queries[i]?.isLoading ?? false,
+        error: (queries[i]?.error as Error) ?? null,
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryKey, configKey],
+  );
 
   return { series: result, isLoading };
 }
