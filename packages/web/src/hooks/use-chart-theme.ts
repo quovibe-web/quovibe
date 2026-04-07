@@ -44,14 +44,27 @@ export function toLightweightTheme(theme: ChartTheme): DeepPartial<ChartOptions>
   };
 }
 
+/** Resolve a CSS variable to its computed value at runtime */
+function resolveCssVar(varName: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+}
+
 export function useChartTheme(): ChartTheme {
   const { resolvedTheme } = useTheme();
-  return useMemo(() => ({
-    gridColor: 'var(--qv-border)',
-    gridOpacity: 0.5,
-    tickColor: 'var(--qv-text-muted)',
-    cursorColor: 'var(--qv-text-faint)',
-    cursorDasharray: '4 4',
-    isDark: resolvedTheme === 'dark',
-  }), [resolvedTheme]);
+  return useMemo(() => {
+    // Lightweight Charts renders on canvas — CSS variables don't work there.
+    // Resolve them to actual color values.
+    const border = resolveCssVar('--qv-border') || (resolvedTheme === 'dark' ? '#2a2a3a' : '#e5e7eb');
+    const textMuted = resolveCssVar('--qv-text-muted') || (resolvedTheme === 'dark' ? '#a1a1b5' : '#6b7280');
+    const textFaint = resolveCssVar('--qv-text-faint') || (resolvedTheme === 'dark' ? '#6b6b80' : '#9ca3af');
+
+    return {
+      gridColor: border,
+      gridOpacity: 0.5,
+      tickColor: textMuted,
+      cursorColor: textFaint,
+      cursorDasharray: '4 4',
+      isDark: resolvedTheme === 'dark',
+    };
+  }, [resolvedTheme]);
 }
