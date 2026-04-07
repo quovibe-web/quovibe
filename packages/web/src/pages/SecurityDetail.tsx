@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ColumnDef } from '@tanstack/react-table';
-import { subMonths, subYears, parseISO, isAfter } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { TrendingUp, ListX, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,21 +32,7 @@ function SharesCell({ value }: { value: string | null }) {
   return <>{isPrivate ? '•••' : value}</>;
 }
 
-type Range = '1M' | '3M' | '6M' | '1Y' | '3Y' | 'All';
-
-const RANGES: Range[] = ['1M', '3M', '6M', '1Y', '3Y', 'All'];
-
 const MARKER_TYPES = new Set(['BUY', 'SELL', 'DIVIDEND', 'DIVIDENDS']);
-
-function cutoffDate(range: Range): Date | null {
-  const now = new Date();
-  if (range === '1M') return subMonths(now, 1);
-  if (range === '3M') return subMonths(now, 3);
-  if (range === '6M') return subMonths(now, 6);
-  if (range === '1Y') return subYears(now, 1);
-  if (range === '3Y') return subYears(now, 3);
-  return null;
-}
 
 interface PerfMetricProps {
   label: string;
@@ -104,7 +90,7 @@ export default function SecurityDetail() {
   const { data: perfData } = usePerformanceSecurities();
   const { data: txPage, isLoading: txLoading } = useTransactions({ security: id }, 1, 9999);
   const transactions = (txPage?.data ?? []) as TransactionListItem[];
-  const [range, setRange] = useState<Range>('1Y');
+  // Range selector removed — PriceChart uses the global reporting period
   const [editOpen, setEditOpen] = useState(false);
   const [editSection, setEditSection] = useState<EditorSection | undefined>(undefined);
 
@@ -159,13 +145,8 @@ export default function SecurityDetail() {
   const isRefetching = isFetching && !isLoading;
   const allPrices = security?.prices ?? [];
 
-  const cutoff = cutoffDate(range);
-  const filteredPrices = cutoff
-    ? allPrices.filter(p => isAfter(parseISO(p.date), cutoff))
-    : allPrices;
-
   const txMarkers = (transactions as TransactionListItem[])
-    .filter(tx => MARKER_TYPES.has(tx.type) && (!cutoff || isAfter(parseISO(tx.date), cutoff)))
+    .filter(tx => MARKER_TYPES.has(tx.type))
     .map(tx => ({
       date: tx.date.slice(0, 10),
       type: (tx.type === 'DIVIDENDS' ? 'DIVIDEND' : tx.type) as 'BUY' | 'SELL' | 'DIVIDEND',
@@ -270,30 +251,12 @@ export default function SecurityDetail() {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-base">{t('detail.priceHistory')}</CardTitle>
           {allPrices.length > 0 && (
-            <div className="flex items-center gap-2">
-              <div id="price-chart-toolbar" />
-              <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
-                {RANGES.map(r => (
-                  <button
-                    key={r}
-                    onClick={() => setRange(r)}
-                    className={cn(
-                      'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-                      r === range
-                        ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    {t('detail.ranges.' + (r === 'All' ? 'all' : r))}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <div id="price-chart-toolbar" />
           )}
         </CardHeader>
         <CardContent>
           {allPrices.length > 0 ? (
-            <PriceChart prices={filteredPrices} transactions={txMarkers} toolbarPortalId="price-chart-toolbar" />
+            <PriceChart prices={allPrices} transactions={txMarkers} toolbarPortalId="price-chart-toolbar" />
           ) : (
             <div>
               <EmptyState icon={TrendingUp} title={t('detail.noPrices')} />
