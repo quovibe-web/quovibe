@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useTheme } from './use-theme';
 import type { DeepPartial, ChartOptions } from 'lightweight-charts';
+import { withAlpha } from '@/lib/chart-types';
 
 interface ChartTheme {
   /** CartesianGrid stroke */
@@ -24,8 +25,8 @@ export function toLightweightTheme(theme: ChartTheme): DeepPartial<ChartOptions>
       fontFamily: 'inherit',
     },
     grid: {
-      vertLines: { color: theme.gridColor, style: 1 },
-      horzLines: { color: theme.gridColor, style: 1 },
+      vertLines: { visible: false },
+      horzLines: { color: theme.gridColor, style: 3 },
     },
     crosshair: {
       vertLine: { color: theme.cursorColor, labelBackgroundColor: theme.cursorColor },
@@ -61,7 +62,7 @@ export function useChartTheme(): ChartTheme {
     const textFaint = resolveCssVar('--qv-text-faint') || (resolvedTheme === 'dark' ? '#6b6b80' : '#9ca3af');
 
     return {
-      gridColor: border,
+      gridColor: withAlpha(border, 0.15),
       gridOpacity: 0.5,
       tickColor: textMuted,
       cursorColor: textFaint,
