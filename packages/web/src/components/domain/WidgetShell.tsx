@@ -161,6 +161,29 @@ export function WidgetShell({
               )}
             </>
           )}
+          {/* Data series label — inline with title */}
+          {dataSeriesLabel && (
+            <span className="text-sm text-primary truncate">{dataSeriesLabel}</span>
+          )}
+          {periodOverride && (
+            <span
+              className="inline-flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 rounded-full px-2 py-0.5 text-xs cursor-pointer hover:bg-primary/20 transition-colors shrink-0"
+              onClick={() => setPeriodDialogOpen(true)}
+            >
+              <Clock className="h-3 w-3" />
+              {formatPeriodShortLabel(periodOverride.definition, tSettings)}
+              <button
+                className="hover:text-destructive ml-0.5"
+                aria-label={t('periodOverride.clear')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  clearPeriodOverride();
+                }}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
           {/* Spacer pushes kebab to the right */}
           <div className="flex-1" />
           {/* Kebab menu — always visible */}
@@ -198,29 +221,7 @@ export function WidgetShell({
             </DropdownMenuContent>
           </DropdownMenu>
         </CardHeader>
-        {/* LINE 2 — Data series label */}
-        <div className="pr-4 pl-10 pb-0 flex items-center gap-1.5">
-          <span className="text-sm text-primary">{dataSeriesLabel}</span>
-          {periodOverride && (
-            <span
-              className="inline-flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 rounded-full px-2 py-0.5 text-xs cursor-pointer hover:bg-primary/20 transition-colors"
-              onClick={() => setPeriodDialogOpen(true)}
-            >
-              <Clock className="h-3 w-3" />
-              {formatPeriodShortLabel(periodOverride.definition, tSettings)}
-              <button
-                className="hover:text-destructive ml-0.5"
-                aria-label={t('periodOverride.clear')}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  clearPeriodOverride();
-                }}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          )}
-        </div>
+        {/* LINE 2 removed — data series label merged into LINE 1 */}
         <CardContent className="flex-1 pt-0">
           {children}
         </CardContent>
