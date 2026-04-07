@@ -439,7 +439,6 @@ export default function PerformanceChart() {
     chart.timeScale().fitContent();
     setSeriesVersion((v) => v + 1); // native-ok
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayData, chartSeries, periodicData, periodicBarsConfig, ttwrorMode, periodStart, dividend, palette[0]]);
 
   // --- Build legend items for ExtendedChartLegendOverlay ---
@@ -510,7 +509,6 @@ export default function PerformanceChart() {
 
     return items;
     // seriesVersion is the trigger for re-deriving after series rebuild
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seriesVersion, chartConfig, chartSeries, seriesNameMap, ttwrorMode, t, dividend]);
 
   return (

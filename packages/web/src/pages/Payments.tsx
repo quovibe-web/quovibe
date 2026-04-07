@@ -143,7 +143,6 @@ function PaymentBarChart({
     chart.timeScale().fitContent();
     seriesRef.current = series;
     setSeriesVersion((v) => v + 1); // native-ok — triggers legend re-render
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartType, barColor, groups, amountMode]);
 
   // Legend items
@@ -196,7 +195,6 @@ function PaymentBarChart({
       chart.unsubscribeCrosshairMove(handler);
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seriesVersion, queryClient, type, groupBy, periodStart, periodEnd]);
 
   // Cleanup on unmount

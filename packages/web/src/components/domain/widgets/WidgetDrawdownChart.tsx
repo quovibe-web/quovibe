@@ -111,7 +111,6 @@ export default function WidgetDrawdownChart() {
     chart.timeScale().fitContent();
     seriesRef.current = series;
     setSeriesVersion((v) => v + 1); // native-ok — triggers re-render to refresh legendItems
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartType, danger, data]);
 
   // Build legend items — depends on seriesVersion so it re-derives after every series rebuild

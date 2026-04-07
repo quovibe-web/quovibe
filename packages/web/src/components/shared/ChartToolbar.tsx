@@ -5,7 +5,7 @@ import {
 import { cn } from '@/lib/utils';
 import {
   type ChartSeriesType, SINGLE_VALUE_TYPES, OHLC_TYPES,
-  getSavedChartType, saveChartType,
+  saveChartType,
 } from '@/lib/chart-types';
 
 const ICONS: Record<ChartSeriesType, React.ComponentType<{ className?: string }>> = {

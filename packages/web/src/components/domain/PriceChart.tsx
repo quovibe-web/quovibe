@@ -138,7 +138,6 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
 
     chart.subscribeClick(handleClick);
     return () => chart.unsubscribeClick(handleClick);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions, chartRef.current]);
 
   // Create or recreate series when chart type, colors, or data change
@@ -295,7 +294,6 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
     chart.timeScale().fitContent();
     setSeriesVersion(v => v + 1); // native-ok
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveType, profit, loss, violet, palette[0], prices, transactions, hasVolume]);
 
   function markerColor(type: string) {

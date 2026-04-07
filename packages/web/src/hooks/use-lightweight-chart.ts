@@ -54,7 +54,6 @@ export function useLightweightChart(
       chart.remove();
       chartRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // mount-only — theme changes handled separately
 
   // Apply theme changes

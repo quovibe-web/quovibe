@@ -176,7 +176,6 @@ export default function TaxonomySeries() {
     chart.timeScale().fitContent();
     seriesRef.current = series;
     setSeriesVersion((v) => v + 1); // native-ok — triggers re-render to refresh legendItems
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartType, chartMode, sliceColor, chartData]);
 
   // Format value for legend crosshair display
