@@ -34,7 +34,7 @@ export default function WidgetPerfChart() {
 
   const [metric, setMetric] = useState<MetricMode>('mv');
   const [chartType, setChartType] = useState<ChartSeriesType>(
-    () => getSavedChartType(CHART_ID) ?? 'area',
+    () => getSavedChartType(CHART_ID) ?? 'baseline',
   );
 
   const isPercentage = metric !== 'mv';
