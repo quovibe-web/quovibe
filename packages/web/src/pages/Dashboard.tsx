@@ -50,7 +50,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useDashboardConfig, useSaveDashboard } from '@/api/use-dashboard-config';
 import { nanoid } from 'nanoid';
-import { getWidgetDef } from '@/lib/widget-registry';
+import { getWidgetDef, CHART_WIDGET_TYPES } from '@/lib/widget-registry';
 import { useAccounts } from '@/api/use-accounts';
 import { useTaxonomies } from '@/api/use-taxonomies';
 import { useSecurities } from '@/api/use-securities';
@@ -58,6 +58,8 @@ import { WidgetShell } from '@/components/domain/WidgetShell';
 import { WidgetCatalogDialog } from '@/components/domain/WidgetCatalogDialog';
 import { WidgetConfigProvider } from '@/context/widget-config-context';
 import type { Dashboard, DashboardWidget } from '@quovibe/shared';
+import { DashboardHero } from '@/components/domain/DashboardHero';
+import { DashboardMetricsStrip } from '@/components/domain/DashboardMetricsStrip';
 
 // ---------------------------------------------------------------------------
 // SortableWidget — wraps WidgetShell with dnd-kit sortable
@@ -69,9 +71,10 @@ interface SortableWidgetProps {
   index: number;
   onDelete: (widgetId: string) => void;
   onTitleChange: (widgetId: string, title: string) => void;
+  compact?: boolean;
 }
 
-function SortableWidget({ widget, dashboardId, index, onDelete, onTitleChange }: SortableWidgetProps) {
+function SortableWidget({ widget, dashboardId, index, onDelete, onTitleChange, compact = false }: SortableWidgetProps) {
   const { t } = useTranslation('dashboard');
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: widget.id });
@@ -100,6 +103,7 @@ function SortableWidget({ widget, dashboardId, index, onDelete, onTitleChange }:
             dragHandleListeners={listeners}
             dragHandleAttributes={attributes}
             index={index}
+            compact={compact}
           >
             <div className="flex items-center justify-center h-full min-h-[120px] text-sm text-muted-foreground">
               {t('unknownWidget', { type: widget.type })}
@@ -128,6 +132,7 @@ function SortableWidget({ widget, dashboardId, index, onDelete, onTitleChange }:
           dragHandleListeners={listeners}
           dragHandleAttributes={attributes}
           index={index}
+          compact={compact}
         >
           <Suspense
             fallback={
@@ -337,6 +342,10 @@ export default function Dashboard() {
     saveDashboards(next);
   }
 
+  function updateMetricsStripIds(ids: string[]) {
+    updateActiveDashboard((d) => ({ ...d, metricsStripIds: ids }));
+  }
+
   // ---- Tab actions ----
 
   function switchTab(id: string) {
@@ -441,12 +450,19 @@ export default function Dashboard() {
       const oldIdx = d.widgets.findIndex((w) => w.id === active.id);
       const newIdx = d.widgets.findIndex((w) => w.id === over.id);
       if (oldIdx === -1 || newIdx === -1) return d;
+      // Only allow reorder within the same zone
+      const activeIsChart = CHART_WIDGET_TYPES.has(d.widgets[oldIdx].type);
+      const overIsChart = CHART_WIDGET_TYPES.has(d.widgets[newIdx].type);
+      if (activeIsChart !== overIsChart) return d;
       return { ...d, widgets: arrayMove(d.widgets, oldIdx, newIdx) };
     });
   }
 
-  const widgetIds = activeDash?.widgets.map((w) => w.id) ?? [];
   const canSort = dashboards.length > 1;
+  const chartWidgets = activeDash?.widgets.filter((w) => CHART_WIDGET_TYPES.has(w.type)) ?? [];
+  const detailWidgets = activeDash?.widgets.filter((w) => !CHART_WIDGET_TYPES.has(w.type)) ?? [];
+  const chartIds = chartWidgets.map((w) => w.id);
+  const detailIds = detailWidgets.map((w) => w.id);
 
   function renderTabList() {
     if (!activeDash) return null;
@@ -542,7 +558,15 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Widget grid ── */}
+      {/* ── Hero + Metrics Strip ── */}
+      <DashboardHero />
+      <DashboardMetricsStrip
+        metricIds={activeDash.metricsStripIds}
+        onMetricIdsChange={updateMetricsStripIds}
+      />
+      <div className="border-b border-border" />
+
+      {/* ── Widget zones ── */}
       {activeDash.widgets.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-4">
           <LayoutDashboard className="h-12 w-12 opacity-30" />
@@ -554,23 +578,45 @@ export default function Dashboard() {
         </div>
       ) : (
         <DndContext sensors={widgetSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={widgetIds} strategy={rectSortingStrategy}>
-            <div
-              className="grid gap-4 qv-dashboard-grid"
-              style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))' }}
-            >
-              {activeDash.widgets.map((widget, i) => (
-                <SortableWidget
-                  key={widget.id}
-                  widget={widget}
-                  dashboardId={activeDash.id}
-                  index={i}
-                  onDelete={deleteWidget}
-                  onTitleChange={changeWidgetTitle}
-                />
-              ))}
-            </div>
-          </SortableContext>
+          {/* Charts zone */}
+          {chartWidgets.length > 0 && (
+            <SortableContext items={chartIds} strategy={rectSortingStrategy}>
+              <div className="space-y-4">
+                {chartWidgets.map((widget, i) => (
+                  <SortableWidget
+                    key={widget.id}
+                    widget={{ ...widget, span: 3 }}
+                    dashboardId={activeDash.id}
+                    index={i}
+                    onDelete={deleteWidget}
+                    onTitleChange={changeWidgetTitle}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          )}
+
+          {/* Detail zone */}
+          {detailWidgets.length > 0 && (
+            <SortableContext items={detailIds} strategy={rectSortingStrategy}>
+              <div
+                className="grid gap-2 qv-dashboard-grid"
+                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))' }}
+              >
+                {detailWidgets.map((widget, i) => (
+                  <SortableWidget
+                    key={widget.id}
+                    widget={widget}
+                    dashboardId={activeDash.id}
+                    index={i}
+                    onDelete={deleteWidget}
+                    onTitleChange={changeWidgetTitle}
+                    compact
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          )}
         </DndContext>
       )}
 
