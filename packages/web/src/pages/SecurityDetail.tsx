@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ColumnDef } from '@tanstack/react-table';
-import { parseISO } from 'date-fns';
+import { parseISO, isAfter, isBefore, startOfDay } from 'date-fns';
 import { TrendingUp, ListX, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { useSecurityDetail } from '@/api/use-securities';
 import { SecurityEditor, type EditorSection } from '@/components/domain/SecurityEditor';
 import { PriceChart } from '@/components/domain/PriceChart';
 import { useTransactions } from '@/api/use-transactions';
-import { usePerformanceSecurities } from '@/api/use-performance';
+import { usePerformanceSecurities, useReportingPeriod } from '@/api/use-performance';
 import type { TransactionListItem } from '@/api/types';
 import { formatDate, formatPercentage } from '@/lib/formatters';
 import { usePrivacy } from '@/context/privacy-context';
@@ -143,7 +143,21 @@ export default function SecurityDetail() {
   ], [tTx]);
 
   const isRefetching = isFetching && !isLoading;
-  const allPrices = security?.prices ?? [];
+  const { periodStart, periodEnd } = useReportingPeriod();
+
+  // Filter prices and transactions to the global reporting period
+  const allPrices = useMemo(() => {
+    const prices = security?.prices ?? [];
+    if (!periodStart && !periodEnd) return prices;
+    const start = periodStart ? startOfDay(parseISO(periodStart)) : null;
+    const end = periodEnd ? startOfDay(parseISO(periodEnd)) : null;
+    return prices.filter(p => {
+      const d = parseISO(p.date);
+      if (start && isBefore(d, start)) return false;
+      if (end && isAfter(d, end)) return false;
+      return true;
+    });
+  }, [security?.prices, periodStart, periodEnd]);
 
   const txMarkers = (transactions as TransactionListItem[])
     .filter(tx => MARKER_TYPES.has(tx.type))
