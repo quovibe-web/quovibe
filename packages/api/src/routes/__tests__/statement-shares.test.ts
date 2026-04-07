@@ -76,10 +76,12 @@ function createTestDb() {
     );
     CREATE TABLE latest_price (
       security TEXT PRIMARY KEY, tstamp TEXT, value INTEGER NOT NULL,
+      open INTEGER,
       high INTEGER, low INTEGER, volume INTEGER
     );
     CREATE TABLE price (
       security TEXT, tstamp TEXT NOT NULL, value INTEGER NOT NULL,
+      open INTEGER,
       high INTEGER, low INTEGER, volume INTEGER,
       PRIMARY KEY (security, tstamp)
     );
@@ -147,7 +149,7 @@ describe.skipIf(!hasSqliteBindings)('getStatementOfAssets — net shares SQL agg
     // Price: 10 EUR per share on 2024-01-01
     // ppxml2db stores value in hecto-units (10^2): 10 EUR = 1000
     sqlite.prepare(`
-      INSERT INTO price VALUES ('sec1', '2024-01-01', 1000, NULL, NULL, NULL)
+      INSERT INTO price VALUES ('sec1', '2024-01-01', 1000, NULL, NULL, NULL, NULL)
     `).run();
 
     // Transactions in ppxml2db format: shares stored as shares * 1e8
@@ -172,7 +174,7 @@ describe.skipIf(!hasSqliteBindings)('getStatementOfAssets — net shares SQL agg
       INSERT INTO security VALUES (NULL, 'sec2', 'Sold Security', NULL, NULL, NULL, 'EUR', NULL, 0,
         NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
     `).run();
-    sqlite.prepare(`INSERT INTO price VALUES ('sec2', '2024-01-01', 500, NULL, NULL, NULL)`).run();
+    sqlite.prepare(`INSERT INTO price VALUES ('sec2', '2024-01-01', 500, NULL, NULL, NULL, NULL)`).run();
     // BUY 50, SELL 50 → net = 0
     sqlite.prepare(`
       INSERT INTO xact VALUES (NULL, 'x4', 'BUY', '2023-01-01', 'EUR', 50000, 5000000000,

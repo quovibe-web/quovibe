@@ -23,6 +23,7 @@ export interface DbPriceRow {
   close: number;
   high?: number | null;
   low?: number | null;
+  open?: number | null;
 }
 
 export interface ConvertedTransaction {
@@ -34,6 +35,7 @@ export interface ConvertedPrice {
   close: Decimal;
   high: Decimal | null;
   low: Decimal | null;
+  open: Decimal | null;
 }
 
 export function convertTransactionFromDb(row: DbTransactionRow): ConvertedTransaction {
@@ -54,6 +56,7 @@ export function convertPriceFromDb(row: DbPriceRow): ConvertedPrice {
     close: safeDecimal(row.close).div(1e8),
     high: row.high != null ? safeDecimal(row.high).div(1e8) : null,
     low: row.low != null ? safeDecimal(row.low).div(1e8) : null,
+    open: row.open != null ? safeDecimal(row.open).div(1e8) : null,
   };
 }
 
@@ -68,6 +71,7 @@ export interface DbPriceWrite {
   close: number;
   high?: number;
   low?: number;
+  open?: number;
 }
 
 export function convertTransactionToDb(values: {
@@ -88,6 +92,7 @@ export function convertPriceToDb(values: {
   close: Decimal;
   high?: Decimal;
   low?: Decimal;
+  open?: Decimal;
 }): DbPriceWrite {
   const result: DbPriceWrite = {
     close: Math.round(parseFloat(values.close.times(1e8).toPrecision(15))),
@@ -97,6 +102,9 @@ export function convertPriceToDb(values: {
   }
   if (values.low != null) {
     result.low = Math.round(parseFloat(values.low.times(1e8).toPrecision(15)));
+  }
+  if (values.open != null) {
+    result.open = Math.round(parseFloat(values.open.times(1e8).toPrecision(15)));
   }
   return result;
 }

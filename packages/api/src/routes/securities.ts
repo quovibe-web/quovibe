@@ -160,10 +160,17 @@ const getSecurity: RequestHandler = async (req, res) => {
     .where(eq(prices.securityId, id))
     .orderBy(asc(prices.date));
 
-  const allPrices = priceRows.map(p => ({
-    date: p.date,
-    value: convertPriceFromDb({ close: p.close }).close.toString(),
-  }));
+  const allPrices = priceRows.map(p => {
+    const converted = convertPriceFromDb({ close: p.close, open: p.open, high: p.high, low: p.low });
+    return {
+      date: p.date,
+      value: converted.close.toString(),
+      open: converted.open?.toString() ?? null,
+      high: converted.high?.toString() ?? null,
+      low: converted.low?.toString() ?? null,
+      volume: p.volume ?? null,
+    };
+  });
 
   // Filter prices to trading days: resolve security calendar → global calendar → 'default'
   const globalCalRow = sqlite

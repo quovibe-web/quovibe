@@ -105,6 +105,7 @@ function createTestDb() {
       security TEXT PRIMARY KEY,
       tstamp TEXT,
       value INTEGER NOT NULL,
+      open INTEGER,
       high INTEGER,
       low INTEGER,
       volume INTEGER
@@ -113,6 +114,7 @@ function createTestDb() {
       security TEXT,
       tstamp TEXT NOT NULL,
       value INTEGER NOT NULL,
+      open INTEGER,
       high INTEGER,
       low INTEGER,
       volume INTEGER,

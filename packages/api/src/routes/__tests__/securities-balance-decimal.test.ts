@@ -31,10 +31,12 @@ function makeDb() {
     );
     CREATE TABLE latest_price (
       security TEXT PRIMARY KEY, tstamp TEXT, value INTEGER NOT NULL,
+      open INTEGER,
       high INTEGER, low INTEGER, volume INTEGER
     );
     CREATE TABLE price (
       security TEXT, tstamp TEXT NOT NULL, value INTEGER NOT NULL,
+      open INTEGER,
       high INTEGER, low INTEGER, volume INTEGER, PRIMARY KEY (security, tstamp)
     );
   `);
@@ -52,7 +54,7 @@ describe.skipIf(!hasSqliteBindings)('GAP-03: getSecuritiesBalance uses Decimal a
       INSERT INTO xact VALUES
         (NULL, 'buy-1', 'BUY', '2024-01-01', 'EUR', 1000, 300000000, NULL, 'sec-1', 'port-1',
          'TEST', '2024-01-01', 0, 0, 'portfolio', 1, 1);
-      INSERT INTO latest_price VALUES ('sec-1', '2024-06-01', 10000000, NULL, NULL, NULL);
+      INSERT INTO latest_price VALUES ('sec-1', '2024-06-01', 10000000, NULL, NULL, NULL, NULL);
     `);
 
     const balance = getSecuritiesBalance(db, 'port-1');
@@ -70,8 +72,8 @@ describe.skipIf(!hasSqliteBindings)('GAP-03: getSecuritiesBalance uses Decimal a
         (NULL, 'buy-2', 'BUY', '2024-01-01', 'EUR', 5678, 500000000, NULL, 'sec-2', 'port-1',
          'TEST', '2024-01-01', 0, 0, 'portfolio', 2, 2);
       INSERT INTO latest_price VALUES
-        ('sec-1', '2024-06-01', 1234000000, NULL, NULL, NULL),
-        ('sec-2', '2024-06-01', 5678000000, NULL, NULL, NULL);
+        ('sec-1', '2024-06-01', 1234000000, NULL, NULL, NULL, NULL),
+        ('sec-2', '2024-06-01', 5678000000, NULL, NULL, NULL, NULL);
     `);
 
     const balance = getSecuritiesBalance(db, 'port-1');
@@ -84,7 +86,7 @@ describe.skipIf(!hasSqliteBindings)('GAP-03: getSecuritiesBalance uses Decimal a
       INSERT INTO xact VALUES
         (NULL, 'buy-1', 'BUY', '2024-01-01', 'EUR', 1000, 200000000, NULL, 'sec-1', 'port-1',
          'TEST', '2024-01-01', 0, 0, 'portfolio', 1, 1);
-      INSERT INTO price VALUES ('sec-1', '2024-05-01', 5000000000, NULL, NULL, NULL);
+      INSERT INTO price VALUES ('sec-1', '2024-05-01', 5000000000, NULL, NULL, NULL, NULL);
     `);
 
     const balance = getSecuritiesBalance(db, 'port-1');
