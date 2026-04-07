@@ -144,7 +144,7 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
       // If no exact match, find nearest transaction within 20px horizontally
       if (!matchDate) {
         const cursorX = param.point.x;
-        const THRESHOLD = 20; // native-ok
+        const THRESHOLD = 10; // native-ok
         let bestDist = THRESHOLD + 1; // native-ok
 
         for (const td of txDates) {
