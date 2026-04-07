@@ -1,5 +1,9 @@
 {
   "title": "Panel",
+  "hero": {
+    "configureMetrics": "Konfiguruj metryki",
+    "selectMetrics": "Wybierz metryki"
+  },
   "addDashboard": "Nowy panel",
   "addDashboardDescription": "Wprowadź nazwę dla nowego panelu",
   "dashboardName": "Nazwa panelu",

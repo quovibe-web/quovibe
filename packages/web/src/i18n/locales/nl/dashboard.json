@@ -1,5 +1,9 @@
 {
   "title": "Dashboard",
+  "hero": {
+    "configureMetrics": "Statistieken configureren",
+    "selectMetrics": "Statistieken selecteren"
+  },
   "addDashboard": "Nieuw dashboard",
   "addDashboardDescription": "Voer een naam in voor het nieuwe dashboard",
   "dashboardName": "Dashboardnaam",

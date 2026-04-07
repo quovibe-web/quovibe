@@ -1,5 +1,9 @@
 {
   "title": "Painel",
+  "hero": {
+    "configureMetrics": "Configurar métricas",
+    "selectMetrics": "Selecionar métricas"
+  },
   "addDashboard": "Novo painel",
   "addDashboardDescription": "Introduza um nome para o novo painel",
   "dashboardName": "Nome do painel",

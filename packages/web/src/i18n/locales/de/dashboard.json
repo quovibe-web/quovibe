@@ -1,5 +1,9 @@
 {
   "title": "Dashboard",
+  "hero": {
+    "configureMetrics": "Kennzahlen konfigurieren",
+    "selectMetrics": "Kennzahlen auswählen"
+  },
   "addDashboard": "Neues Dashboard",
   "addDashboardDescription": "Geben Sie einen Namen für das neue Dashboard ein",
   "dashboardName": "Dashboard-Name",

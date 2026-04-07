@@ -1,5 +1,9 @@
 {
   "title": "Tableau de bord",
+  "hero": {
+    "configureMetrics": "Configurer les métriques",
+    "selectMetrics": "Sélectionner les métriques"
+  },
   "addDashboard": "Nouveau tableau de bord",
   "addDashboardDescription": "Saisissez un nom pour le nouveau tableau de bord",
   "dashboardName": "Nom du tableau de bord",

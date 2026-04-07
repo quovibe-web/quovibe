@@ -1,5 +1,9 @@
 {
   "title": "Dashboard",
+  "hero": {
+    "configureMetrics": "Configure metrics",
+    "selectMetrics": "Select metrics"
+  },
   "addDashboard": "New dashboard",
   "addDashboardDescription": "Enter a name for the new dashboard",
   "dashboardName": "Dashboard name",
