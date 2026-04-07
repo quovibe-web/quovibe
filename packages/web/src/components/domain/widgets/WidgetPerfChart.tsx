@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
-import { FadeIn } from '@/components/shared/FadeIn';
+
 
 const CHART_ID = 'widget-perf';
 
@@ -195,13 +195,6 @@ export default function WidgetPerfChart() {
     setChartType(type);
   };
 
-  if (isLoading) {
-    return (
-      <div className="relative" style={{ height: 250 }}>
-        <Skeleton className="w-full h-full rounded-lg" />
-      </div>
-    );
-  }
   if (isError) {
     return (
       <Alert variant="destructive">
@@ -209,19 +202,19 @@ export default function WidgetPerfChart() {
       </Alert>
     );
   }
-  if (!chartData.length) {
-    return (
-      <div className="flex items-center justify-center h-full min-h-[200px] text-sm text-muted-foreground">
-        {tDash('noChartData')}
-      </div>
-    );
-  }
 
   return (
-    <FadeIn>
+    <div className="relative" style={{ height: 250 }}>
+      {isLoading && <Skeleton className="absolute inset-0 rounded-lg z-20" />}
+      {!isLoading && !chartData.length && (
+        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+          {tDash('noChartData')}
+        </div>
+      )}
       <div
         className={cn(
-          'group/chart relative',
+          'group/chart relative h-full',
+          isLoading && 'invisible',
           isFetching && !isLoading && 'opacity-60 transition-opacity duration-200',
         )}
         style={{
@@ -257,7 +250,7 @@ export default function WidgetPerfChart() {
           </div>
         </div>
 
-        <div ref={containerRef} className="w-full" style={{ height: 250 }} />
+        <div ref={containerRef} className="w-full h-full" />
 
         <ChartLegendOverlay
           chart={chartRef.current}
@@ -270,6 +263,6 @@ export default function WidgetPerfChart() {
           onTypeChange={handleTypeChange}
         />
       </div>
-    </FadeIn>
+    </div>
   );
 }

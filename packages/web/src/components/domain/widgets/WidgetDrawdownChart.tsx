@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
-import { FadeIn } from '@/components/shared/FadeIn';
+
 
 const CHART_ID = 'widget-drawdown';
 
@@ -133,13 +133,6 @@ export default function WidgetDrawdownChart() {
     setChartType(type);
   };
 
-  if (isLoading) {
-    return (
-      <div className="relative" style={{ height: 280 }}>
-        <Skeleton className="w-full h-full rounded-lg" />
-      </div>
-    );
-  }
   if (isError) {
     return (
       <Alert variant="destructive">
@@ -147,23 +140,22 @@ export default function WidgetDrawdownChart() {
       </Alert>
     );
   }
-  if (!rawChartData.length) {
-    return (
-      <div className="flex items-center justify-center h-full min-h-[200px] text-sm text-muted-foreground">
-        {t('noChartData')}
-      </div>
-    );
-  }
 
   return (
-    <FadeIn>
+    <div className="relative" style={{ height: 280 }}>
+      {isLoading && <Skeleton className="absolute inset-0 rounded-lg z-20" />}
+      {!isLoading && !rawChartData.length && (
+        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+          {t('noChartData')}
+        </div>
+      )}
       <div
         className={cn(
-          'group/chart relative',
+          'group/chart relative h-full',
+          isLoading && 'invisible',
           isFetching && !isLoading && 'opacity-60 transition-opacity duration-200',
         )}
         style={{
-          height: 280,
           filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
           transition: 'filter 0.2s ease',
         }}
@@ -180,6 +172,6 @@ export default function WidgetDrawdownChart() {
           onTypeChange={handleTypeChange}
         />
       </div>
-    </FadeIn>
+    </div>
   );
 }
