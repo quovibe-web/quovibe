@@ -3,6 +3,7 @@ import { useMovers } from '@/api/use-movers';
 import { usePrivacy } from '@/context/privacy-context';
 import { useWidgetKpiMeta } from '@/hooks/use-widget-kpi-meta';
 import { formatPercentage } from '@/lib/formatters';
+import { getColor } from '@/lib/colors';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -57,8 +58,8 @@ export default function WidgetMovers() {
   const { isPrivate } = usePrivacy();
   const { periodLabel } = useWidgetKpiMeta(null);
 
-  const positiveColor = 'var(--qv-positive, #4ade80)';
-  const negativeColor = 'var(--qv-negative, #f87171)';
+  const positiveColor = getColor('profit');
+  const negativeColor = getColor('loss');
 
   if (isLoading) {
     return (
