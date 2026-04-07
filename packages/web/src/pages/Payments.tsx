@@ -1,15 +1,10 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  BarChart,
-  Bar,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+  LineSeries, AreaSeries, HistogramSeries,
+  type ISeriesApi, type SeriesType,
+} from 'lightweight-charts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -24,10 +19,14 @@ import { useReportingPeriod } from '@/api/use-performance';
 import { apiFetch } from '@/api/fetch';
 import { PaymentBreakdownTooltip } from '@/components/domain/PaymentBreakdownTooltip';
 import type { PaymentBreakdownResponse } from '@quovibe/shared';
-import { formatDate } from '@/lib/formatters';
+import { formatDate, formatCurrency } from '@/lib/formatters';
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
-import { useChartTheme } from '@/hooks/use-chart-theme';
+import { useLightweightChart } from '@/hooks/use-lightweight-chart';
+import { getColor } from '@/lib/colors';
+import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
+import { ChartToolbar } from '@/components/shared/ChartToolbar';
+import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
 import { ChartSkeleton } from '@/components/shared/ChartSkeleton';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
 import { FadeIn } from '@/components/shared/FadeIn';
@@ -37,58 +36,170 @@ import type { PaymentGroup } from '@/api/types';
 
 type AmountMode = 'gross' | 'net';
 
-function PaymentBarChart({
-  groups,
-  amountMode,
-  color,
-  title,
-  isPrivate,
-  type,
-  groupBy,
-}: {
+interface PaymentBarChartProps {
   groups: PaymentGroup[];
   amountMode: AmountMode;
-  color: string;
+  barColor: string;
   title: string;
   isPrivate: boolean;
   type: 'DIVIDEND' | 'INTEREST';
   groupBy: 'month' | 'quarter' | 'year';
-}) {
-  const { i18n } = useTranslation('common');
-  const { gridColor, gridOpacity, tickColor, isDark } = useChartTheme();
-  const [activeBucket, setActiveBucket] = useState<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const queryClient = useQueryClient();
-  const { periodStart, periodEnd } = useReportingPeriod();
+  chartId: string;
+}
 
+function PaymentBarChart({
+  groups,
+  amountMode,
+  barColor,
+  title,
+  isPrivate,
+  type,
+  groupBy,
+  chartId,
+}: PaymentBarChartProps) {
+  const { periodStart, periodEnd } = useReportingPeriod();
+  const queryClient = useQueryClient();
+
+  const [chartType, setChartType] = useState<ChartSeriesType>(
+    () => getSavedChartType(chartId) ?? 'histogram',
+  );
+  const [seriesVersion, setSeriesVersion] = useState(0);
+  const [activeBucket, setActiveBucket] = useState<string | null>(null);
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const seriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
+
+  const { containerRef, chartRef } = useLightweightChart({
+    options: {
+      rightPriceScale: {
+        scaleMargins: { top: 0.1, bottom: 0.05 },
+      },
+      leftPriceScale: { visible: false },
+      crosshair: {
+        vertLine: { visible: true },
+        horzLine: { visible: false },
+      },
+    },
+  });
+
+  // Map data: PaymentGroup[] → LW time-series data
   const chartData = groups.map((g) => ({
-    bucket: g.bucket,
-    total: parseFloat(amountMode === 'gross' ? g.totalGross : g.totalNet),
+    time: g.bucket as string,
+    value: parseFloat(amountMode === 'gross' ? g.totalGross : g.totalNet),
   }));
 
-  const handleMouseMove = useCallback((state: { activeLabel?: string }) => {
-    const bucket = state?.activeLabel ?? null;
-    if (!bucket) return;
-    // Prefetch immediately — fetch starts 250ms before debounce fires
-    queryClient.prefetchQuery({
-      queryKey: reportsKeys.paymentsBreakdown(bucket, type, groupBy, periodStart, periodEnd),
-      queryFn: () =>
-        apiFetch<PaymentBreakdownResponse>(
-          `/api/reports/payments/breakdown?bucket=${encodeURIComponent(bucket)}&type=${type}&groupBy=${groupBy}&periodStart=${periodStart}&periodEnd=${periodEnd}`,
-        ),
-      staleTime: 5 * 60 * 1000,
-    });
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setActiveBucket(bucket);
-    }, 250);
-  }, [queryClient, periodStart, periodEnd, type, groupBy]);
+  // Build per-point colored histogram data
+  const histogramData = chartData.map((d) => ({
+    ...d,
+    color: d.value >= 0 ? getColor('profit') : getColor('loss'),
+  }));
 
-  const handleMouseLeave = useCallback(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setActiveBucket(null);
-  }, []);
+  // Create / recreate series when chart type or color changes
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
 
+    if (seriesRef.current) {
+      chart.removeSeries(seriesRef.current);
+      seriesRef.current = null;
+    }
+
+    if (chartData.length === 0) return;
+
+    let series: ISeriesApi<SeriesType>;
+
+    switch (chartType) {
+      case 'line':
+        series = chart.addSeries(LineSeries, {
+          color: barColor,
+          lineWidth: 2,
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        series.setData(chartData);
+        break;
+      case 'area':
+        series = chart.addSeries(AreaSeries, {
+          lineColor: barColor,
+          topColor: barColor + '40',
+          bottomColor: 'transparent',
+          lineWidth: 2,
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        series.setData(chartData);
+        break;
+      case 'histogram':
+      default:
+        series = chart.addSeries(HistogramSeries, {
+          color: barColor,
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        series.setData(histogramData);
+        break;
+    }
+
+    chart.timeScale().fitContent();
+    seriesRef.current = series;
+    setSeriesVersion((v) => v + 1); // native-ok — triggers legend re-render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartType, barColor, groups, amountMode]);
+
+  // Legend items
+  const legendItems: LegendSeriesItem[] = seriesVersion > 0 && seriesRef.current
+    ? [
+        {
+          id: chartId,
+          label: title,
+          color: barColor,
+          series: seriesRef.current,
+          visible: true,
+          formatValue: (v: number) => formatCurrency(v),
+        },
+      ]
+    : [];
+
+  // Crosshair move → prefetch breakdown tooltip
+  // seriesVersion is used as a trigger so this effect re-runs once the chart is initialised
+  // (chartRef is a ref; only seriesVersion causes a re-render after the chart is ready)
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+
+    const handler = (param: { time?: unknown; point?: { x: number; y: number } }) => {
+      if (!param.time) {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        setActiveBucket(null);
+        return;
+      }
+      const bucket = String(param.time);
+
+      // Prefetch breakdown immediately
+      queryClient.prefetchQuery({
+        queryKey: reportsKeys.paymentsBreakdown(bucket, type, groupBy, periodStart, periodEnd),
+        queryFn: () =>
+          apiFetch<PaymentBreakdownResponse>(
+            `/api/reports/payments/breakdown?bucket=${encodeURIComponent(bucket)}&type=${type}&groupBy=${groupBy}&periodStart=${periodStart}&periodEnd=${periodEnd}`,
+          ),
+        staleTime: 5 * 60 * 1000,
+      });
+
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        setActiveBucket(bucket);
+      }, 250);
+    };
+
+    chart.subscribeCrosshairMove(handler);
+    return () => {
+      chart.unsubscribeCrosshairMove(handler);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seriesVersion, queryClient, type, groupBy, periodStart, periodEnd]);
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -103,57 +214,39 @@ function PaymentBarChart({
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div style={{ filter: isPrivate ? 'blur(8px) saturate(0)' : 'none', transition: 'filter 0.2s ease' }}>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart
-              data={chartData}
-              margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} strokeOpacity={gridOpacity} vertical={false} />
-              <XAxis
-                dataKey="bucket"
-                tick={{ fill: tickColor, fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
+        <div
+          className="group/chart relative"
+          style={{
+            height: 240,
+            filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
+            transition: 'filter 0.2s ease',
+          }}
+        >
+          <div ref={containerRef} className="w-full h-full" />
+          <ChartLegendOverlay
+            chart={chartRef.current}
+            items={legendItems}
+          />
+          <ChartToolbar
+            chartId={chartId}
+            activeType={chartType}
+            hasOhlc={false}
+            onTypeChange={setChartType}
+          />
+          {/* Breakdown tooltip rendered outside the chart canvas */}
+          {activeBucket && (
+            <div className="absolute bottom-2 left-2 z-20 pointer-events-none">
+              <PaymentBreakdownTooltip
+                active={true}
+                payload={[{ value: chartData.find((d) => d.time === activeBucket)?.value ?? 0 }]}
+                label={activeBucket}
+                activeBucket={activeBucket}
+                type={type}
+                groupBy={groupBy}
+                amountMode={amountMode}
               />
-              <YAxis
-                tick={{ fill: tickColor, fontSize: 11, style: { fontFeatureSettings: '"tnum"' } }}
-                tickLine={false}
-                axisLine={false}
-                tickMargin={4}
-                tickFormatter={(v: number) =>
-                  new Intl.NumberFormat(i18n.language, {
-                    notation: 'compact',
-                    maximumFractionDigits: 1,
-                  }).format(v)
-                }
-              />
-              <Tooltip
-                cursor={false}
-                wrapperStyle={{ outline: 'none' }}
-                content={(props) => (
-                  <PaymentBreakdownTooltip
-                    {...props}
-                    activeBucket={activeBucket}
-                    type={type}
-                    groupBy={groupBy}
-                    amountMode={amountMode}
-                  />
-                )}
-              />
-              <Bar
-                dataKey="total"
-                fill={color}
-                radius={[3, 3, 0, 0]}
-                animationDuration={600}
-                animationEasing="ease-out"
-                activeBar={{ style: { filter: isDark ? 'brightness(1.6) saturate(1.5)' : 'brightness(1.15) saturate(1.2)', transition: 'filter 0.15s ease' } }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -268,11 +361,12 @@ export default function Payments() {
             <PaymentBarChart
               groups={data?.dividendGroups ?? []}
               amountMode={amountMode}
-              color={dividend}
+              barColor={dividend}
               title={t('payments.dividendsPerGroup', { groupBy: t(`payments.groupBy.${groupBy}`) })}
               isPrivate={isPrivate}
               type="DIVIDEND"
               groupBy={groupBy}
+              chartId="payments-dividends"
             />
           </div>
 
@@ -281,11 +375,12 @@ export default function Payments() {
             <PaymentBarChart
               groups={data?.interestGroups ?? []}
               amountMode={amountMode}
-              color={interest}
+              barColor={interest}
               title={t('payments.interestPerGroup', { groupBy: t(`payments.groupBy.${groupBy}`) })}
               isPrivate={isPrivate}
               type="INTEREST"
               groupBy={groupBy}
+              chartId="payments-interest"
             />
           </div>
 
