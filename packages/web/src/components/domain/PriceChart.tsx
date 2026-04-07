@@ -288,7 +288,9 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
           color: tx.type === 'BUY' ? profit
             : tx.type === 'SELL' ? loss
             : violet,
-          shape: 'circle' as const,
+          shape: tx.type === 'BUY' ? 'arrowUp' as const
+            : tx.type === 'SELL' ? 'arrowDown' as const
+            : 'square' as const,
           text: tx.type.charAt(0),
         }));
 
