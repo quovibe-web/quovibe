@@ -134,8 +134,7 @@ export default function PerformanceChart() {
     }
 
     // Force legend re-derivation
-    seriesBuildCount.current += 1; // native-ok
-    setLegendTrigger(seriesBuildCount.current);
+    setLegendTrigger((v) => v + 1); // native-ok
   }
 
   function handleRemoveSeries(id: string) {
@@ -264,9 +263,6 @@ export default function PerformanceChart() {
   }
   const seriesMapRef = useRef<Map<string, SeriesEntry>>(new Map());
   const barSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
-  // Counter incremented after each series rebuild — used as useMemo dep to re-derive legend items.
-  // This is a ref+state pair: ref tracks the value, forceUpdate triggers re-render.
-  const seriesBuildCount = useRef(0);
   const [legendTrigger, setLegendTrigger] = useState(0);
 
   // --- Build series name map for legend ---
@@ -463,16 +459,14 @@ export default function PerformanceChart() {
     }
 
     chart.timeScale().fitContent();
-    seriesBuildCount.current += 1; // native-ok
-    // Schedule legend re-derivation on next microtask to avoid setState-during-render
-    Promise.resolve().then(() => setLegendTrigger(seriesBuildCount.current));
+    // Legend re-derives via chartConfig/chartSeries/ready deps in useMemo — no setState needed here
 
   }, [displayData, chartSeries, periodicData, periodicBarsConfig, ttwrorMode, periodStart, dividend, palette[0], ready]);
 
   // --- Build legend items for ExtendedChartLegendOverlay ---
 
   const legendItems: ExtendedLegendSeriesItem[] = useMemo(() => {
-    if (legendTrigger === 0) return [];
+    if (!ready || seriesMapRef.current.size === 0) return [];
 
     const items: ExtendedLegendSeriesItem[] = [];
 
