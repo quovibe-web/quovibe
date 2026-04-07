@@ -1,15 +1,9 @@
-import { useState, useMemo, useEffect, useId } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ComposedChart,
-  Area,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+  AreaSeries, LineSeries,
+  type ISeriesApi, type SeriesType,
+} from 'lightweight-charts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -23,13 +17,14 @@ import { TaxonomyNodePicker } from '@/components/domain/TaxonomyNodePicker';
 import { useTaxonomies } from '@/api/use-taxonomies';
 import { useTaxonomySeries } from '@/api/use-taxonomy-series';
 import { usePortfolio, useUpdateSettings } from '@/api/use-portfolio';
-import { formatPercentage, formatCurrency, formatDate } from '@/lib/formatters';
+import { formatPercentage, formatCurrency } from '@/lib/formatters';
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
-import { useChartTheme } from '@/hooks/use-chart-theme';
-import { useChartTicks } from '@/hooks/use-chart-ticks';
+import { useLightweightChart } from '@/hooks/use-lightweight-chart';
 import { cn } from '@/lib/utils';
-import { ChartTooltip, ChartTooltipRow } from '@/components/shared/ChartTooltip';
+import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
+import { ChartToolbar } from '@/components/shared/ChartToolbar';
+import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FadeIn } from '@/components/shared/FadeIn';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -39,6 +34,8 @@ import { BarChart3 } from 'lucide-react';
 // ─── Chart mode ──────────────────────────────────────────────────────────────
 
 type ChartMode = 'mv' | 'ttwror';
+
+const CHART_ID = 'taxonomy-series';
 
 // ─── Metric tile ─────────────────────────────────────────────────────────────
 
@@ -61,15 +58,17 @@ function MetricTile({ label, children }: MetricTileProps) {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function TaxonomySeries() {
-  const { t, i18n } = useTranslation('reports');
+  const { t } = useTranslation('reports');
   const { t: tNav } = useTranslation('navigation');
   const { data: taxonomies, isLoading: taxonomiesLoading } = useTaxonomies();
   const { isPrivate } = usePrivacy();
   const { profit, loss, palette } = useChartColors();
-  const { gridColor, gridOpacity, tickColor, cursorColor, cursorDasharray } = useChartTheme();
   const [selectedTaxonomyId, setSelectedTaxonomyId] = useState<string | undefined>(undefined);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [chartMode, setChartMode] = useState<ChartMode>('ttwror');
+  const [chartType, setChartType] = useState<ChartSeriesType>(
+    () => getSavedChartType(CHART_ID) ?? 'area',
+  );
   const { data: portfolioData } = usePortfolio();
   const { mutate: saveSettings, isPending: savePending } = useUpdateSettings();
 
@@ -99,22 +98,6 @@ export default function TaxonomySeries() {
 
   const slice = slices?.[0] ?? null;
 
-  const chartData = useMemo(() => {
-    if (!slice) return [];
-    return [...slice.chartData]
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .map((p) => ({
-        date: p.date,
-        value: parseFloat(chartMode === 'mv' ? p.marketValue : p.ttwrorCumulative),
-      }));
-  }, [slice, chartMode]);
-
-  const chartDates = useMemo(() => chartData.map((d) => d.date), [chartData]);
-  const { ticks: chartTicks, tickFormatter } = useChartTicks(chartDates);
-
-  const uid = useId();
-  const gradientId = `colorAreaTax-${uid.replace(/:/g, '')}`;
-
   const sliceColor = slice ? (slice.color ?? palette[0]) : palette[0];
 
   // Derive key metrics
@@ -126,6 +109,97 @@ export default function TaxonomySeries() {
   const gain = slice ? parseFloat(slice.absoluteGain) : 0;
   const dividends = slice ? parseFloat(slice.dividends) : 0;
   const fees = slice ? parseFloat(slice.fees) : 0;
+
+  // ─── Lightweight Charts ────────────────────────────────────────────────────
+
+  const { containerRef, chartRef } = useLightweightChart({
+    options: {
+      rightPriceScale: {
+        scaleMargins: { top: 0.1, bottom: 0.1 },
+      },
+      leftPriceScale: { visible: false },
+    },
+  });
+
+  const seriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
+  // Incremented after each series rebuild to trigger a re-render so legendItems pick up
+  // the fresh seriesRef.current (refs don't cause re-renders on their own).
+  const [seriesVersion, setSeriesVersion] = useState(0);
+
+  // Build chart data for current mode
+  const chartData = useMemo(() => {
+    if (!slice) return [];
+    return [...slice.chartData]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((p) => ({
+        time: p.date as string,
+        value: parseFloat(chartMode === 'mv' ? p.marketValue : p.ttwrorCumulative),
+      }));
+  }, [slice, chartMode]);
+
+  // Create or recreate the series when chart type, chart mode, color, or data changes
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !chartData.length) return;
+
+    // Remove existing series
+    if (seriesRef.current) {
+      chart.removeSeries(seriesRef.current);
+      seriesRef.current = null;
+    }
+
+    let series: ISeriesApi<SeriesType>;
+
+    switch (chartType) {
+      case 'line':
+        series = chart.addSeries(LineSeries, {
+          color: sliceColor,
+          lineWidth: 2,
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        break;
+      case 'area':
+      default:
+        series = chart.addSeries(AreaSeries, {
+          lineColor: sliceColor,
+          topColor: sliceColor + '40',
+          bottomColor: 'transparent',
+          lineWidth: 2,
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        break;
+    }
+
+    series.setData(chartData);
+    chart.timeScale().fitContent();
+    seriesRef.current = series;
+    setSeriesVersion((v) => v + 1); // native-ok — triggers re-render to refresh legendItems
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartType, chartMode, sliceColor, chartData]);
+
+  // Format value for legend crosshair display
+  const formatLegendValue = (v: number) =>
+    chartMode === 'mv' ? formatCurrency(v) : formatPercentage(v);
+
+  // Build legend items — depends on seriesVersion so it re-derives after every series rebuild
+  const legendItems: LegendSeriesItem[] = seriesVersion > 0 && seriesRef.current && slice
+    ? [
+        {
+          id: 'taxonomy-series',
+          label: slice.categoryName,
+          color: sliceColor,
+          series: seriesRef.current,
+          visible: true,
+          formatValue: formatLegendValue,
+        },
+      ]
+    : [];
+
+  function handleTypeChange(type: ChartSeriesType) {
+    setChartType(type);
+  }
 
   return (
     <div className="qv-page space-y-6">
@@ -244,78 +318,25 @@ export default function TaxonomySeries() {
             ) : (
               <>
                 {/* Chart */}
-                <div style={{ filter: isPrivate ? 'blur(8px) saturate(0)' : 'none', transition: 'filter 0.2s ease' }}>
-                  <ResponsiveContainer width="100%" height={320}>
-                    <ComposedChart data={chartData} margin={{ top: 8, right: 40, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={sliceColor} stopOpacity={0.25} />
-                          <stop offset="95%" stopColor={sliceColor} stopOpacity={0.02} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} strokeOpacity={gridOpacity} vertical={false} />
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fill: tickColor, fontSize: 11 }}
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={8}
-                        ticks={chartTicks}
-                        tickFormatter={tickFormatter}
-                      />
-                      <YAxis
-                        tick={{ fill: tickColor, fontSize: 11, style: { fontFeatureSettings: '"tnum"' } }}
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={4}
-                        tickFormatter={(v: number) =>
-                          chartMode === 'mv'
-                            ? new Intl.NumberFormat(i18n.language, {
-                                notation: 'compact',
-                                maximumFractionDigits: 1,
-                              }).format(v)
-                            : formatPercentage(v)
-                        }
-                      />
-                      <Tooltip
-                        cursor={{ stroke: cursorColor, strokeDasharray: cursorDasharray }}
-                        content={({ active, payload, label }) => {
-                          if (!active || !payload?.length) return null;
-                          const val = payload[0].value as number;
-                          const formatted = chartMode === 'mv'
-                            ? formatCurrency(val)
-                            : formatPercentage(val);
-                          return (
-                            <ChartTooltip label={formatDate(label as string)}>
-                              <ChartTooltipRow
-                                color={sliceColor}
-                                label={slice?.categoryName ?? ''}
-                                value={formatted}
-                              />
-                            </ChartTooltip>
-                          );
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke="none"
-                        fill={`url(#${gradientId})`}
-                        dot={false}
-                        animationDuration={800}
-                        animationEasing="ease-out"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="value"
-                        stroke={sliceColor}
-                        strokeWidth={2.5}
-                        dot={false}
-                        animationDuration={800}
-                        animationEasing="ease-out"
-                      />
-                    </ComposedChart>
-                  </ResponsiveContainer>
+                <div
+                  className="group/chart relative"
+                  style={{
+                    height: 320,
+                    filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
+                    transition: 'filter 0.2s ease',
+                  }}
+                >
+                  <div ref={containerRef} className="w-full h-full" />
+                  <ChartLegendOverlay
+                    chart={chartRef.current}
+                    items={legendItems}
+                  />
+                  <ChartToolbar
+                    chartId={CHART_ID}
+                    activeType={chartType}
+                    hasOhlc={false}
+                    onTypeChange={handleTypeChange}
+                  />
                 </div>
 
                 {/* Metric tiles grid */}
