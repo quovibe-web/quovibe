@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import type { SearchResult, PreviewPricesResponse } from '@quovibe/shared';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Sparkline } from '@/components/shared/Sparkline';
 import { InstrumentTypeBadge } from './InstrumentTypeBadge';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { formatDate } from '@/lib/formatters';
@@ -30,13 +30,27 @@ export function InstrumentDetail({
 }: InstrumentDetailProps) {
   const { t } = useTranslation('securities');
   const { palette } = useChartColors();
+  const chartContainerRef = useRef<HTMLDivElement | null>(null);
+  const [chartWidth, setChartWidth] = useState(0);
+
+  useEffect(() => {
+    const el = chartContainerRef.current;
+    if (!el) return;
+    setChartWidth(el.clientWidth); // native-ok
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) setChartWidth(entry.contentRect.width); // native-ok
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const chartData = useMemo(() => {
     if (!previewData?.prices.length) return [];
     // Show last ~90 days for sparkline
     const prices = previewData.prices;
     const last90 = prices.slice(Math.max(0, prices.length - 90)); // native-ok
-    return last90.map((p) => ({ date: p.date, close: parseFloat(p.close) }));
+    return last90.map((p) => parseFloat(p.close));
   }, [previewData]);
 
   const hasPrices = previewData && previewData.prices.length > 0;
@@ -103,17 +117,17 @@ export function InstrumentDetail({
 
         {!isPreviewLoading && hasPrices && (
           <>
-            <ResponsiveContainer width="100%" height={120}>
-              <LineChart data={chartData}>
-                <Line
-                  type="monotone"
-                  dataKey="close"
-                  stroke={palette[7] ?? palette[0]}
-                  strokeWidth={1.5}
-                  dot={false}
+            <div ref={chartContainerRef}>
+              {chartWidth > 0 && (
+                <Sparkline
+                  data={chartData}
+                  width={chartWidth}
+                  height={120}
+                  color={palette[7] ?? palette[0]}
+                  fillOpacity={0.15}
                 />
-              </LineChart>
-            </ResponsiveContainer>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground mt-2">
               {t('addInstrument.priceCount', { count: previewData!.prices.length })}
               {firstDate && lastDate && (
