@@ -142,14 +142,14 @@ export default function WidgetDrawdownChart() {
   }
 
   return (
-    <div className="relative" style={{ height: 280 }}>
+    <div className="flex flex-col" style={{ height: 280 }}>
       {isLoading && <Skeleton className="absolute inset-0 rounded-lg z-20" />}
       {!isLoading && !rawChartData.length && (
-        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+        <div className="flex items-center justify-center flex-1 text-sm text-muted-foreground">
           {t('noChartData')}
         </div>
       )}
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between shrink-0">
         <ChartLegendOverlay
           chart={chartRef.current}
           items={legendItems}
@@ -163,7 +163,7 @@ export default function WidgetDrawdownChart() {
       </div>
       <div
         className={cn(
-          'relative h-full',
+          'relative flex-1 min-h-0',
           isLoading && 'invisible',
           isFetching && !isLoading && 'opacity-60 transition-opacity duration-200',
         )}
