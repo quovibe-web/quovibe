@@ -9,7 +9,7 @@ describe('buildSeriesOptions', () => {
     expect(result.seriesType).toBe('Line');
     expect(result.options).toMatchObject({
       color,
-      lineWidth: 2,
+      lineWidth: 2.5,
       lastValueVisible: false,
       priceLineVisible: false,
     });
@@ -20,7 +20,7 @@ describe('buildSeriesOptions', () => {
     expect(result.seriesType).toBe('Area');
     expect(result.options).toMatchObject({
       lineColor: color,
-      lineWidth: 2,
+      lineWidth: 2.5,
       bottomColor: 'transparent',
       lastValueVisible: false,
       priceLineVisible: false,
@@ -41,7 +41,7 @@ describe('buildSeriesOptions', () => {
       baseValue: { type: 'price', price: 100 },
       topLineColor: '#00ff00',
       bottomLineColor: '#ff0000',
-      lineWidth: 2,
+      lineWidth: 2.5,
     });
   });
 

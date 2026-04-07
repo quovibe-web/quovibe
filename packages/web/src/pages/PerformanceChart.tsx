@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { differenceInDays, parseISO } from 'date-fns';
 import { Settings } from 'lucide-react';
 import {
-  LineSeries, AreaSeries, BaselineSeries,
+  LineSeries, BaselineSeries,
   LineStyle as LwcLineStyle,
   PriceScaleMode,
   type ISeriesApi, type SeriesType,
