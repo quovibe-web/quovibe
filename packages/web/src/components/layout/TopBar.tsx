@@ -481,11 +481,17 @@ function PeriodSelector() {
 
 interface TopBarProps {
   onMenuClick?: () => void;
+  isScrolled?: boolean;
 }
 
-export function TopBar({ onMenuClick }: TopBarProps) {
+export function TopBar({ onMenuClick, isScrolled = false }: TopBarProps) {
   return (
-    <header className="h-14 border-b border-border flex items-center gap-3 px-4 lg:px-6 shrink-0 bg-background">
+    <header className={cn(
+      "h-14 flex items-center gap-3 px-4 lg:px-6 shrink-0 transition-all duration-300 ease-out border-b",
+      isScrolled
+        ? "bg-[var(--qv-bg)]/80 backdrop-blur-xl border-border shadow-sm supports-not-[backdrop-filter]:bg-[var(--qv-bg)]"
+        : "bg-background border-transparent"
+    )}>
       {/* Hamburger for small screens (<md) */}
       {onMenuClick && (
         <Button
