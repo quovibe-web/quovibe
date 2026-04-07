@@ -109,14 +109,14 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
     [quotesPrecision],
   );
 
-  // Click handler for marker tooltip
+  // Hover handler for marker tooltip
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
 
-    const handleClick = (param: MouseEventParams) => {
+    const handleMove = (param: MouseEventParams) => {
       if (!param.time || !param.point) {
-        setTooltip(prev => ({ ...prev, visible: false }));
+        setTooltip(prev => prev.visible ? { ...prev, visible: false } : prev);
         return;
       }
 
@@ -132,12 +132,12 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
           date: dateStr,
         });
       } else {
-        setTooltip(prev => ({ ...prev, visible: false }));
+        setTooltip(prev => prev.visible ? { ...prev, visible: false } : prev);
       }
     };
 
-    chart.subscribeClick(handleClick);
-    return () => chart.unsubscribeClick(handleClick);
+    chart.subscribeCrosshairMove(handleMove);
+    return () => chart.unsubscribeCrosshairMove(handleMove);
   }, [transactions, chartRef.current]);
 
   // Create or recreate series when chart type, colors, or data change
