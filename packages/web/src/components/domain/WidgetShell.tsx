@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, createContext, useContext } from 'react';
+import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { GripHorizontal, MoreHorizontal, Clock, X } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -52,6 +53,8 @@ interface WidgetShellProps {
   dragHandleAttributes?: Record<string, unknown>;
   /** Index for stagger-in animation delay */
   index?: number;
+  /** Compact mode for detail zone — reduced padding and text */
+  compact?: boolean;
   children: React.ReactNode;
 }
 
@@ -67,6 +70,7 @@ export function WidgetShell({
   dragHandleListeners,
   dragHandleAttributes,
   index = 0,
+  compact = false,
   children,
 }: WidgetShellProps) {
   const { t } = useTranslation('dashboard');
@@ -132,17 +136,26 @@ export function WidgetShell({
   return (
     <>
       <Card
-        className="group relative h-full flex flex-col bg-card border border-border rounded-lg transition-colors duration-200"
+        className={cn(
+          'group relative h-full flex flex-col bg-card border border-border rounded-lg transition-colors duration-200',
+          compact && 'qv-compact-widget',
+        )}
         style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: `${index * 50}ms` }}
       >
         {/* LINE 1 — Widget type label + drag handle + kebab menu */}
-        <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-0 pt-2.5 px-4">
+        <CardHeader className={cn(
+          'flex flex-row items-center gap-2 space-y-0 pb-0',
+          compact ? 'pt-2 px-3' : 'pt-2.5 px-4',
+        )}>
           <div
             className="cursor-grab active:cursor-grabbing touch-none"
             {...dragHandleListeners}
             {...dragHandleAttributes}
           >
-            <GripHorizontal className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <GripHorizontal className={cn(
+              'text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-150',
+              compact ? 'h-3 w-3' : 'h-4 w-4',
+            )} />
           </div>
           {editing ? (
             <Input
@@ -239,7 +252,7 @@ export function WidgetShell({
           </DropdownMenu>
         </CardHeader>
         {/* LINE 2 removed — data series label merged into LINE 1 */}
-        <CardContent className="flex-1 pt-0">
+        <CardContent className={cn('flex-1', compact ? 'pt-0 px-3 pb-3' : 'pt-0')}>
           <WidgetShellContext.Provider value={{ toolbarTarget: toolbarEl }}>
             {children}
           </WidgetShellContext.Provider>
