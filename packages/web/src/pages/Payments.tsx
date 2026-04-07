@@ -83,10 +83,13 @@ function PaymentBarChart({
   });
 
   // Map data: PaymentGroup[] → LW time-series data
-  const chartData = groups.map((g) => ({
-    time: g.bucket as string,
-    value: parseFloat(amountMode === 'gross' ? g.totalGross : g.totalNet),
-  }));
+  // Normalize bucket dates: "2023" → "2023-01-01", "2023-12" → "2023-12-01", "2023-12-15" → as-is
+  const chartData = groups.map((g) => {
+    let time = g.bucket as string;
+    if (/^\d{4}$/.test(time)) time = `${time}-01-01`;
+    else if (/^\d{4}-\d{2}$/.test(time)) time = `${time}-01`;
+    return { time, value: parseFloat(amountMode === 'gross' ? g.totalGross : g.totalNet) };
+  });
 
   // Build per-point colored histogram data
   const histogramData = chartData.map((d) => ({
