@@ -37,6 +37,8 @@ interface WidgetShellProps {
   dragHandleAttributes?: Record<string, unknown>;
   /** Index for stagger-in animation delay */
   index?: number;
+  /** Optional toolbar rendered in the header row (e.g. chart type switcher) */
+  toolbar?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -52,6 +54,7 @@ export function WidgetShell({
   dragHandleListeners,
   dragHandleAttributes,
   index = 0,
+  toolbar,
   children,
 }: WidgetShellProps) {
   const { t } = useTranslation('dashboard');
@@ -180,6 +183,8 @@ export function WidgetShell({
               </button>
             </span>
           )}
+          {/* Optional toolbar slot */}
+          {toolbar}
           {/* Spacer pushes kebab to the right */}
           <div className="flex-1" />
           {/* Kebab menu — always visible */}

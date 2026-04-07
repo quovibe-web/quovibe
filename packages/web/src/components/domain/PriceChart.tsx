@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LineSeries, AreaSeries, CandlestickSeries, BarSeries, BaselineSeries, HistogramSeries,
@@ -36,6 +37,8 @@ interface PriceChartProps {
   prices: PricePoint[];
   transactions?: TransactionMarker[];
   isFetching?: boolean;
+  /** DOM element ID to portal the toolbar into (e.g. a slot in the card header) */
+  toolbarPortalId?: string;
 }
 
 interface TooltipState {
@@ -48,7 +51,7 @@ interface TooltipState {
 
 const CHART_ID = 'price-chart';
 
-export function PriceChart({ prices, transactions = [], isFetching }: PriceChartProps) {
+export function PriceChart({ prices, transactions = [], isFetching, toolbarPortalId }: PriceChartProps) {
   const { t } = useTranslation('securities');
   const { isPrivate } = usePrivacy();
   const { profit, loss, violet, palette } = useChartColors();
@@ -334,19 +337,26 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
     return <p className="text-muted-foreground text-sm">{t('priceChart.noData')}</p>;
   }
 
+  const toolbarElement = (
+    <ChartToolbar
+      chartId={CHART_ID}
+      activeType={effectiveType}
+      hasOhlc={hasOhlc}
+      onTypeChange={handleTypeChange}
+    />
+  );
+
+  const portalTarget = toolbarPortalId ? document.getElementById(toolbarPortalId) : null;
+
   return (
     <FadeIn>
+      {portalTarget && createPortal(toolbarElement, portalTarget)}
       <div className="flex items-center justify-between mb-1">
         <ChartLegendOverlay
           chart={chartRef.current}
           items={legendItems}
         />
-        <ChartToolbar
-            chartId={CHART_ID}
-            activeType={effectiveType}
-            hasOhlc={hasOhlc}
-            onTypeChange={handleTypeChange}
-          />
+        {!portalTarget && toolbarElement}
       </div>
       <div
         className={cn(

@@ -270,27 +270,30 @@ export default function SecurityDetail() {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-base">{t('detail.priceHistory')}</CardTitle>
           {allPrices.length > 0 && (
-            <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
-              {RANGES.map(r => (
-                <button
-                  key={r}
-                  onClick={() => setRange(r)}
-                  className={cn(
-                    'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-                    r === range
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {t('detail.ranges.' + (r === 'All' ? 'all' : r))}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <div id="price-chart-toolbar" />
+              <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
+                {RANGES.map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setRange(r)}
+                    className={cn(
+                      'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+                      r === range
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {t('detail.ranges.' + (r === 'All' ? 'all' : r))}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </CardHeader>
         <CardContent>
           {allPrices.length > 0 ? (
-            <PriceChart prices={filteredPrices} transactions={txMarkers} />
+            <PriceChart prices={filteredPrices} transactions={txMarkers} toolbarPortalId="price-chart-toolbar" />
           ) : (
             <div>
               <EmptyState icon={TrendingUp} title={t('detail.noPrices')} />
