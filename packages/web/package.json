@@ -29,6 +29,7 @@
     "html-to-image": "^1.11.13",
     "i18next": "^25.10.4",
     "i18next-browser-languagedetector": "^8.2.1",
+    "lightweight-charts": "^5.1.0",
     "lucide-react": "^0.577.0",
     "nanoid": "^5.1.7",
     "next-themes": "^0.4.6",

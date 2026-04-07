@@ -84,5 +84,13 @@
     "movedTo": "Kolom {{name}} verplaatst naar positie {{index}} van {{total}}.",
     "dropped": "Kolom {{name}} neergezet op positie {{index}} van {{total}}.",
     "cancelled": "Herordening geannuleerd. Kolom {{name}} terug op positie {{index}}."
+  },
+  "chartTypes": {
+    "line": "Lijn",
+    "area": "Gebied",
+    "candlestick": "Kandelaar",
+    "bar": "OHLC-staaf",
+    "baseline": "Basislijn",
+    "histogram": "Histogram"
   }
 }

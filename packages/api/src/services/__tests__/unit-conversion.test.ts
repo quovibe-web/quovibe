@@ -99,6 +99,22 @@ describe('Conversione unità ppxml2db ↔ reale', () => {
       expect(result.high!.toNumber()).toBe(1.2);
       expect(result.low!.toNumber()).toBe(0.8);
     });
+
+    test('convertPriceFromDb includes open when present', () => {
+      const result = convertPriceFromDb({ close: 1e8, open: 1.1e8 });
+      expect(result.open).not.toBeNull();
+      expect(result.open!.toNumber()).toBeCloseTo(1.1, 6);
+    });
+
+    test('convertPriceFromDb returns null open when absent', () => {
+      const result = convertPriceFromDb({ close: 1e8 });
+      expect(result.open).toBeNull();
+    });
+
+    test('convertPriceToDb includes open when present', () => {
+      const result = convertPriceToDb({ close: new Decimal('1.0'), open: new Decimal('1.1') });
+      expect(result.open).toBe(110000000);
+    });
   });
 
   describe('unit-conversion integer guarantee', () => {

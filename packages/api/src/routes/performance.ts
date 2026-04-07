@@ -9,7 +9,7 @@ import {
   getReturnsHeatmap,
   resolveInterval,
   getSecurityTtwrorSeries,
-  getPeriodicReturns,
+
 } from '../services/performance.service';
 import { getTaxonomySeriesPerformance } from '../services/taxonomy-performance.service';
 import { resolveDataSeries, resolveDataSeriesLabel, DataSeriesNotFoundError } from '../services/data-series.service';
@@ -216,28 +216,6 @@ const securitySeriesHandler: RequestHandler = (req, res) => {
   res.json(result);
 };
 
-const VALID_PERIODIC_INTERVALS = new Set(['daily', 'weekly', 'monthly', 'quarterly', 'yearly']);
-
-const periodicReturnsHandler: RequestHandler = (req, res) => {
-  const sqlite = getSqlite(req);
-  const period = req.reportingPeriod;
-  const interval = req.query.interval as string | undefined;
-
-  if (!interval || !VALID_PERIODIC_INTERVALS.has(interval)) {
-    res.status(400).json({
-      error: 'interval query parameter is required (daily|weekly|monthly|quarterly|yearly)',
-    });
-    return;
-  }
-
-  const result = getPeriodicReturns(
-    sqlite,
-    period,
-    interval as 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly',
-  );
-  res.json(result);
-};
-
 const moversHandler: RequestHandler = (req, res) => {
   const sqlite = getSqlite(req);
   const period = req.reportingPeriod;
@@ -260,5 +238,5 @@ performanceRouter.get('/taxonomy-series', taxonomySeriesHandler);
 performanceRouter.post('/resolve-series', resolveSeriesHandler);
 performanceRouter.get('/benchmark-series', benchmarkSeriesHandler);
 performanceRouter.get('/security-series', securitySeriesHandler);
-performanceRouter.get('/periodic-returns', periodicReturnsHandler);
+
 performanceRouter.get('/movers', moversHandler);

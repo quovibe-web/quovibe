@@ -3,6 +3,7 @@ import Decimal from 'decimal.js';
 export interface FetchedPrice {
   date: string;       // YYYY-MM-DD
   close: Decimal;
+  open?: Decimal;
   high?: Decimal;
   low?: Decimal;
   volume?: number;
@@ -16,6 +17,9 @@ export interface ProviderResult {
 export interface LatestQuote {
   price: Decimal;
   date: string;       // YYYY-MM-DD
+  open?: Decimal;
+  high?: Decimal;
+  low?: Decimal;
 }
 
 export interface SecurityRow {

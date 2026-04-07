@@ -31,9 +31,10 @@ async function fetchPricesFromYahoo(
 
   return result.quotes
     .filter((r: { close: number | null }) => r.close != null)
-    .map((r: { date: Date; close: number; high: number | null; low: number | null; volume: number | null }) => ({
+    .map((r: { date: Date; close: number; open: number | null; high: number | null; low: number | null; volume: number | null }) => ({
       date: toYMD(r.date),
       close: safeDecimal(r.close),
+      open: r.open != null ? safeDecimal(r.open) : undefined,
       high: r.high != null ? safeDecimal(r.high) : undefined,
       low: r.low != null ? safeDecimal(r.low) : undefined,
       volume: r.volume ?? undefined,
@@ -52,7 +53,12 @@ async function fetchLatestQuote(ticker: string): Promise<LatestQuote | null> {
     const rawTime = result.regularMarketTime;
     // regularMarketTime is a Date object from yahoo-finance2
     const date = rawTime instanceof Date ? toYMD(rawTime) : toYMD(new Date());
-    return { price, date };
+    return {
+      price, date,
+      open: result.regularMarketOpen != null ? safeDecimal(result.regularMarketOpen) : undefined,
+      high: result.regularMarketDayHigh != null ? safeDecimal(result.regularMarketDayHigh) : undefined,
+      low: result.regularMarketDayLow != null ? safeDecimal(result.regularMarketDayLow) : undefined,
+    };
   } catch {
     return null;
   }

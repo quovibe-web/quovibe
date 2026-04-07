@@ -31,8 +31,8 @@ export function ChartExportButton({ chartRef, filename }: ChartExportButtonProps
         pixelRatio: 2,
         backgroundColor: `hsl(${bgColor})`,
         filter: (node) => {
-          // Hide tooltips during export
-          if (node instanceof HTMLElement && node.classList.contains('recharts-tooltip-wrapper')) {
+          // Hide Lightweight Charts native tooltip overlays during export (can cause artifacts)
+          if (node instanceof HTMLElement && node.className && typeof node.className === 'string' && node.className.startsWith('tv-lightweight-charts')) {
             return false;
           }
           return true;

@@ -1,11 +1,5 @@
-import { useMemo, useId } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  AreaChart,
-  Area,
-  ReferenceLine,
-  ResponsiveContainer,
-} from 'recharts';
 import { useWidgetCalculation } from '@/hooks/use-widget-calculation';
 import { useWidgetChartCalculation } from '@/hooks/use-widget-chart-calculation';
 import { useBenchmarkSeries } from '@/api/use-benchmark-series';
@@ -18,6 +12,7 @@ import { formatPercentage } from '@/lib/formatters';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { Sparkline } from '@/components/shared/Sparkline';
 
 /** Downsample an array to at most `maxPoints` evenly spaced entries. */
 function downsample<T>(arr: T[], maxPoints: number): T[] {
@@ -33,6 +28,36 @@ function downsample<T>(arr: T[], maxPoints: number): T[] {
   return result;
 }
 
+function SparklineContainer({ data, color }: { data: { date: string; diff: number }[]; color: string }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    setWidth(el.clientWidth); // native-ok
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) setWidth(entry.contentRect.width); // native-ok
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const numericData = data.map((d) => d.diff);
+
+  return (
+    <div ref={containerRef} className="relative" style={{ height: 28, marginTop: 4 }}>
+      {width > 0 && (
+        <>
+          <Sparkline data={numericData} width={width} height={28} color={color} fillOpacity={0.1} />
+          <div className="absolute left-0 right-0 top-1/2 border-t border-dashed border-muted-foreground/30" />
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function WidgetBenchmarkComparison() {
   const { t } = useTranslation('dashboard');
   const { options, periodOverride } = useWidgetConfig();
@@ -42,9 +67,6 @@ export default function WidgetBenchmarkComparison() {
 
   const periodStart = periodOverride?.periodStart ?? urlStart;
   const periodEnd = periodOverride?.periodEnd ?? urlEnd;
-
-  const uid = useId();
-  const gradientId = `bmkComp-${uid.replace(/:/g, '')}`;
 
   const benchmarkSecurityId =
     typeof options.benchmarkSecurityId === 'string' && options.benchmarkSecurityId.length > 0
@@ -210,31 +232,7 @@ export default function WidgetBenchmarkComparison() {
 
       {/* Mini sparkline */}
       {sparklineData.length > 1 && (
-        <div style={{ height: 28, marginTop: 4 }}>
-          <ResponsiveContainer width="100%" height={28}>
-            <AreaChart
-              data={sparklineData}
-              margin={{ top: 2, right: 0, left: 0, bottom: 2 }}
-            >
-              <defs>
-                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={sparklineColor} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={sparklineColor} stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <ReferenceLine y={0} stroke={sparklineColor} strokeOpacity={0.4} strokeWidth={1} />
-              <Area
-                type="monotone"
-                dataKey="diff"
-                stroke={sparklineColor}
-                strokeWidth={1.5}
-                fill={`url(#${gradientId})`}
-                dot={false}
-                isAnimationActive={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        <SparklineContainer data={sparklineData} color={sparklineColor} />
       )}
     </div>
   );

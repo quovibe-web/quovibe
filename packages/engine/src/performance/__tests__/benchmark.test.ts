@@ -32,11 +32,10 @@ describe('computeBenchmarkSeries', () => {
     expectClose(series[3].cumulative.toNumber(), 0.05);
   });
 
-  it('handles the Daimler edge case — prices start mid-period', () => {
-    // Period: Jan 1-5, prices start Jan 3. Portfolio cum on Jan 2 = 1%
-    // Benchmark adopts portfolio cum (1%) at first price day, then compounds own returns
-    // Jan 4: 1.01 * (52/50) = 1.0504 → 5.04%
-    // Jan 5: 1.0504 * (51/52) ≈ 1.03019 → 3.02%
+  it('truncates series when prices start mid-period', () => {
+    // Period: Jan 1-5, prices start Jan 3. Series should start at Jan 3 with 0%.
+    // Jan 4: (52/50) - 1 = 4%
+    // Jan 5: (52/50)*(51/52) - 1 = (51/50) - 1 = 2%
     const input: BenchmarkInput = {
       prices: [
         { date: '2024-01-03', value: d(50) },
@@ -45,21 +44,14 @@ describe('computeBenchmarkSeries', () => {
       ],
       periodStart: '2024-01-01',
       periodEnd: '2024-01-05',
-      portfolioCumulativeSeries: [
-        { date: '2024-01-01', ttwrorCumulative: d(0) },
-        { date: '2024-01-02', ttwrorCumulative: d(0.01) },
-        { date: '2024-01-03', ttwrorCumulative: d(0.02) },
-        { date: '2024-01-04', ttwrorCumulative: d(0.03) },
-        { date: '2024-01-05', ttwrorCumulative: d(0.04) },
-      ],
     };
     const series = computeBenchmarkSeries(input);
-    expect(series).toHaveLength(5);
+    // Only 3 points: Jan 3, 4, 5 (Jan 1-2 are truncated)
+    expect(series).toHaveLength(3);
+    expect(series[0].date).toBe('2024-01-03');
     expectClose(series[0].cumulative.toNumber(), 0);
-    expectClose(series[1].cumulative.toNumber(), 0.01);
-    expectClose(series[2].cumulative.toNumber(), 0.01);
-    expectClose(series[3].cumulative.toNumber(), 0.0504);
-    expectClose(series[4].cumulative.toNumber(), 0.03019, 0.001);
+    expectClose(series[1].cumulative.toNumber(), 0.04);
+    expectClose(series[2].cumulative.toNumber(), 0.02);
   });
 
   it('carries prices forward across weekend gaps', () => {

@@ -65,6 +65,22 @@ export function getCssVarRgb(varName: string): [number, number, number] | null {
   return null;
 }
 
+/**
+ * Convert any CSS color string to #rrggbb hex.
+ * Uses a temporary canvas context for reliable browser-native conversion.
+ */
+export function colorToHex(color: string): string {
+  // Already hex
+  if (/^#[0-9a-fA-F]{6}$/.test(color)) return color;
+  if (typeof document === 'undefined') return color;
+
+  const ctx = document.createElement('canvas').getContext('2d');
+  if (!ctx) return color;
+  ctx.fillStyle = color;
+  // The browser normalises any CSS color to #rrggbb in fillStyle
+  return ctx.fillStyle;
+}
+
 /** Backward-compatible COLORS object — reads live CSS var values */
 export const COLORS = new Proxy(FALLBACK, {
   get(target, prop: string) {

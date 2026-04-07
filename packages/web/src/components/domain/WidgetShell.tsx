@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, createContext, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GripHorizontal, MoreHorizontal, Clock, X } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -22,6 +22,21 @@ import { useResolveSeriesLabel } from '@/api/use-performance';
 import { useWidgetKpiMeta } from '@/hooks/use-widget-kpi-meta';
 import { useDashboardConfig, useSaveDashboard } from '@/api/use-dashboard-config';
 import { formatPeriodShortLabel } from '@/lib/period-utils';
+
+/* ── Toolbar portal context ──────────────────────────────────────── */
+
+interface WidgetShellContextValue {
+  toolbarTarget: HTMLElement | null;
+}
+
+const WidgetShellContext = createContext<WidgetShellContextValue>({ toolbarTarget: null });
+
+/** Hook for child widgets to portal toolbar content into the WidgetShell header. */
+export function useWidgetToolbarPortal(): HTMLElement | null {
+  return useContext(WidgetShellContext).toolbarTarget;
+}
+
+/* ── Component ───────────────────────────────────────────────────── */
 
 interface WidgetShellProps {
   widgetId: string;
@@ -64,6 +79,7 @@ export function WidgetShell({
   const saveDashboard = useSaveDashboard();
   const [editValue, setEditValue] = useState(title);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [toolbarEl, setToolbarEl] = useState<HTMLElement | null>(null);
 
   // Resolve qualifier for LINE 1 (next to title)
   const { qualifier } = useWidgetKpiMeta(qualifierKey ?? null);
@@ -116,7 +132,7 @@ export function WidgetShell({
   return (
     <>
       <Card
-        className="group relative overflow-hidden h-full flex flex-col bg-card border border-border rounded-lg transition-colors duration-200"
+        className="group relative h-full flex flex-col bg-card border border-border rounded-lg transition-colors duration-200"
         style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: `${index * 60}ms` }}
       >
         {/* LINE 1 — Widget type label + drag handle + kebab menu */}
@@ -154,15 +170,39 @@ export function WidgetShell({
               >
                 {title}
               </span>
-              {qualifier && (
-                <span className="text-xs text-muted-foreground/60 font-normal normal-case tracking-normal">
-                  · {qualifier}
-                </span>
-              )}
+              {/* qualifier removed — title abbreviation (cum./ann.) already conveys the info */}
             </>
           )}
-          {/* Spacer pushes kebab to the right */}
+          {/* Data series label — inline with title */}
+          {dataSeriesLabel && (
+            <>
+              <span className="text-muted-foreground/40 text-xs select-none">•</span>
+              <span className="text-sm text-primary truncate">{dataSeriesLabel}</span>
+            </>
+          )}
+          {periodOverride && (
+            <span
+              className="inline-flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 rounded-full px-2 py-0.5 text-xs cursor-pointer hover:bg-primary/20 transition-colors shrink-0"
+              onClick={() => setPeriodDialogOpen(true)}
+            >
+              <Clock className="h-3 w-3" />
+              {formatPeriodShortLabel(periodOverride.definition, tSettings)}
+              <button
+                className="hover:text-destructive ml-0.5"
+                aria-label={t('periodOverride.clear')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  clearPeriodOverride();
+                }}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          {/* Spacer pushes toolbar + kebab to the right */}
           <div className="flex-1" />
+          {/* Toolbar portal target — chart widgets render their controls here via createPortal */}
+          <div ref={setToolbarEl} className="flex items-center gap-4" />
           {/* Kebab menu — always visible */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -198,31 +238,11 @@ export function WidgetShell({
             </DropdownMenuContent>
           </DropdownMenu>
         </CardHeader>
-        {/* LINE 2 — Data series label */}
-        <div className="pr-4 pl-10 pb-0 flex items-center gap-1.5">
-          <span className="text-sm text-primary">{dataSeriesLabel}</span>
-          {periodOverride && (
-            <span
-              className="inline-flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 rounded-full px-2 py-0.5 text-xs cursor-pointer hover:bg-primary/20 transition-colors"
-              onClick={() => setPeriodDialogOpen(true)}
-            >
-              <Clock className="h-3 w-3" />
-              {formatPeriodShortLabel(periodOverride.definition, tSettings)}
-              <button
-                className="hover:text-destructive ml-0.5"
-                aria-label={t('periodOverride.clear')}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  clearPeriodOverride();
-                }}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          )}
-        </div>
+        {/* LINE 2 removed — data series label merged into LINE 1 */}
         <CardContent className="flex-1 pt-0">
-          {children}
+          <WidgetShellContext.Provider value={{ toolbarTarget: toolbarEl }}>
+            {children}
+          </WidgetShellContext.Provider>
         </CardContent>
       </Card>
       <DataSeriesDialog

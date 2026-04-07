@@ -1,29 +1,30 @@
-import {
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ReferenceDot,
-  ResponsiveContainer,
-} from 'recharts';
-import { useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import {
+  LineSeries, AreaSeries, CandlestickSeries, BarSeries, BaselineSeries, HistogramSeries,
+  createSeriesMarkers,
+  type ISeriesApi, type SeriesType, type MouseEventParams, type ISeriesMarkersPluginApi,
+} from 'lightweight-charts';
 import { formatDate, formatQuote } from '@/lib/formatters';
 import { usePrivacy } from '@/context/privacy-context';
 import { useDisplayPreferences } from '@/hooks/use-display-preferences';
 import { useChartColors } from '@/hooks/use-chart-colors';
-import { useChartTheme } from '@/hooks/use-chart-theme';
-import { useChartTicks } from '@/hooks/use-chart-ticks';
-import { ChartTooltip } from '@/components/shared/ChartTooltip';
-import { ChartLegend } from '@/components/shared/ChartLegend';
+import { useLightweightChart } from '@/hooks/use-lightweight-chart';
+import { getSavedChartType, withAlpha, type ChartSeriesType } from '@/lib/chart-types';
+import { buildSeriesOptions } from '@/lib/chart-series-factory';
+import { ChartToolbar } from '@/components/shared/ChartToolbar';
+import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
 import { FadeIn } from '@/components/shared/FadeIn';
 import { cn } from '@/lib/utils';
 
 interface PricePoint {
   date: string;
   value: string;
+  open?: string | null;
+  high?: string | null;
+  low?: string | null;
+  volume?: number | null;
 }
 
 interface TransactionMarker {
@@ -37,133 +38,361 @@ interface PriceChartProps {
   prices: PricePoint[];
   transactions?: TransactionMarker[];
   isFetching?: boolean;
+  /** DOM element ID to portal the toolbar into (e.g. a slot in the card header) */
+  toolbarPortalId?: string;
 }
 
-export function PriceChart({ prices, transactions = [], isFetching }: PriceChartProps) {
+interface TooltipState {
+  visible: boolean;
+  x: number;
+  y: number;
+  items: TransactionMarker[];
+  date: string;
+}
+
+const CHART_ID = 'price-chart';
+
+export function PriceChart({ prices, transactions = [], isFetching, toolbarPortalId }: PriceChartProps) {
   const { t } = useTranslation('securities');
   const { isPrivate } = usePrivacy();
-  const { profit, loss, violet, palette } = useChartColors();
-  const { gridColor, gridOpacity, tickColor, cursorColor, cursorDasharray } = useChartTheme();
+  const { profit, loss, warning, palette } = useChartColors();
   const { quotesPrecision } = useDisplayPreferences();
+
+  // Determine OHLC availability from data
+  const hasOhlc = prices.length > 0 && prices.some(p => p.open != null);
+
+  const [chartType, setChartType] = useState<ChartSeriesType>(
+    () => {
+      if (hasOhlc) {
+        return getSavedChartType(CHART_ID) ?? 'candlestick';
+      }
+      return getSavedChartType(CHART_ID) ?? 'line';
+    },
+  );
+
+  // If saved type is OHLC but data doesn't support it, fall back
+  const effectiveType = (!hasOhlc && (chartType === 'candlestick' || chartType === 'bar'))
+    ? 'line'
+    : chartType;
+
+  const { containerRef, chartRef, ready } = useLightweightChart({
+    options: {
+      rightPriceScale: {
+        scaleMargins: { top: 0.1, bottom: 0.2 },
+      },
+      leftPriceScale: { visible: false },
+    },
+  });
+
+  const seriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
+  const markersPluginRef = useRef<ISeriesMarkersPluginApi<string> | null>(null);
+  const [seriesVersion, setSeriesVersion] = useState(0); // native-ok
+  const [tooltip, setTooltip] = useState<TooltipState>({
+    visible: false, x: 0, y: 0, items: [], date: '',
+  });
+
+  // Build lookup of transactions by date
+  const txByDate = useMemo(() => {
+    const map = new Map<string, TransactionMarker[]>();
+    for (const tx of transactions) {
+      const existing = map.get(tx.date) ?? [];
+      existing.push(tx);
+      map.set(tx.date, existing);
+    }
+    return map;
+  }, [transactions]);
+
+  // Sort prices by time ascending (required by Lightweight Charts)
+  const sortedPrices = useMemo(
+    () => [...prices].sort((a, b) => a.date.localeCompare(b.date)), // native-ok
+    [prices],
+  );
+
+  // Has volume data?
+  const hasVolume = sortedPrices.some(p => p.volume != null && p.volume > 0); // native-ok
 
   const fmtQuote = useCallback(
     (v: number) => formatQuote(v, { quotesPrecision }),
     [quotesPrecision],
   );
 
-  if (prices.length === 0) {
-    return <p className="text-muted-foreground text-sm">{t('priceChart.noData')}</p>;
-  }
+  // Hover handler for marker tooltip — finds nearest transaction within pixel proximity
+  useEffect(() => {
+    const chart = chartRef.current;
+    const series = seriesRef.current;
+    if (!chart || !series) return;
 
-  const txByDate = new Map<string, TransactionMarker[]>();
-  for (const tx of transactions) {
-    const existing = txByDate.get(tx.date) ?? [];
-    existing.push(tx);
-    txByDate.set(tx.date, existing);
-  }
+    // Pre-compute transaction dates as sorted array for proximity search
+    const txDates = [...txByDate.keys()].sort();
 
-  const data = prices.map((p) => {
-    const txs = txByDate.get(p.date);
-    return {
-      date: p.date,
-      value: parseFloat(p.value),
-      transactions: txs ?? null,
+    const handleMove = (param: MouseEventParams) => {
+      if (!param.time || !param.point) {
+        setTooltip(prev => prev.visible ? { ...prev, visible: false } : prev);
+        return;
+      }
+
+      // Normalize param.time to string
+      let dateStr: string;
+      if (typeof param.time === 'string') {
+        dateStr = param.time;
+      } else if (typeof param.time === 'object' && 'year' in param.time) {
+        const t = param.time as { year: number; month: number; day: number };
+        dateStr = `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`; // native-ok
+      } else {
+        dateStr = new Date((param.time as number) * 1000).toISOString().slice(0, 10); // native-ok
+      }
+
+      // Try exact match first
+      let matchDate = txByDate.has(dateStr) ? dateStr : null;
+
+      // If no exact match, find nearest transaction within 20px horizontally
+      if (!matchDate) {
+        const cursorX = param.point.x;
+        const THRESHOLD = 5; // native-ok
+        let bestDist = THRESHOLD + 1; // native-ok
+
+        for (const td of txDates) {
+          const coord = chart.timeScale().timeToCoordinate(td as unknown as Parameters<typeof chart.timeScale.prototype.timeToCoordinate>[0]);
+          if (coord === null) continue;
+          const dist = Math.abs(coord - cursorX); // native-ok
+          if (dist < bestDist) { // native-ok
+            bestDist = dist;
+            matchDate = td;
+          }
+        }
+      }
+
+      if (matchDate) {
+        const txs = txByDate.get(matchDate)!;
+        setTooltip({
+          visible: true,
+          x: param.point.x,
+          y: param.point.y,
+          items: txs,
+          date: matchDate,
+        });
+      } else {
+        setTooltip(prev => prev.visible ? { ...prev, visible: false } : prev);
+      }
     };
-  });
 
-  const chartDates = useMemo(() => data.map((d) => d.date), [data]);
-  const { ticks, tickFormatter } = useChartTicks(chartDates);
+    chart.subscribeCrosshairMove(handleMove);
+    return () => chart.unsubscribeCrosshairMove(handleMove);
+  }, [txByDate, ready]);
 
-  const priceByDate = new Map(data.map((d) => [d.date, d.value]));
+  // Create or recreate series when chart type, colors, or data change
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !ready || sortedPrices.length === 0) return; // native-ok
+
+    // Remove existing series (guard: chart may have been destroyed by hook cleanup)
+    try {
+      if (markersPluginRef.current) {
+        markersPluginRef.current.detach();
+        markersPluginRef.current = null;
+      }
+      if (volumeSeriesRef.current) {
+        chart.removeSeries(volumeSeriesRef.current);
+        volumeSeriesRef.current = null;
+      }
+      if (seriesRef.current) {
+        chart.removeSeries(seriesRef.current);
+        seriesRef.current = null;
+      }
+    } catch {
+      // Chart already destroyed during unmount — safe to ignore
+      seriesRef.current = null;
+      volumeSeriesRef.current = null;
+      markersPluginRef.current = null;
+      return;
+    }
+
+    let series: ISeriesApi<SeriesType>;
+
+    // Build data arrays
+    const singleValueData = sortedPrices.map(p => ({
+      time: p.date as string,
+      value: parseFloat(p.value),
+    }));
+
+    const ohlcData = sortedPrices.map(p => ({
+      time: p.date as string,
+      open: parseFloat(p.open ?? p.value),
+      high: parseFloat(p.high ?? p.value),
+      low: parseFloat(p.low ?? p.value),
+      close: parseFloat(p.value),
+    }));
+
+    // Create series based on type
+    const SERIES_MAP = {
+      Line: LineSeries, Area: AreaSeries, Candlestick: CandlestickSeries,
+      Bar: BarSeries, Baseline: BaselineSeries, Histogram: HistogramSeries,
+    } as const;
+
+    const { seriesType, options } = buildSeriesOptions(effectiveType, {
+      color: palette[0],
+      basePrice: singleValueData[0]?.value ?? 0,
+      profitColor: profit,
+      lossColor: loss,
+    });
+    const Constructor = SERIES_MAP[seriesType as keyof typeof SERIES_MAP] ?? LineSeries;
+    series = chart.addSeries(Constructor, options);
+
+    const isOhlcType = seriesType === 'Candlestick' || seriesType === 'Bar';
+    series.setData(isOhlcType ? ohlcData : singleValueData);
+
+    seriesRef.current = series;
+
+    // Add volume pane if data available
+    if (hasVolume) {
+      const volumeData = sortedPrices
+        .filter(p => p.volume != null)
+        .map(p => ({
+          time: p.date as string,
+          value: p.volume as number,
+          color: 'rgba(128, 128, 128, 0.3)',
+        }));
+
+      const volumeSeries = chart.addSeries(HistogramSeries, {
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'volume',
+        lastValueVisible: false,
+        priceLineVisible: false,
+      }, 1);
+
+      volumeSeries.priceScale().applyOptions({
+        scaleMargins: { top: 0.8, bottom: 0 },
+      });
+
+      volumeSeries.setData(volumeData);
+      volumeSeriesRef.current = volumeSeries;
+    }
+
+    // Add transaction markers
+    if (transactions.length > 0) { // native-ok
+      const priceDateSet = new Set(sortedPrices.map(p => p.date));
+      const markers = transactions
+        .filter(tx => priceDateSet.has(tx.date))
+        .map(tx => ({
+          time: tx.date as string,
+          position: tx.type === 'SELL' ? 'aboveBar' as const : 'belowBar' as const,
+          color: tx.type === 'BUY' ? profit
+            : tx.type === 'SELL' ? loss
+            : warning,
+          shape: tx.type === 'BUY' ? 'arrowUp' as const
+            : tx.type === 'SELL' ? 'arrowDown' as const
+            : 'square' as const,
+          text: tx.type.charAt(0),
+        }));
+
+      markers.sort((a, b) => (a.time as string).localeCompare(b.time as string));
+
+      if (markers.length > 0) { // native-ok
+        markersPluginRef.current = createSeriesMarkers(series, markers);
+      }
+    }
+
+    chart.timeScale().fitContent();
+    setSeriesVersion(v => v + 1); // native-ok
+
+  }, [effectiveType, profit, loss, warning, palette[0], prices, transactions, hasVolume, ready]);
 
   function markerColor(type: string) {
     if (type === 'BUY') return profit;
     if (type === 'SELL') return loss;
-    return violet;
+    return warning;
   }
+
+  const handleTypeChange = (type: ChartSeriesType) => {
+    setChartType(type);
+  };
+
+  // Build legend items
+  // Legend color matches the active chart type's primary color
+  const legendColor = effectiveType === 'baseline' ? profit
+    : effectiveType === 'candlestick' || effectiveType === 'bar' ? profit
+    : effectiveType === 'histogram' ? withAlpha(palette[0], 0.69)
+    : palette[0];
+
+  const legendItems: LegendSeriesItem[] = seriesVersion > 0 && seriesRef.current
+    ? [
+        {
+          id: 'price',
+          label: t('priceChart.price'),
+          color: legendColor,
+          series: seriesRef.current,
+          visible: true,
+          formatValue: fmtQuote,
+        },
+      ]
+    : [];
+
+  if (prices.length === 0) {
+    return <p className="text-muted-foreground text-sm">{t('priceChart.noData')}</p>;
+  }
+
+  const toolbarElement = (
+    <ChartToolbar
+      chartId={CHART_ID}
+      activeType={effectiveType}
+      hasOhlc={hasOhlc}
+      onTypeChange={handleTypeChange}
+    />
+  );
+
+  const portalTarget = toolbarPortalId ? document.getElementById(toolbarPortalId) : null;
 
   return (
     <FadeIn>
+      {portalTarget && createPortal(toolbarElement, portalTarget)}
+      <div className="flex items-center justify-between mb-1">
+        <ChartLegendOverlay
+          chart={chartRef.current}
+          items={legendItems}
+        />
+        {!portalTarget && toolbarElement}
+      </div>
       <div
-        className={cn(isFetching && 'opacity-60 transition-opacity duration-200')}
-        style={{ filter: isPrivate ? 'blur(8px) saturate(0)' : 'none', transition: 'filter 0.2s ease' }}
+        className={cn(
+          'relative',
+          isFetching && 'opacity-60 transition-opacity duration-200',
+        )}
+        style={{
+          height: 360,
+          filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
+          transition: 'filter 0.2s ease',
+        }}
       >
-        <ResponsiveContainer width="100%" height={280}>
-          <LineChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} strokeOpacity={gridOpacity} vertical={false} />
-            <XAxis
-              dataKey="date"
-              tick={{ fill: tickColor, fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              ticks={ticks}
-              tickFormatter={tickFormatter}
-            />
-            <YAxis
-              domain={['auto', 'auto']}
-              tick={{ fill: tickColor, fontSize: 11, style: { fontFeatureSettings: '"tnum"' } }}
-              tickLine={false}
-              axisLine={false}
-              tickMargin={4}
-              tickFormatter={fmtQuote}
-            />
-            <Tooltip
-              cursor={{ stroke: cursorColor, strokeDasharray: cursorDasharray }}
-              content={({ active, payload, label }) => {
-                if (!active || !payload?.length) return null;
-                const point = payload[0].payload as (typeof data)[number];
-                return (
-                  <ChartTooltip label={formatDate(label as string)}>
-                    <div>{t('priceChart.price')}: {fmtQuote(point.value)}</div>
-                    {point.transactions?.map((tx, i) => (
-                      <div key={i} style={{ color: markerColor(tx.type) }}>
-                        {tx.type === 'DIVIDEND' ? t('priceChart.div') : tx.type}
-                        {tx.amount != null && tx.currency
-                          ? `: ${fmtQuote(tx.amount)} ${tx.currency}`
-                          : ''}
-                      </div>
-                    ))}
-                  </ChartTooltip>
-                );
-              }}
-            />
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke={palette[0]}
-              strokeWidth={2}
-              dot={false}
-              activeDot={false}
-              animationDuration={800}
-              animationEasing="ease-out"
-            />
-            {transactions.map((tx, i) => {
-              const price = priceByDate.get(tx.date);
-              if (price == null) return null;
-              return (
-                <ReferenceDot
-                  key={i}
-                  x={tx.date}
-                  y={price}
-                  r={4}
-                  fill={markerColor(tx.type)}
-                  stroke="var(--color-foreground)"
-                  strokeWidth={1.5}
-                />
-              );
-            })}
-          </LineChart>
-        </ResponsiveContainer>
-        {transactions.length > 0 && (
-          <ChartLegend
-            items={[
-              { color: palette[0], label: t('priceChart.price'), type: 'line' },
-              { color: profit, label: t('priceChart.buy'), type: 'dot' },
-              { color: loss, label: t('priceChart.sell'), type: 'dot' },
-              { color: violet, label: t('priceChart.div'), type: 'dot' },
-            ]}
-          />
+        <div ref={containerRef} className="w-full h-full" />
+
+        {/* Marker click tooltip */}
+        {tooltip.visible && (
+          <div
+            className="absolute z-20 rounded-md border bg-popover px-3 py-2 text-sm shadow-md"
+            style={{
+              left: Math.min(tooltip.x, (containerRef.current?.clientWidth ?? 300) - 180),
+              top: Math.max(0, tooltip.y - 80),
+              minWidth: 140,
+              pointerEvents: 'none',
+            }}
+          >
+            <div className="font-medium text-foreground mb-1">
+              {formatDate(tooltip.date)}
+            </div>
+            {tooltip.items.map((tx, i) => (
+              <div key={i} className="flex items-center gap-1.5" style={{ color: markerColor(tx.type) }}>
+                <span className="font-medium">
+                  {tx.type === 'DIVIDEND' ? t('priceChart.div') : tx.type}
+                </span>
+                {tx.amount != null && tx.currency && (
+                  <span className="tabular-nums">
+                    {fmtQuote(tx.amount)} {tx.currency}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </FadeIn>
