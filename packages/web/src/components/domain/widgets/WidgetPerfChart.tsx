@@ -11,7 +11,7 @@ import { useLightweightChart } from '@/hooks/use-lightweight-chart';
 import { differenceInDays, parseISO } from 'date-fns';
 import { formatPercentage, formatCurrency, computeTtwrorPa } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
+import { getSavedChartType, withAlpha, type ChartSeriesType } from '@/lib/chart-types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
@@ -116,7 +116,7 @@ export default function WidgetPerfChart() {
         mvSeries = chart.addSeries(BaselineSeries, {
           baseValue: { type: 'price', price: 0 },
           topLineColor: profit,
-          topFillColor1: profit + '40',
+          topFillColor1: withAlpha(profit, 0.25),
           topFillColor2: 'transparent',
           bottomLineColor: profit,
           bottomFillColor1: 'transparent',
@@ -129,7 +129,7 @@ export default function WidgetPerfChart() {
         break;
       case 'histogram':
         mvSeries = chart.addSeries(HistogramSeries, {
-          color: profit + 'b0',
+          color: withAlpha(profit, 0.69),
           lastValueVisible: false,
           priceLineVisible: false,
           priceScaleId: 'right',
@@ -139,7 +139,7 @@ export default function WidgetPerfChart() {
       default:
         mvSeries = chart.addSeries(AreaSeries, {
           lineColor: profit,
-          topColor: profit + '40',
+          topColor: withAlpha(profit, 0.25),
           bottomColor: 'transparent',
           lineWidth: 2,
           lastValueVisible: false,

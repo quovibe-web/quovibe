@@ -10,7 +10,7 @@ import { usePrivacy } from '@/context/privacy-context';
 import { useDisplayPreferences } from '@/hooks/use-display-preferences';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { useLightweightChart } from '@/hooks/use-lightweight-chart';
-import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
+import { getSavedChartType, withAlpha, type ChartSeriesType } from '@/lib/chart-types';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
 import { FadeIn } from '@/components/shared/FadeIn';
@@ -204,7 +204,7 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
       case 'area':
         series = chart.addSeries(AreaSeries, {
           lineColor: palette[0],
-          topColor: palette[0] + '40',
+          topColor: withAlpha(palette[0], 0.25),
           bottomColor: 'transparent',
           lineWidth: 2,
           lastValueVisible: false,
@@ -231,7 +231,7 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
 
       case 'histogram':
         series = chart.addSeries(HistogramSeries, {
-          color: palette[0] + 'b0',
+          color: withAlpha(palette[0], 0.69),
           lastValueVisible: false,
           priceLineVisible: false,
         });

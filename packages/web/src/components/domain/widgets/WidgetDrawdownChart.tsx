@@ -10,7 +10,7 @@ import { useChartColors } from '@/hooks/use-chart-colors';
 import { useLightweightChart } from '@/hooks/use-lightweight-chart';
 import { formatPercentage } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
+import { getSavedChartType, withAlpha, type ChartSeriesType } from '@/lib/chart-types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
@@ -79,7 +79,7 @@ export default function WidgetDrawdownChart() {
         series = chart.addSeries(BaselineSeries, {
           baseValue: { type: 'price', price: 0 },
           topLineColor: danger,
-          topFillColor1: danger + '40',
+          topFillColor1: withAlpha(danger, 0.25),
           topFillColor2: 'transparent',
           bottomLineColor: danger,
           bottomFillColor1: 'transparent',
@@ -91,7 +91,7 @@ export default function WidgetDrawdownChart() {
         break;
       case 'histogram':
         series = chart.addSeries(HistogramSeries, {
-          color: danger + 'b0',
+          color: withAlpha(danger, 0.69),
           lastValueVisible: false,
           priceLineVisible: false,
         });
@@ -100,7 +100,7 @@ export default function WidgetDrawdownChart() {
       default:
         series = chart.addSeries(AreaSeries, {
           lineColor: danger,
-          topColor: danger + '40',
+          topColor: withAlpha(danger, 0.25),
           bottomColor: 'transparent',
           lineWidth: 2,
           lastValueVisible: false,

@@ -24,7 +24,7 @@ import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { useLightweightChart } from '@/hooks/use-lightweight-chart';
 import { getColor } from '@/lib/colors';
-import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
+import { getSavedChartType, withAlpha, type ChartSeriesType } from '@/lib/chart-types';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
 import { ChartSkeleton } from '@/components/shared/ChartSkeleton';
@@ -126,7 +126,7 @@ function PaymentBarChart({
       case 'area':
         series = chart.addSeries(AreaSeries, {
           lineColor: barColor,
-          topColor: barColor + '40',
+          topColor: withAlpha(barColor, 0.25),
           bottomColor: 'transparent',
           lineWidth: 2,
           lastValueVisible: false,

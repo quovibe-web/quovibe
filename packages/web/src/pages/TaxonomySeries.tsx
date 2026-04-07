@@ -22,7 +22,7 @@ import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { useLightweightChart } from '@/hooks/use-lightweight-chart';
 import { cn } from '@/lib/utils';
-import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
+import { getSavedChartType, withAlpha, type ChartSeriesType } from '@/lib/chart-types';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -165,7 +165,7 @@ export default function TaxonomySeries() {
       default:
         series = chart.addSeries(AreaSeries, {
           lineColor: sliceColor,
-          topColor: sliceColor + '40',
+          topColor: withAlpha(sliceColor, 0.25),
           bottomColor: 'transparent',
           lineWidth: 2,
           lastValueVisible: false,

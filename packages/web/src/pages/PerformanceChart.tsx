@@ -30,6 +30,7 @@ import { DataSeriesPickerDialog } from '@/components/domain/DataSeriesPickerDial
 import { cn } from '@/lib/utils';
 import { useChartConfig, useSaveChartConfig } from '@/api/use-chart-config';
 import { getColor } from '@/lib/colors';
+import { withAlpha } from '@/lib/chart-types';
 
 /** Map shared LineStyle string to lightweight-charts LineStyle enum */
 function toLwcLineStyle(style: LineStyle): LwcLineStyle {
@@ -73,7 +74,7 @@ export default function PerformanceChart() {
     if (cfg?.areaFill) {
       entry.series.applyOptions({
         lineColor: color,
-        topColor: color + '40',
+        topColor: withAlpha(color, 0.25),
         bottomColor: 'transparent',
       } as Record<string, unknown>);
     } else {
@@ -331,7 +332,7 @@ export default function PerformanceChart() {
     if (portfolioAreaFill) {
       portfolioSeries = chart.addSeries(AreaSeries, {
         lineColor: portfolioColor,
-        topColor: portfolioColor + '40',
+        topColor: withAlpha(portfolioColor, 0.25),
         bottomColor: 'transparent',
         lineWidth: 2,
         lineStyle: toLwcLineStyle(portfolioLineStyle),
@@ -384,7 +385,7 @@ export default function PerformanceChart() {
       if (rs.config.areaFill) {
         lwcSeries = chart.addSeries(AreaSeries, {
           lineColor: color,
-          topColor: color + '40',
+          topColor: withAlpha(color, 0.25),
           bottomColor: 'transparent',
           lineWidth: 2,
           lineStyle,
