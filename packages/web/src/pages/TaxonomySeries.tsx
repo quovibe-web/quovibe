@@ -188,7 +188,7 @@ export default function TaxonomySeries() {
     chart.timeScale().fitContent();
     seriesRef.current = series;
     setSeriesVersion((v) => v + 1); // native-ok — triggers re-render to refresh legendItems
-  }, [chartType, chartMode, sliceColor, chartData]);
+  }, [chartType, chartMode, sliceColor, chartData, ready]);
 
   // Format value for legend crosshair display
   const formatLegendValue = (v: number) =>

@@ -173,7 +173,7 @@ export default function WidgetPerfChart() {
     mvSeriesRef.current = mvSeries;
     ttwrorSeriesRef.current = ttwrorSeries;
     setSeriesVersion((v) => v + 1); // native-ok — triggers re-render to refresh legendItems
-  }, [chartType, profit, dividend, data, ttwrorMode]);
+  }, [chartType, profit, dividend, data, ttwrorMode, ready]);
 
   const ttwrorLabel = ttwrorMode === 'cumulative' ? t('chart.ttwror') : t('chart.ttwrorPa');
 

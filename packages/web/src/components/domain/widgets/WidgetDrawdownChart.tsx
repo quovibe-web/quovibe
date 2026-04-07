@@ -122,7 +122,7 @@ export default function WidgetDrawdownChart() {
     chart.timeScale().fitContent();
     seriesRef.current = series;
     setSeriesVersion((v) => v + 1); // native-ok — triggers re-render to refresh legendItems
-  }, [chartType, danger, data]);
+  }, [chartType, danger, data, ready]);
 
   // Build legend items — depends on seriesVersion so it re-derives after every series rebuild
   const legendItems: LegendSeriesItem[] = seriesVersion > 0 && seriesRef.current

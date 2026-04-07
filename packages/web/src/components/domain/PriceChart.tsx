@@ -307,7 +307,7 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
     chart.timeScale().fitContent();
     setSeriesVersion(v => v + 1); // native-ok
 
-  }, [effectiveType, profit, loss, violet, palette[0], prices, transactions, hasVolume]);
+  }, [effectiveType, profit, loss, violet, palette[0], prices, transactions, hasVolume, ready]);
 
   function markerColor(type: string) {
     if (type === 'BUY') return profit;
