@@ -11,7 +11,8 @@ import { useLightweightChart } from '@/hooks/use-lightweight-chart';
 import { differenceInDays, parseISO } from 'date-fns';
 import { formatPercentage, formatCurrency, computeTtwrorPa } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-import { getSavedChartType, withAlpha, type ChartSeriesType } from '@/lib/chart-types';
+import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
+import { buildSeriesOptions } from '@/lib/chart-series-factory';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
@@ -101,53 +102,19 @@ export default function WidgetPerfChart() {
     } catch { mvSeriesRef.current = null; ttwrorSeriesRef.current = null; return; }
 
     // Market Value series (right price scale) — type follows chartType
-    let mvSeries: ISeriesApi<SeriesType>;
-    switch (chartType) {
-      case 'line':
-        mvSeries = chart.addSeries(LineSeries, {
-          color: profit,
-          lineWidth: 2,
-          lastValueVisible: false,
-          priceLineVisible: false,
-          priceScaleId: 'right',
-        });
-        break;
-      case 'baseline':
-        mvSeries = chart.addSeries(BaselineSeries, {
-          baseValue: { type: 'price', price: 0 },
-          topLineColor: profit,
-          topFillColor1: withAlpha(profit, 0.25),
-          topFillColor2: 'transparent',
-          bottomLineColor: profit,
-          bottomFillColor1: 'transparent',
-          bottomFillColor2: 'transparent',
-          lineWidth: 2,
-          lastValueVisible: false,
-          priceLineVisible: false,
-          priceScaleId: 'right',
-        });
-        break;
-      case 'histogram':
-        mvSeries = chart.addSeries(HistogramSeries, {
-          color: withAlpha(profit, 0.69),
-          lastValueVisible: false,
-          priceLineVisible: false,
-          priceScaleId: 'right',
-        });
-        break;
-      case 'area':
-      default:
-        mvSeries = chart.addSeries(AreaSeries, {
-          lineColor: profit,
-          topColor: withAlpha(profit, 0.25),
-          bottomColor: 'transparent',
-          lineWidth: 2,
-          lastValueVisible: false,
-          priceLineVisible: false,
-          priceScaleId: 'right',
-        });
-        break;
-    }
+    const SERIES_MAP = {
+      Line: LineSeries, Area: AreaSeries, Baseline: BaselineSeries, Histogram: HistogramSeries,
+    } as const;
+
+    const { seriesType, options } = buildSeriesOptions(chartType, {
+      color: profit,
+      basePrice: 0,
+      profitColor: profit,
+      lossColor: profit,
+      priceScaleId: 'right',
+    });
+    const Constructor = SERIES_MAP[seriesType as keyof typeof SERIES_MAP] ?? LineSeries;
+    const mvSeries: ISeriesApi<SeriesType> = chart.addSeries(Constructor, options);
 
     // TTWROR series (left price scale) — always a line
     const ttwrorSeries = chart.addSeries(LineSeries, {

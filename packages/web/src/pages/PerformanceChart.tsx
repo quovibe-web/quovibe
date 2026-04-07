@@ -5,6 +5,7 @@ import { Settings } from 'lucide-react';
 import {
   LineSeries, AreaSeries,
   LineStyle as LwcLineStyle,
+  PriceScaleMode,
   type ISeriesApi, type SeriesType,
 } from 'lightweight-charts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { useChartConfig, useSaveChartConfig } from '@/api/use-chart-config';
 
 import { withAlpha } from '@/lib/chart-types';
+import { buildSeriesOptions } from '@/lib/chart-series-factory';
 
 /** Map shared LineStyle string to lightweight-charts LineStyle enum */
 function toLwcLineStyle(style: LineStyle): LwcLineStyle {
@@ -315,30 +317,15 @@ export default function PerformanceChart() {
       .map((p) => ({ time: p.date, value: p.ttwror }))
       .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
 
-    let portfolioSeries: ISeriesApi<SeriesType>;
-    if (portfolioAreaFill) {
-      portfolioSeries = chart.addSeries(AreaSeries, {
-        lineColor: portfolioColor,
-        topColor: withAlpha(portfolioColor, 0.25),
-        bottomColor: 'transparent',
-        lineWidth: 2,
-        lineStyle: toLwcLineStyle(portfolioLineStyle),
-        lastValueVisible: false,
-        priceLineVisible: false,
-        priceScaleId: 'right',
-        visible: portfolioVisible,
-      });
-    } else {
-      portfolioSeries = chart.addSeries(LineSeries, {
-        color: portfolioColor,
-        lineWidth: 2,
-        lineStyle: toLwcLineStyle(portfolioLineStyle),
-        lastValueVisible: false,
-        priceLineVisible: false,
-        priceScaleId: 'right',
-        visible: portfolioVisible,
-      });
-    }
+    const portfolioType = portfolioAreaFill ? 'area' as const : 'line' as const;
+    const { options: portfolioOptions } = buildSeriesOptions(portfolioType, {
+      color: portfolioColor,
+      lineStyle: toLwcLineStyle(portfolioLineStyle),
+      priceScaleId: 'right',
+      visible: portfolioVisible,
+    });
+    const PortfolioConstructor = portfolioAreaFill ? AreaSeries : LineSeries;
+    const portfolioSeries = chart.addSeries(PortfolioConstructor, portfolioOptions);
     portfolioSeries.setData(portfolioData);
     seriesMapRef.current.set('portfolio-default', {
       series: portfolioSeries,
@@ -367,37 +354,22 @@ export default function PerformanceChart() {
         })
         .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
 
-      let lwcSeries: ISeriesApi<SeriesType>;
-      if (rs.config.areaFill) {
-        lwcSeries = chart.addSeries(AreaSeries, {
-          lineColor: color,
-          topColor: withAlpha(color, 0.25),
-          bottomColor: 'transparent',
-          lineWidth: 2,
-          lineStyle,
-          lastValueVisible: false,
-          priceLineVisible: false,
-          priceScaleId: 'right',
-          visible: isVisible,
-        });
-      } else {
-        lwcSeries = chart.addSeries(LineSeries, {
-          color,
-          lineWidth: 2,
-          lineStyle,
-          lastValueVisible: false,
-          priceLineVisible: false,
-          priceScaleId: 'right',
-          visible: isVisible,
-        });
-      }
+      const rsType = rs.config.areaFill ? 'area' as const : 'line' as const;
+      const { options: rsOptions } = buildSeriesOptions(rsType, {
+        color,
+        lineStyle,
+        priceScaleId: 'right',
+        visible: isVisible,
+      });
+      const RsConstructor = rs.config.areaFill ? AreaSeries : LineSeries;
+      const lwcSeries = chart.addSeries(RsConstructor, rsOptions);
       lwcSeries.setData(seriesData);
       seriesMapRef.current.set(rs.config.id, { series: lwcSeries, visible: isVisible });
     }
 
     // Format right price scale as percentage (TTWROR values are fractions)
     chart.priceScale('right').applyOptions({
-      mode: 0,
+      mode: PriceScaleMode.Normal,
     });
     // Apply percentage formatter to the portfolio series (drives right scale labels)
     const portfolioEntry = seriesMapRef.current.get('portfolio-default');

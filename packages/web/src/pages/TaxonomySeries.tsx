@@ -22,7 +22,8 @@ import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { useLightweightChart } from '@/hooks/use-lightweight-chart';
 import { cn } from '@/lib/utils';
-import { getSavedChartType, withAlpha, type ChartSeriesType } from '@/lib/chart-types';
+import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
+import { buildSeriesOptions } from '@/lib/chart-series-factory';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -150,29 +151,11 @@ export default function TaxonomySeries() {
       }
     } catch { seriesRef.current = null; return; }
 
-    let series: ISeriesApi<SeriesType>;
+    const SERIES_MAP = { Line: LineSeries, Area: AreaSeries } as const;
 
-    switch (chartType) {
-      case 'line':
-        series = chart.addSeries(LineSeries, {
-          color: sliceColor,
-          lineWidth: 2,
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        break;
-      case 'area':
-      default:
-        series = chart.addSeries(AreaSeries, {
-          lineColor: sliceColor,
-          topColor: withAlpha(sliceColor, 0.25),
-          bottomColor: 'transparent',
-          lineWidth: 2,
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        break;
-    }
+    const { seriesType, options } = buildSeriesOptions(chartType, { color: sliceColor });
+    const Constructor = SERIES_MAP[seriesType as keyof typeof SERIES_MAP] ?? AreaSeries;
+    const series: ISeriesApi<SeriesType> = chart.addSeries(Constructor, options);
 
     // Format Y-axis: percentage for TTWROR mode, default for MV
     if (chartMode === 'ttwror') {

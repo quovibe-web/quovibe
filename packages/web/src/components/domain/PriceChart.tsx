@@ -12,6 +12,7 @@ import { useDisplayPreferences } from '@/hooks/use-display-preferences';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { useLightweightChart } from '@/hooks/use-lightweight-chart';
 import { getSavedChartType, withAlpha, type ChartSeriesType } from '@/lib/chart-types';
+import { buildSeriesOptions } from '@/lib/chart-series-factory';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
 import { FadeIn } from '@/components/shared/FadeIn';
@@ -224,71 +225,22 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
     }));
 
     // Create series based on type
-    switch (effectiveType) {
-      case 'candlestick':
-        series = chart.addSeries(CandlestickSeries, {
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        series.setData(ohlcData);
-        break;
+    const SERIES_MAP = {
+      Line: LineSeries, Area: AreaSeries, Candlestick: CandlestickSeries,
+      Bar: BarSeries, Baseline: BaselineSeries, Histogram: HistogramSeries,
+    } as const;
 
-      case 'bar':
-        series = chart.addSeries(BarSeries, {
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        series.setData(ohlcData);
-        break;
+    const { seriesType, options } = buildSeriesOptions(effectiveType, {
+      color: palette[0],
+      basePrice: singleValueData[0]?.value ?? 0,
+      profitColor: profit,
+      lossColor: loss,
+    });
+    const Constructor = SERIES_MAP[seriesType as keyof typeof SERIES_MAP] ?? LineSeries;
+    series = chart.addSeries(Constructor, options);
 
-      case 'area':
-        series = chart.addSeries(AreaSeries, {
-          lineColor: palette[0],
-          topColor: withAlpha(palette[0], 0.25),
-          bottomColor: 'transparent',
-          lineWidth: 2,
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        series.setData(singleValueData);
-        break;
-
-      case 'baseline':
-        series = chart.addSeries(BaselineSeries, {
-          baseValue: { type: 'price', price: singleValueData[0]?.value ?? 0 },
-          topLineColor: profit,
-          topFillColor1: withAlpha(profit, 0.19),
-          topFillColor2: 'transparent',
-          bottomLineColor: loss,
-          bottomFillColor1: 'transparent',
-          bottomFillColor2: withAlpha(loss, 0.19),
-          lineWidth: 2,
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        series.setData(singleValueData);
-        break;
-
-      case 'histogram':
-        series = chart.addSeries(HistogramSeries, {
-          color: withAlpha(palette[0], 0.69),
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        series.setData(singleValueData);
-        break;
-
-      case 'line':
-      default:
-        series = chart.addSeries(LineSeries, {
-          color: palette[0],
-          lineWidth: 2,
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        series.setData(singleValueData);
-        break;
-    }
+    const isOhlcType = seriesType === 'Candlestick' || seriesType === 'Bar';
+    series.setData(isOhlcType ? ohlcData : singleValueData);
 
     seriesRef.current = series;
 

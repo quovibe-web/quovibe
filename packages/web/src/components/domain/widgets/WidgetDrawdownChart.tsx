@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AreaSeries, LineSeries, BaselineSeries, HistogramSeries,
+  PriceScaleMode,
   type ISeriesApi, type SeriesType,
 } from 'lightweight-charts';
 import { useWidgetChartCalculation } from '@/hooks/use-widget-chart-calculation';
@@ -10,7 +11,8 @@ import { useChartColors } from '@/hooks/use-chart-colors';
 import { useLightweightChart } from '@/hooks/use-lightweight-chart';
 import { formatPercentage } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-import { getSavedChartType, withAlpha, type ChartSeriesType } from '@/lib/chart-types';
+import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
+import { buildSeriesOptions } from '@/lib/chart-series-factory';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
@@ -68,53 +70,16 @@ export default function WidgetDrawdownChart() {
       }
     } catch { seriesRef.current = null; return; }
 
-    let series: ISeriesApi<SeriesType>;
+    const SERIES_MAP = {
+      Line: LineSeries, Area: AreaSeries, Baseline: BaselineSeries, Histogram: HistogramSeries,
+    } as const;
 
-    switch (chartType) {
-      case 'line':
-        series = chart.addSeries(LineSeries, {
-          color: danger,
-          lineWidth: 2,
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        break;
-      case 'baseline':
-        series = chart.addSeries(BaselineSeries, {
-          baseValue: { type: 'price', price: 0 },
-          topLineColor: danger,
-          topFillColor1: withAlpha(danger, 0.25),
-          topFillColor2: 'transparent',
-          bottomLineColor: danger,
-          bottomFillColor1: 'transparent',
-          bottomFillColor2: 'transparent',
-          lineWidth: 2,
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        break;
-      case 'histogram':
-        series = chart.addSeries(HistogramSeries, {
-          color: withAlpha(danger, 0.69),
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        break;
-      case 'area':
-      default:
-        series = chart.addSeries(AreaSeries, {
-          lineColor: danger,
-          topColor: withAlpha(danger, 0.25),
-          bottomColor: 'transparent',
-          lineWidth: 2,
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        break;
-    }
+    const { seriesType, options } = buildSeriesOptions(chartType, { color: danger });
+    const Constructor = SERIES_MAP[seriesType as keyof typeof SERIES_MAP] ?? LineSeries;
+    const series: ISeriesApi<SeriesType> = chart.addSeries(Constructor, options);
 
     series.priceScale().applyOptions({
-      mode: 0,
+      mode: PriceScaleMode.Normal,
     });
     series.applyOptions({
       priceFormat: {
