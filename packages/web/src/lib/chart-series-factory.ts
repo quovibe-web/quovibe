@@ -22,7 +22,7 @@ interface BuildSeriesResult {
 }
 
 const COMMON_OPTIONS = {
-  lineWidth: 2,
+  lineWidth: 2.5,
   lastValueVisible: false,
   priceLineVisible: false,
 } as const;
@@ -60,7 +60,7 @@ export function buildSeriesOptions(
         seriesType: 'Area',
         options: {
           lineColor: color,
-          topColor: withAlpha(color, 0.25),
+          topColor: withAlpha(color, 0.35),
           bottomColor: 'transparent',
           ...COMMON_OPTIONS,
           ...extraOpts,
@@ -73,11 +73,11 @@ export function buildSeriesOptions(
         options: {
           baseValue: { type: 'price', price: input.basePrice ?? 0 },
           topLineColor: input.profitColor ?? color,
-          topFillColor1: withAlpha(input.profitColor ?? color, 0.19),
+          topFillColor1: withAlpha(input.profitColor ?? color, 0.25),
           topFillColor2: 'transparent',
           bottomLineColor: input.lossColor ?? color,
           bottomFillColor1: 'transparent',
-          bottomFillColor2: withAlpha(input.lossColor ?? color, 0.19),
+          bottomFillColor2: withAlpha(input.lossColor ?? color, 0.25),
           ...COMMON_OPTIONS,
           ...extraOpts,
         },
