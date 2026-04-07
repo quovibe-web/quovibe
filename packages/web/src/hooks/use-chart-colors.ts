@@ -12,20 +12,20 @@ export function useChartColors() {
     const isDark = resolvedTheme === 'dark';
 
     // Read semantic colors from CSS vars (theme-aware)
-    const profit   = getCssVar('--qv-success')  || (isDark ? '#34d399' : '#059669');
-    const loss     = getCssVar('--qv-danger')   || (isDark ? '#fb7185' : '#dc2626');
-    const warning  = getCssVar('--qv-warning')  || (isDark ? '#fbbf24' : '#b86e00');
+    const profit   = getCssVar('--qv-success')  || (isDark ? '#99d52a' : '#66800b');
+    const loss     = getCssVar('--qv-danger')   || (isDark ? '#d14d41' : '#af3029');
+    const warning  = getCssVar('--qv-warning')  || (isDark ? '#d0a215' : '#ad8301');
     const success  = profit;
     const danger   = loss;
-    const dividend = getCssVar('--color-chart-1') || (isDark ? 'hsl(220,33%,60%)' : 'hsl(220,28%,52%)');
-    const interest = getCssVar('--color-chart-5') || (isDark ? 'hsl(245,30%,64%)' : 'hsl(245,25%,56%)');
-    const cyan     = getCssVar('--color-primary') || (isDark ? 'hsl(225,30%,52%)' : 'hsl(225,32%,46%)');
+    const dividend = getCssVar('--color-chart-1') || '#4385BE';
+    const interest = getCssVar('--color-chart-5') || '#8B7EC8';
+    const cyan     = getCssVar('--color-primary') || 'hsl(225,25%,48%)';
     const violet   = interest;
 
     // Build palette from CSS vars
     const fallbacks = [
-      'hsl(220,28%,52%)', 'hsl(175,25%,48%)', 'hsl(35,30%,52%)', 'hsl(350,25%,52%)',
-      'hsl(245,25%,56%)', 'hsl(155,22%,48%)', 'hsl(25,30%,52%)', 'hsl(195,28%,48%)',
+      '#4385BE', '#3AA99F', '#DA702C', '#D14D41',
+      '#8B7EC8', '#879A39', '#D0A215', '#CE5D97',
     ];
     const palette = Array.from({ length: 8 }, (_, i) =>
       getCssVar(`--color-chart-${i + 1}`) || fallbacks[i],

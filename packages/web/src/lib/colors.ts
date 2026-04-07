@@ -7,14 +7,14 @@ function getCssVar(name: string): string {
 
 /** Static fallback colors (light theme values) */
 const FALLBACK = {
-  profit: '#059669',
-  loss: '#dc2626',
-  dividend: 'hsl(220, 45%, 55%)',
-  cyan: 'hsl(225, 32%, 46%)',
-  violet: 'hsl(245, 40%, 60%)',
-  success: '#059669',
-  danger: '#dc2626',
-  warning: '#b86e00',
+  profit: '#66800b',
+  loss: '#d14d41',
+  dividend: '#4385BE',
+  cyan: 'hsl(225, 25%, 48%)',
+  violet: '#8B7EC8',
+  success: '#66800b',
+  danger: '#af3029',
+  warning: '#ad8301',
 } as const;
 
 type ColorKey = keyof typeof FALLBACK;
