@@ -2,11 +2,11 @@ import { useWidgetCalculation } from '@/hooks/use-widget-calculation';
 import { useWidgetKpiMeta } from '@/hooks/use-widget-kpi-meta';
 import { useWidgetConfig } from '@/context/widget-config-context';
 import { usePrivacy } from '@/context/privacy-context';
-import { useCountUp } from '@/hooks/use-count-up';
 import { getColor } from '@/lib/colors';
-import { formatQuote } from '@/lib/formatters';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import NumberFlow from '@number-flow/react';
+import i18n from '@/i18n';
 
 export default function WidgetSharpeRatio() {
   const { data, isLoading, isError, error } = useWidgetCalculation();
@@ -17,7 +17,6 @@ export default function WidgetSharpeRatio() {
   const vol = data ? parseFloat(data.volatility) : 0;
   const riskFreeRate = typeof options.riskFreeRate === 'number' ? options.riskFreeRate : 0;
   const sharpe = irr !== null && vol > 0 ? (irr - riskFreeRate) / vol : null;
-  const animatedSharpe = useCountUp(sharpe ?? 0, 1200, !isPrivate && sharpe !== null);
 
   if (isLoading) {
     return (
@@ -52,7 +51,14 @@ export default function WidgetSharpeRatio() {
         className="text-2xl font-semibold tabular-nums"
         style={{ color }}
       >
-        {isPrivate ? '••••••' : sharpe !== null ? formatQuote(animatedSharpe) : '—'}
+        {isPrivate ? '••••••' : sharpe !== null ? (
+          <NumberFlow
+            className="muted-fraction"
+            value={sharpe}
+            locales={i18n.language}
+            format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}
+          />
+        ) : '—'}
       </span>
       <span className="text-xs text-muted-foreground mt-5">{periodLabel}</span>
     </div>
