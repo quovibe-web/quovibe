@@ -21,7 +21,7 @@ export function saveChartType(chartId: string, type: ChartSeriesType): void {
 }
 
 /**
- * Apply alpha to any CSS color string (hex, hsl, rgb).
+ * Apply alpha to any CSS color string (hex, hsl, rgb — both comma and space syntax).
  * Canvas doesn't support appending hex alpha to HSL strings.
  * @param color - Any valid CSS color
  * @param alpha - Opacity 0-1
@@ -35,22 +35,38 @@ export function withAlpha(color: string, alpha: number): string {
     const a = Math.round(alpha * 255).toString(16).padStart(2, '0'); // native-ok
     return `${hex}${a}`;
   }
-  // hsl(...) → hsla(..., alpha)
+
+  // Modern space-separated with slash alpha: hsl(225 15% 20% / 0.8) or rgb(255 0 0 / 0.8)
+  if (/^(hsl|rgb)\(.*\//.test(color)) {
+    return color.replace(/\/\s*[\d.]+\s*\)$/, `/ ${alpha})`);
+  }
+
+  // Modern space-separated without alpha: hsl(225 15% 20%) or rgb(255 0 0)
+  // Detect by checking for NO commas inside the parens
+  if (/^(hsl|rgb)\([^,]+\)$/.test(color)) {
+    return color.replace(')', ` / ${alpha})`);
+  }
+
+  // Legacy comma syntax: hsla(h, s, l, a) → replace alpha
+  if (color.startsWith('hsla(')) {
+    return color.replace(/,\s*[\d.]+\s*\)$/, `, ${alpha})`);
+  }
+
+  // Legacy comma syntax: hsl(h, s, l) → add alpha
   if (color.startsWith('hsl(')) {
     return color.replace('hsl(', 'hsla(').replace(')', `, ${alpha})`);
   }
-  // hsla(...) → replace existing alpha
-  if (color.startsWith('hsla(')) {
-    return color.replace(/,\s*[\d.]+\)$/, `, ${alpha})`);
+
+  // Legacy comma syntax: rgba(r, g, b, a) → replace alpha
+  if (color.startsWith('rgba(')) {
+    return color.replace(/,\s*[\d.]+\s*\)$/, `, ${alpha})`);
   }
-  // rgb(...) → rgba(..., alpha)
+
+  // Legacy comma syntax: rgb(r, g, b) → add alpha
   if (color.startsWith('rgb(')) {
     return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
   }
-  // rgba(...) → replace existing alpha
-  if (color.startsWith('rgba(')) {
-    return color.replace(/,\s*[\d.]+\)$/, `, ${alpha})`);
-  }
+
   // fallback: return as-is
   return color;
 }
