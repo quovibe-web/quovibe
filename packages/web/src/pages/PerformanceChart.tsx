@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { differenceInDays, parseISO } from 'date-fns';
 import { Settings } from 'lucide-react';
 import {
-  LineSeries, AreaSeries, HistogramSeries,
+  LineSeries, AreaSeries,
   LineStyle as LwcLineStyle,
   type ISeriesApi, type SeriesType,
 } from 'lightweight-charts';
@@ -13,8 +13,7 @@ import { usePerformanceChart, useReportingPeriod } from '@/api/use-performance';
 import { useChartSeries } from '@/api/use-chart-series';
 import { useSecurities } from '@/api/use-securities';
 import { formatPercentage, computeTtwrorPa } from '@/lib/formatters';
-import type { LineStyle, BarInterval } from '@quovibe/shared';
-import { usePeriodicReturns } from '@/api/use-periodic-returns';
+import type { LineStyle } from '@quovibe/shared';
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { useLightweightChart } from '@/hooks/use-lightweight-chart';
@@ -29,7 +28,7 @@ import { useAnalyticsContext } from '@/context/analytics-context';
 import { DataSeriesPickerDialog } from '@/components/domain/DataSeriesPickerDialog';
 import { cn } from '@/lib/utils';
 import { useChartConfig, useSaveChartConfig } from '@/api/use-chart-config';
-import { getColor } from '@/lib/colors';
+
 import { withAlpha } from '@/lib/chart-types';
 
 /** Map shared LineStyle string to lightweight-charts LineStyle enum */
@@ -166,15 +165,6 @@ export default function PerformanceChart() {
   const { series: chartSeries } = useChartSeries();
   const { data: securities } = useSecurities();
 
-  // Extract periodic_bars config from chart series
-  const periodicBarsConfig = useMemo(() => {
-    const cfg = chartSeries.find((rs) => rs.config.type === 'periodic_bars');
-    return cfg?.config ?? null;
-  }, [chartSeries]);
-
-  const barInterval: BarInterval | null = periodicBarsConfig?.barInterval ?? null;
-  const { data: periodicData } = usePeriodicReturns(barInterval);
-
   const { setActions, setSubtitle } = useAnalyticsContext();
 
   const [ttwrorMode, setTtwrorMode] = useState<'cumulative' | 'annualized'>('cumulative');
@@ -262,7 +252,6 @@ export default function PerformanceChart() {
     visible: boolean;
   }
   const seriesMapRef = useRef<Map<string, SeriesEntry>>(new Map());
-  const barSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
   const [legendTrigger, setLegendTrigger] = useState(0);
 
   // --- Build series name map for legend ---
@@ -306,14 +295,8 @@ export default function PerformanceChart() {
         chart.removeSeries(entry.series);
       }
       seriesMapRef.current.clear();
-
-      if (barSeriesRef.current) {
-        chart.removeSeries(barSeriesRef.current);
-        barSeriesRef.current = null;
-      }
     } catch {
       seriesMapRef.current.clear();
-      barSeriesRef.current = null;
       return;
     }
 
@@ -365,7 +348,6 @@ export default function PerformanceChart() {
     // --- Additional series (securities, benchmarks, accounts, additional portfolios) ---
     const sortedSeries = [...chartSeries]
       .filter((rs) => !(rs.config.type === 'portfolio' && rs.config.id === 'portfolio-default'))
-      .filter((rs) => rs.config.type !== 'periodic_bars')
       .filter((rs) => rs.data.length > 0) // native-ok
       .sort((a, b) => (a.config.order ?? 0) - (b.config.order ?? 0));
 
@@ -413,39 +395,6 @@ export default function PerformanceChart() {
       seriesMapRef.current.set(rs.config.id, { series: lwcSeries, visible: isVisible });
     }
 
-    // --- Periodic bars (histogram in pane 1) ---
-    if (periodicBarsConfig?.visible && periodicData && periodicData.length > 0) { // native-ok
-      const positiveColor = periodicBarsConfig.positiveColor ?? getColor('profit');
-      const negativeColor = periodicBarsConfig.negativeColor ?? getColor('loss');
-
-      const barData = periodicData
-        .map((pr) => ({
-          time: pr.date,
-          value: pr.value,
-          color: pr.value >= 0 ? positiveColor : negativeColor,
-        }))
-        .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
-
-      const barSeries = chart.addSeries(HistogramSeries, {
-        priceScaleId: 'bars',
-        lastValueVisible: false,
-        priceLineVisible: false,
-      }, 1);
-
-      barSeries.priceScale().applyOptions({
-        scaleMargins: { top: 0.1, bottom: 0.05 },
-      });
-
-      barSeries.setData(barData);
-      barSeriesRef.current = barSeries;
-
-      // Also track in seriesMap for the legend crosshair
-      seriesMapRef.current.set(periodicBarsConfig.id, {
-        series: barSeries,
-        visible: true,
-      });
-    }
-
     // Format right price scale as percentage (TTWROR values are fractions)
     chart.priceScale('right').applyOptions({
       mode: 0,
@@ -464,7 +413,7 @@ export default function PerformanceChart() {
     chart.timeScale().fitContent();
     // Legend re-derives via chartConfig/chartSeries/ready deps in useMemo — no setState needed here
 
-  }, [displayData, chartSeries, periodicData, periodicBarsConfig, ttwrorMode, periodStart, dividend, palette[0], ready]);
+  }, [displayData, chartSeries, ttwrorMode, periodStart, dividend, palette[0], ready]);
 
   // --- Build legend items for ExtendedChartLegendOverlay ---
 
@@ -495,7 +444,7 @@ export default function PerformanceChart() {
 
     // Additional series (sorted by order)
     const sortedConfigs = [...chartSeries]
-      .filter((rs) => rs.config.visible && (rs.data.length > 0 || rs.config.type === 'periodic_bars')) // native-ok
+      .filter((rs) => rs.config.visible && rs.data.length > 0) // native-ok
       .filter((rs) => !(rs.config.type === 'portfolio' && rs.config.id === 'portfolio-default'))
       .sort((a, b) => (a.config.order ?? 0) - (b.config.order ?? 0));
 
@@ -503,33 +452,18 @@ export default function PerformanceChart() {
       const entry = seriesMapRef.current.get(rs.config.id);
       if (!entry) continue;
 
-      if (rs.config.type === 'periodic_bars') {
-        const intervalKey = rs.config.barInterval ?? 'monthly';
-        const intervalLabel = t(`chart.interval${intervalKey.charAt(0).toUpperCase() + intervalKey.slice(1)}` as 'chart.intervalMonthly');
-        items.push({
-          id: rs.config.id,
-          label: `${intervalLabel} ${t('chart.performanceLabel')}`,
-          color: rs.config.positiveColor ?? getColor('profit'),
-          series: entry.series,
-          visible: entry.visible,
-          formatValue: (v: number) => formatPercentage(v),
-          lineStyle: 'solid',
-          areaFill: false,
-        });
-      } else {
-        const info = seriesNameMap.get(rs.config.id);
-        if (!info) continue;
-        items.push({
-          id: rs.config.id,
-          label: info.label,
-          color: info.color,
-          series: entry.series,
-          visible: entry.visible,
-          formatValue: (v: number) => formatPercentage(v),
-          lineStyle: rs.config.lineStyle ?? 'solid',
-          areaFill: rs.config.areaFill ?? false,
-        });
-      }
+      const info = seriesNameMap.get(rs.config.id);
+      if (!info) continue;
+      items.push({
+        id: rs.config.id,
+        label: info.label,
+        color: info.color,
+        series: entry.series,
+        visible: entry.visible,
+        formatValue: (v: number) => formatPercentage(v),
+        lineStyle: rs.config.lineStyle ?? 'solid',
+        areaFill: rs.config.areaFill ?? false,
+      });
     }
 
     return items;

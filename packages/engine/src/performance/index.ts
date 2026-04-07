@@ -11,8 +11,7 @@ export { annualizeReturn } from './annualize';
 export { simpleReturn } from './simple-return';
 export type { MonthlyReturnEntry, YearlyReturnEntry, MonthlyReturnsResult } from './monthly-returns';
 export { aggregateMonthlyReturns } from './monthly-returns';
-export type { PeriodicInterval, PeriodicReturnEntry } from './periodic-returns';
-export { aggregatePeriodicReturns } from './periodic-returns';
+
 export type { AbsolutePerformanceInput, AbsolutePerformanceResult } from './absolute-performance';
 export { computeAbsolutePerformance } from './absolute-performance';
 export type { MaxDrawdownInput, MaxDrawdownResult, DrawdownPoint, VolatilityInput, VolatilityResult } from './risk';

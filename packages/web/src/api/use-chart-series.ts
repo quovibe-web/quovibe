@@ -43,8 +43,6 @@ function buildQueryKey(
       return ['chart-series', 'benchmark', series.securityId, periodStart, periodEnd];
     case 'account':
       return ['chart-series', 'account', series.accountId, periodStart, periodEnd];
-    case 'periodic_bars':
-      return ['chart-series', 'periodic_bars', periodStart, periodEnd];
   }
 }
 
@@ -85,8 +83,6 @@ async function fetchSeriesData(
     }
     case 'account':
       // Deferred — return empty array
-      return [];
-    case 'periodic_bars':
       return [];
   }
 }

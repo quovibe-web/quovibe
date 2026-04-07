@@ -34,6 +34,8 @@ export function toLightweightTheme(theme: ChartTheme): DeepPartial<ChartOptions>
     timeScale: {
       borderColor: theme.gridColor,
       timeVisible: false,
+      fixLeftEdge: true,
+      fixRightEdge: true,
     },
     rightPriceScale: {
       borderColor: theme.gridColor,

@@ -29,7 +29,7 @@ import {
   getFees,
   getTaxes,
   aggregateMonthlyReturns,
-  aggregatePeriodicReturns,
+
   computeAbsolutePerformance,
   computeMaxDrawdown,
   computeVolatility,
@@ -2274,40 +2274,3 @@ export function getReturnsHeatmap(sqlite: BetterSqlite3.Database, scope?: CalcSc
   };
 }
 
-export interface PeriodicReturnsResponse {
-  interval: string;
-  returns: Array<{ date: string; return: string }>;
-}
-
-export function getPeriodicReturns(
-  sqlite: BetterSqlite3.Database,
-  period: { start: string; end: string },
-  interval: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly',
-): PeriodicReturnsResponse {
-  const data = fetchBatchData(sqlite, period);
-  const secResults = computeAllSecurities(data, period, CostMethod.FIFO, true);
-
-  const scopedTxs = data.allTxs;
-  const portfolioTotalDailyMV = buildPortfolioTotalDailyMV(secResults, scopedTxs, period, data.depositAccIds);
-
-  const periodDays = differenceInCalendarDays(parseISO(period.end), parseISO(period.start));
-  const portfolioCashflows: Cashflow[] = resolvePortfolioCashflows(scopedTxs);
-  const snapshots = buildDailySnapshotsWithCarry(portfolioCashflows, portfolioTotalDailyMV, period);
-
-  if (snapshots.length > 0) {
-    snapshots.unshift({
-      date: format(subDays(parseISO(snapshots[0].date), 1), 'yyyy-MM-dd'),
-      mve: new Decimal(0),
-      cfIn: new Decimal(0),
-      cfOut: new Decimal(0),
-    });
-  }
-
-  const ttwrorResult = computeTTWROR(snapshots, periodDays);
-  const entries = aggregatePeriodicReturns(ttwrorResult.dailyReturns, interval);
-
-  return {
-    interval,
-    returns: entries,
-  };
-}

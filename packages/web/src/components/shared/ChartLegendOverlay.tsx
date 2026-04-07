@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   DndContext,
@@ -33,6 +33,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { colorToHex } from '@/lib/colors';
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
 
@@ -144,6 +145,8 @@ interface ExtendedChartLegendOverlayProps {
 function LegendColorPicker({ currentColor, onSelect }: { currentColor: string; onSelect: (c: string) => void }) {
   const { t } = useTranslation('performance');
   const { palette } = useChartColors();
+  // Convert palette colors (may be HSL from CSS vars) to hex for schema compatibility
+  const hexPalette = useMemo(() => palette.map(colorToHex), [palette]);
   const [hex, setHex] = useState(currentColor.replace('#', ''));
 
   function applyHex() {
@@ -157,7 +160,7 @@ function LegendColorPicker({ currentColor, onSelect }: { currentColor: string; o
     <div className="p-3 w-[200px]">
       <div className="text-xs text-muted-foreground mb-2">{t('chart.presetColors')}</div>
       <div className="flex flex-wrap gap-1.5 mb-3">
-        {palette.map((c) => (
+        {hexPalette.map((c) => (
           <button
             key={c}
             className={cn(

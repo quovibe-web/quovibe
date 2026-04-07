@@ -22,7 +22,6 @@ export const dataSeriesTypeEnum = z.enum([
   'security',
   'account',
   'benchmark',
-  'periodic_bars',
 ]);
 
 export type DataSeriesType = z.infer<typeof dataSeriesTypeEnum>;
@@ -30,9 +29,6 @@ export type DataSeriesType = z.infer<typeof dataSeriesTypeEnum>;
 export const lineStyleEnum = z.enum(['solid', 'dashed', 'dotted']);
 
 export type LineStyle = z.infer<typeof lineStyleEnum>;
-
-export const barIntervalEnum = z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'yearly']);
-export type BarInterval = z.infer<typeof barIntervalEnum>;
 
 export const dataSeriesConfigSchema = z.object({
   id: z.string().min(1),
@@ -43,9 +39,6 @@ export const dataSeriesConfigSchema = z.object({
   visible: z.boolean(),
   lineStyle: lineStyleEnum,
   label: z.string().nullable().optional(),
-  barInterval: barIntervalEnum.optional(),
-  positiveColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
-  negativeColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
   areaFill: z.boolean().optional(),
   order: z.number().int().min(0).optional(),
 }).superRefine((val, ctx) => {
@@ -63,13 +56,6 @@ export const dataSeriesConfigSchema = z.object({
       path: ['accountId'],
     });
   }
-  if (val.type === 'periodic_bars' && !val.barInterval) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'barInterval is required for periodic_bars series',
-      path: ['barInterval'],
-    });
-  }
 });
 
 export type DataSeriesConfig = z.infer<typeof dataSeriesConfigSchema>;
@@ -77,15 +63,6 @@ export type DataSeriesConfig = z.infer<typeof dataSeriesConfigSchema>;
 export const chartConfigV2Schema = z.object({
   version: z.literal(2),
   series: z.array(dataSeriesConfigSchema).max(10).default([]),
-}).superRefine((val, ctx) => {
-  const barCount = val.series.filter((s) => s.type === 'periodic_bars').length;
-  if (barCount > 1) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'At most one periodic_bars series is allowed',
-      path: ['series'],
-    });
-  }
 });
 
 export type ChartConfigV2 = z.infer<typeof chartConfigV2Schema>;
