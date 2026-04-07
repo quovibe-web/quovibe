@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -92,16 +92,20 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
   });
 
   // Build lookup of transactions by date
-  const txByDate = new Map<string, TransactionMarker[]>();
-  for (const tx of transactions) {
-    const existing = txByDate.get(tx.date) ?? [];
-    existing.push(tx);
-    txByDate.set(tx.date, existing);
-  }
+  const txByDate = useMemo(() => {
+    const map = new Map<string, TransactionMarker[]>();
+    for (const tx of transactions) {
+      const existing = map.get(tx.date) ?? [];
+      existing.push(tx);
+      map.set(tx.date, existing);
+    }
+    return map;
+  }, [transactions]);
 
   // Sort prices by time ascending (required by Lightweight Charts)
-  const sortedPrices = [...prices].sort(
-    (a, b) => a.date.localeCompare(b.date), // native-ok
+  const sortedPrices = useMemo(
+    () => [...prices].sort((a, b) => a.date.localeCompare(b.date)), // native-ok
+    [prices],
   );
 
   // Has volume data?
@@ -174,7 +178,7 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
 
     chart.subscribeCrosshairMove(handleMove);
     return () => chart.unsubscribeCrosshairMove(handleMove);
-  }, [transactions, ready]);
+  }, [txByDate, ready]);
 
   // Create or recreate series when chart type, colors, or data change
   useEffect(() => {
