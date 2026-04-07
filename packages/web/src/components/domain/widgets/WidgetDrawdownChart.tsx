@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AreaSeries, LineSeries, BaselineSeries, HistogramSeries,
@@ -44,12 +44,16 @@ export default function WidgetDrawdownChart() {
 
   const { data, isLoading, isError, error, isFetching } = useWidgetChartCalculation();
 
-  const rawChartData = (data ?? [])
-    .map((p) => ({
-      time: p.date as string,
-      value: -parseFloat(p.drawdown),
-    }))
-    .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
+  const rawChartData = useMemo(
+    () =>
+      (data ?? [])
+        .map((p) => ({
+          time: p.date as string,
+          value: -parseFloat(p.drawdown),
+        }))
+        .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)), // native-ok
+    [data],
+  );
 
   // Create or recreate the series when chart type or colors change
   useEffect(() => {
