@@ -297,6 +297,10 @@ export default function PerformanceChart() {
     const chart = chartRef.current;
     if (!chart || !ready || displayData.length === 0) return; // native-ok
 
+    // Skip rebuild while any series data is still loading (prevents wiping existing series)
+    const anyLoading = chartSeries.some((rs) => rs.isLoading && rs.config.type !== 'periodic_bars');
+    if (anyLoading) return;
+
     // Remove all existing series (guard: chart may be destroyed during unmount)
     try {
       for (const [, entry] of seriesMapRef.current) {
