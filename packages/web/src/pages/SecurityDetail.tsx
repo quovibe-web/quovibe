@@ -241,7 +241,7 @@ export default function SecurityDetail() {
 
       {/* Performance card */}
       {perf && (
-        <Card style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: '120ms' }}>
+        <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '120ms' }}>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">{t('detail.performance')}</CardTitle>
           </CardHeader>
@@ -261,7 +261,7 @@ export default function SecurityDetail() {
         </Card>
       )}
 
-      <Card style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: '180ms' }}>
+      <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '180ms' }}>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-base">{t('detail.priceHistory')}</CardTitle>
           {allPrices.length > 0 && (
@@ -289,7 +289,7 @@ export default function SecurityDetail() {
         </CardContent>
       </Card>
 
-      <Card style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: '240ms' }}>
+      <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '240ms' }}>
         <CardHeader>
           <CardTitle className="text-base">{t('detail.transactions')}</CardTitle>
         </CardHeader>

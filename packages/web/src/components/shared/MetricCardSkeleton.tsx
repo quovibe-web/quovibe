@@ -10,8 +10,8 @@ export function MetricCardSkeleton({ index = 0 }: MetricCardSkeletonProps) {
     <Card
       className="relative overflow-hidden"
       style={{
-        animation: 'qv-stagger-in 0.5s ease-out both',
-        animationDelay: `${index * 60}ms`,
+        animation: 'qv-stagger-in 0.4s ease-out both',
+        animationDelay: `${index * 50}ms`,
       }}
     >
       <div className="absolute top-0 left-0 right-0 h-[3px] bg-secondary" />

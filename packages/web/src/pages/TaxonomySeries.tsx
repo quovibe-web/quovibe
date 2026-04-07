@@ -249,7 +249,7 @@ export default function TaxonomySeries() {
       {/* Chart + Metrics */}
       {selectedCategoryId && (
         <FadeIn>
-        <Card style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: '120ms' }}>
+        <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '120ms' }}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between gap-4">
               {/* Left: category name + headline metric */}

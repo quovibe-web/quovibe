@@ -133,7 +133,7 @@ export function WidgetShell({
     <>
       <Card
         className="group relative h-full flex flex-col bg-card border border-border rounded-lg transition-colors duration-200"
-        style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: `${index * 60}ms` }}
+        style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: `${index * 50}ms` }}
       >
         {/* LINE 1 — Widget type label + drag handle + kebab menu */}
         <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-0 pt-2.5 px-4">

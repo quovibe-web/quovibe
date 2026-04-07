@@ -444,7 +444,7 @@ export default function Investments() {
 
       {/* Allocation chart — global or per-account */}
       {chartMode !== 'off' && chartItems.length > 0 && (!accountFilterId ? !summaryLoading : !!filterHoldings) && (
-        <Card style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: '180ms' }}>
+        <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '180ms' }}>
           <CardContent className="pt-6">
             <TaxonomyChart
               items={chartItems}

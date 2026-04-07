@@ -442,7 +442,7 @@ export default function PerformanceChart() {
   }, [legendTrigger, chartConfig, chartSeries, seriesNameMap, ttwrorMode, t, dividend, ready]);
 
   return (
-    <Card style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: '120ms' }}>
+    <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '120ms' }}>
         <CardHeader>
           <CardTitle className="text-base">{t('chart.entirePortfolio')}</CardTitle>
         </CardHeader>

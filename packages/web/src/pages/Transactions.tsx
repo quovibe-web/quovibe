@@ -511,7 +511,7 @@ export default function Transactions() {
       <FadeIn>
       <div
         className={cn(isFetching && !isLoading && 'opacity-60 transition-opacity duration-200')}
-        style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: '120ms' }}
+        style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '120ms' }}
       >
         {!isLoading && transactions.length === 0 ? (
           <EmptyState

@@ -9,8 +9,8 @@ import { FadeIn } from '@/components/shared/FadeIn';
 import NumberFlow from '@number-flow/react';
 import i18n from '@/i18n';
 
-const CASH_COLOR = '#fbbf24';
-const INVESTED_COLOR = '#6366f1';
+const CASH_COLOR = '#D0A215';
+const INVESTED_COLOR = '#8B7EC8';
 
 function DonutChart({ ratio, isPrivate }: { ratio: number; isPrivate: boolean }) {
   const r = 32;
