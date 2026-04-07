@@ -123,7 +123,17 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
         return;
       }
 
-      const dateStr = param.time as string;
+      // param.time can be a string ('2024-01-15') or a BusinessDay object ({ year, month, day })
+      let dateStr: string;
+      if (typeof param.time === 'string') {
+        dateStr = param.time;
+      } else if (typeof param.time === 'object' && 'year' in param.time) {
+        const t = param.time as { year: number; month: number; day: number };
+        dateStr = `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`; // native-ok
+      } else {
+        // UTCTimestamp (number) — convert to ISO date
+        dateStr = new Date((param.time as number) * 1000).toISOString().slice(0, 10); // native-ok
+      }
       const txsAtDate = txByDate.get(dateStr);
 
       if (txsAtDate && txsAtDate.length > 0) { // native-ok
