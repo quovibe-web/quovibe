@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { differenceInDays, parseISO } from 'date-fns';
 import { Settings } from 'lucide-react';
 import {
-  LineSeries, AreaSeries,
+  LineSeries, AreaSeries, BaselineSeries,
   LineStyle as LwcLineStyle,
   PriceScaleMode,
   type ISeriesApi, type SeriesType,
@@ -47,7 +47,7 @@ export default function PerformanceChart() {
   const { periodStart, periodEnd } = useReportingPeriod();
   const { data: chart, isLoading, isFetching } = usePerformanceChart({ periodStart, periodEnd });
   const { isPrivate } = usePrivacy();
-  const { dividend, palette } = useChartColors();
+  const { dividend, palette, loss } = useChartColors();
 
   const [configOpen, setConfigOpen] = useState(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -317,14 +317,17 @@ export default function PerformanceChart() {
       .map((p) => ({ time: p.date, value: p.ttwror }))
       .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
 
-    const portfolioType = portfolioAreaFill ? 'area' as const : 'line' as const;
+    const portfolioType = portfolioAreaFill ? 'baseline' as const : 'line' as const;
     const { options: portfolioOptions } = buildSeriesOptions(portfolioType, {
       color: portfolioColor,
+      profitColor: portfolioColor,
+      lossColor: loss,
+      basePrice: 0,
       lineStyle: toLwcLineStyle(portfolioLineStyle),
       priceScaleId: 'right',
       visible: portfolioVisible,
     });
-    const PortfolioConstructor = portfolioAreaFill ? AreaSeries : LineSeries;
+    const PortfolioConstructor = portfolioAreaFill ? BaselineSeries : LineSeries;
     const portfolioSeries = chart.addSeries(PortfolioConstructor, portfolioOptions);
     portfolioSeries.setData(portfolioData);
     seriesMapRef.current.set('portfolio-default', {
@@ -354,14 +357,17 @@ export default function PerformanceChart() {
         })
         .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
 
-      const rsType = rs.config.areaFill ? 'area' as const : 'line' as const;
+      const rsType = rs.config.areaFill ? 'baseline' as const : 'line' as const;
       const { options: rsOptions } = buildSeriesOptions(rsType, {
         color,
+        profitColor: color,
+        lossColor: loss,
+        basePrice: 0,
         lineStyle,
         priceScaleId: 'right',
         visible: isVisible,
       });
-      const RsConstructor = rs.config.areaFill ? AreaSeries : LineSeries;
+      const RsConstructor = rs.config.areaFill ? BaselineSeries : LineSeries;
       const lwcSeries = chart.addSeries(RsConstructor, rsOptions);
       lwcSeries.setData(seriesData);
       seriesMapRef.current.set(rs.config.id, { series: lwcSeries, visible: isVisible });
@@ -385,7 +391,7 @@ export default function PerformanceChart() {
     chart.timeScale().fitContent();
     setLegendTrigger((v) => v + 1); // native-ok — seriesMapRef is a ref, must trigger re-render for legend
 
-  }, [displayData, chartSeries, ttwrorMode, periodStart, dividend, palette[0], ready]);
+  }, [displayData, chartSeries, ttwrorMode, periodStart, dividend, loss, palette[0], ready]);
 
   // --- Build legend items for ExtendedChartLegendOverlay ---
 
