@@ -10,7 +10,7 @@
   /* Legacy brand aliases removed — use --color-primary and --color-chart-* instead */
 
   /* ──────────────────────────────────────────────
-     Surfaces (light) — Cool institutional slate
+     Surfaces (light) — Warm Flexoki-inspired
      ────────────────────────────────────────────── */
   --qv-bg: #f2f0e5;
   --qv-surface: #fffcf0;
@@ -52,7 +52,7 @@
   --color-input: var(--qv-border);
   --color-ring: hsl(225 25% 48% / 0.35);
 
-  /* Chart palette — institutional tinted neutrals (8 colors) */
+  /* Chart palette — Flexoki accents (8 colors) */
   --color-chart-1: #4385BE;
   --color-chart-2: #3AA99F;
   --color-chart-3: #DA702C;
@@ -86,7 +86,7 @@
 }
 
 /* ──────────────────────────────────────────────
-   DARK MODE — Institutional zinc dark room
+   DARK MODE — Warm Flexoki dark
    ────────────────────────────────────────────── */
 html.dark {
   /* Legacy brand aliases removed — use --color-primary and --color-chart-* instead */
@@ -120,7 +120,7 @@ html.dark {
   --color-popover: var(--qv-surface);
   --color-ring: hsl(225 25% 52% / 0.35);
 
-  /* Chart palette — slightly brighter for dark backgrounds */
+  /* Chart palette — same Flexoki accents (work on both backgrounds) */
   --color-chart-1: #4385BE;
   --color-chart-2: #3AA99F;
   --color-chart-3: #DA702C;
