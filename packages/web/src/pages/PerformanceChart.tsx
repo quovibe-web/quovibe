@@ -248,7 +248,7 @@ export default function PerformanceChart() {
 
   // --- Lightweight Charts setup ---
 
-  const { containerRef, chartRef } = useLightweightChart({
+  const { containerRef, chartRef, ready } = useLightweightChart({
     options: {
       rightPriceScale: { visible: true },
       leftPriceScale: { visible: false },
@@ -294,7 +294,7 @@ export default function PerformanceChart() {
 
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart || displayData.length === 0) return; // native-ok
+    if (!chart || !ready || displayData.length === 0) return; // native-ok
 
     // Remove all existing series (guard: chart may be destroyed during unmount)
     try {

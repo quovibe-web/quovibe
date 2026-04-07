@@ -69,7 +69,7 @@ function PaymentBarChart({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
 
-  const { containerRef, chartRef } = useLightweightChart({
+  const { containerRef, chartRef, ready } = useLightweightChart({
     options: {
       rightPriceScale: {
         scaleMargins: { top: 0.1, bottom: 0.05 },
@@ -97,7 +97,7 @@ function PaymentBarChart({
   // Create / recreate series when chart type or color changes
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart) return;
+    if (!chart || !ready) return;
 
     try {
       if (seriesRef.current) {

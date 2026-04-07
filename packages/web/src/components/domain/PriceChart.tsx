@@ -71,7 +71,7 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
     ? 'line'
     : chartType;
 
-  const { containerRef, chartRef } = useLightweightChart({
+  const { containerRef, chartRef, ready } = useLightweightChart({
     options: {
       rightPriceScale: {
         scaleMargins: { top: 0.1, bottom: 0.2 },
@@ -143,7 +143,7 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
   // Create or recreate series when chart type, colors, or data change
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart || sortedPrices.length === 0) return; // native-ok
+    if (!chart || !ready || sortedPrices.length === 0) return; // native-ok
 
     // Remove existing series (guard: chart may have been destroyed by hook cleanup)
     try {

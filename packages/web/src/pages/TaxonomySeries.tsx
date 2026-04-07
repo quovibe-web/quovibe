@@ -112,7 +112,7 @@ export default function TaxonomySeries() {
 
   // ─── Lightweight Charts ────────────────────────────────────────────────────
 
-  const { containerRef, chartRef } = useLightweightChart({
+  const { containerRef, chartRef, ready } = useLightweightChart({
     options: {
       rightPriceScale: {
         scaleMargins: { top: 0.1, bottom: 0.1 },
@@ -140,7 +140,7 @@ export default function TaxonomySeries() {
   // Create or recreate the series when chart type, chart mode, color, or data changes
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart || !chartData.length) return;
+    if (!chart || !ready || !chartData.length) return;
 
     // Remove existing series (guard: chart may be destroyed during unmount)
     try {

@@ -11,6 +11,8 @@ interface UseLightweightChartOptions {
 interface UseLightweightChartReturn {
   containerRef: (node: HTMLDivElement | null) => void;
   chartRef: React.MutableRefObject<IChartApi | null>;
+  /** True once the chart has been created (container mounted in DOM). Use as effect dependency. */
+  ready: boolean;
 }
 
 export function useLightweightChart(
@@ -87,5 +89,5 @@ export function useLightweightChart(
     chartRef.current.applyOptions(themeOptions);
   }, [resolvedTheme, chartTheme, mounted]);
 
-  return { containerRef, chartRef };
+  return { containerRef, chartRef, ready: mounted };
 }

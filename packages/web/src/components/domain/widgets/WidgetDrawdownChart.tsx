@@ -28,7 +28,7 @@ export default function WidgetDrawdownChart() {
     () => getSavedChartType(CHART_ID) ?? 'area',
   );
 
-  const { containerRef, chartRef } = useLightweightChart({
+  const { containerRef, chartRef, ready } = useLightweightChart({
     options: {
       rightPriceScale: {
         scaleMargins: { top: 0.1, bottom: 0.1 },
@@ -54,7 +54,7 @@ export default function WidgetDrawdownChart() {
   // Create or recreate the series when chart type or colors change
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart || !rawChartData.length) return;
+    if (!chart || !ready || !rawChartData.length) return;
 
     // Remove existing series (guard: chart may be destroyed during unmount)
     try {

@@ -31,7 +31,7 @@ export default function WidgetPerfChart() {
     () => getSavedChartType(CHART_ID) ?? 'area',
   );
 
-  const { containerRef, chartRef } = useLightweightChart({
+  const { containerRef, chartRef, ready } = useLightweightChart({
     options: {
       rightPriceScale: { visible: true },
       leftPriceScale: { visible: true },
@@ -86,7 +86,7 @@ export default function WidgetPerfChart() {
   // TTWROR series is always a line — recreate when colors or data change.
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart || !mvData.length) return;
+    if (!chart || !ready || !mvData.length) return;
 
     // Remove existing series (guard: chart may be destroyed during unmount)
     try {
