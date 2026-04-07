@@ -293,8 +293,15 @@ export default function TaxonomySeries() {
                 </div>
               </div>
 
-              {/* Right: segmented toggle */}
-              <div className="flex items-center rounded-lg border border-border p-0.5 shrink-0">
+              {/* Right: chart type toolbar + segmented toggle */}
+              <div className="flex items-center gap-2 shrink-0">
+                <ChartToolbar
+                  chartId={CHART_ID}
+                  activeType={chartType}
+                  hasOhlc={false}
+                  onTypeChange={handleTypeChange}
+                />
+              <div className="flex items-center rounded-lg border border-border p-0.5">
                 <button
                   onClick={() => setChartMode('ttwror')}
                   className={cn(
@@ -318,6 +325,7 @@ export default function TaxonomySeries() {
                   {t('taxonomySeries.marketValue')}
                 </button>
               </div>
+              </div>
             </div>
           </CardHeader>
 
@@ -328,17 +336,11 @@ export default function TaxonomySeries() {
               </div>
             ) : (
               <>
-                {/* Chart */}
-                <div className="flex items-center justify-between mb-1">
+                {/* Legend */}
+                <div className="mb-1">
                   <ChartLegendOverlay
                     chart={chartRef.current}
                     items={legendItems}
-                  />
-                  <ChartToolbar
-                    chartId={CHART_ID}
-                    activeType={chartType}
-                    hasOhlc={false}
-                    onTypeChange={handleTypeChange}
                   />
                 </div>
                 <div
