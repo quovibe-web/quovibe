@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   DndContext,
@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Eye, EyeOff, GripVertical, X, Mountain } from 'lucide-react';
-import type { IChartApi, ISeriesApi, MouseEventParams, SeriesType } from 'lightweight-charts';
+import type { IChartApi, ISeriesApi, SeriesType } from 'lightweight-charts';
 import type { LineStyle } from '@quovibe/shared';
 import {
   ContextMenu,
@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 import { colorToHex } from '@/lib/colors';
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
+import { useCrosshairValues } from '@/hooks/use-crosshair-values';
 
 export interface LegendSeriesItem {
   id: string;
@@ -54,32 +55,8 @@ interface ChartLegendOverlayProps {
 }
 
 export function ChartLegendOverlay({ chart, items, onToggleVisibility, className }: ChartLegendOverlayProps) {
-  const [crosshairValues, setCrosshairValues] = useState<Map<string, string>>(new Map());
+  const crosshairValues = useCrosshairValues(chart, items);
   const { isPrivate } = usePrivacy();
-
-  const handleCrosshairMove = useCallback((param: MouseEventParams) => {
-    const values = new Map<string, string>();
-    if (param.time) {
-      for (const item of items) {
-        const data = param.seriesData.get(item.series);
-        if (data) {
-          const val = 'value' in data ? (data as { value: number }).value
-            : 'close' in data ? (data as { close: number }).close
-            : null;
-          if (val != null) {
-            values.set(item.id, item.formatValue ? item.formatValue(val) : val.toFixed(2));
-          }
-        }
-      }
-    }
-    setCrosshairValues(values);
-  }, [items]);
-
-  useEffect(() => {
-    if (!chart) return;
-    chart.subscribeCrosshairMove(handleCrosshairMove);
-    return () => chart.unsubscribeCrosshairMove(handleCrosshairMove);
-  }, [chart, handleCrosshairMove]);
 
   if (items.length === 0) return null;
 
@@ -458,33 +435,8 @@ export function ExtendedChartLegendOverlay({
   onIsolate,
   className,
 }: ExtendedChartLegendOverlayProps) {
-  const [crosshairValues, setCrosshairValues] = useState<Map<string, string>>(new Map());
+  const crosshairValues = useCrosshairValues(chart, items);
   const { isPrivate } = usePrivacy();
-
-  // Crosshair subscription (same pattern as base)
-  const handleCrosshairMove = useCallback((param: MouseEventParams) => {
-    const values = new Map<string, string>();
-    if (param.time) {
-      for (const item of items) {
-        const data = param.seriesData.get(item.series);
-        if (data) {
-          const val = 'value' in data ? (data as { value: number }).value
-            : 'close' in data ? (data as { close: number }).close
-            : null;
-          if (val != null) {
-            values.set(item.id, item.formatValue ? item.formatValue(val) : val.toFixed(2));
-          }
-        }
-      }
-    }
-    setCrosshairValues(values);
-  }, [items]);
-
-  useEffect(() => {
-    if (!chart) return;
-    chart.subscribeCrosshairMove(handleCrosshairMove);
-    return () => chart.unsubscribeCrosshairMove(handleCrosshairMove);
-  }, [chart, handleCrosshairMove]);
 
   // Drag-to-reorder
   const sensors = useSensors(
