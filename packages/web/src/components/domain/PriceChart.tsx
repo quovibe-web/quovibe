@@ -112,10 +112,14 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
     [quotesPrecision],
   );
 
-  // Hover handler for marker tooltip
+  // Hover handler for marker tooltip — finds nearest transaction within pixel proximity
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart) return;
+    const series = seriesRef.current;
+    if (!chart || !series) return;
+
+    // Pre-compute transaction dates as sorted array for proximity search
+    const txDates = [...txByDate.keys()].sort();
 
     const handleMove = (param: MouseEventParams) => {
       if (!param.time || !param.point) {
@@ -123,7 +127,7 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
         return;
       }
 
-      // param.time can be a string ('2024-01-15') or a BusinessDay object ({ year, month, day })
+      // Normalize param.time to string
       let dateStr: string;
       if (typeof param.time === 'string') {
         dateStr = param.time;
@@ -131,18 +135,37 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
         const t = param.time as { year: number; month: number; day: number };
         dateStr = `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`; // native-ok
       } else {
-        // UTCTimestamp (number) — convert to ISO date
         dateStr = new Date((param.time as number) * 1000).toISOString().slice(0, 10); // native-ok
       }
-      const txsAtDate = txByDate.get(dateStr);
 
-      if (txsAtDate && txsAtDate.length > 0) { // native-ok
+      // Try exact match first
+      let matchDate = txByDate.has(dateStr) ? dateStr : null;
+
+      // If no exact match, find nearest transaction within 20px horizontally
+      if (!matchDate) {
+        const cursorX = param.point.x;
+        const THRESHOLD = 20; // native-ok
+        let bestDist = THRESHOLD + 1; // native-ok
+
+        for (const td of txDates) {
+          const coord = chart.timeScale().timeToCoordinate(td as unknown as Parameters<typeof chart.timeScale.prototype.timeToCoordinate>[0]);
+          if (coord === null) continue;
+          const dist = Math.abs(coord - cursorX); // native-ok
+          if (dist < bestDist) { // native-ok
+            bestDist = dist;
+            matchDate = td;
+          }
+        }
+      }
+
+      if (matchDate) {
+        const txs = txByDate.get(matchDate)!;
         setTooltip({
           visible: true,
           x: param.point.x,
           y: param.point.y,
-          items: txsAtDate,
-          date: dateStr,
+          items: txs,
+          date: matchDate,
         });
       } else {
         setTooltip(prev => prev.visible ? { ...prev, visible: false } : prev);
@@ -151,7 +174,7 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
 
     chart.subscribeCrosshairMove(handleMove);
     return () => chart.unsubscribeCrosshairMove(handleMove);
-  }, [transactions, chartRef.current]);
+  }, [transactions, ready]);
 
   // Create or recreate series when chart type, colors, or data change
   useEffect(() => {
