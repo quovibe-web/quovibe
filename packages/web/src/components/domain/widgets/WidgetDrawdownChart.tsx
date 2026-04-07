@@ -142,7 +142,7 @@ export default function WidgetDrawdownChart() {
   }
 
   return (
-    <div className="relative" style={{ height: 300 }}>
+    <div className="relative" style={{ height: 280 }}>
       {isLoading && <Skeleton className="absolute inset-0 rounded-lg z-20" />}
       {!isLoading && !rawChartData.length && (
         <div className="flex items-center justify-center h-full text-sm text-muted-foreground">

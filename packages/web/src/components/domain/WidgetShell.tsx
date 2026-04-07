@@ -116,7 +116,7 @@ export function WidgetShell({
   return (
     <>
       <Card
-        className="group relative overflow-hidden h-full flex flex-col bg-card border border-border rounded-lg transition-colors duration-200"
+        className="group relative h-full flex flex-col bg-card border border-border rounded-lg transition-colors duration-200"
         style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: `${index * 60}ms` }}
       >
         {/* LINE 1 — Widget type label + drag handle + kebab menu */}

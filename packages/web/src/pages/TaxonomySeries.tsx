@@ -334,7 +334,7 @@ export default function TaxonomySeries() {
                 <div
                   className="relative"
                   style={{
-                    height: 340,
+                    height: 320,
                     filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
                     transition: 'filter 0.2s ease',
                   }}

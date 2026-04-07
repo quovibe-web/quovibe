@@ -354,7 +354,7 @@ export function PriceChart({ prices, transactions = [], isFetching }: PriceChart
           isFetching && 'opacity-60 transition-opacity duration-200',
         )}
         style={{
-          height: 300,
+          height: 280,
           filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
           transition: 'filter 0.2s ease',
         }}
