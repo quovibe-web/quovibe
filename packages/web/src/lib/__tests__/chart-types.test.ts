@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { withAlpha, getSavedChartType, type ChartSeriesType } from '../chart-types';
+import { withAlpha, getSavedChartType } from '../chart-types';
 
 describe('withAlpha', () => {
   // --- Existing formats (must still work) ---

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { createChart, type IChartApi, type DeepPartial, type ChartOptions } from 'lightweight-charts';
 import { useTheme } from '@/hooks/use-theme';
 import { useChartTheme, toLightweightTheme } from '@/hooks/use-chart-theme';
