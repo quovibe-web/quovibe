@@ -132,9 +132,7 @@ export default function PerformanceChart() {
       }
     }
 
-    // Force a re-render to update legend items
-    seriesVersionRef.current += 1; // native-ok
-    forceRender((v) => v + 1); // native-ok
+    // Legend items re-derive on next render (triggered by config save)
   }
 
   function handleRemoveSeries(id: string) {
@@ -263,8 +261,7 @@ export default function PerformanceChart() {
   }
   const seriesMapRef = useRef<Map<string, SeriesEntry>>(new Map());
   const barSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
-  const seriesVersionRef = useRef(0);
-  const [, forceRender] = useState(0);
+  const seriesBuiltRef = useRef(false);
 
   // --- Build series name map for legend ---
 
@@ -445,15 +442,14 @@ export default function PerformanceChart() {
     }
 
     chart.timeScale().fitContent();
-    seriesVersionRef.current += 1; // native-ok
-    forceRender((v) => v + 1); // native-ok
+    seriesBuiltRef.current = true;
 
   }, [displayData, chartSeries, periodicData, periodicBarsConfig, ttwrorMode, periodStart, dividend, palette[0], ready]);
 
   // --- Build legend items for ExtendedChartLegendOverlay ---
 
   const legendItems: ExtendedLegendSeriesItem[] = useMemo(() => {
-    if (seriesVersionRef.current === 0) return [];
+    if (!seriesBuiltRef.current) return [];
 
     const items: ExtendedLegendSeriesItem[] = [];
 
@@ -517,8 +513,7 @@ export default function PerformanceChart() {
     }
 
     return items;
-    // seriesVersionRef.current triggers re-derivation via forceRender
-  }, [chartConfig, chartSeries, seriesNameMap, ttwrorMode, t, dividend]);
+  }, [chartConfig, chartSeries, seriesNameMap, ttwrorMode, t, dividend, ready]);
 
   return (
     <Card style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: '120ms' }}>
