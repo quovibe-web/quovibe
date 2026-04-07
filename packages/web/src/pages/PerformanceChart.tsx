@@ -133,7 +133,9 @@ export default function PerformanceChart() {
       }
     }
 
-    // Legend items re-derive on next render (triggered by config save)
+    // Force legend re-derivation
+    seriesBuildCount.current += 1; // native-ok
+    setLegendTrigger(seriesBuildCount.current);
   }
 
   function handleRemoveSeries(id: string) {
@@ -262,7 +264,10 @@ export default function PerformanceChart() {
   }
   const seriesMapRef = useRef<Map<string, SeriesEntry>>(new Map());
   const barSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
-  const seriesBuiltRef = useRef(false);
+  // Counter incremented after each series rebuild — used as useMemo dep to re-derive legend items.
+  // This is a ref+state pair: ref tracks the value, forceUpdate triggers re-render.
+  const seriesBuildCount = useRef(0);
+  const [legendTrigger, setLegendTrigger] = useState(0);
 
   // --- Build series name map for legend ---
 
@@ -443,14 +448,16 @@ export default function PerformanceChart() {
     }
 
     chart.timeScale().fitContent();
-    seriesBuiltRef.current = true;
+    seriesBuildCount.current += 1; // native-ok
+    // Schedule legend re-derivation on next microtask to avoid setState-during-render
+    Promise.resolve().then(() => setLegendTrigger(seriesBuildCount.current));
 
   }, [displayData, chartSeries, periodicData, periodicBarsConfig, ttwrorMode, periodStart, dividend, palette[0], ready]);
 
   // --- Build legend items for ExtendedChartLegendOverlay ---
 
   const legendItems: ExtendedLegendSeriesItem[] = useMemo(() => {
-    if (!seriesBuiltRef.current) return [];
+    if (legendTrigger === 0) return [];
 
     const items: ExtendedLegendSeriesItem[] = [];
 
@@ -514,7 +521,7 @@ export default function PerformanceChart() {
     }
 
     return items;
-  }, [chartConfig, chartSeries, seriesNameMap, ttwrorMode, t, dividend, ready]);
+  }, [legendTrigger, chartConfig, chartSeries, seriesNameMap, ttwrorMode, t, dividend, ready]);
 
   return (
     <Card style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: '120ms' }}>
