@@ -3,6 +3,9 @@ import { createChart, type IChartApi, type DeepPartial, type ChartOptions } from
 import { useTheme } from '@/hooks/use-theme';
 import { useChartTheme, toLightweightTheme } from '@/hooks/use-chart-theme';
 
+/** Map chart instances to their ResizeObserver for cleanup — avoids mutating the library object */
+const chartResizeObservers = new WeakMap<IChartApi, ResizeObserver>();
+
 interface UseLightweightChartOptions {
   options?: DeepPartial<ChartOptions>;
   autoResize?: boolean;
@@ -60,7 +63,7 @@ export function useLightweightChart(
         });
         resizeObs.observe(container);
         // Store for cleanup
-        (chart as unknown as { _resizeObs: ResizeObserver })._resizeObs = resizeObs;
+        chartResizeObservers.set(chart, resizeObs);
       }
 
       setReady((v) => v + 1); // native-ok
@@ -71,10 +74,14 @@ export function useLightweightChart(
     if (tryCreate()) return;
 
     // Otherwise wait for DOM changes (container might appear after loading state resolves)
+    let retries = 0; // native-ok
+    const MAX_RETRIES = 50; // native-ok — 50 × 100ms = 5s
     const interval = setInterval(() => { // native-ok
       if (tryCreate()) {
         clearInterval(interval); // native-ok
         observer?.disconnect();
+      } else if (++retries >= MAX_RETRIES) { // native-ok
+        clearInterval(interval); // native-ok
       }
     }, 100); // native-ok
 
@@ -89,9 +96,9 @@ export function useLightweightChart(
   useEffect(() => {
     return () => {
       if (chartRef.current) {
-        const obs = (chartRef.current as unknown as { _resizeObs?: ResizeObserver })._resizeObs;
+        const obs = chartResizeObservers.get(chartRef.current);
         obs?.disconnect();
-        chartRef.current.remove();
+        try { chartRef.current.remove(); } catch { /* chart already destroyed (HMR) */ }
         chartRef.current = null;
       }
     };
