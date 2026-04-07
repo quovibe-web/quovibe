@@ -230,11 +230,11 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
         series = chart.addSeries(BaselineSeries, {
           baseValue: { type: 'price', price: singleValueData[0]?.value ?? 0 },
           topLineColor: profit,
-          topFillColor1: profit + '30',
+          topFillColor1: withAlpha(profit, 0.19),
           topFillColor2: 'transparent',
           bottomLineColor: loss,
           bottomFillColor1: 'transparent',
-          bottomFillColor2: loss + '30',
+          bottomFillColor2: withAlpha(loss, 0.19),
           lineWidth: 2,
           lastValueVisible: false,
           priceLineVisible: false,
@@ -330,12 +330,18 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
   };
 
   // Build legend items
+  // Legend color matches the active chart type's primary color
+  const legendColor = effectiveType === 'baseline' ? profit
+    : effectiveType === 'candlestick' || effectiveType === 'bar' ? profit
+    : effectiveType === 'histogram' ? withAlpha(palette[0], 0.69)
+    : palette[0];
+
   const legendItems: LegendSeriesItem[] = seriesVersion > 0 && seriesRef.current
     ? [
         {
           id: 'price',
           label: t('priceChart.price'),
-          color: palette[0],
+          color: legendColor,
           series: seriesRef.current,
           visible: true,
           formatValue: fmtQuote,
