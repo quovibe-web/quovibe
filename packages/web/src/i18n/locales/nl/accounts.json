@@ -124,5 +124,12 @@
   "viewMode": {
     "cards": "Kaarten",
     "summary": "Overzicht"
+  },
+  "logo": {
+    "brokerWebsite": "Makelaar website",
+    "brokerWebsitePlaceholder": "interactivebrokers.com",
+    "fetch": "Logo ophalen",
+    "fetching": "Ophalen…",
+    "fetchFailed": "Logo kon niet worden opgehaald"
   }
 }

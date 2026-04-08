@@ -126,5 +126,12 @@
   "viewMode": {
     "cards": "Karty",
     "summary": "Podsumowanie"
+  },
+  "logo": {
+    "brokerWebsite": "Strona brokera",
+    "brokerWebsitePlaceholder": "interactivebrokers.com",
+    "fetch": "Pobierz logo",
+    "fetching": "Pobieranie…",
+    "fetchFailed": "Nie można pobrać logo"
   }
 }

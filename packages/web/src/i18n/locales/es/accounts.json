@@ -124,5 +124,12 @@
   "viewMode": {
     "cards": "Tarjetas",
     "summary": "Resumen"
+  },
+  "logo": {
+    "brokerWebsite": "Sitio web del bróker",
+    "brokerWebsitePlaceholder": "interactivebrokers.com",
+    "fetch": "Obtener logo",
+    "fetching": "Obteniendo…",
+    "fetchFailed": "No se pudo obtener el logo"
   }
 }

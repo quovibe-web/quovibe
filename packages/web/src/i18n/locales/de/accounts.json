@@ -124,5 +124,12 @@
   "viewMode": {
     "cards": "Kacheln",
     "summary": "Übersicht"
+  },
+  "logo": {
+    "brokerWebsite": "Broker-Website",
+    "brokerWebsitePlaceholder": "interactivebrokers.com",
+    "fetch": "Logo abrufen",
+    "fetching": "Wird abgerufen…",
+    "fetchFailed": "Logo konnte nicht abgerufen werden"
   }
 }

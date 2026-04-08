@@ -124,5 +124,12 @@
   "viewMode": {
     "cards": "Cards",
     "summary": "Summary"
+  },
+  "logo": {
+    "brokerWebsite": "Broker website",
+    "brokerWebsitePlaceholder": "interactivebrokers.com",
+    "fetch": "Fetch logo",
+    "fetching": "Fetching…",
+    "fetchFailed": "Could not fetch logo"
   }
 }

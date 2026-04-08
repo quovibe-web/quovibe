@@ -124,5 +124,12 @@
   "viewMode": {
     "cards": "Schede",
     "summary": "Riepilogo"
+  },
+  "logo": {
+    "brokerWebsite": "Sito web del broker",
+    "brokerWebsitePlaceholder": "interactivebrokers.com",
+    "fetch": "Recupera logo",
+    "fetching": "Recupero…",
+    "fetchFailed": "Impossibile recuperare il logo"
   }
 }

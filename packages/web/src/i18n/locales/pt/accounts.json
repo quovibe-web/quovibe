@@ -124,5 +124,12 @@
   "viewMode": {
     "cards": "Cartões",
     "summary": "Resumo"
+  },
+  "logo": {
+    "brokerWebsite": "Website do corretor",
+    "brokerWebsitePlaceholder": "interactivebrokers.com",
+    "fetch": "Buscar logo",
+    "fetching": "Buscando…",
+    "fetchFailed": "Não foi possível buscar o logo"
   }
 }
