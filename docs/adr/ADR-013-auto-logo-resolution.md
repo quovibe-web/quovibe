@@ -22,9 +22,10 @@ Option 3: a single stateless resolver endpoint at `POST /api/logo/resolve`.
 
 **Resolution strategies (in priority order):**
 - CRYPTO: CoinGecko `/coins/list` → `/coins/{id}` → `image.large` URL → base64
-- EQUITY / ETF / BOND / FUND / COMMODITY / INDEX: Yahoo Finance `quoteSummary` with `assetProfile` module → extract `website` → strip to bare domain → Google Favicon `?sz=128`
+- ETF / FUND: Yahoo Finance `quoteSummary` with `['fundProfile', 'quoteType']` modules → `fundProfile.family` or `quoteType.shortName` prefix → static `FUND_FAMILY_DOMAINS` map (~22 providers) → issuer domain → Google Favicon `?sz=128`. Falls through to EQUITY path if fund family is not in the map.
+- EQUITY / BOND / COMMODITY / INDEX (and ETF/FUND fallthrough): Yahoo Finance `quoteSummary` with `assetProfile` module → extract `website` → strip to bare domain → Google Favicon `?sz=128`
 - Account (domain-only request): Google Favicon directly
-- Fallback (all ticker-based): `{ticker.toLowerCase()}.com` favicon
+- Fallback (all ticker-based): `{baseTicker.toLowerCase()}.com` favicon
 - Final: throw 404
 
 Each strategy has an 8-second timeout. No retries — fail fast.
