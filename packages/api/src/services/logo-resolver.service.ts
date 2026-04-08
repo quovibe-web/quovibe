@@ -34,10 +34,20 @@ function getYf() {
   return new YahooFinance();
 }
 
-async function resolveEquity(ticker: string): Promise<string> {
+async function resolveEquity(ticker: string, baseTicker: string): Promise<string> {
   const yf = getYf();
+  let website: string | undefined;
+
   const summary = await yf.quoteSummary(ticker, { modules: ['assetProfile'] });
-  const website = summary.assetProfile?.website;
+  website = summary.assetProfile?.website;
+
+  // Exchange-specific listings (e.g. RACE.MI) often have sparse assetProfile.
+  // Retry with the base ticker (no exchange suffix) to get the primary listing's data.
+  if (!website && baseTicker !== ticker) {
+    const baseSummary = await yf.quoteSummary(baseTicker, { modules: ['assetProfile'] });
+    website = baseSummary.assetProfile?.website;
+  }
+
   if (!website) throw new Error(`No website for ${ticker}`);
   return fetchByDomain(extractDomain(website));
 }
@@ -73,7 +83,7 @@ export async function resolveLogo(input: LogoResolveRequest): Promise<string> {
     if (instrumentType === 'CRYPTO') {
       return await resolveCrypto(ticker);
     }
-    return await resolveEquity(ticker);
+    return await resolveEquity(ticker, baseTicker);
   } catch {
     // Fallback: base ticker (exchange suffix stripped) + .com
     try {

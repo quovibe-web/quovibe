@@ -69,7 +69,20 @@ describe('resolveLogo', () => {
     );
   });
 
-  it('strips exchange suffix from fallback domain for exchange-suffixed tickers', async () => {
+  it('retries Yahoo Finance with base ticker when exchange-suffixed ticker has no website', async () => {
+    vi.spyOn(YahooFinance.prototype, 'quoteSummary')
+      .mockResolvedValueOnce({ assetProfile: { website: undefined } }) // RACE.MI — no website
+      .mockResolvedValueOnce({ assetProfile: { website: 'https://www.ferrari.com' } }); // RACE — has website
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
+    const result = await resolveLogo({ ticker: 'RACE.MI', instrumentType: 'EQUITY' });
+    expect(result).toMatch(/^data:image\/png;base64,/);
+    expect(fetch).toHaveBeenCalledWith(
+      'https://www.google.com/s2/favicons?domain=www.ferrari.com&sz=128',
+      expect.any(Object),
+    );
+  });
+
+  it('falls back to base-ticker.com favicon when both Yahoo calls return no website', async () => {
     vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({ assetProfile: { website: undefined } });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
     await resolveLogo({ ticker: 'RACE.MI', instrumentType: 'EQUITY' });
