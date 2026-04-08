@@ -9,9 +9,9 @@ export const logoResolveSchema = z
     domain: z.string().min(1).optional(),
   })
   .refine(
-    data => !!data.domain || (!!data.ticker && !!data.instrumentType),
+    data => !!data.domain || !!data.ticker,
     {
-      message: 'Either domain or (ticker + instrumentType) must be provided',
+      message: 'Either domain or ticker must be provided',
       path: ['ticker'],
     },
   );

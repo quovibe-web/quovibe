@@ -74,7 +74,7 @@ export async function resolveLogo(input: LogoResolveRequest): Promise<string> {
     return fetchByDomain(input.domain);
   }
 
-  const { ticker, instrumentType } = input as { ticker: string; instrumentType: string };
+  const { ticker, instrumentType } = input as { ticker: string; instrumentType?: string };
 
   // Strip exchange suffix (e.g. RACE.MI → race, SWDA.MI → swda) for fallback domain
   const baseTicker = ticker.replace(/\.[A-Z0-9]+$/i, '');
@@ -83,6 +83,8 @@ export async function resolveLogo(input: LogoResolveRequest): Promise<string> {
     if (instrumentType === 'CRYPTO') {
       return await resolveCrypto(ticker);
     }
+    // For all other types (EQUITY, ETF, FUND, etc.) or when instrumentType is unknown,
+    // try Yahoo Finance assetProfile → company website → Google Favicon
     return await resolveEquity(ticker, baseTicker);
   } catch {
     // Fallback: base ticker (exchange suffix stripped) + .com

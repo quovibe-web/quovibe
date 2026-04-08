@@ -157,11 +157,11 @@ export function AttributesSection({ attributes, onChange, ticker, instrumentType
     onChange(attributes.filter(a => a.typeId !== typeId));
   }
 
-  const onFetchLogo = ticker && instrumentType
+  const onFetchLogo = ticker
     ? async () => {
         const { logoUrl } = await resolveLogoMutation.mutateAsync({
           ticker,
-          instrumentType: instrumentType as InstrumentType,
+          ...(instrumentType ? { instrumentType: instrumentType as InstrumentType } : {}),
         });
         updateValue('logo', logoUrl);
       }

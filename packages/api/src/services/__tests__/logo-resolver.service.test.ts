@@ -98,6 +98,19 @@ describe('resolveLogo', () => {
     await expect(resolveLogo({ ticker: 'XXXX', instrumentType: 'EQUITY' })).rejects.toThrow('Logo not found');
   });
 
+  it('resolves without instrumentType (uses Yahoo Finance path)', async () => {
+    vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
+      assetProfile: { website: 'https://www.ferrari.com' },
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
+    const result = await resolveLogo({ ticker: 'RACE' });
+    expect(result).toMatch(/^data:image\/png;base64,/);
+    expect(fetch).toHaveBeenCalledWith(
+      'https://www.google.com/s2/favicons?domain=www.ferrari.com&sz=128',
+      expect.any(Object),
+    );
+  });
+
   it('domain overrides ticker+instrumentType when both provided', async () => {
     const spy = vi.spyOn(YahooFinance.prototype, 'quoteSummary');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
