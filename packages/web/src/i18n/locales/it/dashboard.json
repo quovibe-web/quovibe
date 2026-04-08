@@ -169,5 +169,21 @@
     "all": "TUTTO",
     "clear": "Rimuovi periodo personalizzato"
   },
-  "resetWidgetsToGlobal": "Ripristina widget al periodo globale"
+  "resetWidgetsToGlobal": "Ripristina widget al periodo globale",
+  "templates": {
+    "getStarted": "Inizia con un modello",
+    "getStartedDesc": "Scegli un modello per popolare la dashboard o inizia da zero.",
+    "startFromScratch": "Inizia da zero",
+    "startFromTemplate": "Inizia da un modello (opzionale)",
+    "widgetCount_one": "{{count}} widget",
+    "widgetCount_other": "{{count}} widget",
+    "performance": "Performance",
+    "performanceDesc": "Valore di mercato, TTWROR, TIR, Delta e un grafico delle performance.",
+    "risk": "Rischio",
+    "riskDesc": "Drawdown, volatilità, semivarianza, indice di Sharpe e grafico del drawdown.",
+    "income": "Reddito e Valore",
+    "incomeDesc": "Capitale investito, valore di mercato, delta, variazione assoluta e heatmap dei rendimenti.",
+    "complete": "Panoramica Completa",
+    "completeDesc": "Tutte le metriche principali — performance, rischio, grafico e movers in un'unica dashboard."
+  }
 }

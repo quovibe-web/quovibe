@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToHorizontalAxis } from '@dnd-kit/modifiers';
-import { Plus, LayoutDashboard, GripVertical, MoreHorizontal } from 'lucide-react';
+import { Plus, GripVertical, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,6 +51,7 @@ import { cn } from '@/lib/utils';
 import { useDashboardConfig, useSaveDashboard } from '@/api/use-dashboard-config';
 import { nanoid } from 'nanoid';
 import { getWidgetDef, CHART_WIDGET_TYPES } from '@/lib/widget-registry';
+import { DASHBOARD_TEMPLATES, applyTemplate, type DashboardTemplate } from '@/lib/dashboard-templates';
 import { useAccounts } from '@/api/use-accounts';
 import { useTaxonomies } from '@/api/use-taxonomies';
 import { useSecurities } from '@/api/use-securities';
@@ -317,6 +318,7 @@ export default function Dashboard() {
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [catalogOpen, setCatalogOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   const widgetSensors = useSensors(useSensor(PointerSensor));
   const tabSensors = useSensors(
@@ -356,10 +358,15 @@ export default function Dashboard() {
     const name = newDashName.trim();
     if (!name) return;
     const id = crypto.randomUUID();
-    const newDash: Dashboard = { id, name, widgets: [] };
+    const template = selectedTemplate
+      ? DASHBOARD_TEMPLATES.find((t) => t.id === selectedTemplate)
+      : null;
+    const widgets = template ? applyTemplate(template) : [];
+    const newDash: Dashboard = { id, name, widgets };
     saveDashboards([...dashboards, newDash], id);
     setNewDashOpen(false);
     setNewDashName('');
+    setSelectedTemplate(null);
   }
 
   function duplicateDashboard(src: Dashboard) {
@@ -421,6 +428,13 @@ export default function Dashboard() {
         ...w,
         config: { ...w.config, periodOverride: null },
       })),
+    }));
+  }
+
+  function applyTemplateToCurrent(template: DashboardTemplate) {
+    updateActiveDashboard((d) => ({
+      ...d,
+      widgets: applyTemplate(template),
     }));
   }
 
@@ -572,13 +586,37 @@ export default function Dashboard() {
 
       {/* ── Widget zones ── */}
       {activeDash.widgets.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-4">
-          <LayoutDashboard className="h-12 w-12 opacity-30" />
-          <p className="text-sm">{t('emptyDashboard')}</p>
-          <Button variant="outline" size="sm" onClick={() => setCatalogOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            {t('addWidget')}
-          </Button>
+        <div className="flex flex-col items-center py-16 gap-6">
+          <div className="text-center max-w-md">
+            <h2 className="text-lg font-semibold text-foreground">{t('templates.getStarted')}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{t('templates.getStartedDesc')}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 max-w-lg w-full">
+            {DASHBOARD_TEMPLATES.map((tmpl, i) => {
+              const Icon = tmpl.icon;
+              return (
+                <button
+                  key={tmpl.id}
+                  onClick={() => applyTemplateToCurrent(tmpl)}
+                  className="bg-card border border-border rounded-lg p-4 text-left hover:border-primary/50 hover:shadow-sm cursor-pointer transition-all"
+                  style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: `${i * 50}ms` }}
+                >
+                  <Icon className="h-5 w-5 text-primary mb-2" />
+                  <div className="text-sm font-medium text-foreground">{t(tmpl.i18nKey)}</div>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{t(tmpl.descriptionKey)}</p>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    {t('templates.widgetCount', { count: tmpl.widgetTypes.length })}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <button
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setCatalogOpen(true)}
+          >
+            {t('templates.startFromScratch')}
+          </button>
         </div>
       ) : (
         <DndContext sensors={widgetSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -625,7 +663,7 @@ export default function Dashboard() {
       )}
 
       {/* ── New dashboard dialog ── */}
-      <Dialog open={newDashOpen} onOpenChange={setNewDashOpen}>
+      <Dialog open={newDashOpen} onOpenChange={(open) => { setNewDashOpen(open); if (!open) setSelectedTemplate(null); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>{t('addDashboard')}</DialogTitle>
@@ -633,16 +671,47 @@ export default function Dashboard() {
               {t('addDashboardDescription')}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-1">
-            <Label htmlFor="new-dashboard-name">{t('dashboardName')}</Label>
-            <Input
-              id="new-dashboard-name"
-              value={newDashName}
-              onChange={(e) => setNewDashName(e.target.value)}
-              placeholder={t('dashboardName')}
-              onKeyDown={(e) => { if (e.key === 'Enter') createDashboard(); }}
-              autoFocus
-            />
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="new-dashboard-name">{t('dashboardName')}</Label>
+              <Input
+                id="new-dashboard-name"
+                value={newDashName}
+                onChange={(e) => setNewDashName(e.target.value)}
+                placeholder={t('dashboardName')}
+                onKeyDown={(e) => { if (e.key === 'Enter') createDashboard(); }}
+                autoFocus
+              />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">{t('templates.startFromTemplate')}</p>
+              <div className="space-y-1.5">
+                {DASHBOARD_TEMPLATES.map((tmpl) => {
+                  const Icon = tmpl.icon;
+                  const isSelected = selectedTemplate === tmpl.id;
+                  return (
+                    <button
+                      key={tmpl.id}
+                      onClick={() => setSelectedTemplate(isSelected ? null : tmpl.id)}
+                      className={cn(
+                        'w-full flex items-center gap-3 p-2.5 rounded-lg border text-left transition-all',
+                        isSelected
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-border-strong',
+                      )}
+                    >
+                      <Icon className="h-4 w-4 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium">{t(tmpl.i18nKey)}</div>
+                      </div>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {t('templates.widgetCount', { count: tmpl.widgetTypes.length })}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewDashOpen(false)}>

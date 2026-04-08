@@ -171,5 +171,23 @@
     "all": "WSZYSTKO",
     "clear": "Usuń okres niestandardowy"
   },
-  "resetWidgetsToGlobal": "Przywróć widgety do okresu globalnego"
+  "resetWidgetsToGlobal": "Przywróć widgety do okresu globalnego",
+  "templates": {
+    "getStarted": "Zacznij od szablonu",
+    "getStartedDesc": "Wybierz szablon, aby wypełnić pulpit, lub zacznij od zera.",
+    "startFromScratch": "Zacznij od zera",
+    "startFromTemplate": "Użyj szablonu (opcjonalnie)",
+    "widgetCount_one": "{{count}} widget",
+    "widgetCount_few": "{{count}} widgety",
+    "widgetCount_many": "{{count}} widgetów",
+    "widgetCount_other": "{{count}} widgetów",
+    "performance": "Wydajność",
+    "performanceDesc": "Wartość rynkowa, TTWROR, IRR, Delta i wykres wydajności.",
+    "risk": "Ryzyko",
+    "riskDesc": "Drawdown, zmienność, semiwariancja, wskaźnik Sharpe'a i wykres drawdownu.",
+    "income": "Dochód i Wartość",
+    "incomeDesc": "Zainwestowany kapitał, wartość rynkowa, delta, zmiana absolutna i mapa ciepła zwrotów.",
+    "complete": "Pełny Przegląd",
+    "completeDesc": "Wszystkie kluczowe wskaźniki — wydajność, ryzyko, wykres i movers w jednym pulpicie."
+  }
 }

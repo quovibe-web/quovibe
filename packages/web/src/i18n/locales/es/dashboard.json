@@ -169,5 +169,21 @@
     "all": "TODO",
     "clear": "Eliminar período personalizado"
   },
-  "resetWidgetsToGlobal": "Restablecer widgets al período global"
+  "resetWidgetsToGlobal": "Restablecer widgets al período global",
+  "templates": {
+    "getStarted": "Comenzar con una plantilla",
+    "getStartedDesc": "Elige una plantilla para llenar tu panel o comienza desde cero.",
+    "startFromScratch": "Comenzar desde cero",
+    "startFromTemplate": "Usar una plantilla (opcional)",
+    "widgetCount_one": "{{count}} widget",
+    "widgetCount_other": "{{count}} widgets",
+    "performance": "Rendimiento",
+    "performanceDesc": "Valor de mercado, TTWROR, TIR, Delta y un gráfico de rendimiento.",
+    "risk": "Riesgo",
+    "riskDesc": "Drawdown, volatilidad, semivarianza, ratio de Sharpe y gráfico de drawdown.",
+    "income": "Ingresos y Valor",
+    "incomeDesc": "Capital invertido, valor de mercado, delta, variación absoluta y mapa de calor de rentabilidades.",
+    "complete": "Visión General Completa",
+    "completeDesc": "Todas las métricas clave — rendimiento, riesgo, gráfico y movers en un único panel."
+  }
 }

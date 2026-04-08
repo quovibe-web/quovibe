@@ -169,5 +169,21 @@
     "all": "ALLES",
     "clear": "Widgetperiode verwijderen"
   },
-  "resetWidgetsToGlobal": "Widgets terugzetten naar globale periode"
+  "resetWidgetsToGlobal": "Widgets terugzetten naar globale periode",
+  "templates": {
+    "getStarted": "Aan de slag met een sjabloon",
+    "getStartedDesc": "Kies een sjabloon om je dashboard te vullen of begin vanaf nul.",
+    "startFromScratch": "Vanaf nul beginnen",
+    "startFromTemplate": "Begin met een sjabloon (optioneel)",
+    "widgetCount_one": "{{count}} widget",
+    "widgetCount_other": "{{count}} widgets",
+    "performance": "Prestaties",
+    "performanceDesc": "Marktwaarde, TTWROR, IRR, Delta en een prestatiegrafiek.",
+    "risk": "Risico",
+    "riskDesc": "Drawdown, volatiliteit, semi-variantie, Sharpe-ratio en een drawdowngrafiek.",
+    "income": "Inkomsten & Waarde",
+    "incomeDesc": "Geïnvesteerd kapitaal, marktwaarde, delta, absolute verandering en rendementsheatmap.",
+    "complete": "Volledig Overzicht",
+    "completeDesc": "Alle belangrijke statistieken — prestaties, risico, grafiek en movers in één dashboard."
+  }
 }

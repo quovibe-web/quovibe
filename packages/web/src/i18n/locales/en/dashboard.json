@@ -169,5 +169,21 @@
     "all": "ALL",
     "clear": "Clear period override"
   },
-  "resetWidgetsToGlobal": "Reset widgets to global period"
+  "resetWidgetsToGlobal": "Reset widgets to global period",
+  "templates": {
+    "getStarted": "Get started with a template",
+    "getStartedDesc": "Choose a template to populate your dashboard, or start from scratch.",
+    "startFromScratch": "Start from scratch",
+    "startFromTemplate": "Start from a template (optional)",
+    "widgetCount_one": "{{count}} widget",
+    "widgetCount_other": "{{count}} widgets",
+    "performance": "Performance",
+    "performanceDesc": "Market value, TTWROR, IRR, Delta and a performance chart.",
+    "risk": "Risk",
+    "riskDesc": "Drawdown, volatility, semivariance, Sharpe ratio and a drawdown chart.",
+    "income": "Income & Value",
+    "incomeDesc": "Invested capital, market value, delta, absolute change and a returns heatmap.",
+    "complete": "Complete Overview",
+    "completeDesc": "All key metrics — performance, risk, chart and movers in one dashboard."
+  }
 }

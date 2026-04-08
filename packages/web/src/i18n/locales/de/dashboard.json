@@ -169,5 +169,21 @@
     "all": "ALLE",
     "clear": "Widget-Zeitraum entfernen"
   },
-  "resetWidgetsToGlobal": "Widgets auf globalen Zeitraum zurücksetzen"
+  "resetWidgetsToGlobal": "Widgets auf globalen Zeitraum zurücksetzen",
+  "templates": {
+    "getStarted": "Mit einer Vorlage starten",
+    "getStartedDesc": "Wähle eine Vorlage für dein Dashboard oder beginne von Grund auf.",
+    "startFromScratch": "Von Grund auf beginnen",
+    "startFromTemplate": "Vorlage verwenden (optional)",
+    "widgetCount_one": "{{count}} Widget",
+    "widgetCount_other": "{{count}} Widgets",
+    "performance": "Performance",
+    "performanceDesc": "Marktwert, TTWROR, IZF, Delta und ein Performance-Diagramm.",
+    "risk": "Risiko",
+    "riskDesc": "Drawdown, Volatilität, Semivarianz, Sharpe-Ratio und ein Drawdown-Diagramm.",
+    "income": "Ertrag & Wert",
+    "incomeDesc": "Investiertes Kapital, Marktwert, Delta, absolute Veränderung und Rendite-Heatmap.",
+    "complete": "Vollständige Übersicht",
+    "completeDesc": "Alle Kennzahlen — Performance, Risiko, Diagramm und Gewinner/Verlierer in einem Dashboard."
+  }
 }
