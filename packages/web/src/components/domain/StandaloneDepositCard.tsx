@@ -181,7 +181,7 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
         </div>
 
         {showDomainPrompt && (
-          <div className="px-4 pb-3 flex items-center gap-2">
+          <div className="px-4 pb-3 flex items-center gap-2" onClick={e => e.stopPropagation()}>
             <Input
               autoFocus
               value={domainInput}

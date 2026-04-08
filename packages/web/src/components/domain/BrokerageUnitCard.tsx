@@ -275,7 +275,7 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitC
       </Dialog>
 
       {showDomainPrompt && (
-        <div className="px-4 pb-3 flex items-center gap-2">
+        <div className="px-4 pb-3 flex items-center gap-2" onClick={e => e.stopPropagation()}>
           <Input
             autoFocus
             value={domainInput}

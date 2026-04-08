@@ -34,6 +34,7 @@ interface Props {
 
 export function CreateAccountDialog({ open, onOpenChange }: Props) {
   const { t } = useTranslation('accounts');
+  const { t: tCommon } = useTranslation('common');
   const { data: accounts = [] } = useAccounts();
   const createMutation = useCreateAccount();
   const resolveLogoMutation = useResolveLogo();
@@ -201,7 +202,7 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
               {type === 'DEPOSIT' && (
                 <div className="grid gap-1.5">
                   <Label htmlFor="website">
-                    {t('logo.brokerWebsite')} <span className="text-muted-foreground text-xs">(optional)</span>
+                    {t('logo.brokerWebsite')} <span className="text-muted-foreground text-xs">{tCommon('optional')}</span>
                   </Label>
                   <Input
                     id="website"
@@ -263,7 +264,7 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
                   </div>
                   <div className="grid gap-1.5">
                     <Label htmlFor="website-inline">
-                      {t('logo.brokerWebsite')} <span className="text-muted-foreground text-xs">(optional)</span>
+                      {t('logo.brokerWebsite')} <span className="text-muted-foreground text-xs">{tCommon('optional')}</span>
                     </Label>
                     <Input
                       id="website-inline"
