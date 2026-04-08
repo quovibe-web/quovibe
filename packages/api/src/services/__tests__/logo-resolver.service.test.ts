@@ -16,40 +16,42 @@ function makeFetchResponse(body: unknown, contentType = 'image/png', ok = true) 
 }
 
 describe('findFundDomain', () => {
-  it('matches exact fund family name (case-insensitive)', () => {
+  it('matches exact family name (case-insensitive)', () => {
     expect(findFundDomain('iShares')).toBe('ishares.com');
     expect(findFundDomain('ISHARES')).toBe('ishares.com');
     expect(findFundDomain('Vanguard')).toBe('vanguard.com');
     expect(findFundDomain('Xtrackers')).toBe('dws.com');
   });
 
-  it('returns undefined for unknown fund family', () => {
+  it('returns undefined for unknown provider', () => {
     expect(findFundDomain('Unknown Provider')).toBeUndefined();
+    expect(findFundDomain(undefined, undefined)).toBeUndefined();
   });
 
-  it('falls back to shortName prefix match when family is undefined', () => {
+  it('prefers family over shortName when both are present', () => {
+    expect(findFundDomain('Invesco', 'iShares Core MSCI World')).toBe('invesco.com');
+  });
+
+  it('falls back to shortName when family is absent', () => {
     expect(findFundDomain(undefined, 'iShares Core MSCI World UCITS ETF')).toBe('ishares.com');
     expect(findFundDomain(undefined, 'Vanguard S&P 500 ETF')).toBe('vanguard.com');
   });
 
-  it('prefers family over shortName when both are present', () => {
-    // family is 'Invesco', shortName starts with 'iShares' — family wins
-    expect(findFundDomain('Invesco', 'iShares Core MSCI World')).toBe('invesco.com');
-  });
-
-  it('returns undefined when both family and shortName are undefined', () => {
-    expect(findFundDomain(undefined, undefined)).toBeUndefined();
-  });
-
-  it('does not false-match ETF shortNames that start with "ark" but are not ARK Invest', () => {
-    expect(findFundDomain(undefined, 'Arkema S.A. ETF')).toBeUndefined();
-    expect(findFundDomain(undefined, 'ARK Innovation ETF')).toBe('ark-invest.com');
-  });
-
-  it('matches verbose family names via prefix scan (e.g. "Avantis Investors" → avantis key)', () => {
+  it('matches verbose family names — word-boundary prefix (e.g. "Avantis Investors")', () => {
     expect(findFundDomain('Avantis Investors')).toBe('avantisinvestors.com');
     expect(findFundDomain('Dimensional Fund Advisors')).toBe('dimensional.com');
-    expect(findFundDomain('iShares by BlackRock')).toBe('ishares.com');
+    expect(findFundDomain('ARK Investment Management LLC')).toBe('ark-invest.com');
+  });
+
+  it('normalises punctuation before matching (dots, dashes, ampersands)', () => {
+    expect(findFundDomain('J.P. Morgan Asset Management')).toBe('jpmorgan.com');
+    expect(findFundDomain('BNP Paribas Easy')).toBe('bnpparibas-am.com');
+    expect(findFundDomain('Legal & General Investment Management')).toBe('lgim.com');
+  });
+
+  it('does not false-match on partial word overlap ("Arkema" vs "ARK")', () => {
+    expect(findFundDomain(undefined, 'Arkema S.A. ETF')).toBeUndefined();
+    expect(findFundDomain(undefined, 'ARK Innovation ETF')).toBe('ark-invest.com');
   });
 });
 

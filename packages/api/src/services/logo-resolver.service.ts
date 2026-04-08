@@ -59,8 +59,8 @@ const FUND_FAMILY_DOMAINS: Record<string, string> = {
   // ETC Group / ETC Issuance GmbH
   'etc group': 'etc-group.com',
   'etc issuance': 'etc-group.com',
-  // ARK Invest — trailing space prevents false match on 'Arkema' etc.
-  'ark ': 'ark-invest.com',
+  // ARK Invest
+  'ark': 'ark-invest.com',
   // Avantis Investors
   'avantis': 'avantisinvestors.com',
   // Dimensional Fund Advisors (DFA)
@@ -144,22 +144,45 @@ const FUND_FAMILY_DOMAINS: Record<string, string> = {
   'american century': 'americancentury.com',
 };
 
+/**
+ * Normalise a raw provider/fund name for matching:
+ * - lowercase
+ * - collapse any run of non-alphanumeric chars (dots, dashes, &, spaces…) into a single space
+ * - trim edges
+ *
+ * Examples:
+ *   "J.P. Morgan"            → "j p morgan"
+ *   "iShares by BlackRock"   → "ishares by blackrock"
+ *   "ARK Investment Mgmt LLC"→ "ark investment mgmt llc"
+ */
+function normaliseName(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+// Pre-normalise map keys once so we don't repeat the work on every call.
+const NORMALISED_FUND_DOMAINS: Array<[string, string]> = Object.entries(FUND_FAMILY_DOMAINS)
+  .map(([k, v]) => [normaliseName(k), v]);
+
+/**
+ * Map a fund family name or ETF short name to the issuer's domain.
+ *
+ * Matching strategy (tried in order for each input):
+ *   1. Exact match after normalisation  ("iShares" → "ishares" === key "ishares")
+ *   2. Word-boundary prefix match       ("Avantis Investors" → "avantis investors"
+ *                                        starts with "avantis ")
+ *
+ * Word-boundary semantics come from requiring `startsWith(key + ' ')`, which ensures
+ * "ark innovation etf" matches key "ark" but "arkema s a etf" does not.
+ *
+ * Both `family` (fundProfile.family) and `shortName` (quoteType.shortName) are tried;
+ * `family` is preferred when both are provided.
+ */
 export function findFundDomain(family?: string, shortName?: string): string | undefined {
-  if (family) {
-    const normalized = family.toLowerCase();
-    // Exact match first (e.g. family = "iShares" → key 'ishares')
-    const exact = FUND_FAMILY_DOMAINS[normalized];
-    if (exact) return exact;
-    // Prefix scan: family may be more verbose than the key
-    // (e.g. "Avantis Investors" starts with key 'avantis')
-    for (const [key, domain] of Object.entries(FUND_FAMILY_DOMAINS)) {
-      if (normalized.startsWith(key)) return domain;
-    }
-  }
-  if (shortName) {
-    const normalized = shortName.toLowerCase();
-    for (const [key, domain] of Object.entries(FUND_FAMILY_DOMAINS)) {
-      if (normalized.startsWith(key)) return domain;
+  for (const raw of [family, shortName]) {
+    if (!raw) continue;
+    const input = normaliseName(raw);
+    for (const [key, domain] of NORMALISED_FUND_DOMAINS) {
+      if (input === key || input.startsWith(key + ' ')) return domain;
     }
   }
   return undefined;
