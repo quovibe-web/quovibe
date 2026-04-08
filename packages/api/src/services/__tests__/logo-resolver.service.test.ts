@@ -123,6 +123,79 @@ describe('resolveLogo', () => {
     await expect(resolveLogo({ ticker: 'XXXX', instrumentType: 'EQUITY' })).rejects.toThrow('Logo not found');
   });
 
+  describe('ETF logo resolution', () => {
+    it('resolves ETF logo via fundProfile.family → issuer domain', async () => {
+      vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
+        fundProfile: { family: 'iShares' },
+        quoteType: { shortName: 'iShares Core MSCI World UCITS ETF' },
+      });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
+      const result = await resolveLogo({ ticker: 'SWDA', instrumentType: 'ETF' });
+      expect(result).toMatch(/^data:image\/png;base64,/);
+      expect(fetch).toHaveBeenCalledWith(
+        'https://www.google.com/s2/favicons?domain=ishares.com&sz=128',
+        expect.any(Object),
+      );
+    });
+
+    it('resolves ETF logo via shortName prefix when fundProfile.family is missing', async () => {
+      vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
+        fundProfile: {},
+        quoteType: { shortName: 'Vanguard FTSE All-World UCITS ETF' },
+      });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
+      const result = await resolveLogo({ ticker: 'VWRL', instrumentType: 'ETF' });
+      expect(result).toMatch(/^data:image\/png;base64,/);
+      expect(fetch).toHaveBeenCalledWith(
+        'https://www.google.com/s2/favicons?domain=vanguard.com&sz=128',
+        expect.any(Object),
+      );
+    });
+
+    it('retries with base ticker for exchange-suffixed ETF', async () => {
+      vi.spyOn(YahooFinance.prototype, 'quoteSummary')
+        .mockResolvedValueOnce({ fundProfile: {}, quoteType: {} }) // SWDA.MI — no family
+        .mockResolvedValueOnce({                                     // SWDA — has family
+          fundProfile: { family: 'iShares' },
+          quoteType: { shortName: 'iShares Core MSCI World UCITS ETF' },
+        });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
+      const result = await resolveLogo({ ticker: 'SWDA.MI', instrumentType: 'ETF' });
+      expect(result).toMatch(/^data:image\/png;base64,/);
+      expect(fetch).toHaveBeenCalledWith(
+        'https://www.google.com/s2/favicons?domain=ishares.com&sz=128',
+        expect.any(Object),
+      );
+    });
+
+    it('falls back to equity path when fund family is not in the map', async () => {
+      vi.spyOn(YahooFinance.prototype, 'quoteSummary')
+        .mockResolvedValueOnce({ fundProfile: { family: 'Obscure Niche Provider' }, quoteType: {} }) // ETF call — no match
+        .mockResolvedValueOnce({ assetProfile: { website: 'https://www.obscurefund.com' } });         // equity fallback
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
+      const result = await resolveLogo({ ticker: 'OBSCURE', instrumentType: 'ETF' });
+      expect(result).toMatch(/^data:image\/png;base64,/);
+      expect(fetch).toHaveBeenCalledWith(
+        'https://www.google.com/s2/favicons?domain=www.obscurefund.com&sz=128',
+        expect.any(Object),
+      );
+    });
+
+    it('resolves FUND instrument type the same as ETF', async () => {
+      vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
+        fundProfile: { family: 'Vanguard' },
+        quoteType: {},
+      });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
+      const result = await resolveLogo({ ticker: 'VFIAX', instrumentType: 'FUND' });
+      expect(result).toMatch(/^data:image\/png;base64,/);
+      expect(fetch).toHaveBeenCalledWith(
+        'https://www.google.com/s2/favicons?domain=vanguard.com&sz=128',
+        expect.any(Object),
+      );
+    });
+  });
+
   it('resolves without instrumentType (uses Yahoo Finance path)', async () => {
     vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
       assetProfile: { website: 'https://www.ferrari.com' },

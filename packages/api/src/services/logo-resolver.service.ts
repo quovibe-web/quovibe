@@ -84,6 +84,27 @@ async function resolveEquity(ticker: string, baseTicker: string): Promise<string
   return fetchByDomain(extractDomain(website));
 }
 
+async function resolveFund(ticker: string, baseTicker: string): Promise<string> {
+  const yf = getYf();
+
+  const tryFundDomain = async (t: string): Promise<string | undefined> => {
+    const summary = await yf.quoteSummary(t, { modules: ['fundProfile', 'quoteType'] });
+    const family = (summary.fundProfile as { family?: string } | undefined)?.family;
+    const shortName = (summary.quoteType as { shortName?: string } | undefined)?.shortName;
+    const domain = findFundDomain(family, shortName);
+    return domain;
+  };
+
+  let domain = await tryFundDomain(ticker);
+
+  if (!domain && baseTicker !== ticker) {
+    domain = await tryFundDomain(baseTicker);
+  }
+
+  if (!domain) throw new Error(`No fund family found for ${ticker}`);
+  return fetchByDomain(domain);
+}
+
 async function resolveCrypto(ticker: string): Promise<string> {
   const symbol = ticker.replace(/-USD$/i, '').toLowerCase();
   const listRes = await fetch('https://api.coingecko.com/api/v3/coins/list', { signal: AbortSignal.timeout(TIMEOUT_MS) });
