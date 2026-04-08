@@ -88,6 +88,60 @@ const FUND_FAMILY_DOMAINS: Record<string, string> = {
   'brookmont': 'brookmontcapital.com',
   // Davy Global Fund Management
   'davy': 'davy.ie',
+  // Charles Schwab
+  'schwab': 'schwab.com',
+  // Global X ETFs (acquired by Mirae Asset 2018)
+  'global x': 'globalxetfs.com',
+  // ProShares
+  'proshares': 'proshares.com',
+  // Direxion
+  'direxion': 'direxion.com',
+  // Goldman Sachs Asset Management
+  'goldman sachs': 'gsam.com',
+  'gsam': 'gsam.com',
+  // abrdn (formerly Aberdeen Standard Investments)
+  'abrdn': 'abrdn.com',
+  'aberdeen': 'abrdn.com',
+  // Nuveen (TIAA affiliate)
+  'nuveen': 'nuveen.com',
+  // Columbia Threadneedle Investments
+  'columbia threadneedle': 'columbiathreadneedle.com',
+  'columbia': 'columbiathreadneedle.com',
+  // KraneShares
+  'kraneshares': 'kraneshares.com',
+  // Pacer ETFs
+  'pacer': 'paceretfs.com',
+  // Innovator ETFs
+  'innovator': 'innovatoretfs.com',
+  // Mirae Asset
+  'mirae asset': 'miraeasset.com',
+  // Simplify Asset Management
+  'simplify': 'simplify.us',
+  // Roundhill Investments
+  'roundhill': 'roundhillinvestments.com',
+  // Matthews Asia
+  'matthews': 'matthewsasia.com',
+  // Tabula Investment Management
+  'tabula': 'tabula.im',
+  // Rize ETF
+  'rize': 'rizeetf.com',
+  // Nikko Asset Management
+  'nikko': 'nikkoam.com',
+  // Nomura Asset Management
+  'nomura': 'nomura.com',
+  // AllianceBernstein
+  'alliancebernstein': 'alliancebernstein.com',
+  // T. Rowe Price
+  't. rowe price': 'troweprice.com',
+  't. rowe': 'troweprice.com',
+  // John Hancock Investment Management
+  'john hancock': 'jhinvestments.com',
+  // Hartford Funds
+  'hartford': 'hartfordfunds.com',
+  // Principal Asset Management
+  'principal': 'principalfunds.com',
+  // American Century Investments
+  'american century': 'americancentury.com',
 };
 
 export function findFundDomain(family?: string, shortName?: string): string | undefined {
