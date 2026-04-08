@@ -4,28 +4,90 @@ const TIMEOUT_MS = 8_000;
 
 // Lowercase keys for case-insensitive lookup. Values are bare domains (no scheme).
 const FUND_FAMILY_DOMAINS: Record<string, string> = {
+  // BlackRock / iShares
   'ishares': 'ishares.com',
+  'blackrock': 'ishares.com',
+  // Vanguard
   'vanguard': 'vanguard.com',
+  // State Street Global Advisors / SPDR
   'spdr': 'ssga.com',
-  'invesco': 'invesco.com',
+  'state street': 'ssga.com',
+  // Amundi (includes Lyxor, acquired 2022)
   'amundi': 'amundi.com',
+  'lyxor': 'amundi.com',
+  // Xtrackers / DWS
   'xtrackers': 'dws.com',
   'dws': 'dws.com',
-  'lyxor': 'amundi.com',
-  'wisdomtree': 'wisdomtree.com',
-  'vaneck': 'vaneck.com',
-  'schwab': 'schwab.com',
-  'fidelity': 'fidelity.com',
-  'jpmorgan': 'jpmorgan.com',
-  'pimco': 'pimco.com',
-  'ark ': 'ark-invest.com',
-  'global x': 'globalxetfs.com',
-  'franklin': 'franklintempleton.com',
-  'proshares': 'proshares.com',
-  'direxion': 'direxion.com',
-  'bnp paribas': 'bnpparibas-am.com',
-  'hsbc': 'hsbc.com',
+  // Invesco
+  'invesco': 'invesco.com',
+  // UBS
   'ubs': 'ubs.com',
+  // J.P. Morgan
+  'jpmorgan': 'jpmorgan.com',
+  'j.p. morgan': 'jpmorgan.com',
+  // Fidelity
+  'fidelity': 'fidelity.com',
+  // Franklin Templeton
+  'franklin': 'franklintempleton.com',
+  // WisdomTree
+  'wisdomtree': 'wisdomtree.com',
+  // VanEck
+  'vaneck': 'vaneck.com',
+  // HSBC
+  'hsbc': 'hsbc.com',
+  // BNP Paribas Asset Management / BNP Paribas Easy
+  'bnp paribas': 'bnpparibas-am.com',
+  // Legal & General Investment Management (LGIM)
+  'lgim': 'lgim.com',
+  'legal & general': 'lgim.com',
+  // PIMCO
+  'pimco': 'pimco.com',
+  // First Trust
+  'first trust': 'ftportfolios.com',
+  // Ossiam
+  'ossiam': 'ossiam.com',
+  // HANetf
+  'hanetf': 'hanetf.com',
+  // 21Shares
+  '21shares': '21shares.com',
+  // CoinShares
+  'coinshares': 'coinshares.com',
+  // Bitwise
+  'bitwise': 'bitwiseinvestments.com',
+  // Deutsche Digital Assets
+  'deutsche digital': 'dda.group',
+  // ETC Group / ETC Issuance GmbH
+  'etc group': 'etc-group.com',
+  'etc issuance': 'etc-group.com',
+  // ARK Invest — trailing space prevents false match on 'Arkema' etc.
+  'ark ': 'ark-invest.com',
+  // Avantis Investors
+  'avantis': 'avantisinvestors.com',
+  // Dimensional Fund Advisors (DFA)
+  'dimensional': 'dimensional.com',
+  // IndexIQ
+  'indexiq': 'indexiq.com',
+  // Horizons ETFs
+  'horizons': 'horizonsetfs.com',
+  // Robeco
+  'robeco': 'robeco.com',
+  // AXA Investment Managers
+  'axa investment': 'axa-im.com',
+  'axa im': 'axa-im.com',
+  // Fineco Asset Management
+  'fineco': 'finecobank.com',
+  // Scalable Capital
+  'scalable capital': 'scalable.capital',
+  // Brinsmere
+  'brinsmere': 'brinsmere.co.uk',
+  // Bristol Gate Capital Management
+  'bristol gate': 'bristolgatecm.com',
+  // Brompton Group
+  'brompton': 'bromptongroup.com',
+  // Brookmont Capital Management
+  'brookmont': 'brookmontcapital.com',
+  // Davy Global Fund Management
+  'davy': 'davy.ie',
 };
 
 export function findFundDomain(family?: string, shortName?: string): string | undefined {
