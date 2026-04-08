@@ -26,7 +26,8 @@
     "rename": "Renomear",
     "changeLogo": "Alterar logótipo",
     "retire": "Arquivar conta",
-    "reactivateAccount": "Reativar conta"
+    "reactivateAccount": "Reativar conta",
+    "fetchLogo": "Buscar logo"
   },
   "menu": {
     "stockSplit": "Desdobramento de ações…",

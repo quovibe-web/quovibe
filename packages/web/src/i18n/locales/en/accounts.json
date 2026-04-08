@@ -26,7 +26,8 @@
     "rename": "Rename",
     "changeLogo": "Change logo",
     "retire": "Retire account",
-    "reactivateAccount": "Reactivate account"
+    "reactivateAccount": "Reactivate account",
+    "fetchLogo": "Fetch logo"
   },
   "menu": {
     "stockSplit": "Stock Split…",

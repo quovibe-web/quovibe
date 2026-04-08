@@ -26,7 +26,8 @@
     "rename": "Hernoemen",
     "changeLogo": "Logo wijzigen",
     "retire": "Rekening archiveren",
-    "reactivateAccount": "Rekening heractiveren"
+    "reactivateAccount": "Rekening heractiveren",
+    "fetchLogo": "Logo ophalen"
   },
   "menu": {
     "stockSplit": "Aandelensplitsing…",

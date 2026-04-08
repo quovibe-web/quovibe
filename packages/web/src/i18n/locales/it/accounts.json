@@ -26,7 +26,8 @@
     "rename": "Rinomina",
     "changeLogo": "Cambia logo",
     "retire": "Archivia conto",
-    "reactivateAccount": "Riattiva conto"
+    "reactivateAccount": "Riattiva conto",
+    "fetchLogo": "Recupera logo"
   },
   "menu": {
     "stockSplit": "Frazionamento Azionario…",

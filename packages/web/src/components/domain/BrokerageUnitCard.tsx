@@ -12,6 +12,7 @@ import {
   useUpdateAccountLogo,
   useUpdateAccount,
 } from '@/api/use-accounts';
+import { useResolveLogo } from '@/api/use-logo';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,11 +47,16 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitC
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [renameOpen, setRenameOpen] = useState(false);
 
+  const [showDomainPrompt, setShowDomainPrompt] = useState(false);
+  const [domainInput, setDomainInput] = useState('');
+  const [isFetchingLogo, setIsFetchingLogo] = useState(false);
+
   const deleteMutation = useDeleteAccount();
   const deactivateMutation = useDeactivateAccount();
   const reactivateMutation = useReactivateAccount();
   const logoMutation = useUpdateAccountLogo();
   const updateMutation = useUpdateAccount();
+  const resolveLogoMutation = useResolveLogo();
 
   const { portfolio, deposit, holdings } = unit;
 
@@ -87,6 +93,22 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitC
       logoMutation.mutate({ id: portfolio.id, logoUrl: dataUrl });
     } catch {
       toast.error(tCommon('toasts.imageTooLarge'));
+    }
+  }
+
+  async function handleFetchLogo() {
+    const domain = domainInput.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+    if (!domain) return;
+    setIsFetchingLogo(true);
+    try {
+      const { logoUrl } = await resolveLogoMutation.mutateAsync({ domain });
+      logoMutation.mutate({ id: unit.portfolio.id, logoUrl });
+      setShowDomainPrompt(false);
+      setDomainInput('');
+    } catch {
+      toast.error(t('logo.fetchFailed'));
+    } finally {
+      setIsFetchingLogo(false);
     }
   }
 
@@ -159,6 +181,9 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitC
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
                 {t('actions.changeLogo')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={e => { e.preventDefault(); setShowDomainPrompt(prev => !prev); }}>
+                {t('actions.fetchLogo')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={handleRetire}>
@@ -248,6 +273,25 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitC
           </form>
         </DialogContent>
       </Dialog>
+
+      {showDomainPrompt && (
+        <div className="px-4 pb-3 flex items-center gap-2">
+          <Input
+            autoFocus
+            value={domainInput}
+            placeholder={t('logo.brokerWebsitePlaceholder')}
+            className="h-7 text-xs"
+            onChange={e => setDomainInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') void handleFetchLogo();
+              if (e.key === 'Escape') { setShowDomainPrompt(false); setDomainInput(''); }
+            }}
+          />
+          <Button size="sm" variant="outline" className="h-7 text-xs shrink-0" disabled={isFetchingLogo} onClick={handleFetchLogo}>
+            {isFetchingLogo ? t('logo.fetching') : t('logo.fetch')}
+          </Button>
+        </div>
+      )}
 
       {/* Hidden file input for logo upload */}
       <input
