@@ -16,7 +16,7 @@ export default function WidgetMaxDrawdown() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 py-1">
+      <div className="grid grid-rows-[1fr_auto] flex-1 items-center justify-items-center pb-2">
         <Skeleton className="h-9 w-28" />
       </div>
     );
@@ -33,7 +33,7 @@ export default function WidgetMaxDrawdown() {
   if (!data) return null;
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 py-1">
+    <div className="grid grid-rows-[1fr_auto] flex-1 items-center justify-items-center pb-2">
       <span
         className="text-2xl font-semibold tabular-nums"
         style={{ color: isPrivate || mdd === 0 ? undefined : getColor('danger') }}
@@ -47,7 +47,7 @@ export default function WidgetMaxDrawdown() {
           />
         )}
       </span>
-      <span className="text-xs text-muted-foreground mt-5">{periodLabel}</span>
+      <span className="text-xs text-muted-foreground pt-5">{periodLabel}</span>
     </div>
   );
 }

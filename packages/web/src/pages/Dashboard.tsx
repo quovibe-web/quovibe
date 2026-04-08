@@ -18,8 +18,9 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToHorizontalAxis } from '@dnd-kit/modifiers';
 import { motion } from 'framer-motion';
-import { Plus, GripVertical, MoreHorizontal } from 'lucide-react';
+import { Plus, GripVertical, MoreHorizontal, Columns3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -73,20 +74,24 @@ interface SortableWidgetProps {
   index: number;
   onDelete: (widgetId: string) => void;
   onTitleChange: (widgetId: string, title: string) => void;
+  onSpanChange: (widgetId: string, span: 1 | 2 | 3) => void;
+  columns: 'auto' | 2 | 3 | 4 | 5;
   compact?: boolean;
 }
 
-function SortableWidget({ widget, dashboardId, index, onDelete, onTitleChange, compact = false }: SortableWidgetProps) {
+function SortableWidget({ widget, dashboardId, index, onDelete, onTitleChange, onSpanChange, columns, compact = false }: SortableWidgetProps) {
   const { t } = useTranslation('dashboard');
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: widget.id });
+
+  const effectiveSpan = columns === 'auto' ? widget.span : Math.min(widget.span, columns) as 1 | 2 | 3;
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? transition : undefined,
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 10 : undefined,
-    gridColumn: `span ${widget.span}`,
+    gridColumn: `span ${effectiveSpan}`,
   };
 
   const def = getWidgetDef(widget.type);
@@ -102,6 +107,9 @@ function SortableWidget({ widget, dashboardId, index, onDelete, onTitleChange, c
             capabilities={{ hasDataSeries: false, hasPeriodOverride: false, hasCustomOptions: false }}
             onDelete={() => onDelete(widget.id)}
             onTitleChange={(newTitle) => onTitleChange(widget.id, newTitle)}
+            onSpanChange={(span) => onSpanChange(widget.id, span)}
+            currentSpan={effectiveSpan}
+            maxSpan={columns === 'auto' ? 3 : columns as number > 3 ? 3 : columns as 2 | 3}
             dragHandleListeners={listeners}
             dragHandleAttributes={attributes}
             index={index}
@@ -131,6 +139,9 @@ function SortableWidget({ widget, dashboardId, index, onDelete, onTitleChange, c
           capabilities={def.capabilities}
           onDelete={() => onDelete(widget.id)}
           onTitleChange={(newTitle) => onTitleChange(widget.id, newTitle)}
+          onSpanChange={(span) => onSpanChange(widget.id, span)}
+          currentSpan={effectiveSpan}
+          maxSpan={columns === 'auto' ? 3 : Math.min(columns, 3) as 2 | 3}
           dragHandleListeners={listeners}
           dragHandleAttributes={attributes}
           index={index}
@@ -429,6 +440,17 @@ export default function Dashboard() {
     }));
   }
 
+  function changeWidgetSpan(widgetId: string, span: 1 | 2 | 3) {
+    updateActiveDashboard((d) => ({
+      ...d,
+      widgets: d.widgets.map((w) => (w.id === widgetId ? { ...w, span } : w)),
+    }));
+  }
+
+  function changeColumns(value: 'auto' | 2 | 3 | 4 | 5) {
+    updateActiveDashboard((d) => ({ ...d, columns: value }));
+  }
+
   function resetAllWidgetPeriods() {
     updateActiveDashboard((d) => ({
       ...d,
@@ -556,6 +578,26 @@ export default function Dashboard() {
         <div className="flex-1" />
 
         <div className="flex items-center gap-1 shrink-0">
+          {/* Column count selector */}
+          <Select
+            value={String(activeDash.columns ?? 'auto')}
+            onValueChange={(v) => changeColumns(v === 'auto' ? 'auto' : Number(v) as 2 | 3 | 4 | 5)}
+          >
+            <SelectTrigger className="h-7 w-auto gap-1 px-2 text-xs text-muted-foreground border-0 shadow-none bg-transparent hover:bg-accent hover:text-accent-foreground">
+              <Columns3 className="h-3.5 w-3.5" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              <SelectItem value="auto">{t('gridColumnsAuto')}</SelectItem>
+              <SelectItem value="2">2</SelectItem>
+              <SelectItem value="3">3</SelectItem>
+              <SelectItem value="4">4</SelectItem>
+              <SelectItem value="5">5</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <span className="text-border">|</span>
+
           <Button
             variant="ghost"
             size="sm"
@@ -640,6 +682,8 @@ export default function Dashboard() {
                     index={i}
                     onDelete={deleteWidget}
                     onTitleChange={changeWidgetTitle}
+                    onSpanChange={changeWidgetSpan}
+                    columns="auto"
                   />
                 ))}
               </div>
@@ -651,7 +695,13 @@ export default function Dashboard() {
             <SortableContext items={detailIds} strategy={rectSortingStrategy}>
               <div
                 className="grid gap-2 qv-dashboard-grid"
-                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))', animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '240ms' }}
+                style={{
+                  gridTemplateColumns: (activeDash.columns ?? 'auto') === 'auto'
+                    ? 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))'
+                    : `repeat(${activeDash.columns}, 1fr)`,
+                  animation: 'qv-stagger-in 0.4s ease-out both',
+                  animationDelay: '240ms',
+                }}
               >
                 {detailWidgets.map((widget, i) => (
                   <SortableWidget
@@ -661,6 +711,8 @@ export default function Dashboard() {
                     index={i}
                     onDelete={deleteWidget}
                     onTitleChange={changeWidgetTitle}
+                    onSpanChange={changeWidgetSpan}
+                    columns={activeDash.columns ?? 'auto'}
                     compact
                   />
                 ))}

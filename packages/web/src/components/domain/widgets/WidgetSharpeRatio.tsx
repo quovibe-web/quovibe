@@ -20,7 +20,7 @@ export default function WidgetSharpeRatio() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 py-1">
+      <div className="grid grid-rows-[1fr_auto] flex-1 items-center justify-items-center pb-2">
         <Skeleton className="h-9 w-28" />
       </div>
     );
@@ -46,7 +46,7 @@ export default function WidgetSharpeRatio() {
           : undefined;
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 py-1">
+    <div className="grid grid-rows-[1fr_auto] flex-1 items-center justify-items-center pb-2">
       <span
         className="text-2xl font-semibold tabular-nums"
         style={{ color }}
@@ -60,7 +60,7 @@ export default function WidgetSharpeRatio() {
           />
         ) : '—'}
       </span>
-      <span className="text-xs text-muted-foreground mt-5">{periodLabel}</span>
+      <span className="text-xs text-muted-foreground pt-5">{periodLabel}</span>
     </div>
   );
 }

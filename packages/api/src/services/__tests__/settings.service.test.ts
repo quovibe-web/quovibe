@@ -261,6 +261,7 @@ describe('dashboards round-trip', () => {
         id: 'd1',
         name: 'Main',
         widgets: [{ id: 'w1', type: 'ttwror', title: null, span: 1 as const, config: {} }],
+        columns: 'auto' as const,
       },
     ];
 
@@ -288,7 +289,7 @@ describe('dashboards round-trip', () => {
     loadSettings();
 
     updateSettings({
-      dashboards: [{ id: 'd1', name: 'Test', widgets: [] }],
+      dashboards: [{ id: 'd1', name: 'Test', widgets: [], columns: 'auto' as const }],
       activeDashboard: 'd1',
     });
 

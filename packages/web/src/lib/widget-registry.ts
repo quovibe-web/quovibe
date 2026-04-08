@@ -352,7 +352,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     qualifierKey: null,
     category: 'info',
     zone: 'detail',
-    defaultSpan: 1,
+    defaultSpan: 2,
     defaultConfig: {},
     capabilities: { hasDataSeries: false, hasPeriodOverride: true, hasCustomOptions: false },
     icon: Trophy,

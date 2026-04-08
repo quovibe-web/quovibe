@@ -12,7 +12,7 @@ export default function WidgetAllTimeHigh() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 py-1">
+      <div className="grid grid-rows-[1fr_auto] flex-1 items-center justify-items-center pb-2">
         <Skeleton className="h-9 w-28" />
       </div>
     );
@@ -27,12 +27,12 @@ export default function WidgetAllTimeHigh() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 py-1">
+    <div className="grid grid-rows-[1fr_auto] flex-1 items-center justify-items-center pb-2">
       <CurrencyDisplay
         value={value}
         className="text-2xl font-semibold tabular-nums"
       />
-      <span className="text-xs text-muted-foreground mt-5">
+      <span className="text-xs text-muted-foreground">
         {athDate
           ? t('widget.allTimeHigh.athDate', { date: formatDate(athDate) })
           : t('widget.allTimeHigh.noData')}

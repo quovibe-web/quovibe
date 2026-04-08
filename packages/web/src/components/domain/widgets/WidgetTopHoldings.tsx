@@ -69,7 +69,7 @@ function HoldingRow({
         </div>
         <div className="flex items-center gap-1.5 mt-0.5">
           {/* Weight pill bar */}
-          <div className="h-1 rounded-full bg-muted overflow-hidden w-16">
+          <div className="h-1 rounded-full bg-muted overflow-hidden w-12">
             <div
               className="h-full rounded-full bg-primary/50 transition-[width] duration-300"
               style={{ width: `${Math.min(100, weight)}%` }}
@@ -85,13 +85,13 @@ function HoldingRow({
       </div>
 
       {/* Market value */}
-      <div className="w-[80px] shrink-0 text-right text-sm tabular-nums">
+      <div className="w-[88px] shrink-0 text-right text-sm tabular-nums overflow-hidden">
         <CurrencyDisplay value={mv} animated={false} />
       </div>
 
       {/* TTWROR */}
       <div
-        className="w-[58px] shrink-0 text-right text-[11px] font-semibold tabular-nums"
+        className="w-[62px] shrink-0 text-right text-[11px] font-semibold tabular-nums overflow-hidden"
         style={{
           color: isPrivate ? undefined : ttwrorColor,
           filter: isPrivate ? 'blur(6px) saturate(0)' : 'none',
