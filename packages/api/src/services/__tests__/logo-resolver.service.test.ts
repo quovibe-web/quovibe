@@ -194,6 +194,12 @@ describe('resolveLogo', () => {
         expect.any(Object),
       );
     });
+
+    it('rethrows Yahoo Finance network errors from resolveFund (does not silently fall to equity)', async () => {
+      vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockRejectedValue(new Error('network timeout'));
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network timeout')));
+      await expect(resolveLogo({ ticker: 'SWDA', instrumentType: 'ETF' })).rejects.toThrow('Logo not found');
+    });
   });
 
   it('resolves without instrumentType (uses Yahoo Finance path)', async () => {

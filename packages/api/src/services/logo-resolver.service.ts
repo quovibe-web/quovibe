@@ -139,8 +139,12 @@ export async function resolveLogo(input: LogoResolveRequest): Promise<string> {
     if (instrumentType === 'ETF' || instrumentType === 'FUND') {
       try {
         return await resolveFund(ticker, baseTicker);
-      } catch {
-        // Fund family not found — fall through to equity path (assetProfile.website)
+      } catch (err) {
+        // Only fall through if the fund family was simply not in the map.
+        // Re-throw on other errors (e.g. network) so the outer catch handles them cleanly.
+        if (!(err instanceof Error) || !err.message.startsWith('No fund family found')) {
+          throw err;
+        }
       }
     }
     // For EQUITY and all other types (or when instrumentType is unknown),
