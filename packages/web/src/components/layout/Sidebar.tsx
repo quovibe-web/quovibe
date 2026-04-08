@@ -100,26 +100,19 @@ const MOBILE_NAV: NavItem[] = [
 
 function QuovibeLogo() {
   return (
-    <svg viewBox="0 0 180 32" fill="none" className="h-8 w-auto">
-      <defs>
-        <linearGradient id="sidebar-logo-g" x1="0" y1="32" x2="50" y2="0">
-          <stop offset="0%" stopColor="var(--color-primary)" />
-          <stop offset="100%" stopColor="var(--color-chart-5)" />
-        </linearGradient>
-      </defs>
-      {/* $ prompt */}
-      <text x="0" y="23" fontFamily="'JetBrains Mono', monospace" fontSize="22" fontWeight="300" fill="var(--color-chart-5)" opacity="0.6">$</text>
-      {/* quo */}
-      <text x="16" y="23" fontFamily="'JetBrains Mono', monospace" fontSize="22" fontWeight="800" fill="var(--color-primary)" letterSpacing="-1">quo</text>
-      {/* pipe */}
-      <text x="57" y="23" fontFamily="'JetBrains Mono', monospace" fontSize="22" fontWeight="300" fill="var(--color-primary)">|</text>
-      {/* vibe */}
-      <text x="70" y="23" fontFamily="'Outfit', sans-serif" fontSize="22" fontWeight="200" fill="var(--qv-text-muted)" letterSpacing="2">vibe</text>
-      {/* Micro sparkline */}
-      <path d="M132 22 L138 18 L142 20 L148 12 L152 14 L158 6 L164 9 L170 3"
-            stroke="url(#sidebar-logo-g)" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
-      <circle cx="170" cy="3" r="1.5" fill="var(--color-chart-5)" opacity="0.5" />
-    </svg>
+    <div className="flex items-center gap-2.5">
+      <svg viewBox="0 0 120 120" fill="none" className="h-7 w-7 shrink-0">
+        <path d="M60 22 Q82 22, 82 44" stroke="var(--qv-text-primary)" strokeWidth="6" fill="none" strokeLinecap="round" />
+        <path d="M98 60 Q98 82, 76 82" stroke="var(--qv-text-primary)" strokeWidth="6" fill="none" strokeLinecap="round" />
+        <path d="M60 98 Q38 98, 38 76" stroke="var(--qv-text-primary)" strokeWidth="6" fill="none" strokeLinecap="round" />
+        <path d="M22 60 Q22 38, 44 38" stroke="var(--qv-text-primary)" strokeWidth="6" fill="none" strokeLinecap="round" />
+        <circle cx="60" cy="60" r="6" fill="var(--qv-warning)" />
+      </svg>
+      <span className="text-xl" style={{ letterSpacing: '-0.3px' }}>
+        <span style={{ fontFamily: "'DM Serif Display', serif", color: 'var(--qv-text-primary)' }}>quo</span>
+        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 300, color: 'var(--qv-text-muted)' }}>vibe</span>
+      </span>
+    </div>
   );
 }
 
@@ -404,10 +397,13 @@ export function CollapsedSidebar() {
     <aside className="hidden md:flex lg:hidden w-14 h-screen border-r border-border bg-[var(--qv-bg)] flex-col items-center shrink-0">
       {/* Logo mark */}
       <div className="flex items-center justify-center h-14 shrink-0">
-        <span className="text-base tracking-tight">
-          <span className="font-normal" style={{ color: 'var(--color-primary)' }}>Q</span>
-          <span className="font-extrabold" style={{ color: 'var(--color-chart-5)' }}>V</span>
-        </span>
+        <svg viewBox="0 0 120 120" fill="none" className="h-6 w-6">
+          <path d="M60 22 Q82 22, 82 44" stroke="var(--qv-text-primary)" strokeWidth="7" fill="none" strokeLinecap="round" />
+          <path d="M98 60 Q98 82, 76 82" stroke="var(--qv-text-primary)" strokeWidth="7" fill="none" strokeLinecap="round" />
+          <path d="M60 98 Q38 98, 38 76" stroke="var(--qv-text-primary)" strokeWidth="7" fill="none" strokeLinecap="round" />
+          <path d="M22 60 Q22 38, 44 38" stroke="var(--qv-text-primary)" strokeWidth="7" fill="none" strokeLinecap="round" />
+          <circle cx="60" cy="60" r="7" fill="var(--qv-warning)" />
+        </svg>
       </div>
       <Separator />
 

@@ -31,28 +31,26 @@ interface ImportPageProps {
   onClose?: () => void;
 }
 
-// Inline SVG logo — uses unique gradient IDs (import-hero-g) to avoid collisions with Sidebar SVG (sidebar-logo-g)
+// Inline logo — aperture mark + serif/sans wordmark
 function QuovibeLogo({ isLight }: { isLight: boolean }) {
-  const vibeColor = isLight ? '#3a3a5a' : 'rgba(255,255,255,0.35)';
+  const strokeColor = isLight ? '#100f0f' : '#cecdc3';
+  const mutedColor = isLight ? '#6f6e69' : '#878580';
+  const goldColor = isLight ? '#ad8301' : '#d0a215';
+
   return (
-    <svg viewBox="0 0 260 70" fill="none" className="w-64 h-auto">
-      <defs>
-        <linearGradient id="import-hero-g" x1="0" y1="70" x2="70" y2="0">
-          <stop offset="0%" stopColor="#0891b2" />
-          <stop offset="100%" stopColor="#7c3aed" />
-        </linearGradient>
-      </defs>
-      {/* $ prompt */}
-      <text x="0" y="34" fontFamily="'JetBrains Mono', monospace" fontSize="40" fontWeight="300" fill="#7c3aed" opacity="0.7">$</text>
-      {/* quo */}
-      <text x="26" y="34" fontFamily="'JetBrains Mono', monospace" fontSize="40" fontWeight="800" fill="#0891b2" letterSpacing="-1.5">quo</text>
-      {/* Sparkline */}
-      <path d="M128 28 L136 22 L142 25 L150 12 L156 16 L164 6 L172 10 L180 2"
-            stroke="url(#import-hero-g)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="180" cy="2" r="2.5" fill="#7c3aed" />
-      {/* vibe */}
-      <text x="0" y="64" fontFamily="'Outfit', sans-serif" fontSize="40" fontWeight="200" fill={vibeColor} letterSpacing="10" opacity="0.4">vibe</text>
-    </svg>
+    <div className="flex flex-col items-center gap-4">
+      <svg viewBox="0 0 120 120" fill="none" className="w-12 h-12">
+        <path d="M60 22 Q82 22, 82 44" stroke={strokeColor} strokeWidth="5.5" fill="none" strokeLinecap="round" />
+        <path d="M98 60 Q98 82, 76 82" stroke={strokeColor} strokeWidth="5.5" fill="none" strokeLinecap="round" />
+        <path d="M60 98 Q38 98, 38 76" stroke={strokeColor} strokeWidth="5.5" fill="none" strokeLinecap="round" />
+        <path d="M22 60 Q22 38, 44 38" stroke={strokeColor} strokeWidth="5.5" fill="none" strokeLinecap="round" />
+        <circle cx="60" cy="60" r="6" fill={goldColor} />
+      </svg>
+      <span className="text-4xl" style={{ letterSpacing: '-0.5px' }}>
+        <span style={{ fontFamily: "'DM Serif Display', serif", color: strokeColor }}>quo</span>
+        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 300, color: mutedColor }}>vibe</span>
+      </span>
+    </div>
   );
 }
 

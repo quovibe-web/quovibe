@@ -1,15 +1,11 @@
-<svg viewBox="0 0 180 32" fill="none" xmlns="http://www.w3.org/2000/svg" width="180" height="32">
-  <defs>
-    <linearGradient id="g" x1="0" y1="32" x2="50" y2="0">
-      <stop offset="0%" stop-color="#0891b2"/>
-      <stop offset="100%" stop-color="#7c3aed"/>
-    </linearGradient>
-  </defs>
-  <text x="0" y="23" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="22" font-weight="300" fill="#7c3aed" opacity="0.6">$</text>
-  <text x="16" y="23" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="22" font-weight="800" fill="#0891b2" letter-spacing="-1">quo</text>
-  <text x="57" y="23" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="22" font-weight="300" fill="#0891b2">|<animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" repeatCount="indefinite"/></text>
-  <text x="70" y="23" font-family="'Outfit', system-ui, sans-serif" font-size="22" font-weight="200" fill="#3a3a5a" letter-spacing="2">vibe</text>
-  <path d="M132 22 L138 18 L142 20 L148 12 L152 14 L158 6 L164 9 L170 3"
-        stroke="url(#g)" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
-  <circle cx="170" cy="3" r="1.5" fill="#7c3aed" opacity="0.5"/>
+<svg viewBox="0 0 220 40" fill="none" xmlns="http://www.w3.org/2000/svg" width="220" height="40">
+  <g transform="translate(0, 2)">
+    <path d="M18 6.6 Q24.6 6.6, 24.6 13.2" stroke="#100f0f" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M29.4 18 Q29.4 24.6, 22.8 24.6" stroke="#100f0f" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M18 29.4 Q11.4 29.4, 11.4 22.8" stroke="#100f0f" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M6.6 18 Q6.6 11.4, 13.2 11.4" stroke="#100f0f" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <circle cx="18" cy="18" r="1.8" fill="#ad8301"/>
+  </g>
+  <text x="46" y="27" font-family="'DM Serif Display', serif" font-size="22" fill="#100f0f" letter-spacing="-0.3">quo</text>
+  <text x="89" y="27" font-family="'Plus Jakarta Sans', sans-serif" font-size="22" font-weight="300" fill="#6f6e69" letter-spacing="-0.3">vibe</text>
 </svg>
