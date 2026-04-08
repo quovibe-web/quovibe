@@ -16,15 +16,11 @@ build/
 .env.local
 .env.*.local
 
-# Database
-data/*.db
-data/*.db-shm
-data/*.db-wal
-data/*.bak.*
+# Database — all runtime DBs and WAL artifacts, except schema.db (schema-only, always versioned)
+data/
 !data/schema.db
 
 # Sidecar settings (generated at runtime, not versioned)
-data/quovibe.settings.json
 *.xml
 
 # Claude Code — local machine settings only
