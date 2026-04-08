@@ -69,7 +69,7 @@ function ToggleGroup() {
       <button
         onClick={() => handleTheme('light')}
         className={cn(
-          'p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+          'hidden md:inline-flex p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           theme === 'light'
             ? 'bg-card text-primary'
             : 'text-muted-foreground hover:text-foreground'
@@ -82,7 +82,7 @@ function ToggleGroup() {
       <button
         onClick={() => handleTheme('system')}
         className={cn(
-          'p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+          'hidden md:inline-flex p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           theme === 'system'
             ? 'bg-card text-primary'
             : 'text-muted-foreground hover:text-foreground'
@@ -95,7 +95,7 @@ function ToggleGroup() {
       <button
         onClick={() => handleTheme('dark')}
         className={cn(
-          'p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+          'hidden md:inline-flex p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           theme === 'dark'
             ? 'bg-card text-primary'
             : 'text-muted-foreground hover:text-foreground'
@@ -515,7 +515,9 @@ export function TopBar({ onMenuClick, isScrolled = false }: TopBarProps) {
       <PeriodSelector />
 
       <div className="ml-auto flex items-center gap-1">
-        <LanguageSwitcher />
+        <div className="hidden md:block">
+          <LanguageSwitcher />
+        </div>
         <ToggleGroup />
       </div>
     </header>

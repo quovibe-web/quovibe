@@ -38,7 +38,7 @@ export function MetricsStripSettings({ selected, onChange }: MetricsStripSetting
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+          className="h-9 w-9 md:h-6 md:w-6 shrink-0 text-muted-foreground hover:text-foreground"
           aria-label={t('hero.configureMetrics')}
         >
           <Settings2 className="h-3.5 w-3.5" />

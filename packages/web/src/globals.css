@@ -252,10 +252,12 @@ number-flow-react.muted-fraction::part(fraction) {
   color: var(--qv-text-faint);
 }
 
-/* Compact widget mode — reduces text-2xl to text-xl in detail zone */
-.qv-compact-widget .text-2xl {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
+/* Compact widget mode — reduces text-2xl to text-xl in detail zone (desktop only) */
+@media (min-width: 768px) {
+  .qv-compact-widget .text-2xl {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
 }
 
 /* Interactive surface transitions (apply to nav items, table rows, cards) */

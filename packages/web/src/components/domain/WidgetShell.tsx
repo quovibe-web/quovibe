@@ -145,7 +145,7 @@ export function WidgetShell({
         {/* LINE 1 — Widget type label + drag handle + kebab menu */}
         <CardHeader className={cn(
           'flex flex-row items-center gap-2 space-y-0 pb-0',
-          compact ? 'pt-2 px-3' : 'pt-2.5 px-4',
+          compact ? 'pt-2.5 px-4 md:pt-2 md:px-3' : 'pt-2.5 px-4',
         )}>
           <div
             className="cursor-grab active:cursor-grabbing touch-none"
@@ -222,7 +222,7 @@ export function WidgetShell({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 shrink-0 bg-muted/50 border border-border/50 rounded-md"
+                className="h-9 w-9 md:h-7 md:w-7 shrink-0 bg-muted/50 border border-border/50 rounded-md"
                 aria-label={t('widgetActions')}
               >
                 <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
@@ -252,7 +252,7 @@ export function WidgetShell({
           </DropdownMenu>
         </CardHeader>
         {/* LINE 2 removed — data series label merged into LINE 1 */}
-        <CardContent className={cn('flex-1', compact ? 'pt-0 px-3 pb-3' : 'pt-0')}>
+        <CardContent className={cn('flex-1', compact ? 'pt-0 px-4 pb-4 md:px-3 md:pb-3' : 'pt-0')}>
           <WidgetShellContext.Provider value={{ toolbarTarget: toolbarEl }}>
             {children}
           </WidgetShellContext.Provider>
