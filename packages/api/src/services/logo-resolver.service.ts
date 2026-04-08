@@ -136,7 +136,14 @@ export async function resolveLogo(input: LogoResolveRequest): Promise<string> {
     if (instrumentType === 'CRYPTO') {
       return await resolveCrypto(ticker);
     }
-    // For all other types (EQUITY, ETF, FUND, etc.) or when instrumentType is unknown,
+    if (instrumentType === 'ETF' || instrumentType === 'FUND') {
+      try {
+        return await resolveFund(ticker, baseTicker);
+      } catch {
+        // Fund family not found — fall through to equity path (assetProfile.website)
+      }
+    }
+    // For EQUITY and all other types (or when instrumentType is unknown),
     // try Yahoo Finance assetProfile → company website → Google Favicon
     return await resolveEquity(ticker, baseTicker);
   } catch {
