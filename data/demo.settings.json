@@ -1,0 +1,164 @@
+{
+  "app": {
+    "lastImport": null
+  },
+  "preferences": {
+    "language": "en",
+    "theme": "system",
+    "privacyMode": false,
+    "costMethod": "MOVING_AVERAGE"
+  },
+  "reportingPeriods": {},
+  "dashboards": [
+    {
+      "id": "3f7535f2-b0b1-48cf-bcc8-055ca0747ba2",
+      "name": "Overview",
+      "widgets": [
+        {
+          "id": "w1",
+          "type": "market-value",
+          "title": null,
+          "span": 1,
+          "config": {}
+        },
+        {
+          "id": "w2",
+          "type": "ttwror",
+          "title": null,
+          "span": 1,
+          "config": {}
+        },
+        {
+          "id": "w3",
+          "type": "irr",
+          "title": null,
+          "span": 1,
+          "config": {}
+        },
+        {
+          "id": "w4",
+          "type": "delta",
+          "title": null,
+          "span": 1,
+          "config": {}
+        },
+        {
+          "id": "w5",
+          "type": "absolute-performance",
+          "title": null,
+          "span": 1,
+          "config": {}
+        },
+        {
+          "id": "w6",
+          "type": "invested-capital",
+          "title": null,
+          "span": 1,
+          "config": {}
+        },
+        {
+          "id": "w7",
+          "type": "perf-chart",
+          "title": null,
+          "span": 3,
+          "config": {}
+        },
+        {
+          "id": "w8",
+          "type": "movers",
+          "title": null,
+          "span": 2,
+          "config": {}
+        },
+        {
+          "id": "w9",
+          "type": "top-holdings",
+          "title": null,
+          "span": 1,
+          "config": {}
+        },
+        {
+          "id": "w10",
+          "type": "watchlist",
+          "title": null,
+          "span": 1,
+          "config": {
+            "options": {
+              "watchlistId": 1
+            }
+          }
+        }
+      ],
+      "metricsStripIds": []
+    },
+    {
+      "id": "09df1ea0-2de1-4d5c-8feb-081c625b2f79",
+      "name": "Risk",
+      "widgets": [
+        {
+          "id": "r1",
+          "type": "max-drawdown",
+          "title": null,
+          "span": 1,
+          "config": {}
+        },
+        {
+          "id": "r2",
+          "type": "current-drawdown",
+          "title": null,
+          "span": 1,
+          "config": {}
+        },
+        {
+          "id": "r3",
+          "type": "volatility",
+          "title": null,
+          "span": 1,
+          "config": {}
+        },
+        {
+          "id": "r4",
+          "type": "sharpe-ratio",
+          "title": null,
+          "span": 1,
+          "config": {
+            "options": {
+              "riskFreeRate": 0
+            }
+          }
+        },
+        {
+          "id": "r5",
+          "type": "all-time-high",
+          "title": null,
+          "span": 1,
+          "config": {}
+        },
+        {
+          "id": "r6",
+          "type": "distance-from-ath",
+          "title": null,
+          "span": 1,
+          "config": {}
+        },
+        {
+          "id": "r7",
+          "type": "drawdown-chart",
+          "title": null,
+          "span": 3,
+          "config": {}
+        }
+      ],
+      "metricsStripIds": []
+    }
+  ],
+  "activeDashboard": "3f7535f2-b0b1-48cf-bcc8-055ca0747ba2",
+  "investmentsView": {
+    "columns": []
+  },
+  "chartConfig": {
+    "version": 2,
+    "series": []
+  },
+  "tableLayouts": {}
+}
