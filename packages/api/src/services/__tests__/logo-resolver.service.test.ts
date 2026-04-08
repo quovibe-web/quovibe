@@ -1,11 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { resolveLogo, _testOnly_findFundDomain } from '../logo-resolver.service';
+import { resolveLogo, findFundDomain } from '../logo-resolver.service';
 
 // Spy on quoteSummary at the prototype level so require() and import() both see the stub
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const yf2 = require('yahoo-finance2');
 const YahooFinance = yf2.default ?? yf2;
-const quoteSummarySpy = vi.spyOn(YahooFinance.prototype, 'quoteSummary');
 
 function makeFetchResponse(body: unknown, contentType = 'image/png', ok = true) {
   return {
@@ -19,28 +17,28 @@ function makeFetchResponse(body: unknown, contentType = 'image/png', ok = true) 
 
 describe('findFundDomain', () => {
   it('matches exact fund family name (case-insensitive)', () => {
-    expect(_testOnly_findFundDomain('iShares')).toBe('ishares.com');
-    expect(_testOnly_findFundDomain('ISHARES')).toBe('ishares.com');
-    expect(_testOnly_findFundDomain('Vanguard')).toBe('vanguard.com');
-    expect(_testOnly_findFundDomain('Xtrackers')).toBe('dws.com');
+    expect(findFundDomain('iShares')).toBe('ishares.com');
+    expect(findFundDomain('ISHARES')).toBe('ishares.com');
+    expect(findFundDomain('Vanguard')).toBe('vanguard.com');
+    expect(findFundDomain('Xtrackers')).toBe('dws.com');
   });
 
   it('returns undefined for unknown fund family', () => {
-    expect(_testOnly_findFundDomain('Unknown Provider')).toBeUndefined();
+    expect(findFundDomain('Unknown Provider')).toBeUndefined();
   });
 
   it('falls back to shortName prefix match when family is undefined', () => {
-    expect(_testOnly_findFundDomain(undefined, 'iShares Core MSCI World UCITS ETF')).toBe('ishares.com');
-    expect(_testOnly_findFundDomain(undefined, 'Vanguard S&P 500 ETF')).toBe('vanguard.com');
+    expect(findFundDomain(undefined, 'iShares Core MSCI World UCITS ETF')).toBe('ishares.com');
+    expect(findFundDomain(undefined, 'Vanguard S&P 500 ETF')).toBe('vanguard.com');
   });
 
   it('prefers family over shortName when both are present', () => {
     // family is 'Invesco', shortName starts with 'iShares' — family wins
-    expect(_testOnly_findFundDomain('Invesco', 'iShares Core MSCI World')).toBe('invesco.com');
+    expect(findFundDomain('Invesco', 'iShares Core MSCI World')).toBe('invesco.com');
   });
 
   it('returns undefined when both family and shortName are undefined', () => {
-    expect(_testOnly_findFundDomain(undefined, undefined)).toBeUndefined();
+    expect(findFundDomain(undefined, undefined)).toBeUndefined();
   });
 });
 

@@ -28,7 +28,7 @@ const FUND_FAMILY_DOMAINS: Record<string, string> = {
   'ubs': 'ubs.com',
 };
 
-export function _testOnly_findFundDomain(family?: string, shortName?: string): string | undefined {
+export function findFundDomain(family?: string, shortName?: string): string | undefined {
   if (family) {
     const normalized = family.toLowerCase();
     const domain = FUND_FAMILY_DOMAINS[normalized];
@@ -61,7 +61,6 @@ async function fetchByDomain(domain: string): Promise<string> {
 }
 
 function getYf() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const mod = require('yahoo-finance2');
   const YahooFinance = mod.default ?? mod;
   return new YahooFinance();
