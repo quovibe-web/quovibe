@@ -203,18 +203,24 @@ export function AddInstrumentDialog({
       onOpenChange(false);
       onCreated?.(newId);
 
-      // Background logo fetch — non-blocking, captured before async close
+      // Background logo fetch — non-blocking, captured before async close.
+      // Uses dedicated /logo endpoint (not /attributes) to avoid wiping other attributes
+      // if the SecurityEditor saves concurrently with empty state.
       const secId = newId;
       const instrType = selectedResult.type; // InstrumentType enum value
       const ticker = selectedResult.symbol;
       void resolveLogoMutation.mutateAsync({ ticker, instrumentType: instrType })
         .then(({ logoUrl }) =>
-          apiFetch(`/api/securities/${secId}/attributes`, {
+          apiFetch(`/api/securities/${secId}/logo`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ attributes: [{ typeId: 'logo', value: logoUrl }] }),
+            body: JSON.stringify({ logoUrl }),
           }),
         )
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ['securities'] });
+          queryClient.invalidateQueries({ queryKey: ['securities', secId] });
+        })
         .catch(() => toast.warning(tCommon('toasts.logoNotFound')));
     } catch (e) {
       if (!openRef.current) return;
