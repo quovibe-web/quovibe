@@ -11,9 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 const ALL_METRIC_IDS = [
   'ttwror', 'ttwror-pa', 'irr', 'delta',
   'absolute-performance', 'absolute-change',
-  'max-drawdown', 'current-drawdown',
-  'volatility', 'sharpe-ratio', 'semivariance',
-  'cash-drag', 'invested-capital', 'all-time-high', 'distance-from-ath',
+  'invested-capital', 'all-time-high',
 ] as const;
 
 interface MetricsStripSettingsProps {

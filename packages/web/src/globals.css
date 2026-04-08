@@ -40,7 +40,7 @@
   --color-card-foreground: var(--qv-text-primary);
   --color-popover: var(--qv-surface);
   --color-popover-foreground: var(--qv-text-primary);
-  --color-primary: hsl(225, 25%, 48%);
+  --color-primary: #205EA6;
   --color-primary-foreground: #ffffff;
   --color-secondary: var(--qv-surface-elevated);
   --color-secondary-foreground: var(--qv-text-primary);
@@ -51,7 +51,7 @@
   --color-destructive: var(--qv-danger);
   --color-border: var(--qv-border);
   --color-input: var(--qv-border);
-  --color-ring: hsl(225 25% 48% / 0.35);
+  --color-ring: rgba(32, 94, 166, 0.35);
 
   /* Chart palette — Flexoki accents (8 colors) */
   --color-chart-1: #4385BE;
@@ -66,12 +66,12 @@
   /* Sidebar */
   --color-sidebar: var(--qv-surface);
   --color-sidebar-foreground: var(--qv-text-primary);
-  --color-sidebar-primary: hsl(225, 25%, 48%);
+  --color-sidebar-primary: #205EA6;
   --color-sidebar-primary-foreground: #ffffff;
   --color-sidebar-accent: var(--qv-surface-elevated);
   --color-sidebar-accent-foreground: var(--qv-text-primary);
   --color-sidebar-border: var(--qv-border);
-  --color-sidebar-ring: hsl(225, 25%, 48%);
+  --color-sidebar-ring: #205EA6;
 
   /* Financial semantic */
   --color-profit: var(--qv-positive);
@@ -116,10 +116,10 @@ html.dark {
   --qv-negative: #d14d41;
 
   /* shadcn dark overrides */
-  --color-primary: hsl(225, 25%, 52%);
+  --color-primary: #4385BE;
   --color-primary-foreground: #ffffff;
   --color-popover: var(--qv-surface);
-  --color-ring: hsl(225 25% 52% / 0.35);
+  --color-ring: rgba(67, 133, 190, 0.35);
 
   /* Chart palette — same Flexoki accents (work on both backgrounds) */
   --color-chart-1: #4385BE;
@@ -133,7 +133,7 @@ html.dark {
 
   /* Sidebar */
   --color-sidebar: var(--qv-surface);
-  --color-sidebar-primary: hsl(225, 25%, 52%);
+  --color-sidebar-primary: #4385BE;
   --color-sidebar-primary-foreground: #ffffff;
 }
 

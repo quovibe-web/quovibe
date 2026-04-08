@@ -81,7 +81,15 @@ export function DashboardMetricsStrip({ metricIds, onMetricIdsChange }: MetricsS
   const { t } = useTranslation('dashboard');
   const { data: calc, isLoading } = useCalculation();
   const { isPrivate } = usePrivacy();
-  const ids = metricIds && metricIds.length > 0 ? metricIds : DEFAULT_METRICS;
+  const ids = metricIds ?? DEFAULT_METRICS;
+
+  if (ids.length === 0) {
+    return (
+      <div className="flex justify-end py-2">
+        <MetricsStripSettings selected={ids} onChange={onMetricIdsChange} />
+      </div>
+    );
+  }
 
   if (isLoading || !calc) {
     return (
