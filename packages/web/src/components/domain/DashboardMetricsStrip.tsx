@@ -95,7 +95,7 @@ export function DashboardMetricsStrip({ metricIds, onMetricIdsChange }: MetricsS
   }
 
   return (
-    <div className="flex items-center">
+    <div className="flex items-center qv-fade-in">
       <div className="flex flex-1 flex-wrap md:flex-nowrap gap-0">
         {ids.map((id, i) => {
           const resolved = resolveMetric(id, calc as unknown as Record<string, string | number | boolean | null>);

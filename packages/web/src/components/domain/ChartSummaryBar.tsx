@@ -30,7 +30,7 @@ export function ChartSummaryBar({
   const isPositive = totalReturn >= 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm qv-fade-in">
       {/* Total return */}
       <span className={cn('font-semibold', isPositive ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
         {isPrivate ? '••••••' : (

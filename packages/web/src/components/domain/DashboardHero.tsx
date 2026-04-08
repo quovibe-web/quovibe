@@ -88,7 +88,7 @@ export function DashboardHero() {
   const isPositive = absPerf >= 0;
 
   return (
-    <div className="flex items-start gap-6">
+    <div className="flex items-start gap-6 qv-fade-in">
       {/* Left: Balance + Gain/Loss */}
       <div className="shrink-0">
         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -96,9 +96,9 @@ export function DashboardHero() {
         </div>
         <div className="mt-1">
           {isPrivate ? (
-            <span className="text-3xl font-bold">••••••</span>
+            <span className="text-4xl font-extrabold tracking-tight">••••••</span>
           ) : (
-            <CurrencyDisplay value={balance} className="text-3xl font-bold" />
+            <CurrencyDisplay value={balance} className="text-4xl font-extrabold tracking-tight" />
           )}
         </div>
         <div className="flex items-baseline gap-3 mt-1.5">

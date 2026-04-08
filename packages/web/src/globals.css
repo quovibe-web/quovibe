@@ -177,16 +177,24 @@ html.dark {
   /* Light mode depth: cards float above tinted background */
   html:not(.dark) [data-slot="card"] {
     box-shadow: 0 1px 3px rgba(16, 15, 15, 0.05), 0 4px 12px rgba(16, 15, 15, 0.03);
+    transition: box-shadow 200ms ease-out, transform 200ms ease-out;
   }
 
   html:not(.dark) [data-slot="card"]:hover {
     box-shadow: 0 2px 6px rgba(16, 15, 15, 0.07), 0 8px 20px rgba(16, 15, 15, 0.05);
+    transform: translateY(-1px);
   }
 
   /* Dark mode: elevation via border + lightness delta, NO shadows */
   html.dark [data-slot="card"] {
     box-shadow: none;
     border-color: var(--qv-border);
+    transition: border-color 200ms ease-out, transform 200ms ease-out;
+  }
+
+  html.dark [data-slot="card"]:hover {
+    border-color: var(--qv-border-strong);
+    transform: translateY(-1px);
   }
 
   /* Light mode table header distinction */
