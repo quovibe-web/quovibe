@@ -318,6 +318,8 @@ export function SecurityEditor({
             <AttributesSection
               attributes={attributes}
               onChange={handleAttributesChange}
+              ticker={masterData.ticker}
+              instrumentType={detail?.instrumentType ?? undefined}
             />
 
             <TaxonomiesSection

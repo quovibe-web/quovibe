@@ -4,45 +4,84 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAttributeTypes } from '@/api/use-attribute-types';
+import { useResolveLogo } from '@/api/use-logo';
 import { resizeToPng } from '@/lib/image-utils';
 import { SectionHeader } from './SectionHeader';
 import type { SecurityAttribute } from '@/api/types';
+import type { InstrumentType } from '@quovibe/shared';
 
-function ImageField({ attr, onUpdate }: { attr: SecurityAttribute; onUpdate: (typeId: string, value: string) => void }) {
+function ImageField({
+  attr,
+  onUpdate,
+  onFetchLogo,
+}: {
+  attr: SecurityAttribute;
+  onUpdate: (typeId: string, value: string) => void;
+  onFetchLogo?: () => Promise<void>;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const { t } = useTranslation('securities');
   const { t: tCommon } = useTranslation('common');
   const hasImage = attr.value.startsWith('data:image');
+
+  async function handleFetch() {
+    if (!onFetchLogo) return;
+    setIsFetching(true);
+    setFetchError(null);
+    try {
+      await onFetchLogo();
+    } catch {
+      setFetchError(t('attributes.fetchLogoFailed'));
+    } finally {
+      setIsFetching(false);
+    }
+  }
+
   return (
-    <div className="flex items-center gap-2 flex-1">
-      {hasImage ? (
-        <img src={attr.value} alt={attr.typeName ?? ''} className="h-10 w-10 rounded-md object-contain border bg-muted" />
-      ) : (
-        <div className="h-10 w-10 rounded-md border bg-muted flex items-center justify-center text-muted-foreground text-xs">?</div>
-      )}
-      <button
-        type="button"
-        className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-        onClick={() => setTimeout(() => inputRef.current?.click(), 0)}
-      >
-        {hasImage ? t('attributes.change') : t('attributes.upload')}
-      </button>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={async e => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          try {
-            const dataUrl = await resizeToPng(file);
-            onUpdate(attr.typeId, dataUrl);
-          } catch {
-            toast.error(tCommon('toasts.imageTooLarge'));
-          }
-        }}
-      />
+    <div className="flex flex-col gap-1 flex-1">
+      <div className="flex items-center gap-2">
+        {hasImage ? (
+          <img src={attr.value} alt={attr.typeName ?? ''} className="h-10 w-10 rounded-md object-contain border bg-muted" />
+        ) : (
+          <div className="h-10 w-10 rounded-md border bg-muted flex items-center justify-center text-muted-foreground text-xs">?</div>
+        )}
+        <button
+          type="button"
+          className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+          onClick={() => setTimeout(() => inputRef.current?.click(), 0)}
+        >
+          {hasImage ? t('attributes.change') : t('attributes.upload')}
+        </button>
+        {onFetchLogo && (
+          <button
+            type="button"
+            disabled={isFetching}
+            className="text-xs text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-50"
+            onClick={handleFetch}
+          >
+            {isFetching ? t('attributes.fetchingLogo') : t('attributes.fetchLogo')}
+          </button>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={async e => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            try {
+              const dataUrl = await resizeToPng(file);
+              onUpdate(attr.typeId, dataUrl);
+            } catch {
+              toast.error(tCommon('toasts.imageTooLarge'));
+            }
+          }}
+        />
+      </div>
+      {fetchError && <p className="text-xs text-destructive">{fetchError}</p>}
     </div>
   );
 }
@@ -78,12 +117,15 @@ const HIDDEN_ATTRIBUTE_TYPE_IDS = new Set(['acquisitionFee', 'managementFee', 'a
 interface Props {
   attributes: SecurityAttribute[];
   onChange: (attributes: SecurityAttribute[]) => void;
+  ticker?: string;
+  instrumentType?: string | null;
 }
 
-export function AttributesSection({ attributes, onChange }: Props) {
+export function AttributesSection({ attributes, onChange, ticker, instrumentType }: Props) {
   const { t } = useTranslation('securities');
   const { data: types = [] } = useAttributeTypes();
   const [addingTypeId, setAddingTypeId] = useState('');
+  const resolveLogoMutation = useResolveLogo();
 
   const usedTypeIds = new Set(attributes.map(a => a.typeId));
   const availableTypes = types.filter(tp => !usedTypeIds.has(tp.id) && !HIDDEN_ATTRIBUTE_TYPE_IDS.has(tp.id));
@@ -120,7 +162,19 @@ export function AttributesSection({ attributes, onChange }: Props) {
             <div key={attr.typeId} className="flex items-center gap-2">
               <span className="text-sm w-32 shrink-0 font-medium">{attr.typeName}</span>
               {isImage ? (
-                <ImageField attr={attr} onUpdate={updateValue} />
+                (() => {
+                  const isLogoAttr = attr.typeId === 'logo';
+                  const onFetchLogo = isLogoAttr && ticker && instrumentType
+                    ? async () => {
+                        const { logoUrl } = await resolveLogoMutation.mutateAsync({
+                          ticker,
+                          instrumentType: instrumentType as InstrumentType,
+                        });
+                        updateValue(attr.typeId, logoUrl);
+                      }
+                    : undefined;
+                  return <ImageField attr={attr} onUpdate={updateValue} onFetchLogo={onFetchLogo} />;
+                })()
               ) : isPercentage ? (
                 <PercentageField value={attr.value} onUpdate={v => updateValue(attr.typeId, v)} />
               ) : (

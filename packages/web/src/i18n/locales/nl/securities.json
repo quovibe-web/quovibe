@@ -59,7 +59,10 @@
     "noAttributes": "Geen attributen toegewezen.",
     "addAttribute": "Nieuw attribuut toevoegen…",
     "change": "Wijzigen…",
-    "upload": "Uploaden…"
+    "upload": "Uploaden…",
+    "fetchLogo": "Logo ophalen",
+    "fetchingLogo": "Ophalen…",
+    "fetchLogoFailed": "Logo kon niet worden opgehaald"
   },
   "historicalQuotes": {
     "provider": "Provider",

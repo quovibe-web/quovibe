@@ -59,7 +59,10 @@
     "noAttributes": "Keine Attribute zugewiesen.",
     "addAttribute": "Neues Attribut hinzufügen…",
     "change": "Ändern…",
-    "upload": "Hochladen…"
+    "upload": "Hochladen…",
+    "fetchLogo": "Logo abrufen",
+    "fetchingLogo": "Wird abgerufen…",
+    "fetchLogoFailed": "Logo konnte nicht abgerufen werden"
   },
   "historicalQuotes": {
     "provider": "Anbieter",

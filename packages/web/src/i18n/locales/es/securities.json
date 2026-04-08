@@ -59,7 +59,10 @@
     "noAttributes": "Ningún atributo asignado.",
     "addAttribute": "Añadir nuevo atributo…",
     "change": "Cambiar…",
-    "upload": "Subir…"
+    "upload": "Subir…",
+    "fetchLogo": "Obtener logo",
+    "fetchingLogo": "Obteniendo…",
+    "fetchLogoFailed": "No se pudo obtener el logo"
   },
   "historicalQuotes": {
     "provider": "Proveedor",

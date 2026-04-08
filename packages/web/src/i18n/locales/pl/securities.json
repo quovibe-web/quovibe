@@ -59,7 +59,10 @@
     "noAttributes": "Brak przypisanych atrybutów.",
     "addAttribute": "Dodaj nowy atrybut…",
     "change": "Zmień…",
-    "upload": "Prześlij…"
+    "upload": "Prześlij…",
+    "fetchLogo": "Pobierz logo",
+    "fetchingLogo": "Pobieranie…",
+    "fetchLogoFailed": "Nie można pobrać logo"
   },
   "historicalQuotes": {
     "provider": "Dostawca",

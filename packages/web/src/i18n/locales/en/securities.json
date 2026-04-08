@@ -59,7 +59,10 @@
     "noAttributes": "No attributes assigned.",
     "addAttribute": "Add new attribute…",
     "change": "Change…",
-    "upload": "Upload…"
+    "upload": "Upload…",
+    "fetchLogo": "Fetch logo",
+    "fetchingLogo": "Fetching…",
+    "fetchLogoFailed": "Could not fetch logo"
   },
   "historicalQuotes": {
     "provider": "Provider",
