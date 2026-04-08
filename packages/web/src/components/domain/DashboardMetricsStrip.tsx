@@ -110,7 +110,7 @@ export function DashboardMetricsStrip({ metricIds, onMetricIdsChange }: MetricsS
                 'basis-1/2 md:basis-auto',
               )}
             >
-              <div className="text-[0.6rem] text-muted-foreground uppercase tracking-wider font-medium truncate">
+              <div className="text-[0.6rem] text-muted-foreground uppercase tracking-wider font-medium truncate" title={t(`widgetTypes.${id}`)}>
                 {t(`widgetTypes.${id}`)}
               </div>
               <div className={cn('text-lg font-semibold mt-0.5', resolved ? getColorClass(id, resolved.value) : undefined)}>

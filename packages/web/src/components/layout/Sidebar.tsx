@@ -8,6 +8,9 @@ import { DeleteTaxonomyDialog } from '../domain/DeleteTaxonomyDialog';
 import { apiFetch } from '@/api/fetch';
 import { taxonomyKeys } from '@/api/use-taxonomies';
 import { useReorderTaxonomy } from '@/api/use-taxonomy-mutations';
+import { useTheme } from '@/hooks/use-theme';
+import { useUpdateSettings } from '@/api/use-portfolio';
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import {
   LayoutDashboard,
   Landmark,
@@ -20,6 +23,9 @@ import {
   Settings,
   Menu,
   ExternalLink,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -463,6 +469,13 @@ interface SidebarDrawerProps {
 
 export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
   const { t } = useTranslation('navigation');
+  const { theme, setTheme } = useTheme();
+  const { mutate: updateSettings } = useUpdateSettings();
+
+  function handleTheme(next: 'light' | 'dark' | 'system') {
+    setTheme(next);
+    updateSettings({ theme: next });
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -487,6 +500,45 @@ export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
             ))}
           </nav>
         </ScrollArea>
+        {/* Theme + Language (mobile only — hidden from TopBar on small screens) */}
+        <div className="border-t border-border px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-1 rounded-full bg-muted p-0.5">
+            <button
+              onClick={() => handleTheme('light')}
+              className={cn(
+                'p-1.5 rounded-full transition-colors duration-150',
+                theme === 'light' ? 'bg-background text-primary' : 'text-muted-foreground hover:text-foreground'
+              )}
+              title={t('theme.light')}
+              aria-label={t('theme.light')}
+            >
+              <Sun className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleTheme('system')}
+              className={cn(
+                'p-1.5 rounded-full transition-colors duration-150',
+                theme === 'system' ? 'bg-background text-primary' : 'text-muted-foreground hover:text-foreground'
+              )}
+              title={t('theme.system')}
+              aria-label={t('theme.system')}
+            >
+              <Monitor className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleTheme('dark')}
+              className={cn(
+                'p-1.5 rounded-full transition-colors duration-150',
+                theme === 'dark' ? 'bg-background text-primary' : 'text-muted-foreground hover:text-foreground'
+              )}
+              title={t('theme.dark')}
+              aria-label={t('theme.dark')}
+            >
+              <Moon className="h-4 w-4" />
+            </button>
+          </div>
+          <LanguageSwitcher />
+        </div>
         <div className="border-t border-border px-4 py-3">
           <VersionBadge />
         </div>

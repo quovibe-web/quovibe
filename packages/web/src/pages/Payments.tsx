@@ -226,8 +226,7 @@ export default function Payments() {
           <FadeIn>
           {/* Section 0: Earnings Summary Card */}
           {data && (
-            <Card className="relative overflow-hidden" style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '0ms' }}>
-              <div className="absolute top-0 left-0 right-0 h-[3px] bg-primary opacity-80" />
+            <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '0ms' }}>
               <CardContent className="pt-6">
                 <div className="text-sm text-muted-foreground mb-1">
                   {t('payments.earningsChart')}

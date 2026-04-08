@@ -41,7 +41,7 @@ export default function Analytics() {
               cn(
                 'px-4 py-1.5 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
                 isActive
-                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground',
               )
             }
