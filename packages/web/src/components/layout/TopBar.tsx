@@ -52,11 +52,11 @@ function ToggleGroup() {
   }
 
   return (
-    <div className="flex items-center gap-0.5 rounded-lg bg-[var(--qv-surface-elevated)] p-0.5">
+    <div className="flex items-center gap-0.5 rounded-full bg-muted p-0.5">
       <button
         onClick={handlePrivacy}
         className={cn(
-          'p-1.5 rounded-md transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+          'p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           isPrivate
             ? 'bg-card text-foreground'
             : 'text-muted-foreground hover:text-foreground'
@@ -69,7 +69,7 @@ function ToggleGroup() {
       <button
         onClick={() => handleTheme('light')}
         className={cn(
-          'p-1.5 rounded-md transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+          'p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           theme === 'light'
             ? 'bg-card text-primary'
             : 'text-muted-foreground hover:text-foreground'
@@ -82,7 +82,7 @@ function ToggleGroup() {
       <button
         onClick={() => handleTheme('system')}
         className={cn(
-          'p-1.5 rounded-md transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+          'p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           theme === 'system'
             ? 'bg-card text-primary'
             : 'text-muted-foreground hover:text-foreground'
@@ -95,7 +95,7 @@ function ToggleGroup() {
       <button
         onClick={() => handleTheme('dark')}
         className={cn(
-          'p-1.5 rounded-md transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+          'p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           theme === 'dark'
             ? 'bg-card text-primary'
             : 'text-muted-foreground hover:text-foreground'
@@ -233,7 +233,7 @@ function PeriodSelector() {
             variant="ghost"
             size="sm"
             className={cn(
-              'h-7 px-2.5 text-xs font-medium rounded-md',
+              'h-7 px-2.5 text-xs font-medium rounded-full',
               PERIOD_PILL,
               isPeriodActive(d.resolved) && PERIOD_PILL_ACTIVE,
             )}
@@ -249,7 +249,7 @@ function PeriodSelector() {
             variant="ghost"
             size="sm"
             className={cn(
-              'h-7 px-2.5 text-xs font-medium rounded-md',
+              'h-7 px-2.5 text-xs font-medium rounded-full',
               PERIOD_PILL,
               isAllActive && PERIOD_PILL_ACTIVE,
             )}
@@ -269,7 +269,7 @@ function PeriodSelector() {
             variant="ghost"
             size="sm"
             className={cn(
-              'h-7 px-2.5 text-xs font-medium rounded-md max-w-[160px] truncate',
+              'h-7 px-2.5 text-xs font-medium rounded-full max-w-[160px] truncate',
               PERIOD_PILL,
               isPeriodActive(p.resolved) && PERIOD_PILL_ACTIVE,
             )}
