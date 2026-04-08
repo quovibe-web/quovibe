@@ -147,8 +147,14 @@ const FUND_FAMILY_DOMAINS: Record<string, string> = {
 export function findFundDomain(family?: string, shortName?: string): string | undefined {
   if (family) {
     const normalized = family.toLowerCase();
-    const domain = FUND_FAMILY_DOMAINS[normalized];
-    if (domain) return domain;
+    // Exact match first (e.g. family = "iShares" → key 'ishares')
+    const exact = FUND_FAMILY_DOMAINS[normalized];
+    if (exact) return exact;
+    // Prefix scan: family may be more verbose than the key
+    // (e.g. "Avantis Investors" starts with key 'avantis')
+    for (const [key, domain] of Object.entries(FUND_FAMILY_DOMAINS)) {
+      if (normalized.startsWith(key)) return domain;
+    }
   }
   if (shortName) {
     const normalized = shortName.toLowerCase();

@@ -45,6 +45,12 @@ describe('findFundDomain', () => {
     expect(findFundDomain(undefined, 'Arkema S.A. ETF')).toBeUndefined();
     expect(findFundDomain(undefined, 'ARK Innovation ETF')).toBe('ark-invest.com');
   });
+
+  it('matches verbose family names via prefix scan (e.g. "Avantis Investors" → avantis key)', () => {
+    expect(findFundDomain('Avantis Investors')).toBe('avantisinvestors.com');
+    expect(findFundDomain('Dimensional Fund Advisors')).toBe('dimensional.com');
+    expect(findFundDomain('iShares by BlackRock')).toBe('ishares.com');
+  });
 });
 
 describe('resolveLogo', () => {
