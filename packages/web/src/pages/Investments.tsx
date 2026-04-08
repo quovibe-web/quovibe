@@ -10,6 +10,7 @@ import { FadeIn } from '@/components/shared/FadeIn';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SummaryStrip } from '@/components/shared/SummaryStrip';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { TaxonomyChart } from '@/components/domain/TaxonomyChart';
 import { SecurityEditor, type EditorSection } from '@/components/domain/SecurityEditor';
 import { SecurityDrawer } from '@/components/domain/SecurityDrawer';
@@ -339,22 +340,11 @@ export default function Investments() {
         subtitle={t('subtitle')}
         actions={<>
           {/* Chart mode toggle */}
-          <div className="flex gap-0.5 bg-muted rounded-full p-0.5">
-            {chartModes.map(m => (
-              <button
-                key={m.value}
-                onClick={() => setChartMode(m.value)}
-                className={cn(
-                  'px-3 py-1 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-                  chartMode === m.value
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            segments={chartModes}
+            value={chartMode}
+            onChange={setChartMode}
+          />
           <Separator orientation="vertical" className="h-6" />
           <Button onClick={handleFetchAll} disabled={fetchAll.isPending}>
             {fetchAll.isPending ? tSecurities('actions.updating') : tSecurities('actions.updatePrices')}

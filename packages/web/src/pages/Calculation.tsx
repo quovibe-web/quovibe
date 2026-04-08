@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePortfolio } from '@/api/use-portfolio';
-import { cn } from '@/lib/utils';
 import { CostMethod } from '@quovibe/shared';
 import { WidgetConfigProvider } from '@/context/widget-config-context';
 import { CalculationBreakdownCard } from '@/components/domain/CalculationBreakdownCard';
 import { FadeIn } from '@/components/shared/FadeIn';
+import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { useAnalyticsContext } from '@/context/analytics-context';
 
 export default function Calculation() {
@@ -30,54 +30,22 @@ export default function Calculation() {
   useEffect(() => {
     setActions(
       <div className="flex items-center gap-3">
-        <div className="inline-flex rounded-full border border-border bg-muted/50 p-0.5">
-          <button
-            className={cn(
-              'px-3 py-1 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-              costMethod === CostMethod.FIFO
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-            onClick={() => setCostMethod(CostMethod.FIFO)}
-          >
-            {t('calculation.costMethodFifo')}
-          </button>
-          <button
-            className={cn(
-              'px-3 py-1 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-              costMethod === CostMethod.MOVING_AVERAGE
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-            onClick={() => setCostMethod(CostMethod.MOVING_AVERAGE)}
-          >
-            {t('calculation.costMethodMa')}
-          </button>
-        </div>
-        <div className="inline-flex rounded-full border border-border bg-muted/50 p-0.5">
-          <button
-            className={cn(
-              'px-3 py-1 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-              preTax
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-            onClick={() => setPreTax(true)}
-          >
-            {t('calculation.preTax')}
-          </button>
-          <button
-            className={cn(
-              'px-3 py-1 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-              !preTax
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-            onClick={() => setPreTax(false)}
-          >
-            {t('calculation.afterTax')}
-          </button>
-        </div>
+        <SegmentedControl
+          segments={[
+            { value: CostMethod.FIFO, label: t('calculation.costMethodFifo') },
+            { value: CostMethod.MOVING_AVERAGE, label: t('calculation.costMethodMa') },
+          ]}
+          value={costMethod}
+          onChange={setCostMethod}
+        />
+        <SegmentedControl
+          segments={[
+            { value: 'pretax', label: t('calculation.preTax') },
+            { value: 'aftertax', label: t('calculation.afterTax') },
+          ]}
+          value={preTax ? 'pretax' : 'aftertax'}
+          onChange={(v) => setPreTax(v === 'pretax')}
+        />
       </div>
     );
   }, [costMethod, preTax, t, setActions]);

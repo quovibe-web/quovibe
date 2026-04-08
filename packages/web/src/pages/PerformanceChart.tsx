@@ -9,6 +9,7 @@ import {
   type ISeriesApi, type SeriesType,
 } from 'lightweight-charts';
 import { Button } from '@/components/ui/button';
+import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { usePerformanceChart, useReportingPeriod, useCalculation } from '@/api/use-performance';
 import { ChartSummaryBar } from '@/components/domain/ChartSummaryBar';
 import { useChartSeries } from '@/api/use-chart-series';
@@ -179,30 +180,14 @@ export default function PerformanceChart() {
   useEffect(() => {
     setActions(
       <>
-        <div className="inline-flex bg-muted rounded-full p-0.5">
-          <button
-            className={cn(
-              'px-3 py-1 text-xs font-medium rounded-full transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-              ttwrorMode === 'cumulative'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-            onClick={() => setTtwrorMode('cumulative')}
-          >
-            {t('chart.cumulative')}
-          </button>
-          <button
-            className={cn(
-              'px-3 py-1 text-xs font-medium rounded-full transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-              ttwrorMode === 'annualized'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-            onClick={() => setTtwrorMode('annualized')}
-          >
-            {t('chart.annualizedPa')}
-          </button>
-        </div>
+        <SegmentedControl
+          segments={[
+            { value: 'cumulative', label: t('chart.cumulative') },
+            { value: 'annualized', label: t('chart.annualizedPa') },
+          ]}
+          value={ttwrorMode}
+          onChange={setTtwrorMode}
+        />
         <ChartExportButton
           chartRef={chartContainerRef}
           filename={`performance-chart-${periodStart}-to-${periodEnd}`}

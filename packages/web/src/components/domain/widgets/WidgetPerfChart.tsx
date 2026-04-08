@@ -17,6 +17,7 @@ import { buildSeriesOptions } from '@/lib/chart-series-factory';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
+import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
 import { useWidgetToolbarPortal } from '@/components/domain/WidgetShell';
 
@@ -155,41 +156,16 @@ export default function WidgetPerfChart() {
   const toolbarElement = (
     <>
       {/* Metric toggle: MV / Cumulative / p.a. */}
-      <div className="inline-flex rounded-full border border-border bg-muted/50 p-0.5">
-        <button
-          className={cn(
-            'px-2 py-0.5 text-[10px] font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-            metric === 'mv'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground',
-          )}
-          onClick={() => setMetric('mv')}
-        >
-          MV
-        </button>
-        <button
-          className={cn(
-            'px-2 py-0.5 text-[10px] font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-            metric === 'ttwror'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground',
-          )}
-          onClick={() => setMetric('ttwror')}
-        >
-          {t('chart.cumulative')}
-        </button>
-        <button
-          className={cn(
-            'px-2 py-0.5 text-[10px] font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-            metric === 'ttwrorPa'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground',
-          )}
-          onClick={() => setMetric('ttwrorPa')}
-        >
-          {t('chart.annualizedPa')}
-        </button>
-      </div>
+      <SegmentedControl
+        segments={[
+          { value: 'mv', label: 'MV' },
+          { value: 'ttwror', label: t('chart.cumulative') },
+          { value: 'ttwrorPa', label: t('chart.annualizedPa') },
+        ]}
+        value={metric}
+        onChange={setMetric}
+        size="sm"
+      />
       <ChartToolbar
         chartId={CHART_ID}
         activeType={chartType}
