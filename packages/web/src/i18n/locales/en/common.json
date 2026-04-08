@@ -56,7 +56,8 @@
     "savedPrices": "Saved {{count}} prices.",
     "accountDeleted": "Account deleted",
     "securityDeleted": "Security deleted",
-    "imageTooLarge": "Image too large (max 5 MB)"
+    "imageTooLarge": "Image too large (max 5 MB)",
+    "logoNotFound": "Logo not found — you can upload one manually."
   },
   "deleteConfirm": {
     "title": "Confirm deletion",

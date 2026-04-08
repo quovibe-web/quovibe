@@ -56,7 +56,8 @@
     "savedPrices": "Salvati {{count}} prezzi.",
     "accountDeleted": "Conto eliminato",
     "securityDeleted": "Titolo eliminato",
-    "imageTooLarge": "Immagine troppo grande (max 5 MB)"
+    "imageTooLarge": "Immagine troppo grande (max 5 MB)",
+    "logoNotFound": "Logo non trovato — puoi caricarlo manualmente."
   },
   "deleteConfirm": {
     "title": "Conferma eliminazione",

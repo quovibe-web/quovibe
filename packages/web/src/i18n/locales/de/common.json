@@ -56,7 +56,8 @@
     "savedPrices": "{{count}} Kurse gespeichert.",
     "accountDeleted": "Konto gelöscht",
     "securityDeleted": "Wertpapier gelöscht",
-    "imageTooLarge": "Bild zu groß (max. 5 MB)"
+    "imageTooLarge": "Bild zu groß (max. 5 MB)",
+    "logoNotFound": "Logo nicht gefunden — Sie können es manuell hochladen."
   },
   "deleteConfirm": {
     "title": "Löschen bestätigen",

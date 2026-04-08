@@ -24,6 +24,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useSecuritySearch, usePreviewPrices, useCreateSecurity, useSecurities } from '@/api/use-securities';
 import { apiFetch } from '@/api/fetch';
+import { useResolveLogo } from '@/api/use-logo';
 import { useDebounce } from '@/hooks/use-debounce';
 import { InstrumentSearch } from './InstrumentSearch';
 import { InstrumentResultsList } from './InstrumentResultsList';
@@ -45,6 +46,7 @@ export function AddInstrumentDialog({
   onCreateEmpty,
 }: AddInstrumentDialogProps) {
   const { t } = useTranslation('securities');
+  const { t: tCommon } = useTranslation('common');
   const queryClient = useQueryClient();
   const { data: existingSecurities = [] } = useSecurities();
 
@@ -80,6 +82,7 @@ export function AddInstrumentDialog({
 
   // ─── Create mutation ─────────────────────────────────────────────────────────
   const createSecurity = useCreateSecurity();
+  const resolveLogoMutation = useResolveLogo();
 
   // ─── Derived state ───────────────────────────────────────────────────────────
   const isSearching = debouncedQuery.length >= 2 && isSearchFetching;
@@ -199,6 +202,20 @@ export function AddInstrumentDialog({
       toast.success(t('addInstrument.successNamed', { name: selectedResult.name }));
       onOpenChange(false);
       onCreated?.(newId);
+
+      // Background logo fetch — non-blocking, captured before async close
+      const secId = newId;
+      const instrType = selectedResult.type; // InstrumentType enum value
+      const ticker = selectedResult.symbol;
+      void resolveLogoMutation.mutateAsync({ ticker, instrumentType: instrType })
+        .then(({ logoUrl }) =>
+          apiFetch(`/api/securities/${secId}/attributes`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ attributes: [{ typeId: 'logo', value: logoUrl }] }),
+          }),
+        )
+        .catch(() => toast.warning(tCommon('toasts.logoNotFound')));
     } catch (e) {
       if (!openRef.current) return;
       setSaveError(e instanceof Error ? e.message : t('addInstrument.error'));
