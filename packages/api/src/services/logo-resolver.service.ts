@@ -2,6 +2,47 @@ import type { LogoResolveRequest } from '@quovibe/shared';
 
 const TIMEOUT_MS = 8_000;
 
+// Lowercase keys for case-insensitive lookup. Values are bare domains (no scheme).
+const FUND_FAMILY_DOMAINS: Record<string, string> = {
+  'ishares': 'ishares.com',
+  'vanguard': 'vanguard.com',
+  'spdr': 'ssga.com',
+  'invesco': 'invesco.com',
+  'amundi': 'amundi.com',
+  'xtrackers': 'dws.com',
+  'dws': 'dws.com',
+  'lyxor': 'amundi.com',
+  'wisdomtree': 'wisdomtree.com',
+  'vaneck': 'vaneck.com',
+  'schwab': 'schwab.com',
+  'fidelity': 'fidelity.com',
+  'jpmorgan': 'jpmorgan.com',
+  'pimco': 'pimco.com',
+  'ark': 'ark-invest.com',
+  'global x': 'globalxetfs.com',
+  'franklin': 'franklintempleton.com',
+  'proshares': 'proshares.com',
+  'direxion': 'direxion.com',
+  'bnp paribas': 'bnpparibas-am.com',
+  'hsbc': 'hsbc.com',
+  'ubs': 'ubs.com',
+};
+
+export function _testOnly_findFundDomain(family?: string, shortName?: string): string | undefined {
+  if (family) {
+    const normalized = family.toLowerCase();
+    const domain = FUND_FAMILY_DOMAINS[normalized];
+    if (domain) return domain;
+  }
+  if (shortName) {
+    const normalized = shortName.toLowerCase();
+    for (const [key, domain] of Object.entries(FUND_FAMILY_DOMAINS)) {
+      if (normalized.startsWith(key)) return domain;
+    }
+  }
+  return undefined;
+}
+
 async function fetchToBase64(url: string): Promise<string> {
   const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}`);
