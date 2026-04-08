@@ -18,7 +18,7 @@ const FUND_FAMILY_DOMAINS: Record<string, string> = {
   'fidelity': 'fidelity.com',
   'jpmorgan': 'jpmorgan.com',
   'pimco': 'pimco.com',
-  'ark': 'ark-invest.com',
+  'ark ': 'ark-invest.com',
   'global x': 'globalxetfs.com',
   'franklin': 'franklintempleton.com',
   'proshares': 'proshares.com',

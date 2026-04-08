@@ -40,6 +40,11 @@ describe('findFundDomain', () => {
   it('returns undefined when both family and shortName are undefined', () => {
     expect(findFundDomain(undefined, undefined)).toBeUndefined();
   });
+
+  it('does not false-match ETF shortNames that start with "ark" but are not ARK Invest', () => {
+    expect(findFundDomain(undefined, 'Arkema S.A. ETF')).toBeUndefined();
+    expect(findFundDomain(undefined, 'ARK Innovation ETF')).toBe('ark-invest.com');
+  });
 });
 
 describe('resolveLogo', () => {
