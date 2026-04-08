@@ -559,11 +559,15 @@ export default function Dashboard() {
       </div>
 
       {/* ── Hero + Metrics Strip ── */}
-      <DashboardHero />
-      <DashboardMetricsStrip
-        metricIds={activeDash.metricsStripIds}
-        onMetricIdsChange={updateMetricsStripIds}
-      />
+      <div style={{ animation: 'qv-stagger-in 0.4s ease-out both' }}>
+        <DashboardHero />
+      </div>
+      <div style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '80ms' }}>
+        <DashboardMetricsStrip
+          metricIds={activeDash.metricsStripIds}
+          onMetricIdsChange={updateMetricsStripIds}
+        />
+      </div>
       <div className="border-b border-border" />
 
       {/* ── Widget zones ── */}
@@ -581,7 +585,7 @@ export default function Dashboard() {
           {/* Charts zone */}
           {chartWidgets.length > 0 && (
             <SortableContext items={chartIds} strategy={rectSortingStrategy}>
-              <div className="space-y-4">
+              <div className="space-y-4" style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '160ms' }}>
                 {chartWidgets.map((widget, i) => (
                   <SortableWidget
                     key={widget.id}
@@ -601,7 +605,7 @@ export default function Dashboard() {
             <SortableContext items={detailIds} strategy={rectSortingStrategy}>
               <div
                 className="grid gap-2 qv-dashboard-grid"
-                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))' }}
+                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))', animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '240ms' }}
               >
                 {detailWidgets.map((widget, i) => (
                   <SortableWidget
