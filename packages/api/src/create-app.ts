@@ -23,6 +23,7 @@ import { settingsRouter } from './routes/settings';
 import { dashboardRouter } from './routes/dashboard';
 import { csvImportRouter } from './routes/csv-import';
 import { watchlistsRouter } from './routes/watchlists';
+import { logoRouter } from './routes/logo';
 
 export function createApp(
   db: BetterSQLite3Database<Record<string, unknown>>,
@@ -84,6 +85,7 @@ export function createApp(
   app.use('/api/settings', settingsRouter);
   app.use('/api/dashboard', dashboardRouter);
   app.use('/api/watchlists', watchlistsRouter);
+  app.use('/api/logo', logoRouter);
 
   // Error handler must be last
   app.use(errorHandler as ErrorRequestHandler);
