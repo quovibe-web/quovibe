@@ -4,7 +4,9 @@ const TIMEOUT_MS = 8_000;
 
 function withTimeout(): AbortSignal {
   const controller = new AbortController();
-  setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  // Clear timer if signal is aborted externally before timeout fires
+  controller.signal.addEventListener('abort', () => clearTimeout(timer), { once: true });
   return controller.signal;
 }
 
@@ -25,18 +27,15 @@ async function fetchByDomain(domain: string): Promise<string> {
   return fetchToBase64(`https://www.google.com/s2/favicons?domain=${domain}&sz=128`);
 }
 
-interface YfInstance {
-  quoteSummary(ticker: string, opts: { modules: string[] }): Promise<{ assetProfile?: { website?: string } }>;
-}
-
-async function getYf(): Promise<YfInstance> {
-  const mod = await import('yahoo-finance2');
-  const YahooFinance = (mod as unknown as { default?: new () => YfInstance }).default ?? (mod as unknown as new () => YfInstance);
+function getYf() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const mod = require('yahoo-finance2');
+  const YahooFinance = mod.default ?? mod;
   return new YahooFinance();
 }
 
 async function resolveEquity(ticker: string): Promise<string> {
-  const yf = await getYf();
+  const yf = getYf();
   const summary = await yf.quoteSummary(ticker, { modules: ['assetProfile'] });
   const website = summary.assetProfile?.website;
   if (!website) throw new Error(`No website for ${ticker}`);

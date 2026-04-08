@@ -5,7 +5,7 @@ export const logoResolveSchema = z
   .object({
     ticker: z.string().min(1).optional(),
     instrumentType: z.nativeEnum(InstrumentType).optional(),
-    isin: z.string().min(1).optional(),
+    isin: z.string().min(1).optional(), // reserved for future ISIN-based logo lookup
     domain: z.string().min(1).optional(),
   })
   .refine(
