@@ -339,13 +339,13 @@ export default function Investments() {
         subtitle={t('subtitle')}
         actions={<>
           {/* Chart mode toggle */}
-          <div className="flex gap-0.5 bg-muted rounded-md p-0.5">
+          <div className="flex gap-0.5 bg-muted rounded-full p-0.5">
             {chartModes.map(m => (
               <button
                 key={m.value}
                 onClick={() => setChartMode(m.value)}
                 className={cn(
-                  'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+                  'px-3 py-1 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
                   chartMode === m.value
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
