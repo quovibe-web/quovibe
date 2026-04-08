@@ -96,7 +96,7 @@
   },
   "chart": {
     "title": "Graphique de performance",
-    "subtitle": "Market value and time-weighted return over time",
+    "subtitle": "Time-weighted return over time",
     "marketValueAndTtwror": "Valeur de marché & TTWROR",
     "marketValue": "Valeur de marché",
     "ttwror": "TTWROR",

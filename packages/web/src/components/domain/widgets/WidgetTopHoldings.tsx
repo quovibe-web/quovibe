@@ -2,11 +2,13 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useHoldings } from '@/api/use-reports';
 import { usePerformanceSecurities } from '@/api/use-performance';
+import { useSecurities } from '@/api/use-securities';
 import { usePrivacy } from '@/context/privacy-context';
 import { useWidgetKpiMeta } from '@/hooks/use-widget-kpi-meta';
 import { useWidgetConfig } from '@/context/widget-config-context';
 import { useReportingPeriod } from '@/api/use-performance';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
+import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
 import { FadeIn } from '@/components/shared/FadeIn';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -19,12 +21,14 @@ const TOP_N = 5;
 function HoldingRow({
   rank,
   item,
+  logoUrl,
   ttwror,
   isPrivate,
   onClick,
 }: {
   rank: number;
   item: HoldingsItem;
+  logoUrl: string | null | undefined;
   ttwror: string | undefined;
   isPrivate: boolean;
   onClick: () => void;
@@ -54,6 +58,9 @@ function HoldingRow({
       <span className="w-4 shrink-0 text-[11px] font-semibold text-muted-foreground tabular-nums text-center">
         {rank}
       </span>
+
+      {/* Logo */}
+      <SecurityAvatar name={item.name} logoUrl={logoUrl} size="sm" />
 
       {/* Name + weight bar */}
       <div className="flex-1 min-w-0">
@@ -110,8 +117,15 @@ export default function WidgetTopHoldings() {
 
   const { data: holdingsData, isLoading: holdingsLoading, isError: holdingsError } = useHoldings(periodEnd);
   const { data: perfData, isLoading: perfLoading } = usePerformanceSecurities({ periodStart, periodEnd });
+  const { data: securities = [] } = useSecurities();
 
   const isLoading = holdingsLoading || perfLoading;
+
+  // Build logo lookup (already cached by React Query — no extra network call)
+  const logoMap = new Map<string, string>();
+  for (const s of securities) {
+    if (s.logoUrl) logoMap.set(s.id, s.logoUrl);
+  }
 
   // Build TTWROR lookup
   const perfMap = new Map<string, string>();
@@ -160,6 +174,7 @@ export default function WidgetTopHoldings() {
             key={item.securityId}
             rank={index + 1}
             item={item}
+            logoUrl={logoMap.get(item.securityId)}
             ttwror={perfMap.get(item.securityId)}
             isPrivate={isPrivate}
             onClick={() => navigate(`/investments/${item.securityId}`)}

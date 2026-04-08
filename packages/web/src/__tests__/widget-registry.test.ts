@@ -3,8 +3,8 @@ import { nanoid } from 'nanoid';
 import { WIDGET_REGISTRY } from '../lib/widget-registry';
 
 describe('WIDGET_REGISTRY', () => {
-  it('has 25 registered widget types', () => {
-    expect(WIDGET_REGISTRY).toHaveLength(25);
+  it('has 26 registered widget types', () => {
+    expect(WIDGET_REGISTRY).toHaveLength(26);
   });
 
   it('every type is unique', () => {

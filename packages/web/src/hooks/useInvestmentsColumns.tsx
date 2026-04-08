@@ -5,6 +5,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { SecurityListItem, StatementSecurityEntry, SecurityPerfResponse } from '@/api/types';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { SharesDisplay } from '@/components/shared/SharesDisplay';
+import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -13,6 +14,7 @@ import { formatDate, formatPercentage } from '@/lib/formatters';
 import { usePrivacy } from '@/context/privacy-context';
 import { COLORS } from '@/lib/colors';
 import { textColumnMeta, currencyColumnMeta, percentColumnMeta, sharesColumnMeta, dateColumnMeta } from '@/lib/column-factories';
+import { cn } from '@/lib/utils';
 
 interface UseInvestmentsColumnsParams {
   statementMap: Map<string, StatementSecurityEntry>;
@@ -43,24 +45,7 @@ export function useInvestmentsColumns({
 
   return useMemo(() => {
     const columns: ColumnDef<SecurityListItem>[] = [
-      // ── Logo ──
-      {
-        id: 'logo',
-        header: '',
-        size: 36,
-        minSize: 36,
-        maxSize: 36,
-        enableSorting: false,
-        meta: { locked: true, sticky: 'left' },
-        cell: ({ row }) => {
-          const logo = logoMap.get(row.original.id);
-          return logo
-            ? <img src={logo} alt="" className="h-6 w-6 rounded-md object-contain" />
-            : <div className="h-6 w-6" />;
-        },
-      },
-
-      // ── Name (sticky for horizontal scroll) ──
+      // ── Name (sticky, with inline logo) ──
       {
         accessorKey: 'name',
         ...textColumnMeta({ priority: 'high' }),
@@ -71,8 +56,13 @@ export function useInvestmentsColumns({
         enableSorting: true,
         meta: { align: 'left', dataType: 'text', sticky: 'left', priority: 'high' },
         cell: ({ row }) => (
-          <div className="truncate">
-            <span className={row.original.isRetired ? 'text-muted-foreground' : 'font-medium'}>
+          <div className="flex items-center gap-2 min-w-0">
+            <SecurityAvatar
+              name={row.original.name ?? ''}
+              logoUrl={logoMap.get(row.original.id)}
+              size="sm"
+            />
+            <span className={cn('truncate', row.original.isRetired ? 'text-muted-foreground' : 'font-medium')}>
               {row.original.name}
               {row.original.isRetired && (
                 <span className="ml-2 text-xs">{tCommon('retired')}</span>

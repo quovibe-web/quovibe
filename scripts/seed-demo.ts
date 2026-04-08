@@ -1,7 +1,7 @@
 /**
  * seed-demo.ts — Generate a screenshot-ready demo database.
  * Usage: npx tsx scripts/seed-demo.ts
- * Output: data/demo.db + data/demo.settings.json
+ * Output: data/demo.db + data/demo.settings.json (also copied to portfolio.db + quovibe.settings.json)
  */
 import Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
@@ -30,9 +30,18 @@ function shares8(n: number): number { return Math.round(n * 1e8); }
 function price8(p: number): number { return Math.round(p * 1e8); }
 function ts(): string { return new Date().toISOString(); }
 function fmtDate(d: Date): string { return format(d, 'yyyy-MM-dd'); }
+
+// Seeded PRNG (mulberry32) for reproducible price generation
+let _seed = 0xDE4D4A7A;
+function seededRandom(): number {
+  _seed |= 0; _seed = _seed + 0x6D2B79F5 | 0;
+  let t = Math.imul(_seed ^ (_seed >>> 15), 1 | _seed);
+  t = t + Math.imul(t ^ (t >>> 7), 61 | t) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
 function gaussRandom(mean = 0, stddev = 1): number {
-  const u1 = Math.random();
-  const u2 = Math.random();
+  const u1 = seededRandom();
+  const u2 = seededRandom();
   return mean + stddev * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
 }
 function tradingDays(start: Date, end: Date): Date[] {
@@ -105,6 +114,7 @@ CREATE TABLE latest_price(
   security VARCHAR(36) NOT NULL REFERENCES security(uuid),
   tstamp VARCHAR(32) NOT NULL,
   value BIGINT NOT NULL,
+  open BIGINT,
   high BIGINT,
   low BIGINT,
   volume BIGINT
@@ -113,6 +123,7 @@ CREATE TABLE price(
   security VARCHAR(36) NOT NULL REFERENCES security(uuid),
   tstamp VARCHAR(32) NOT NULL,
   value BIGINT NOT NULL,
+  open BIGINT,
   high BIGINT,
   low BIGINT,
   volume BIGINT
@@ -272,11 +283,11 @@ const insertAccount = db.prepare(`
 `);
 
 db.transaction(() => {
-  insertAccount.run(IB_CASH_ID, 'deposit', 'Interactive Brokers (Cash)', null, 'EUR', null, now, nextXmlId(), nextOrder());
+  insertAccount.run(IB_CASH_ID, 'account', 'Interactive Brokers (Cash)', null, 'EUR', null, now, nextXmlId(), nextOrder());
   insertAccount.run(IB_SEC_ID, 'portfolio', 'Interactive Brokers (Securities)', IB_CASH_ID, null, null, now, nextXmlId(), nextOrder());
-  insertAccount.run(SC_CASH_ID, 'deposit', 'Scalable Capital (Cash)', null, 'EUR', null, now, nextXmlId(), nextOrder());
+  insertAccount.run(SC_CASH_ID, 'account', 'Scalable Capital (Cash)', null, 'EUR', null, now, nextXmlId(), nextOrder());
   insertAccount.run(SC_SEC_ID, 'portfolio', 'Scalable Capital (Securities)', SC_CASH_ID, null, null, now, nextXmlId(), nextOrder());
-  insertAccount.run(CASH_RESERVE_ID, 'deposit', 'Cash Reserve', null, 'EUR', 'Emergency fund & savings', now, nextXmlId(), nextOrder());
+  insertAccount.run(CASH_RESERVE_ID, 'account', 'Cash Reserve', null, 'EUR', 'Emergency fund & savings', now, nextXmlId(), nextOrder());
 })();
 
 console.log('[Accounts] 5 accounts inserted');
@@ -374,7 +385,13 @@ console.log(`[Securities] ${ALL_SECURITIES.length} securities inserted`);
 // 5. Price Generation
 // ---------------------------------------------------------------------------
 const PRICE_START = new Date('2024-01-02');
-const PRICE_END = new Date('2026-04-07');
+// Use yesterday as the price end so the DB always covers up to the most recent completed trading day
+const PRICE_END = (() => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  while (isWeekend(d)) d.setDate(d.getDate() - 1);
+  return d;
+})();
 const allTradingDays = tradingDays(PRICE_START, PRICE_END);
 const numDays = allTradingDays.length;
 
@@ -382,12 +399,12 @@ const numDays = allTradingDays.length;
 const priceHistory = new Map<string, Map<string, number>>();
 
 const insertPrice = db.prepare(`
-  INSERT INTO price(security, tstamp, value, high, low, volume)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT INTO price(security, tstamp, value, open, high, low, volume)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
 `);
 const insertLatestPrice = db.prepare(`
-  INSERT INTO latest_price(security, tstamp, value, high, low, volume)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT INTO latest_price(security, tstamp, value, open, high, low, volume)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
 `);
 
 db.transaction(() => {
@@ -407,12 +424,13 @@ db.transaction(() => {
       const dateStr = fmtDate(day);
       secPrices.set(dateStr, price);
 
-      // high/low: +/- 1-2% from close
-      const high = Math.round((price * (1 + Math.random() * 0.02)) * 100) / 100;
-      const low = Math.round((price * (1 - Math.random() * 0.02)) * 100) / 100;
-      const volume = Math.round(100000 + Math.random() * 5000000);
+      // open: ±0.5% from close; high/low: +/- 1-2% from close
+      const open = Math.round((price * (1 + (seededRandom() - 0.5) * 0.01)) * 100) / 100;
+      const high = Math.round((price * (1 + seededRandom() * 0.02)) * 100) / 100;
+      const low = Math.round((price * (1 - seededRandom() * 0.02)) * 100) / 100;
+      const volume = Math.round(100000 + seededRandom() * 5000000);
 
-      insertPrice.run(sec.uuid, dateStr, price8(price), price8(high), price8(low), volume);
+      insertPrice.run(sec.uuid, dateStr, price8(price), price8(open), price8(high), price8(low), volume);
     }
 
     priceHistory.set(sec.uuid, secPrices);
@@ -420,10 +438,11 @@ db.transaction(() => {
     // Latest price = last trading day
     const lastDay = fmtDate(allTradingDays[allTradingDays.length - 1]);
     const lastPrice = secPrices.get(lastDay)!;
+    const lastOpen = Math.round((lastPrice * 0.995) * 100) / 100;
     const lastHigh = Math.round((lastPrice * 1.01) * 100) / 100;
     const lastLow = Math.round((lastPrice * 0.99) * 100) / 100;
-    insertLatestPrice.run(sec.uuid, lastDay, price8(lastPrice), price8(lastHigh), price8(lastLow),
-      Math.round(200000 + Math.random() * 3000000));
+    insertLatestPrice.run(sec.uuid, lastDay, price8(lastPrice), price8(lastOpen), price8(lastHigh), price8(lastLow),
+      Math.round(200000 + seededRandom() * 3000000));
   }
 })();
 
@@ -509,10 +528,12 @@ console.log('[Deposits] 21 deposit transactions inserted');
 // ---------------------------------------------------------------------------
 function insertBuy(
   portfolioId: string, depositId: string, secDef: SecurityDef,
-  dateStr: string, sharesCount: number, feeEur: number, note: string | null
+  dateStr: string, sharesCount: number, note: string | null
 ): void {
   const priceAtDate = lookupPrice(secDef.uuid, dateStr);
   const totalAmount = sharesCount * priceAtDate;
+  // Realistic brokerage fee: 0.15% of trade value, min €2.95, rounded to 2dp
+  const feeEur = Math.round(Math.max(2.95, totalAmount * 0.0015) * 100) / 100;
   const feeHecto = hecto(feeEur);
 
   // Securities-side xact
@@ -522,6 +543,8 @@ function insertBuy(
     hecto(totalAmount), secDef.uuid, shares8(sharesCount),
     note, now, 'BUY', feeHecto, 0, nextXmlId(), nextOrder()
   );
+  // FEE unit so getFees(tx) picks it up in Cost & Tax Drag
+  insertXactUnit.run(secSideUuid, 'FEE', feeHecto);
 
   // Cash-side xact (same security, shares=0, fees=0, taxes=0)
   const cashSideUuid = randomUUID();
@@ -547,37 +570,37 @@ db.transaction(() => {
       }
       const dateStr = fmtDate(day);
 
-      insertBuy(IB_SEC_ID, IB_CASH_ID, VWCE, dateStr, 5, 3, 'Monthly DCA');
-      insertBuy(IB_SEC_ID, IB_CASH_ID, IWDA, dateStr, 8, 3, 'Monthly DCA');
+      insertBuy(IB_SEC_ID, IB_CASH_ID, VWCE, dateStr, 5, 'Monthly DCA');
+      insertBuy(IB_SEC_ID, IB_CASH_ID, IWDA, dateStr, 8, 'Monthly DCA');
     }
   }
 
   // Lump-sum buys — IB portfolio
-  insertBuy(IB_SEC_ID, IB_CASH_ID, SXR8, '2024-01-08', 15, 5, 'Initial position');
-  insertBuy(IB_SEC_ID, IB_CASH_ID, EIMI, '2024-01-10', 200, 5, 'EM allocation');
-  insertBuy(IB_SEC_ID, IB_CASH_ID, EIMI, '2024-07-15', 100, 3, 'EM top-up');
-  insertBuy(IB_SEC_ID, IB_CASH_ID, XBLC, '2024-02-05', 50, 5, 'Bond allocation');
-  insertBuy(IB_SEC_ID, IB_CASH_ID, XBLC, '2025-03-10', 30, 3, 'Bond top-up');
-  insertBuy(IB_SEC_ID, IB_CASH_ID, AAPL, '2024-01-15', 20, 5, 'Tech position');
-  insertBuy(IB_SEC_ID, IB_CASH_ID, AAPL, '2024-09-16', 10, 3, 'AAPL top-up');
-  insertBuy(IB_SEC_ID, IB_CASH_ID, ASML, '2024-03-11', 5, 5, 'EU semiconductors');
-  insertBuy(IB_SEC_ID, IB_CASH_ID, ASML, '2025-06-09', 3, 3, 'ASML top-up');
-  insertBuy(IB_SEC_ID, IB_CASH_ID, SAP_SEC, '2024-02-12', 30, 5, 'EU tech');
-  insertBuy(IB_SEC_ID, IB_CASH_ID, SAP_SEC, '2024-11-04', 15, 3, 'SAP top-up');
+  insertBuy(IB_SEC_ID, IB_CASH_ID, SXR8, '2024-01-08', 15, 'Initial position');
+  insertBuy(IB_SEC_ID, IB_CASH_ID, EIMI, '2024-01-10', 200, 'EM allocation');
+  insertBuy(IB_SEC_ID, IB_CASH_ID, EIMI, '2024-07-15', 100, 'EM top-up');
+  insertBuy(IB_SEC_ID, IB_CASH_ID, XBLC, '2024-02-05', 50, 'Bond allocation');
+  insertBuy(IB_SEC_ID, IB_CASH_ID, XBLC, '2025-03-10', 30, 'Bond top-up');
+  insertBuy(IB_SEC_ID, IB_CASH_ID, AAPL, '2024-01-15', 20, 'Tech position');
+  insertBuy(IB_SEC_ID, IB_CASH_ID, AAPL, '2024-09-16', 10, 'AAPL top-up');
+  insertBuy(IB_SEC_ID, IB_CASH_ID, ASML, '2024-03-11', 5, 'EU semiconductors');
+  insertBuy(IB_SEC_ID, IB_CASH_ID, ASML, '2025-06-09', 3, 'ASML top-up');
+  insertBuy(IB_SEC_ID, IB_CASH_ID, SAP_SEC, '2024-02-12', 30, 'EU tech');
+  insertBuy(IB_SEC_ID, IB_CASH_ID, SAP_SEC, '2024-11-04', 15, 'SAP top-up');
 
   // Lump-sum buys — SC portfolio
-  insertBuy(SC_SEC_ID, SC_CASH_ID, MSFT, '2024-01-08', 10, 5, 'Initial position');
-  insertBuy(SC_SEC_ID, SC_CASH_ID, MSFT, '2025-02-10', 5, 3, 'MSFT top-up');
-  insertBuy(SC_SEC_ID, SC_CASH_ID, NVDA, '2024-01-10', 100, 5, 'AI bet');
-  insertBuy(SC_SEC_ID, SC_CASH_ID, NVDA, '2024-06-17', 50, 3, 'NVDA top-up');
-  insertBuy(SC_SEC_ID, SC_CASH_ID, NVDA, '2025-01-13', 30, 3, 'NVDA top-up');
-  insertBuy(SC_SEC_ID, SC_CASH_ID, MC, '2024-02-05', 3, 5, 'Luxury sector');
-  insertBuy(SC_SEC_ID, SC_CASH_ID, ALV, '2024-03-04', 20, 5, 'Insurance allocation');
-  insertBuy(SC_SEC_ID, SC_CASH_ID, ALV, '2025-05-12', 10, 3, 'ALV top-up');
-  insertBuy(SC_SEC_ID, SC_CASH_ID, IQQH, '2024-01-15', 300, 5, 'Clean energy');
-  insertBuy(SC_SEC_ID, SC_CASH_ID, CJ1, '2024-04-08', 15, 5, 'Japan exposure');
-  insertBuy(SC_SEC_ID, SC_CASH_ID, DTE, '2024-05-06', 200, 5, 'Telecom dividend');
-  insertBuy(SC_SEC_ID, SC_CASH_ID, DTE, '2025-04-07', 100, 3, 'DTE top-up');
+  insertBuy(SC_SEC_ID, SC_CASH_ID, MSFT, '2024-01-08', 10, 'Initial position');
+  insertBuy(SC_SEC_ID, SC_CASH_ID, MSFT, '2025-02-10', 5, 'MSFT top-up');
+  insertBuy(SC_SEC_ID, SC_CASH_ID, NVDA, '2024-01-10', 100, 'AI bet');
+  insertBuy(SC_SEC_ID, SC_CASH_ID, NVDA, '2024-06-17', 50, 'NVDA top-up');
+  insertBuy(SC_SEC_ID, SC_CASH_ID, NVDA, '2025-01-13', 30, 'NVDA top-up');
+  insertBuy(SC_SEC_ID, SC_CASH_ID, MC, '2024-02-05', 3, 'Luxury sector');
+  insertBuy(SC_SEC_ID, SC_CASH_ID, ALV, '2024-03-04', 20, 'Insurance allocation');
+  insertBuy(SC_SEC_ID, SC_CASH_ID, ALV, '2025-05-12', 10, 'ALV top-up');
+  insertBuy(SC_SEC_ID, SC_CASH_ID, IQQH, '2024-01-15', 300, 'Clean energy');
+  insertBuy(SC_SEC_ID, SC_CASH_ID, CJ1, '2024-04-08', 15, 'Japan exposure');
+  insertBuy(SC_SEC_ID, SC_CASH_ID, DTE, '2024-05-06', 200, 'Telecom dividend');
+  insertBuy(SC_SEC_ID, SC_CASH_ID, DTE, '2025-04-07', 100, 'DTE top-up');
 })();
 
 // Count BUY transactions: 27 months * 2 DCA + 22 lump-sum = 54 + 22 = 76 buys
@@ -601,6 +624,9 @@ function insertSell(
     hecto(totalAmount), secDef.uuid, shares8(sharesCount),
     note, now, 'SELL', hecto(feeEur), hecto(taxEur), nextXmlId(), nextOrder()
   );
+  // FEE and TAX units so getFees/getTaxes pick them up in Cost & Tax Drag
+  insertXactUnit.run(secSideUuid, 'FEE', hecto(feeEur));
+  if (taxEur > 0) insertXactUnit.run(secSideUuid, 'TAX', hecto(taxEur));
 
   // Cash-side xact (same security, shares=0, fees=0, taxes=0)
   const cashSideUuid = randomUUID();
@@ -615,17 +641,26 @@ function insertSell(
 }
 
 db.transaction(() => {
-  // Partial sell IQQH: 100 shares on 2025-06-16 (loss, no tax)
-  insertSell(SC_SEC_ID, SC_CASH_ID, IQQH, '2025-06-16', 100, 1, 0, 'Partial exit — clean energy underperforming');
+  // Partial sell IQQH: 100 shares on 2025-06-16 (loss position — no capital gains tax, small fee)
+  insertSell(SC_SEC_ID, SC_CASH_ID, IQQH, '2025-06-16', 100, 1.50, 0, 'Partial exit — clean energy underperforming');
 
-  // Full sell SXR8: 15 shares on 2025-11-03
-  insertSell(IB_SEC_ID, IB_CASH_ID, SXR8, '2025-11-03', 15, 5, 25, 'Full exit S&P 500');
+  // Full sell SXR8: 15 shares on 2025-11-03 (profit, capital gains tax ~26%)
+  insertSell(IB_SEC_ID, IB_CASH_ID, SXR8, '2025-11-03', 15, 5.50, 215, 'Full exit S&P 500');
 
   // Rebuy SXR8: 12 shares on 2025-11-04
-  insertBuy(IB_SEC_ID, IB_CASH_ID, SXR8, '2025-11-04', 12, 5, 'Re-entry S&P 500');
+  insertBuy(IB_SEC_ID, IB_CASH_ID, SXR8, '2025-11-04', 12, 'Re-entry S&P 500');
+
+  // Partial sell NVDA: 20 shares on 2025-07-14 (strong profit, ~40% gain on AI position)
+  insertSell(SC_SEC_ID, SC_CASH_ID, NVDA, '2025-07-14', 20, 4.95, 192, 'Trim AI position — book partial gains');
+
+  // Partial sell SAP: 10 shares on 2025-09-10 (profit, ~35% gain)
+  insertSell(IB_SEC_ID, IB_CASH_ID, SAP_SEC, '2025-09-10', 10, 5.25, 138, 'Rebalance — SAP outperformed');
+
+  // Partial sell AAPL: 5 shares on 2026-02-17 (modest profit, ~15% gain)
+  insertSell(IB_SEC_ID, IB_CASH_ID, AAPL, '2026-02-17', 5, 3.95, 41, 'Portfolio rebalance');
 })();
 
-console.log('[SELLs] 2 sell orders + 1 rebuy (6 xact rows + 3 cross entries)');
+console.log('[SELLs] 5 sell orders + 1 rebuy (12 xact rows + 6 cross entries)');
 
 // ---------------------------------------------------------------------------
 // 9. Transactions — Dividends
@@ -644,7 +679,7 @@ function insertDividend(
 
   // Tax unit if tax > 0
   if (taxEur > 0) {
-    insertXactUnit.run(uuid, 'tax', hecto(taxEur));
+    insertXactUnit.run(uuid, 'TAX', hecto(taxEur));
   }
 }
 
@@ -839,7 +874,7 @@ const settings = {
     privacyMode: false,
     costMethod: 'MOVING_AVERAGE',
   },
-  reportingPeriods: {},
+  reportingPeriods: [],
   dashboards: [
     {
       id: dashOverviewId,
@@ -897,5 +932,134 @@ for (const t of tables) {
   console.log(`  ${t}: ${row.cnt}`);
 }
 
-db.close();
-console.log(`\nDone! Database written to ${DB_OUT}`);
+// ---------------------------------------------------------------------------
+// 14. Logos — fetched from Clearbit and stored as base64 data URIs
+// ---------------------------------------------------------------------------
+const SEC_LOGOS: { id: string; domain: string }[] = [
+  { id: VWCE.uuid,    domain: 'vanguard.com' },
+  { id: IWDA.uuid,    domain: 'blackrock.com' },
+  { id: SXR8.uuid,    domain: 'blackrock.com' },
+  { id: EIMI.uuid,    domain: 'blackrock.com' },
+  { id: XBLC.uuid,    domain: 'dws.com' },
+  { id: AAPL.uuid,    domain: 'apple.com' },
+  { id: ASML.uuid,    domain: 'asml.com' },
+  { id: SAP_SEC.uuid, domain: 'sap.com' },
+  { id: MSFT.uuid,    domain: 'microsoft.com' },
+  { id: NVDA.uuid,    domain: 'nvidia.com' },
+  { id: MC.uuid,      domain: 'lvmh.com' },
+  { id: ALV.uuid,     domain: 'allianz.com' },
+  { id: IQQH.uuid,    domain: 'blackrock.com' },
+  { id: CJ1.uuid,     domain: 'amundi.com' },
+  { id: DTE.uuid,     domain: 'telekom.de' },
+  { id: NOVO.uuid,    domain: 'novonordisk.com' },
+  { id: TSM.uuid,     domain: 'tsmc.com' },
+  { id: GOOGL.uuid,   domain: 'google.com' },
+  { id: AMZN.uuid,    domain: 'amazon.com' },
+  { id: BTCE.uuid,    domain: 'etc-group.com' },
+  { id: ZETH.uuid,    domain: 'coinshares.com' },
+];
+
+const ACC_LOGOS: { id: string; domain: string }[] = [
+  { id: IB_SEC_ID,       domain: 'interactivebrokers.com' },
+  { id: IB_CASH_ID,      domain: 'interactivebrokers.com' },
+  { id: SC_SEC_ID,       domain: 'scalable.capital' },
+  { id: SC_CASH_ID,      domain: 'scalable.capital' },
+  { id: CASH_RESERVE_ID, domain: 'n26.com' },
+];
+
+async function fetchLogoBase64(domain: string): Promise<string | null> {
+  try {
+    const url = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000), redirect: 'follow' });
+    if (!res.ok) return null;
+    const ct = res.headers.get('content-type') ?? 'image/png';
+    if (!ct.startsWith('image/')) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    return `data:${ct};base64,${buf.toString('base64')}`;
+  } catch {
+    return null;
+  }
+}
+
+const insertSecAttr = db.prepare(
+  `INSERT OR REPLACE INTO security_attr(security, attr_uuid, type, value, seq) VALUES (?, 'logo', 'string', ?, 0)`,
+);
+const insertAccAttr = db.prepare(
+  `INSERT OR REPLACE INTO account_attr(account, attr_uuid, type, value, seq) VALUES (?, 'logo', 'string', ?, 0)`,
+);
+
+// Cache: domain → base64 (avoid re-fetching same domain)
+const logoCache = new Map<string, string | null>();
+async function getLogoBase64(domain: string): Promise<string | null> {
+  if (logoCache.has(domain)) return logoCache.get(domain)!;
+  const data = await fetchLogoBase64(domain);
+  logoCache.set(domain, data);
+  return data;
+}
+
+void (async () => {
+  console.log('\n[Logos] Fetching logos from Clearbit...');
+  let logosOk = 0;
+  let logosFail = 0;
+
+  for (const { id, domain } of SEC_LOGOS) {
+    const data = await getLogoBase64(domain);
+    if (data) {
+      insertSecAttr.run(id, data);
+      logosOk++;
+    } else {
+      logosFail++;
+      console.warn(`  ⚠ No logo for security ${id} (${domain})`);
+    }
+  }
+
+  for (const { id, domain } of ACC_LOGOS) {
+    const data = await getLogoBase64(domain);
+    if (data) {
+      insertAccAttr.run(id, data);
+      logosOk++;
+    } else {
+      logosFail++;
+      console.warn(`  ⚠ No logo for account ${id} (${domain})`);
+    }
+  }
+
+  console.log(`[Logos] ${logosOk} logos stored, ${logosFail} failed`);
+
+  db.close();
+  console.log(`\nDone! Database written to ${DB_OUT}`);
+
+  // ---------------------------------------------------------------------------
+  // Apply to live paths (portfolio.db + quovibe.settings.json)
+  // Must run with the dev server STOPPED — otherwise the SHM file is locked
+  // and copying the main DB while the old SHM remains causes SQLITE_CORRUPT.
+  // ---------------------------------------------------------------------------
+  const LIVE_DB = path.join(ROOT, 'data/portfolio.db');
+  const LIVE_SETTINGS = path.join(ROOT, 'data/quovibe.settings.json');
+  const LIVE_SHM = LIVE_DB + '-shm';
+
+  // Detect if the dev server has the DB open: SHM file exists and is non-empty
+  let shmLocked = false;
+  if (fs.existsSync(LIVE_SHM)) {
+    try {
+      fs.unlinkSync(LIVE_SHM);
+    } catch {
+      shmLocked = true;
+    }
+  }
+
+  if (shmLocked) {
+    console.warn('\n⚠  Dev server is running — portfolio.db-shm is locked.');
+    console.warn('   Stop the dev server first, then run this script again,');
+    console.warn('   OR copy manually after stopping:');
+    console.warn(`     copy "${DB_OUT.replace(/\//g, '\\')}" "${LIVE_DB.replace(/\//g, '\\')}"`);
+    console.warn(`     copy "${SETTINGS_OUT.replace(/\//g, '\\')}" "${LIVE_SETTINGS.replace(/\//g, '\\')}"`);
+    console.warn('   demo.db has been generated successfully — only the live copy was skipped.');
+  } else {
+    try { fs.unlinkSync(LIVE_DB + '-wal'); } catch { /* ok */ }
+    try { fs.unlinkSync(LIVE_DB); } catch { /* ok */ }
+    fs.copyFileSync(DB_OUT, LIVE_DB);
+    fs.copyFileSync(SETTINGS_OUT, LIVE_SETTINGS);
+    console.log(`[Apply] Copied to ${LIVE_DB} + ${LIVE_SETTINGS}`);
+  }
+})();

@@ -96,7 +96,7 @@
   },
   "chart": {
     "title": "Wykres wyników",
-    "subtitle": "Market value and time-weighted return over time",
+    "subtitle": "Time-weighted return over time",
     "marketValueAndTtwror": "Wartość rynkowa & TTWROR",
     "marketValue": "Wartość rynkowa",
     "ttwror": "TTWROR",

@@ -56,6 +56,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
+import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
 import { formatDate } from '@/lib/formatters';
 import {
   useWatchlists,
@@ -239,40 +240,6 @@ function SortableTab({
         )}
       </ContextMenuContent>
     </ContextMenu>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// SecurityAvatar — logo or initials
-// ---------------------------------------------------------------------------
-
-function SecurityAvatar({ name, logoUrl }: { name: string; logoUrl: string | null }) {
-  const initials = name
-    .split(/\s+/)
-    .slice(0, 2) // native-ok
-    .map((w) => w[0]) // native-ok
-    .join('')
-    .toUpperCase();
-
-  if (logoUrl) {
-    return (
-      <img
-        src={logoUrl}
-        alt={name}
-        className="h-8 w-8 rounded-full object-cover shrink-0"
-        onError={(e) => {
-          // Fallback to initials on load error
-          (e.target as HTMLImageElement).style.display = 'none';
-          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-        }}
-      />
-    );
-  }
-
-  return (
-    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
-      {initials}
-    </div>
   );
 }
 
@@ -508,7 +475,7 @@ export default function Watchlists() {
                   {/* Name */}
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
-                      <SecurityAvatar name={sec.name} logoUrl={sec.logoUrl} />
+                      <SecurityAvatar name={sec.name} logoUrl={sec.logoUrl} size="md" rounded="full" />
                       <div className="min-w-0">
                         <div className="font-medium truncate">{sec.name}</div>
                         {sec.isin && (

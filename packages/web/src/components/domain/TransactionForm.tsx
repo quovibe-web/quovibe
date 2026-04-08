@@ -1,4 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
+import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
+import { AccountAvatar } from '@/components/shared/AccountAvatar';
 import { format, parse, isValid } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -273,7 +275,12 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
             </SelectTrigger>
             <SelectContent>
               {securities.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                <SelectItem key={s.id} value={s.id}>
+                  <div className="flex items-center gap-2">
+                    <SecurityAvatar name={s.name ?? ''} logoUrl={s.logoUrl} size="xs" />
+                    <span>{s.name}</span>
+                  </div>
+                </SelectItem>
               ))}
               {securities.length > 0 && <Separator className="my-1" />}
               <SelectItem value="__create_new__" className="text-primary font-medium">
@@ -418,7 +425,12 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
             </SelectTrigger>
             <SelectContent>
               {filteredAccounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                <SelectItem key={a.id} value={a.id}>
+                  <div className="flex items-center gap-2">
+                    <AccountAvatar name={a.name} logoUrl={a.logoUrl} size="xs" />
+                    <span>{a.name}</span>
+                  </div>
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -435,7 +447,12 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
             </SelectTrigger>
             <SelectContent>
               {filteredCrossAccounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                <SelectItem key={a.id} value={a.id}>
+                  <div className="flex items-center gap-2">
+                    <AccountAvatar name={a.name} logoUrl={a.logoUrl} size="xs" />
+                    <span>{a.name}</span>
+                  </div>
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>

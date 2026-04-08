@@ -73,6 +73,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TransactionForm, type TransactionFormValues } from '@/components/domain/TransactionForm';
 import { TypeBadge } from '@/components/shared/TypeBadge';
+import { AccountAvatar } from '@/components/shared/AccountAvatar';
 import { useCreateTransaction } from '@/api/use-transactions';
 import { preparePayload } from '@/lib/transaction-payload';
 import { getTransactionCashflowSign } from '@/lib/transaction-display';
@@ -106,6 +107,7 @@ function buildColumns(
   t: (key: string, opts?: Record<string, unknown>) => string,
   tCommon: (key: string, opts?: Record<string, unknown>) => string,
   logoMap: Map<string, string>,
+  accountLogoMap: Map<string, string>,
 ): ColumnDef<TransactionListItem>[] {
   const today = new Date();
   return [
@@ -140,13 +142,20 @@ function buildColumns(
     },
     {
       accessorKey: 'accountName',
-      size: 150,
+      size: 160,
       minSize: 100,
       ...textColumnMeta(),
       header: t('columns.account'),
-      cell: ({ getValue }) => {
-        const v = getValue<string | null>();
-        return v ? <span className="font-medium">{v}</span> : '—';
+      cell: ({ row }) => {
+        const name = row.original.accountName ?? null;
+        const logo = accountLogoMap.get(row.original.account ?? '');
+        if (!name) return <span className="text-muted-foreground">—</span>;
+        return (
+          <div className="flex items-center gap-2 min-w-0">
+            <AccountAvatar name={name} logoUrl={logo} size="xs" />
+            <span className="font-medium truncate">{name}</span>
+          </div>
+        );
       },
     },
     {
@@ -343,6 +352,12 @@ export default function Transactions() {
     return map;
   }, [securities]);
 
+  const accountLogoMap = useMemo(() => {
+    const map = new Map<string, string>();
+    accounts.forEach(a => { if (a.logoUrl) map.set(a.id, a.logoUrl); });
+    return map;
+  }, [accounts]);
+
   const hasActiveFilters = typeFilter !== 'ALL' || accountFilter !== 'ALL' || securityFilter !== 'ALL' || !!search;
 
   function handleFilterChange(setter: (v: string) => void) {
@@ -350,8 +365,8 @@ export default function Transactions() {
   }
 
   const columns = useMemo(
-    () => buildColumns(setDeleteTarget, setEditTarget, t, tCommon, logoMap),
-    [t, tCommon, logoMap],
+    () => buildColumns(setDeleteTarget, setEditTarget, t, tCommon, logoMap, accountLogoMap),
+    [t, tCommon, logoMap, accountLogoMap],
   );
 
   function handleConfirmDelete() {
