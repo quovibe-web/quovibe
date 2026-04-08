@@ -59,7 +59,8 @@
       "all-time-high": "Najwyższa kiedykolwiek odnotowana wartość portfela, z datą jej wystąpienia.",
       "distance-from-ath": "O ile bieżąca wartość portfela jest niższa od historycznego maksimum, jako procent.",
       "invested-capital": "Całkowita wartość zakupu wszystkich pozycji dla aktywnego okresu rozliczeniowego.",
-      "watchlist": "Kompaktowy monitor kursów dla wybranej listy obserwowanych"
+      "watchlist": "Kompaktowy monitor kursów dla wybranej listy obserwowanych",
+      "top-holdings": "Twoje największe pozycje według wartości rynkowej, z udziałem w portfelu i stopą zwrotu w okresie."
     }
   },
   "widget": {
@@ -108,6 +109,14 @@
     },
     "distanceFromAth": {
       "currentVsAth": "{{current}} vs {{ath}}"
+    },
+    "topHoldings": {
+      "noHoldings": "Brak pozycji w tym okresie",
+      "loadError": "Błąd ładowania pozycji",
+      "showMore_one": "+ {{count}} więcej",
+      "showMore_few": "+ {{count}} więcej",
+      "showMore_many": "+ {{count}} więcej",
+      "showMore_other": "+ {{count}} więcej"
     }
   },
   "noChartData": "Brak danych dla tego okresu",
@@ -136,7 +145,8 @@
     "all-time-high": "Historyczne Maksimum",
     "distance-from-ath": "Odległość od ATH",
     "invested-capital": "Zainwestowany Kapitał",
-    "watchlist": "Lista obserwowanych"
+    "watchlist": "Lista obserwowanych",
+    "top-holdings": "Główne pozycje"
   },
   "dataSeries": {
     "dialogTitle": "Serie danych",

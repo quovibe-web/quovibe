@@ -59,7 +59,8 @@
       "all-time-high": "Highest total portfolio value ever recorded, with the date it occurred.",
       "distance-from-ath": "How far the current portfolio value is below its all-time high, as a percentage.",
       "invested-capital": "Total purchase value of all holdings for the active reporting period.",
-      "watchlist": "Compact price monitor for a selected watchlist"
+      "watchlist": "Compact price monitor for a selected watchlist",
+      "top-holdings": "Your largest positions by market value, showing portfolio weight and period return."
     }
   },
   "widget": {
@@ -106,6 +107,12 @@
     },
     "distanceFromAth": {
       "currentVsAth": "{{current}} vs {{ath}}"
+    },
+    "topHoldings": {
+      "noHoldings": "No holdings in this period",
+      "loadError": "Error loading holdings",
+      "showMore_one": "+ {{count}} more",
+      "showMore_other": "+ {{count}} more"
     }
   },
   "noChartData": "No data for this period",
@@ -134,7 +141,8 @@
     "all-time-high": "All-Time High",
     "distance-from-ath": "Distance from ATH",
     "invested-capital": "Invested Capital",
-    "watchlist": "Watchlist"
+    "watchlist": "Watchlist",
+    "top-holdings": "Top Holdings"
   },
   "dataSeries": {
     "dialogTitle": "Data Series",

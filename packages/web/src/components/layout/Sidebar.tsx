@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { isPeriodSensitivePath, extractPeriodSearch } from '@/lib/period-utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { ExpandableNavItem } from './ExpandableNavItem';
 import { CreateTaxonomyDialog } from '../domain/CreateTaxonomyDialog';
@@ -141,23 +143,7 @@ function VersionBadge({ className }: { className?: string }) {
   );
 }
 
-/** Pages that are period-sensitive and should carry search params across navigation. */
-const PERIOD_SENSITIVE_PREFIXES = ['/', '/analytics', '/allocation', '/investments', '/accounts', '/taxonomies'];
-
-function isPeriodSensitivePath(path: string): boolean {
-  return PERIOD_SENSITIVE_PREFIXES.some((prefix) =>
-    prefix === '/' ? path === '/' : path.startsWith(prefix)
-  );
-}
-
-/** Extract only periodStart/periodEnd from current search params. */
-function extractPeriodSearch(search: string): string {
-  const params = new URLSearchParams(search);
-  const ps = params.get('periodStart');
-  const pe = params.get('periodEnd');
-  if (!ps || !pe) return '';
-  return `?periodStart=${ps}&periodEnd=${pe}`;
-}
+// isPeriodSensitivePath / extractPeriodSearch imported from period-utils
 
 function SidebarNavItem({ item, onClick }: { item: NavItem; onClick?: () => void }) {
   const { t } = useTranslation('navigation');
@@ -325,10 +311,9 @@ export function MobileNav() {
   );
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-border bg-card/95 backdrop-blur-lg safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-border bg-card/80 backdrop-blur-2xl backdrop-saturate-150 safe-bottom">
       <div className="flex items-center justify-around h-16 px-2">
         {MOBILE_NAV.map((item) => {
-          const Icon = item.icon;
           const periodSearch = isPeriodSensitivePath(item.to) ? extractPeriodSearch(location.search) : '';
           const to = periodSearch ? { pathname: item.to, search: periodSearch } : item.to;
           return (
@@ -336,17 +321,26 @@ export function MobileNav() {
               key={item.to}
               to={to}
               end={item.to === '/'}
-              className={({ isActive }) =>
-                cn(
-                  'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-0',
-                  isActive
-                    ? 'text-foreground'
-                    : 'text-muted-foreground'
-                )
-              }
+              className="relative flex flex-col items-center gap-0.5 px-3 py-1.5 min-w-0"
             >
-              <Icon className="h-5 w-5" />
-              <span className="text-[10px] font-medium truncate">{t(item.labelKey)}</span>
+              {({ isActive }) => {
+                const Icon = item.icon;
+                return (
+                  <>
+                    {isActive && (
+                      <motion.div
+                        layoutId="mobile-nav-indicator"
+                        className="absolute inset-0 rounded-lg bg-[var(--qv-surface-elevated)]"
+                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      />
+                    )}
+                    <Icon className={cn('h-5 w-5 relative z-10', isActive ? 'text-foreground' : 'text-muted-foreground')} />
+                    <span className={cn('text-[10px] font-medium truncate relative z-10', isActive ? 'text-foreground' : 'text-muted-foreground')}>
+                      {t(item.labelKey)}
+                    </span>
+                  </>
+                );
+              }}
             </NavLink>
           );
         })}

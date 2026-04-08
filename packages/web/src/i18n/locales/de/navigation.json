@@ -41,5 +41,13 @@
   "newPeriod": "Neue Periode...",
   "managePeriods": "Perioden verwalten...",
   "sheetTitle": "Navigation",
-  "reportingPeriod": "Berichtszeitraum"
+  "reportingPeriod": "Berichtszeitraum",
+  "cmdPalette": {
+    "title": "Befehlspalette",
+    "description": "Seite suchen und aufrufen...",
+    "placeholder": "Befehl eingeben oder suchen...",
+    "noResults": "Keine Ergebnisse gefunden.",
+    "perfChart": "Rendite-Diagramm",
+    "income": "Erträge"
+  }
 }

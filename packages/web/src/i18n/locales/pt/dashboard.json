@@ -59,7 +59,8 @@
       "all-time-high": "O valor mais alto alguma vez registado na carteira, com a data em que ocorreu.",
       "distance-from-ath": "Quanto o valor atual da carteira está abaixo do seu máximo histórico, em percentagem.",
       "invested-capital": "Valor total de compra de todas as posições para o período de referência ativo.",
-      "watchlist": "Monitor de preços compacto para uma lista de acompanhamento selecionada"
+      "watchlist": "Monitor de preços compacto para uma lista de acompanhamento selecionada",
+      "top-holdings": "As suas maiores posições por valor de mercado, com o peso na carteira e o retorno do período."
     }
   },
   "widget": {
@@ -106,6 +107,12 @@
     },
     "distanceFromAth": {
       "currentVsAth": "{{current}} vs {{ath}}"
+    },
+    "topHoldings": {
+      "noHoldings": "Sem posições neste período",
+      "loadError": "Erro ao carregar posições",
+      "showMore_one": "+ {{count}} mais",
+      "showMore_other": "+ {{count}} mais"
     }
   },
   "noChartData": "Sem dados para este período",
@@ -134,7 +141,8 @@
     "all-time-high": "Máximo Histórico",
     "distance-from-ath": "Distância do ATH",
     "invested-capital": "Capital Investido",
-    "watchlist": "Lista de acompanhamento"
+    "watchlist": "Lista de acompanhamento",
+    "top-holdings": "Principais posições"
   },
   "dataSeries": {
     "dialogTitle": "Séries de dados",

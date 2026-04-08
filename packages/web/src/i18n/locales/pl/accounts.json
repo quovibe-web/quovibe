@@ -122,5 +122,9 @@
   "retired": {
     "show": "Pokaż zarchiwizowane konta",
     "hide": "Ukryj zarchiwizowane konta"
+  },
+  "viewMode": {
+    "cards": "Karty",
+    "summary": "Podsumowanie"
   }
 }

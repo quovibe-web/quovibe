@@ -59,7 +59,8 @@
       "all-time-high": "Höchster jemals erreichter Portfoliowert mit dem Datum, an dem er eingetreten ist.",
       "distance-from-ath": "Wie weit der aktuelle Portfoliowert unter seinem Allzeithoch liegt, als Prozentwert.",
       "invested-capital": "Gesamter Kaufwert aller Positionen für den aktiven Berichtszeitraum.",
-      "watchlist": "Kompakte Kursanzeige für eine ausgewählte Watchlist"
+      "watchlist": "Kompakte Kursanzeige für eine ausgewählte Watchlist",
+      "top-holdings": "Ihre größten Positionen nach Marktwert mit Portfoliogewicht und Periodenrendite."
     }
   },
   "widget": {
@@ -106,6 +107,12 @@
     },
     "distanceFromAth": {
       "currentVsAth": "{{current}} vs. {{ath}}"
+    },
+    "topHoldings": {
+      "noHoldings": "Keine Positionen in diesem Zeitraum",
+      "loadError": "Fehler beim Laden der Positionen",
+      "showMore_one": "+ {{count}} weitere",
+      "showMore_other": "+ {{count}} weitere"
     }
   },
   "noChartData": "Keine Daten für diesen Zeitraum",
@@ -134,7 +141,8 @@
     "all-time-high": "Allzeithoch",
     "distance-from-ath": "Abstand vom ATH",
     "invested-capital": "Investiertes Kapital",
-    "watchlist": "Watchlist"
+    "watchlist": "Watchlist",
+    "top-holdings": "Top-Positionen"
   },
   "dataSeries": {
     "dialogTitle": "Datenreihen",

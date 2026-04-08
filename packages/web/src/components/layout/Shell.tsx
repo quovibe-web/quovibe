@@ -3,11 +3,13 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { DesktopSidebar, CollapsedSidebar, MobileNav, SidebarDrawer } from './Sidebar';
 import { TopBar } from './TopBar';
 import { usePortfolio } from '@/api/use-portfolio';
+import { CommandPalette } from '@/components/domain/CommandPalette';
 
 export function Shell() {
   const { data: portfolio, isSuccess, error } = usePortfolio();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
 
   const shouldRedirect = (isSuccess && portfolio?.empty) ||
     !!(error && (error as Error).message === 'SETUP_REQUIRED');
@@ -18,12 +20,16 @@ export function Shell() {
     }
   }, [shouldRedirect, navigate]);
 
-  // Ctrl+B toggles sidebar drawer
+  // Ctrl+B toggles sidebar drawer; Ctrl+K / Cmd+K toggles command palette
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
         e.preventDefault();
         setDrawerOpen((prev) => !prev);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdPaletteOpen((prev) => !prev);
       }
     }
     document.addEventListener('keydown', handleKeyDown);
@@ -59,6 +65,7 @@ export function Shell() {
       </div>
       <MobileNav />
       <SidebarDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
+      <CommandPalette open={cmdPaletteOpen} onOpenChange={setCmdPaletteOpen} />
     </div>
   );
 }

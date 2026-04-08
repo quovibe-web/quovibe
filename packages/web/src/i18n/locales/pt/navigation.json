@@ -41,5 +41,13 @@
   "newPeriod": "Novo período...",
   "managePeriods": "Gerir períodos...",
   "sheetTitle": "Navegação",
-  "reportingPeriod": "Período de reporte"
+  "reportingPeriod": "Período de reporte",
+  "cmdPalette": {
+    "title": "Paleta de comandos",
+    "description": "Pesquisar uma página para navegar...",
+    "placeholder": "Escreva um comando ou pesquise...",
+    "noResults": "Nenhum resultado encontrado.",
+    "perfChart": "Gráfico de desempenho",
+    "income": "Rendimentos"
+  }
 }

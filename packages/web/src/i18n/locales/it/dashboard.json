@@ -59,7 +59,8 @@
       "all-time-high": "Il valore più alto mai raggiunto dal portafoglio, con la data in cui si è verificato.",
       "distance-from-ath": "Quanto il valore attuale del portafoglio è al di sotto del massimo storico, in percentuale.",
       "invested-capital": "Valore d'acquisto totale di tutti i titoli per il periodo di riferimento attivo.",
-      "watchlist": "Monitor compatto dei prezzi per una lista di osservazione selezionata"
+      "watchlist": "Monitor compatto dei prezzi per una lista di osservazione selezionata",
+      "top-holdings": "Le posizioni più grandi per valore di mercato, con il peso nel portafoglio e il rendimento del periodo."
     }
   },
   "widget": {
@@ -106,6 +107,12 @@
     },
     "distanceFromAth": {
       "currentVsAth": "{{current}} vs {{ath}}"
+    },
+    "topHoldings": {
+      "noHoldings": "Nessuna posizione in questo periodo",
+      "loadError": "Errore nel caricamento delle posizioni",
+      "showMore_one": "+ {{count}} altro",
+      "showMore_other": "+ {{count}} altri"
     }
   },
   "noChartData": "Nessun dato per questo periodo",
@@ -134,7 +141,8 @@
     "all-time-high": "Massimo Storico",
     "distance-from-ath": "Distanza dal Massimo",
     "invested-capital": "Capitale Investito",
-    "watchlist": "Watchlist"
+    "watchlist": "Watchlist",
+    "top-holdings": "Principali posizioni"
   },
   "dataSeries": {
     "dialogTitle": "Serie Dati",

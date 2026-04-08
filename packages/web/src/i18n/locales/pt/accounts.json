@@ -120,5 +120,9 @@
   "retired": {
     "show": "Mostrar contas arquivadas",
     "hide": "Ocultar contas arquivadas"
+  },
+  "viewMode": {
+    "cards": "Cartões",
+    "summary": "Resumo"
   }
 }

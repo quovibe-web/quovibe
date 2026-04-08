@@ -120,5 +120,9 @@
   "retired": {
     "show": "Archivierte Konten anzeigen",
     "hide": "Archivierte Konten ausblenden"
+  },
+  "viewMode": {
+    "cards": "Kacheln",
+    "summary": "Übersicht"
   }
 }

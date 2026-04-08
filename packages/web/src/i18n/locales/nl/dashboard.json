@@ -59,7 +59,8 @@
       "all-time-high": "Hoogste ooit geregistreerde portefeuillewaarde, met de datum waarop dit plaatsvond.",
       "distance-from-ath": "Hoe ver de huidige portefeuillewaarde onder het alltime high ligt, als percentage.",
       "invested-capital": "Totale aankoopwaarde van alle posities voor de actieve rapportageperiode.",
-      "watchlist": "Compacte koersmonitor voor een geselecteerde volglijst"
+      "watchlist": "Compacte koersmonitor voor een geselecteerde volglijst",
+      "top-holdings": "Uw grootste posities op marktwaarde, met gewicht in de portefeuille en rendement over de periode."
     }
   },
   "widget": {
@@ -106,6 +107,12 @@
     },
     "distanceFromAth": {
       "currentVsAth": "{{current}} vs {{ath}}"
+    },
+    "topHoldings": {
+      "noHoldings": "Geen posities in deze periode",
+      "loadError": "Fout bij het laden van posities",
+      "showMore_one": "+ {{count}} meer",
+      "showMore_other": "+ {{count}} meer"
     }
   },
   "noChartData": "Geen gegevens voor deze periode",
@@ -134,7 +141,8 @@
     "all-time-high": "Alltime High",
     "distance-from-ath": "Afstand tot ATH",
     "invested-capital": "Geïnvesteerd Kapitaal",
-    "watchlist": "Volglijst"
+    "watchlist": "Volglijst",
+    "top-holdings": "Topposities"
   },
   "dataSeries": {
     "dialogTitle": "Datareeksen",

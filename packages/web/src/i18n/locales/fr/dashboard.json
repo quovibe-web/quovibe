@@ -59,7 +59,8 @@
       "all-time-high": "Valeur la plus haute jamais atteinte par le portefeuille, avec la date à laquelle elle s'est produite.",
       "distance-from-ath": "Écart entre la valeur actuelle du portefeuille et son plus haut historique, en pourcentage.",
       "invested-capital": "Valeur d'achat totale de toutes les positions pour la période de référence active.",
-      "watchlist": "Moniteur de cours compact pour une liste de suivi sélectionnée"
+      "watchlist": "Moniteur de cours compact pour une liste de suivi sélectionnée",
+      "top-holdings": "Vos plus grandes positions par valeur de marché, avec le poids dans le portefeuille et le rendement de la période."
     }
   },
   "widget": {
@@ -106,6 +107,12 @@
     },
     "distanceFromAth": {
       "currentVsAth": "{{current}} vs {{ath}}"
+    },
+    "topHoldings": {
+      "noHoldings": "Aucune position dans cette période",
+      "loadError": "Erreur lors du chargement des positions",
+      "showMore_one": "+ {{count}} de plus",
+      "showMore_other": "+ {{count}} de plus"
     }
   },
   "noChartData": "Aucune donnée pour cette période",
@@ -134,7 +141,8 @@
     "all-time-high": "Plus Haut Historique",
     "distance-from-ath": "Distance du PHH",
     "invested-capital": "Capital Investi",
-    "watchlist": "Liste de suivi"
+    "watchlist": "Liste de suivi",
+    "top-holdings": "Principales positions"
   },
   "dataSeries": {
     "dialogTitle": "Séries de données",

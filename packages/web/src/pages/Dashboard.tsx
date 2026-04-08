@@ -17,6 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToHorizontalAxis } from '@dnd-kit/modifiers';
+import { motion } from 'framer-motion';
 import { Plus, GripVertical, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -228,14 +229,21 @@ function SortableTab({
         ) : (
           <button
             className={cn(
-              'px-3 py-2 md:py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-              isActive
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+              'relative px-3 py-2 md:py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+              !isActive && 'text-muted-foreground hover:text-foreground hover:bg-muted',
             )}
             onClick={onSwitchTab}
           >
-            {dashboard.name}
+            {isActive && (
+              <motion.div
+                layoutId="dashboard-tab-indicator"
+                className="absolute inset-0 rounded-full bg-primary"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+              />
+            )}
+            <span className={cn('relative z-10', isActive ? 'text-primary-foreground' : '')}>
+              {dashboard.name}
+            </span>
           </button>
         )}
         {/* Kebab menu — visible on active, hover-reveal on inactive */}

@@ -120,5 +120,9 @@
   "retired": {
     "show": "Mostra conti archiviati",
     "hide": "Nascondi conti archiviati"
+  },
+  "viewMode": {
+    "cards": "Schede",
+    "summary": "Riepilogo"
   }
 }

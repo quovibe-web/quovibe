@@ -41,5 +41,13 @@
   "newPeriod": "Nieuwe periode...",
   "managePeriods": "Perioden beheren...",
   "sheetTitle": "Navigatie",
-  "reportingPeriod": "Rapportageperiode"
+  "reportingPeriod": "Rapportageperiode",
+  "cmdPalette": {
+    "title": "Opdrachtenpalet",
+    "description": "Zoek een pagina om naartoe te navigeren...",
+    "placeholder": "Typ een opdracht of zoek...",
+    "noResults": "Geen resultaten gevonden.",
+    "perfChart": "Rendementsgrafiek",
+    "income": "Inkomsten"
+  }
 }

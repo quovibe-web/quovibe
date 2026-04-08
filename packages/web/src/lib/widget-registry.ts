@@ -1,5 +1,5 @@
 import { lazy, type ComponentType } from 'react';
-import { TrendingUp, TrendingDown, Percent, ArrowUpDown, DollarSign, Calculator, LineChart, Activity, Wallet, BarChart3, Clock, Grid3X3, TrendingUpDown, Receipt, Landmark, Mountain, PiggyBank, List } from 'lucide-react';
+import { TrendingUp, TrendingDown, Percent, ArrowUpDown, DollarSign, Calculator, LineChart, Activity, Wallet, BarChart3, Clock, Grid3X3, TrendingUpDown, Receipt, Landmark, Mountain, PiggyBank, List, Trophy } from 'lucide-react';
 import type { WidgetDefBase, WidgetCategory } from '@quovibe/shared';
 
 export interface WidgetDef extends WidgetDefBase {
@@ -344,6 +344,19 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     capabilities: { hasDataSeries: false, hasPeriodOverride: false, hasCustomOptions: true },
     icon: List,
     component: lazy(() => import('@/components/domain/widgets/WidgetWatchlist')),
+  },
+  {
+    type: 'top-holdings',
+    i18nKey: 'widgetTypes.top-holdings',
+    descriptionKey: 'catalog.desc.top-holdings',
+    qualifierKey: null,
+    category: 'info',
+    zone: 'detail',
+    defaultSpan: 1,
+    defaultConfig: {},
+    capabilities: { hasDataSeries: false, hasPeriodOverride: true, hasCustomOptions: false },
+    icon: Trophy,
+    component: lazy(() => import('@/components/domain/widgets/WidgetTopHoldings')),
   },
 ];
 

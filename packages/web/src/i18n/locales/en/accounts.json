@@ -120,5 +120,9 @@
   "retired": {
     "show": "Show retired accounts",
     "hide": "Hide retired accounts"
+  },
+  "viewMode": {
+    "cards": "Cards",
+    "summary": "Summary"
   }
 }

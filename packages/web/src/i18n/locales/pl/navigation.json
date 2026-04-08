@@ -41,5 +41,13 @@
   "newPeriod": "Nowy okres...",
   "managePeriods": "Zarządzaj okresami...",
   "sheetTitle": "Nawigacja",
-  "reportingPeriod": "Okres raportowania"
+  "reportingPeriod": "Okres raportowania",
+  "cmdPalette": {
+    "title": "Paleta poleceń",
+    "description": "Wyszukaj stronę do przejścia...",
+    "placeholder": "Wpisz polecenie lub wyszukaj...",
+    "noResults": "Nie znaleziono wyników.",
+    "perfChart": "Wykres wyników",
+    "income": "Przychody"
+  }
 }

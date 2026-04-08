@@ -1,10 +1,12 @@
 import NumberFlow from '@number-flow/react';
+import { Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useCalculation } from '@/api/use-performance';
 import { usePrivacy } from '@/context/privacy-context';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { MetricsStripSettings } from './MetricsStripSettings';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import i18n from '@/i18n';
 
@@ -110,8 +112,20 @@ export function DashboardMetricsStrip({ metricIds, onMetricIdsChange }: MetricsS
                 'basis-1/2 md:basis-auto',
               )}
             >
-              <div className="text-[0.6rem] text-muted-foreground uppercase tracking-wider font-medium truncate" title={t(`widgetTypes.${id}`)}>
-                {t(`widgetTypes.${id}`)}
+              <div className="flex items-center gap-1">
+                <span className="text-[0.6rem] text-muted-foreground uppercase tracking-wider font-medium truncate" title={t(`widgetTypes.${id}`)}>
+                  {t(`widgetTypes.${id}`)}
+                </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="text-muted-foreground/40 hover:text-muted-foreground shrink-0">
+                      <Info className="size-2.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[220px]">
+                    <p className="text-xs">{t(`catalog.desc.${id}`)}</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <div className={cn('text-lg font-semibold mt-0.5', resolved ? getColorClass(id, resolved.value) : undefined)}>
                 {isPrivate ? (

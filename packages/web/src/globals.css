@@ -2,7 +2,8 @@
 
 @theme {
   /* Typography */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'DM Serif Display', Georgia, serif;
 
   /* ──────────────────────────────────────────────
      Brand palette (light mode defaults)

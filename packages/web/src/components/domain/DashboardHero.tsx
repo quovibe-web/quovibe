@@ -1,12 +1,11 @@
-import NumberFlow from '@number-flow/react';
 import { useCalculation, useReportingPeriod } from '@/api/use-performance';
 import { apiFetch } from '@/api/fetch';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { usePrivacy } from '@/context/privacy-context';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { cn } from '@/lib/utils';
-import i18n from '@/i18n';
 import { useTranslation } from 'react-i18next';
+import { GainBadge } from '@/components/shared/GainBadge';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface ChartPoint {
@@ -94,11 +93,11 @@ export function DashboardHero() {
         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           {t('hero.portfolioValue')}
         </div>
-        <div className="mt-1">
+        <div className="mt-1" style={{ fontFamily: 'var(--font-display)' }}>
           {isPrivate ? (
-            <span className="text-4xl font-extrabold tracking-tight">••••••</span>
+            <span className="text-4xl font-normal tracking-tight">••••••</span>
           ) : (
-            <CurrencyDisplay value={balance} className="text-4xl font-extrabold tracking-tight" />
+            <CurrencyDisplay value={balance} className="text-4xl font-normal tracking-tight" />
           )}
         </div>
         <div className="flex items-baseline gap-3 mt-1.5">
@@ -111,20 +110,7 @@ export function DashboardHero() {
                 colorize
                 className="text-sm font-medium"
               />
-              <span
-                className={cn(
-                  'text-xs font-medium px-2 py-0.5 rounded-full',
-                  isPositive
-                    ? 'bg-[var(--qv-positive)] text-[var(--qv-bg)]'
-                    : 'bg-[var(--qv-negative)] text-[var(--qv-bg)]',
-                )}
-              >
-                <NumberFlow
-                  value={absPerfPct}
-                  locales={i18n.language}
-                  format={{ style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'always' }}
-                />
-              </span>
+              <GainBadge value={absPerfPct} />
             </>
           )}
         </div>
