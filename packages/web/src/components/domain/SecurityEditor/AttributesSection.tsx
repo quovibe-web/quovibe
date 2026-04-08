@@ -112,7 +112,7 @@ function PercentageField({ value, onUpdate }: { value: string; onUpdate: (v: str
   );
 }
 
-const HIDDEN_ATTRIBUTE_TYPE_IDS = new Set(['acquisitionFee', 'managementFee', 'aum']);
+const HIDDEN_ATTRIBUTE_TYPE_IDS = new Set(['acquisitionFee', 'managementFee', 'aum', 'logo']);
 
 interface Props {
   attributes: SecurityAttribute[];
@@ -127,6 +127,11 @@ export function AttributesSection({ attributes, onChange, ticker, instrumentType
   const [addingTypeId, setAddingTypeId] = useState('');
   const resolveLogoMutation = useResolveLogo();
 
+  // Logo is always shown as a dedicated field — separate from custom attribute list
+  const logoAttr: SecurityAttribute = attributes.find(a => a.typeId === 'logo')
+    ?? { typeId: 'logo', typeName: 'Logo', value: '' };
+  const otherAttributes = attributes.filter(a => a.typeId !== 'logo');
+
   const usedTypeIds = new Set(attributes.map(a => a.typeId));
   const availableTypes = types.filter(tp => !usedTypeIds.has(tp.id) && !HIDDEN_ATTRIBUTE_TYPE_IDS.has(tp.id));
 
@@ -139,22 +144,45 @@ export function AttributesSection({ attributes, onChange, ticker, instrumentType
   }
 
   function updateValue(typeId: string, value: string) {
-    onChange(attributes.map(a => a.typeId === typeId ? { ...a, value } : a));
+    const exists = attributes.some(a => a.typeId === typeId);
+    if (exists) {
+      onChange(attributes.map(a => a.typeId === typeId ? { ...a, value } : a));
+    } else {
+      // Attribute not yet in list (e.g. logo for a new security)
+      onChange([...attributes, { typeId, typeName: typeId === 'logo' ? 'Logo' : typeId, value }]);
+    }
   }
 
   function removeAttribute(typeId: string) {
     onChange(attributes.filter(a => a.typeId !== typeId));
   }
 
+  const onFetchLogo = ticker && instrumentType
+    ? async () => {
+        const { logoUrl } = await resolveLogoMutation.mutateAsync({
+          ticker,
+          instrumentType: instrumentType as InstrumentType,
+        });
+        updateValue('logo', logoUrl);
+      }
+    : undefined;
+
   return (
     <div>
       <SectionHeader title={t('securityEditor.attributes')} id="section-attributes" />
       <div className="space-y-3 py-3">
-        {attributes.length === 0 && (
+
+        {/* Logo — always visible */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm w-32 shrink-0 font-medium">{t('attributes.logo')}</span>
+          <ImageField attr={logoAttr} onUpdate={updateValue} onFetchLogo={onFetchLogo} />
+        </div>
+
+        {otherAttributes.length === 0 && availableTypes.length === 0 && (
           <p className="text-muted-foreground text-sm">{t('securityEditor.attributesEmpty')}</p>
         )}
 
-        {attributes.map(attr => {
+        {otherAttributes.map(attr => {
           const attrTypeDef = types.find(tp => tp.id === attr.typeId);
           const isImage = attrTypeDef?.converterClass?.includes('ImageConverter') ?? false;
           const isPercentage = attrTypeDef?.type === 'java.lang.Double';
@@ -162,19 +190,7 @@ export function AttributesSection({ attributes, onChange, ticker, instrumentType
             <div key={attr.typeId} className="flex items-center gap-2">
               <span className="text-sm w-32 shrink-0 font-medium">{attr.typeName}</span>
               {isImage ? (
-                (() => {
-                  const isLogoAttr = attr.typeId === 'logo';
-                  const onFetchLogo = isLogoAttr && ticker && instrumentType
-                    ? async () => {
-                        const { logoUrl } = await resolveLogoMutation.mutateAsync({
-                          ticker,
-                          instrumentType: instrumentType as InstrumentType,
-                        });
-                        updateValue(attr.typeId, logoUrl);
-                      }
-                    : undefined;
-                  return <ImageField attr={attr} onUpdate={updateValue} onFetchLogo={onFetchLogo} />;
-                })()
+                <ImageField attr={attr} onUpdate={updateValue} />
               ) : isPercentage ? (
                 <PercentageField value={attr.value} onUpdate={v => updateValue(attr.typeId, v)} />
               ) : (

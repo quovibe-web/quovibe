@@ -62,7 +62,8 @@
     "upload": "Upload…",
     "fetchLogo": "Fetch logo",
     "fetchingLogo": "Fetching…",
-    "fetchLogoFailed": "Could not fetch logo"
+    "fetchLogoFailed": "Could not fetch logo",
+    "logo": "Logo"
   },
   "historicalQuotes": {
     "provider": "Provider",
@@ -199,10 +200,10 @@
     "exchange": "Exchange",
     "type": "Type",
     "sector": "Sector",
-    "notAvailable": "\u2014",
+    "notAvailable": "—",
     "pricePreview": "Price Preview",
     "priceCount": "{{count}} historical prices",
-    "priceRange": "{{start}} \u2013 {{end}}",
+    "priceRange": "{{start}} – {{end}}",
     "noPrices": "No historical prices available",
     "noPricesHint": "You can configure a price feed after adding",
     "addToPortfolio": "Add to Portfolio",

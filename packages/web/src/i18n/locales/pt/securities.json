@@ -62,7 +62,8 @@
     "upload": "Carregar…",
     "fetchLogo": "Buscar logo",
     "fetchingLogo": "Buscando…",
-    "fetchLogoFailed": "Não foi possível buscar o logo"
+    "fetchLogoFailed": "Não foi possível buscar o logo",
+    "logo": "Logo"
   },
   "historicalQuotes": {
     "provider": "Fornecedor",
@@ -199,10 +200,10 @@
     "exchange": "Bolsa",
     "type": "Tipo",
     "sector": "Setor",
-    "notAvailable": "\u2014",
+    "notAvailable": "—",
     "pricePreview": "Pré-visualização de preços",
     "priceCount": "{{count}} cotações históricas",
-    "priceRange": "{{start}} \u2013 {{end}}",
+    "priceRange": "{{start}} – {{end}}",
     "noPrices": "Sem cotações históricas disponíveis",
     "noPricesHint": "Pode configurar um feed de preços após adicionar",
     "addToPortfolio": "Adicionar ao portfólio",

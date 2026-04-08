@@ -69,6 +69,16 @@ describe('resolveLogo', () => {
     );
   });
 
+  it('strips exchange suffix from fallback domain for exchange-suffixed tickers', async () => {
+    vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({ assetProfile: { website: undefined } });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
+    await resolveLogo({ ticker: 'RACE.MI', instrumentType: 'EQUITY' });
+    expect(fetch).toHaveBeenCalledWith(
+      'https://www.google.com/s2/favicons?domain=race.com&sz=128',
+      expect.any(Object),
+    );
+  });
+
   it('throws when all strategies fail', async () => {
     vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockRejectedValue(new Error('network error'));
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network error')));

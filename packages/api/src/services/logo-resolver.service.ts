@@ -66,15 +66,18 @@ export async function resolveLogo(input: LogoResolveRequest): Promise<string> {
 
   const { ticker, instrumentType } = input as { ticker: string; instrumentType: string };
 
+  // Strip exchange suffix (e.g. RACE.MI → race, SWDA.MI → swda) for fallback domain
+  const baseTicker = ticker.replace(/\.[A-Z0-9]+$/i, '');
+
   try {
     if (instrumentType === 'CRYPTO') {
       return await resolveCrypto(ticker);
     }
     return await resolveEquity(ticker);
   } catch {
-    // Fallback: ticker.com
+    // Fallback: base ticker (exchange suffix stripped) + .com
     try {
-      return await fetchByDomain(`${ticker.toLowerCase()}.com`);
+      return await fetchByDomain(`${baseTicker.toLowerCase()}.com`);
     } catch {
       throw new Error('Logo not found');
     }

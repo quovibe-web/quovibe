@@ -62,7 +62,8 @@
     "upload": "Hochladen…",
     "fetchLogo": "Logo abrufen",
     "fetchingLogo": "Wird abgerufen…",
-    "fetchLogoFailed": "Logo konnte nicht abgerufen werden"
+    "fetchLogoFailed": "Logo konnte nicht abgerufen werden",
+    "logo": "Logo"
   },
   "historicalQuotes": {
     "provider": "Anbieter",
@@ -199,10 +200,10 @@
     "exchange": "Börse",
     "type": "Typ",
     "sector": "Sektor",
-    "notAvailable": "\u2014",
+    "notAvailable": "—",
     "pricePreview": "Kursvorschau",
     "priceCount": "{{count}} historische Kurse",
-    "priceRange": "{{start}} \u2013 {{end}}",
+    "priceRange": "{{start}} – {{end}}",
     "noPrices": "Keine historischen Kurse verfügbar",
     "noPricesHint": "Ein Kurs-Feed kann nach dem Hinzufügen konfiguriert werden",
     "addToPortfolio": "Zum Portfolio hinzufügen",

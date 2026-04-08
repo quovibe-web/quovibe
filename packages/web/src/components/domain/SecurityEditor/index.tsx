@@ -239,7 +239,10 @@ export function SecurityEditor({
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          attributes: attributes.map(a => ({ typeId: a.typeId, value: a.value })),
+          // Filter out empty-value attributes (e.g. unset logo placeholder)
+          attributes: attributes
+            .filter(a => a.value !== '')
+            .map(a => ({ typeId: a.typeId, value: a.value })),
         }),
       });
 

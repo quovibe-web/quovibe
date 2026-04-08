@@ -62,7 +62,8 @@
     "upload": "Uploaden…",
     "fetchLogo": "Logo ophalen",
     "fetchingLogo": "Ophalen…",
-    "fetchLogoFailed": "Logo kon niet worden opgehaald"
+    "fetchLogoFailed": "Logo kon niet worden opgehaald",
+    "logo": "Logo"
   },
   "historicalQuotes": {
     "provider": "Provider",
@@ -199,10 +200,10 @@
     "exchange": "Beurs",
     "type": "Type",
     "sector": "Sector",
-    "notAvailable": "\u2014",
+    "notAvailable": "—",
     "pricePreview": "Koersoverzicht",
     "priceCount": "{{count}} historische koersen",
-    "priceRange": "{{start}} \u2013 {{end}}",
+    "priceRange": "{{start}} – {{end}}",
     "noPrices": "Geen historische koersen beschikbaar",
     "noPricesHint": "U kunt na het toevoegen een koersfeed instellen",
     "addToPortfolio": "Toevoegen aan portfolio",
