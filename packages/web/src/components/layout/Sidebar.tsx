@@ -168,9 +168,9 @@ function SidebarNavItem({ item, onClick }: { item: NavItem; onClick?: () => void
       onClick={onClick}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+          'relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           isActive
-            ? 'bg-[var(--qv-surface-elevated)] text-foreground font-medium'
+            ? 'bg-[var(--qv-surface-elevated)] text-foreground font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-4 before:w-[3px] before:rounded-full before:bg-primary'
             : 'text-muted-foreground hover:bg-[var(--qv-surface-elevated)] hover:text-foreground'
         )
       }
@@ -207,7 +207,7 @@ export function DesktopSidebar() {
   }, [reorderMutation]);
 
   return (
-    <aside className="hidden lg:flex w-64 h-screen border-r border-border bg-card flex-col shrink-0">
+    <aside className="hidden lg:flex w-64 h-screen border-r border-border bg-[var(--qv-bg)] flex-col shrink-0">
       {/* Logo */}
       <div className="px-5 py-5">
         <QuovibeLogo />
@@ -219,9 +219,6 @@ export function DesktopSidebar() {
         <nav className="space-y-6">
           {NAV.map((section) => (
             <div key={section.sectionKey}>
-              <p className="px-3 mb-2 text-xs font-medium text-[var(--qv-text-faint)] uppercase tracking-wider">
-                {t(section.sectionKey)}
-              </p>
               <ul className="space-y-0.5">
                 {section.items.map((item) => (
                   <li key={item.to}>
@@ -404,7 +401,7 @@ export function CollapsedSidebar() {
   const allItems = NAV.flatMap((section) => section.items);
 
   return (
-    <aside className="hidden md:flex lg:hidden w-14 h-screen border-r border-border bg-card flex-col items-center shrink-0">
+    <aside className="hidden md:flex lg:hidden w-14 h-screen border-r border-border bg-[var(--qv-bg)] flex-col items-center shrink-0">
       {/* Logo mark */}
       <div className="flex items-center justify-center h-14 shrink-0">
         <span className="text-base tracking-tight">
@@ -433,9 +430,9 @@ export function CollapsedSidebar() {
                     end={item.end !== false}
                     className={({ isActive }) =>
                       cn(
-                        'flex items-center justify-center w-10 h-10 rounded-lg transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+                        'relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
                         isActive
-                          ? 'bg-[var(--qv-surface-elevated)] text-foreground'
+                          ? 'bg-[var(--qv-surface-elevated)] text-foreground after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-4 after:h-[3px] after:rounded-full after:bg-primary'
                           : 'text-muted-foreground hover:bg-[var(--qv-surface-elevated)] hover:text-foreground'
                       )
                     }
@@ -469,7 +466,7 @@ export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="w-64 p-0">
+      <SheetContent side="left" className="w-64 p-0 bg-[var(--qv-bg)]">
         <SheetHeader className="px-5 py-5">
           <SheetTitle className="sr-only">{t('sheetTitle')}</SheetTitle>
           <QuovibeLogo />
@@ -479,9 +476,6 @@ export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
           <nav className="space-y-6">
             {NAV.map((section) => (
               <div key={section.sectionKey}>
-                <p className="px-3 mb-2 text-xs font-medium text-[var(--qv-text-faint)] uppercase tracking-wider">
-                  {t(section.sectionKey)}
-                </p>
                 <ul className="space-y-0.5">
                   {section.items.map((item) => (
                     <li key={item.to}>
