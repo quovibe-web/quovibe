@@ -284,11 +284,11 @@ export default function TaxonomySeries() {
                   hasOhlc={false}
                   onTypeChange={handleTypeChange}
                 />
-              <div className="flex items-center rounded-lg border border-border p-0.5">
+              <div className="flex items-center rounded-full border border-border p-0.5">
                 <button
                   onClick={() => setChartMode('ttwror')}
                   className={cn(
-                    'px-3 py-1 rounded-md text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+                    'px-3 py-1 rounded-full text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
                     chartMode === 'ttwror'
                       ? 'bg-[var(--qv-surface-elevated)] text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
@@ -299,7 +299,7 @@ export default function TaxonomySeries() {
                 <button
                   onClick={() => setChartMode('mv')}
                   className={cn(
-                    'px-3 py-1 rounded-md text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+                    'px-3 py-1 rounded-full text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
                     chartMode === 'mv'
                       ? 'bg-[var(--qv-surface-elevated)] text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'

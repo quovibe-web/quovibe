@@ -178,10 +178,10 @@ export default function Payments() {
     setActions(
       <div className="flex items-center gap-3">
         {/* Gross / Net toggle */}
-        <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
+        <div className="inline-flex rounded-full border border-border bg-muted/50 p-0.5">
           <button
             className={cn(
-              'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+              'px-3 py-1 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
               amountMode === 'gross'
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
@@ -192,7 +192,7 @@ export default function Payments() {
           </button>
           <button
             className={cn(
-              'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+              'px-3 py-1 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
               amountMode === 'net'
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',

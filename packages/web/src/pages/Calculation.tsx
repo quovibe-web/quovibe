@@ -30,10 +30,10 @@ export default function Calculation() {
   useEffect(() => {
     setActions(
       <div className="flex items-center gap-3">
-        <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
+        <div className="inline-flex rounded-full border border-border bg-muted/50 p-0.5">
           <button
             className={cn(
-              'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+              'px-3 py-1 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
               costMethod === CostMethod.FIFO
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
@@ -44,7 +44,7 @@ export default function Calculation() {
           </button>
           <button
             className={cn(
-              'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+              'px-3 py-1 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
               costMethod === CostMethod.MOVING_AVERAGE
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
@@ -54,10 +54,10 @@ export default function Calculation() {
             {t('calculation.costMethodMa')}
           </button>
         </div>
-        <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
+        <div className="inline-flex rounded-full border border-border bg-muted/50 p-0.5">
           <button
             className={cn(
-              'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+              'px-3 py-1 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
               preTax
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
@@ -68,7 +68,7 @@ export default function Calculation() {
           </button>
           <button
             className={cn(
-              'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+              'px-3 py-1 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
               !preTax
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
