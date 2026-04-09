@@ -2,17 +2,19 @@
 
 ## Date Handling
 
-**Rule**: all dates in quovibe are user-local dates (`YYYY-MM-DD`), never UTC timestamps.
+**Rule**: all financial dates in quovibe are user-local, never UTC timestamps. Transactions support optional minute-level time (`YYYY-MM-DDTHH:mm`), matching Portfolio Performance's precision.
 
-**Rationale**: quovibe uses pure dates (day only, no time). A transaction on 31/12/2024 is "December 31, 2024" regardless of the server's timezone.
+**Rationale**: a transaction on 31/12/2024 is "December 31, 2024" regardless of the server's timezone. When a transaction carries a time component (e.g. `2024-12-31T14:30`), it is preserved through import, storage, API, and display.
 
 Implementation:
 - Node.js server NEVER converts dates to UTC
-- Dates arrive from frontend as `YYYY-MM-DD` string
-- Dates saved as `TEXT YYYY-MM-DD` in the DB
+- Dates arrive from frontend as `YYYY-MM-DD` or `YYYY-MM-DDTHH:mm` string
+- Dates saved as TEXT in the DB (both formats supported)
+- Zod validation: `/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/`
 - date-fns: always use non-UTC functions (`parseISO`, `format`, `differenceInDays`)
-- Frontend: always use `new Date(dateString + 'T00:00:00')` to avoid off-by-one
-- `updatedAt` and system timestamps use ISO 8601 UTC. Only financial dates are pure dates.
+- Frontend: `formatDate()` detects the time component and displays it when present; date-only values use `new Date(dateString + 'T00:00:00')` to avoid off-by-one
+- Date range filters append `T23:59:59` to boundary dates so timestamps within the day are included
+- `updatedAt` and system timestamps use ISO 8601 UTC. Only financial dates follow this convention.
 
 ## Docker Setup
 
