@@ -92,6 +92,7 @@
     "securities": "Valores",
     "cash": "Efectivo",
     "return": "Rentabilidad",
+    "performance": "Ganancia/Pérdida",
     "viewDetails": "Ver detalles completos",
     "securitiesCount_one": "{{count}} valor",
     "securitiesCount_other": "{{count}} valores"

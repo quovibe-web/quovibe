@@ -3,9 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { useQueries } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Landmark } from 'lucide-react';
+import { CostMethod } from '@quovibe/shared';
+import type { CalculationBreakdownResponse } from '@quovibe/shared';
 import { useAccounts, accountsKeys } from '@/api/use-accounts';
 import { apiFetch } from '@/api/fetch';
 import type { AccountHoldingsResponse } from '@/api/types';
+import { useReportingPeriod, performanceKeys } from '@/api/use-performance';
 import { AccountSummaryStrip } from '@/components/domain/AccountSummaryStrip';
 import { BrokerageUnitCard } from '@/components/domain/BrokerageUnitCard';
 import { StandaloneDepositCard } from '@/components/domain/StandaloneDepositCard';
@@ -19,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { usePrivacy } from '@/context/privacy-context';
-import { formatPercentage } from '@/lib/formatters';
+import { formatPercentage, formatCurrency } from '@/lib/formatters';
 
 export default function AccountsHub() {
   const { t } = useTranslation('accounts');
@@ -31,6 +34,7 @@ export default function AccountsHub() {
   const [viewMode, setViewMode] = useState<'cards' | 'summary'>('cards');
   const navigate = useNavigate();
   const { isPrivate } = usePrivacy();
+  const { periodStart, periodEnd } = useReportingPeriod();
 
   // 2. Fetch accounts
   const { data: accounts = [], isLoading } = useAccounts(showRetired);
@@ -38,7 +42,7 @@ export default function AccountsHub() {
   // 3. Derive portfolios BEFORE useQueries (rules of hooks)
   const portfolios = useMemo(() => accounts.filter(a => a.type === 'portfolio'), [accounts]);
 
-  // 4. Prefetch holdings for all portfolios
+  // 4. Prefetch holdings and performance for all portfolios
   const holdingsQueries = useQueries({
     queries: portfolios.map(p => ({
       queryKey: accountsKeys.holdings(p.id),
@@ -46,7 +50,24 @@ export default function AccountsHub() {
     })),
   });
 
-  // 5. Build holdingsMap
+  const perfQueries = useQueries({
+    queries: portfolios.map(p => ({
+      queryKey: performanceKeys.calculation(periodStart, periodEnd, true, CostMethod.MOVING_AVERAGE, p.id, true),
+      queryFn: () => {
+        const params = new URLSearchParams({
+          periodStart,
+          periodEnd,
+          preTax: 'true',
+          costMethod: CostMethod.MOVING_AVERAGE,
+          filter: p.id,
+          withReference: 'true',
+        });
+        return apiFetch<CalculationBreakdownResponse>(`/api/performance/calculation?${params}`);
+      },
+    })),
+  });
+
+  // 5. Build holdingsMap and perfMap
   const holdingsMap = useMemo(() => {
     const map = new Map<string, AccountHoldingsResponse>();
     portfolios.forEach((p, i) => {
@@ -54,6 +75,14 @@ export default function AccountsHub() {
     });
     return map;
   }, [portfolios, holdingsQueries]);
+
+  const perfMap = useMemo(() => {
+    const map = new Map<string, CalculationBreakdownResponse>();
+    portfolios.forEach((p, i) => {
+      if (perfQueries[i]?.data) map.set(p.id, perfQueries[i].data!);
+    });
+    return map;
+  }, [portfolios, perfQueries]);
 
   // 6. Compute brokerageUnits and standaloneDeposits
   const { brokerageUnits, standaloneDeposits } = useMemo(() => {
@@ -131,6 +160,7 @@ export default function AccountsHub() {
                     unit={unit}
                     isExpanded={expandedId === unit.portfolio.id}
                     onExpand={() => setExpandedId(prev => prev === unit.portfolio.id ? null : unit.portfolio.id)}
+                    perf={perfMap.get(unit.portfolio.id)}
                   />
                 ))}
               </div>
@@ -165,11 +195,10 @@ export default function AccountsHub() {
                     {brokerageUnits.map(unit => {
                       const holdings = unit.holdings;
                       const mv = holdings ? parseFloat(holdings.totalValue ?? '0') : 0;
-                      const gainRaw = holdings
-                        ? holdings.holdings.reduce((acc, h) => acc + parseFloat(h.profitLoss ?? '0'), 0)
-                        : 0;
-                      const costBasis = mv - gainRaw;
-                      const gainPct = costBasis > 0 ? gainRaw / costBasis : 0;
+                      const perf = perfMap.get(unit.portfolio.id);
+                      const perfPct = perf ? parseFloat(perf.absolutePerformancePct) : null;
+                      const absPerf = perf ? parseFloat(perf.absolutePerformance) : null;
+                      const isPositive = absPerf !== null ? absPerf >= 0 : true;
 
                       return (
                         <button
@@ -185,9 +214,12 @@ export default function AccountsHub() {
                           </div>
                           <div className="text-right shrink-0">
                             <CurrencyDisplay value={mv} className="text-sm" />
-                            {!isPrivate && (
-                              <div className={cn('text-[10px] tabular-nums', gainRaw >= 0 ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
-                                {gainPct !== 0 ? formatPercentage(gainPct) : '—'}
+                            {!isPrivate && perf && (
+                              <div className={cn('text-[10px] tabular-nums', isPositive ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
+                                {perfPct !== null ? formatPercentage(perfPct) : '—'}
+                                {absPerf !== null && (
+                                  <span className="ml-1 opacity-70">{formatCurrency(absPerf)}</span>
+                                )}
                               </div>
                             )}
                           </div>

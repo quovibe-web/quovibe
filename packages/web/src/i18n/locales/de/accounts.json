@@ -92,6 +92,7 @@
     "securities": "Wertpapiere",
     "cash": "Liquidität",
     "return": "Rendite",
+    "performance": "Gewinn/Verlust",
     "viewDetails": "Vollständige Details anzeigen",
     "securitiesCount_one": "{{count}} Wertpapier",
     "securitiesCount_other": "{{count}} Wertpapiere"

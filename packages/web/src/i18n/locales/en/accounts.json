@@ -92,6 +92,7 @@
     "securities": "Securities",
     "cash": "Cash",
     "return": "Return",
+    "performance": "Gain/Loss",
     "viewDetails": "View full details",
     "securitiesCount_one": "{{count}} security",
     "securitiesCount_other": "{{count}} securities"

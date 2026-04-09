@@ -92,6 +92,7 @@
     "securities": "Valeurs mobilières",
     "cash": "Liquidités",
     "return": "Rendement",
+    "performance": "Gain/Perte",
     "viewDetails": "Voir les détails complets",
     "securitiesCount_one": "{{count}} valeur",
     "securitiesCount_other": "{{count}} valeurs"

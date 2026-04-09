@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Landmark, MoreHorizontal } from 'lucide-react';
+import type { CalculationBreakdownResponse } from '@quovibe/shared';
 import { toast } from 'sonner';
 
 import type { BrokerageUnit } from '@/api/types';
@@ -34,16 +35,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { resizeToPng } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
+import { formatPercentage, formatCurrency } from '@/lib/formatters';
+import { usePrivacy } from '@/context/privacy-context';
 
 interface BrokerageUnitCardProps {
   unit: BrokerageUnit;
   onExpand: () => void;
   isExpanded: boolean;
+  perf?: CalculationBreakdownResponse;
 }
 
-export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitCardProps) {
+export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: BrokerageUnitCardProps) {
   const { t } = useTranslation('accounts');
   const { t: tCommon } = useTranslation('common');
+  const { isPrivate } = usePrivacy();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [renameOpen, setRenameOpen] = useState(false);
 
@@ -210,7 +215,7 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitC
         </div>
       )}
 
-      {/* Footer row: securities, cash, holdings count */}
+      {/* Footer row: securities, cash, performance */}
       <div className="flex items-start justify-between px-4 pb-4">
         <div>
           <p className="text-xs text-muted-foreground font-medium">{t('card.securities')}</p>
@@ -228,6 +233,22 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitC
             className="text-sm font-semibold tabular-nums"
           />
         </div>
+        {perf && !isPrivate && (() => {
+          const perfPct = parseFloat(perf.absolutePerformancePct);
+          const absPerf = parseFloat(perf.absolutePerformance);
+          const isPositive = absPerf >= 0;
+          return (
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground font-medium">{t('card.performance')}</p>
+              <p className={cn('text-sm font-semibold tabular-nums', isPositive ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
+                {formatPercentage(perfPct)}
+              </p>
+              <p className={cn('text-[10px] tabular-nums opacity-70', isPositive ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
+                {formatCurrency(absPerf)}
+              </p>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Rename dialog */}

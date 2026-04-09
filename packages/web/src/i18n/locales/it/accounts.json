@@ -92,6 +92,7 @@
     "securities": "Titoli",
     "cash": "Liquidità",
     "return": "Rendimento",
+    "performance": "Guadagno/Perdita",
     "viewDetails": "Visualizza dettagli completi",
     "securitiesCount_one": "{{count}} titolo",
     "securitiesCount_other": "{{count}} titoli"

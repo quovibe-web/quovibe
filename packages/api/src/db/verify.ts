@@ -125,6 +125,30 @@ export function applyExtensions(db: Database): void {
   addIfMissing(`ALTER TABLE security ADD COLUMN calendar TEXT`);
   addIfMissing(`ALTER TABLE security ADD COLUMN updatedAt TEXT`);
 
+  // P3: one-shot migration — recreate latest_price with inline PRIMARY KEY so that
+  // ON CONFLICT(security) upserts work. The original ppxml2db DDL uses a separate
+  // UNIQUE INDEX which SQLite does not recognise for upsert conflict resolution.
+  const lpInfo = db.prepare(`PRAGMA table_info(latest_price)`).all() as { name: string; pk: number }[];
+  const lpHasPk = lpInfo.some(c => c.name === 'security' && c.pk > 0);
+  if (!lpHasPk) {
+    db.exec(`DROP TABLE IF EXISTS latest_price_new`);
+    db.exec(`
+      CREATE TABLE latest_price_new (
+        security VARCHAR(36) NOT NULL PRIMARY KEY REFERENCES security(uuid),
+        tstamp VARCHAR(32) NOT NULL,
+        value BIGINT NOT NULL,
+        open BIGINT,
+        high BIGINT,
+        low BIGINT,
+        volume BIGINT
+      );
+      INSERT INTO latest_price_new (security, tstamp, value, high, low, volume)
+        SELECT security, tstamp, value, high, low, volume FROM latest_price;
+      DROP TABLE latest_price;
+      ALTER TABLE latest_price_new RENAME TO latest_price;
+    `);
+  }
+
   // P2: one-shot migration — corrects xact_cross_entry.type values written by earlier
   // quovibe versions (used enum values like 'BUY', 'SELL') to ppxml2db conventions.
   // The query is idempotent: already-migrated values never match the WHERE clauses.
