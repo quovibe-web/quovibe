@@ -355,6 +355,12 @@ export default function Transactions() {
   const accountLogoMap = useMemo(() => {
     const map = new Map<string, string>();
     accounts.forEach(a => { if (a.logoUrl) map.set(a.id, a.logoUrl); });
+    // Inherit logo: portfolio → linked cash account (if cash has no logo of its own)
+    accounts.forEach(a => {
+      if (a.logoUrl && a.referenceAccountId && !map.has(a.referenceAccountId)) {
+        map.set(a.referenceAccountId, a.logoUrl);
+      }
+    });
     return map;
   }, [accounts]);
 
