@@ -217,7 +217,7 @@ html.dark {
   to { opacity: 1; transform: translateY(0); }
 }
 @utility qv-page {
-  animation: qv-page-enter 200ms ease-out;
+  animation: qv-page-enter 200ms ease-out both;
 }
 
 /* Staggered children reveal */
@@ -244,7 +244,7 @@ html.dark {
   to { opacity: 1; }
 }
 @utility qv-fade-in {
-  animation: qv-fade-in 0.3s ease-out;
+  animation: qv-fade-in 0.3s ease-out both;
 }
 
 /* Muted fraction digits for financial values (number-flow) */
