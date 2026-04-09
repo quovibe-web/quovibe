@@ -233,9 +233,23 @@ async function resolveFund(ticker: string, baseTicker: string): Promise<string> 
   const yf = getYf();
 
   const tryFundDomain = async (t: string): Promise<string | undefined> => {
-    const summary = await yf.quoteSummary(t, { modules: ['fundProfile', 'quoteType'] });
-    const family = (summary.fundProfile as { family?: string } | undefined)?.family;
-    const shortName = (summary.quoteType as { shortName?: string } | undefined)?.shortName;
+    type PartialSummary = { fundProfile?: { family?: string }; quoteType?: { shortName?: string } };
+    let summary: PartialSummary;
+    try {
+      summary = await yf.quoteSummary(t, { modules: ['fundProfile', 'quoteType'] });
+    } catch (err) {
+      if (err instanceof Error && err.constructor.name === 'FailedYahooValidationError') {
+        // Validation error: Yahoo returned partial data. Extract what we need from err.result.
+        summary = (err as unknown as { result: PartialSummary }).result ?? {};
+      } else if (err instanceof Error && err.message.startsWith('Quote not found')) {
+        // Ticker not found on Yahoo Finance — no data to use.
+        return undefined;
+      } else {
+        throw err; // network error, timeout — propagate
+      }
+    }
+    const family = summary.fundProfile?.family;
+    const shortName = summary.quoteType?.shortName;
     const domain = findFundDomain(family, shortName);
     return domain;
   };

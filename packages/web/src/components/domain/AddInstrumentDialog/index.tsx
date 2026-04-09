@@ -220,6 +220,7 @@ export function AddInstrumentDialog({
         .then(() => {
           queryClient.invalidateQueries({ queryKey: ['securities'] });
           queryClient.invalidateQueries({ queryKey: ['securities', secId] });
+          queryClient.invalidateQueries({ queryKey: ['watchlists'] });
         })
         .catch(() => toast.warning(tCommon('toasts.logoNotFound')));
     } catch (e) {

@@ -274,6 +274,7 @@ export default function Watchlists() {
   const [searchQuery, setSearchQuery] = useState('');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addInstrumentDialogOpen, setAddInstrumentDialogOpen] = useState(false);
+  const [createEmptyOpen, setCreateEmptyOpen] = useState(false);
   const [editSecurityId, setEditSecurityId] = useState<string | null>(null);
   const [editSection, setEditSection] = useState<EditorSection | undefined>(undefined);
   const { mutate: addSecurity } = useAddWatchlistSecurity();
@@ -376,6 +377,11 @@ export default function Watchlists() {
   function handleCreateNew() {
     setAddDialogOpen(false);
     setAddInstrumentDialogOpen(true);
+  }
+
+  function handleCreateEmpty() {
+    setAddInstrumentDialogOpen(false);
+    setCreateEmptyOpen(true);
   }
 
   function handleInstrumentCreated(securityUuid: string) {
@@ -705,6 +711,7 @@ export default function Watchlists() {
           open={addInstrumentDialogOpen}
           onOpenChange={setAddInstrumentDialogOpen}
           onCreated={handleInstrumentCreated}
+          onCreateEmpty={handleCreateEmpty}
         />
       )}
 
@@ -720,6 +727,20 @@ export default function Watchlists() {
             }
           }}
           initialSection={editSection}
+        />
+      )}
+
+      {createEmptyOpen && (
+        <SecurityEditor
+          mode="create"
+          open={createEmptyOpen}
+          onOpenChange={(open) => { if (!open) setCreateEmptyOpen(false); }}
+          onCreated={(securityUuid) => {
+            setCreateEmptyOpen(false);
+            if (activeWatchlist) {
+              addSecurity({ watchlistId: activeWatchlist.id, securityId: securityUuid });
+            }
+          }}
         />
       )}
     </div>
