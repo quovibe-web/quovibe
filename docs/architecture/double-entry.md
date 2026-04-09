@@ -1,6 +1,8 @@
 # Double-Entry Transaction System
 
-Every securities account (`portfolio`) has a linked cash account (`referenceAccount`). This link governs routing of all transactions.
+A securities account (`portfolio`) can be associated with **multiple cash accounts** (`type = 'account'`), each tied to a single currency. Multi-currency portfolios need one cash account per currency.
+
+The `referenceAccount` field on a portfolio points to the **default** cash account — a UI/import convenience that determines which cash account is shown as "linked" and used when a transaction does not explicitly specify one. Other cash accounts can still hold transactions for the same portfolio.
 
 ## Transaction routing groups
 
