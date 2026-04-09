@@ -182,7 +182,7 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitC
               <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
                 {t('actions.changeLogo')}
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={e => { e.preventDefault(); setShowDomainPrompt(prev => !prev); }}>
+              <DropdownMenuItem onSelect={() => setShowDomainPrompt(prev => !prev)}>
                 {t('actions.fetchLogo')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />

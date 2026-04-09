@@ -164,7 +164,7 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
                 <DropdownMenuItem onSelect={() => { menuActionRef.current = true; fileInputRef.current?.click(); }}>
                   {t('actions.changeLogo')}
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={e => { e.preventDefault(); menuActionRef.current = true; setShowDomainPrompt(prev => !prev); }}>
+                <DropdownMenuItem onSelect={() => { menuActionRef.current = true; setShowDomainPrompt(prev => !prev); }}>
                   {t('actions.fetchLogo')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
