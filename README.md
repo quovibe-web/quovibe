@@ -57,7 +57,7 @@
   <img src="docs/screenshots/quowatch.png" width="49%">
 </p>
 
-![Security Detail](docs/screenshots/quoinvest2.png)
+![Security Detail](docs/screenshots/quoinvest3.png)
 
 ---
 
