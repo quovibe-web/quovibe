@@ -73,17 +73,11 @@ function writeLatestQuote(
   securityName: string,
 ): boolean {
   try {
-    const dbClose = convertPriceToDb({
-      close: quote.price,
-      ...(quote.open != null ? { open: quote.open } : {}),
-      ...(quote.high != null ? { high: quote.high } : {}),
-      ...(quote.low != null ? { low: quote.low } : {}),
-    });
+    const dbClose = convertPriceToDb({ close: quote.price });
     sqlite
-      .prepare(`INSERT INTO latest_price (security, tstamp, value, open, high, low) VALUES (?, ?, ?, ?, ?, ?)
-        ON CONFLICT(security) DO UPDATE SET tstamp = excluded.tstamp, value = excluded.value,
-          open = excluded.open, high = excluded.high, low = excluded.low`)
-      .run(securityId, quote.date, dbClose.close, dbClose.open ?? null, dbClose.high ?? null, dbClose.low ?? null);
+      .prepare(`INSERT INTO latest_price (security, tstamp, value) VALUES (?, ?, ?)
+        ON CONFLICT(security) DO UPDATE SET tstamp = excluded.tstamp, value = excluded.value`)
+      .run(securityId, quote.date, dbClose.close);
     console.log(`[prices] Latest quote for ${securityName}: ${quote.price} @ ${quote.date}`);
     return true;
   } catch (err) {
@@ -108,9 +102,8 @@ function savePricesToDb(
   // latest_price and we must not overwrite it with the (potentially stale) historical close.
 
   const insertPrice = sqlite.prepare(`
-    INSERT INTO price (security, tstamp, value, open, high, low, volume) VALUES (?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(security, tstamp) DO UPDATE SET value = excluded.value,
-        open = excluded.open, high = excluded.high, low = excluded.low, volume = excluded.volume
+    INSERT INTO price (security, tstamp, value) VALUES (?, ?, ?)
+      ON CONFLICT(security, tstamp) DO UPDATE SET value = excluded.value
   `);
 
   const insertLatest = sqlite.prepare(`
@@ -135,16 +128,8 @@ function savePricesToDb(
     }
 
     for (const p of sorted) {
-      const dbPrice = convertPriceToDb({
-        close: p.close,
-        ...(p.open != null ? { open: p.open } : {}),
-        ...(p.high != null ? { high: p.high } : {}),
-        ...(p.low != null ? { low: p.low } : {}),
-      });
-      insertPrice.run(
-        securityId, p.date, dbPrice.close,
-        dbPrice.open ?? null, dbPrice.high ?? null, dbPrice.low ?? null, p.volume ?? null,
-      );
+      const dbPrice = convertPriceToDb({ close: p.close });
+      insertPrice.run(securityId, p.date, dbPrice.close);
     }
 
     if (!skipLatestPriceSync) {

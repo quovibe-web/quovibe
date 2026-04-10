@@ -36,12 +36,10 @@ function createTestDb() {
       updatedAt TEXT NOT NULL DEFAULT '', onlineId TEXT, targetCurrency TEXT
     );
     CREATE TABLE latest_price (
-      security TEXT PRIMARY KEY, tstamp TEXT,
-      value INTEGER NOT NULL, open INTEGER, high INTEGER, low INTEGER, volume INTEGER
+      security TEXT PRIMARY KEY, tstamp TEXT, value INTEGER NOT NULL
     );
     CREATE TABLE price (
-      security TEXT, tstamp TEXT NOT NULL,
-      value INTEGER NOT NULL, open INTEGER, high INTEGER, low INTEGER, volume INTEGER,
+      security TEXT, tstamp TEXT NOT NULL, value INTEGER NOT NULL,
       PRIMARY KEY (security, tstamp)
     );
     CREATE TABLE attribute_type (
