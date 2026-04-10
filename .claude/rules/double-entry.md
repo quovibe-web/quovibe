@@ -2,10 +2,20 @@ globs: packages/api/src/services/**,packages/api/src/routes/transactions.*,packa
 ---
 # Double-Entry Transaction Rules
 
-## Portfolio ↔ Deposit Link (CRITICAL)
+## Portfolio ↔ Deposit Accounts
 
-Every securities account (`type = 'portfolio'`) has a linked cash account (`referenceAccount`).
-This link is mandatory and governs the routing of all transactions:
+A securities account (`type = 'portfolio'`) can be associated with **multiple cash accounts**
+(each `type = 'account'`, each tied to a single currency). Multi-currency portfolios need one
+cash account per currency.
+
+The `referenceAccount` field on a portfolio points to the **default** cash account. It is a
+UI/import convenience — it determines which cash account is shown as "linked" in the UI and
+which one is used when a transaction does not explicitly specify a cash account. It does **not**
+mean other cash accounts cannot hold transactions for the same portfolio.
+
+### Auto-routing rules
+
+When a transaction is created against a portfolio, the service layer routes it as follows:
 
 | Group | Types | xact.account row |
 |-------|-------|------------------|
@@ -25,7 +35,7 @@ xact #1 (securities-side)
   security = security_uuid
 
 xact #2 (cash counter-entry)
-  account  = deposit_uuid  (referenceAccount of the portfolio)
+  account  = deposit_uuid  (defaults to referenceAccount when no cash account is specified)
   shares   = 0
   security = security_uuid  (same as securities-side; D4 fix 2026-03-26, matches ppxml2db)
 

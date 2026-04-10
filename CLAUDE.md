@@ -17,7 +17,7 @@
   | DevOps/Docker | `operations.md` |
 
 - Before implementing business logic or math, consult the reference docs (gitignored, local dev only). Do not hallucinate formulas.
-- NEVER modify the original DB schema. ASK first.
+- NEVER modify the database schema without explicit permission.
 
 ## pp-reference Lookup (All Packages)
 
@@ -35,10 +35,6 @@ cashflows, pricing, performance, or data structures:
    - Transfers → `transfer`, `neutral-transfer`
 3. **Zero hallucinations:** if the rule is not found in pp-reference, ask before inventing behavior.
 4. **No upstream references:** never mention upstream projects in code, comments, or tests.
-
-# quovibe
-
-Open-source web portfolio tracker, developed entirely with Claude Code.
 
 ## Stack
 
