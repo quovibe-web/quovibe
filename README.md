@@ -10,9 +10,6 @@
 > A web-based, self-hosted portfolio tracker developed with the assistance of AI ([Claude Code](https://claude.ai/code)).
 > Import your portfolio XML and instantly access performance analytics, holdings, dividends, and asset allocation — running fully locally.
 
-> [!IMPORTANT]
-> Backed by 1742+ tests, 14 governance checks, and 12 Architecture Decision Records.
-
 > [!TIP]
 > Enjoying quovibe? [Support it here](https://ko-fi.com/Q5Q41VQUH7) ☕
 
