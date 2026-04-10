@@ -56,7 +56,8 @@
     "savedPrices": "{{count}} cours enregistrés.",
     "accountDeleted": "Compte supprimé",
     "securityDeleted": "Titre supprimé",
-    "imageTooLarge": "Image trop grande (max. 5 Mo)"
+    "imageTooLarge": "Image trop grande (max. 5 Mo)",
+    "logoNotFound": "Logo introuvable — vous pouvez l'importer manuellement."
   },
   "deleteConfirm": {
     "title": "Confirmer la suppression",

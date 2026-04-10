@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { VisibilityState } from '@tanstack/react-table';
+import type { TableLayoutEntry } from '@quovibe/shared';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Briefcase, X } from 'lucide-react';
@@ -10,6 +13,7 @@ import { FadeIn } from '@/components/shared/FadeIn';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SummaryStrip } from '@/components/shared/SummaryStrip';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { TaxonomyChart } from '@/components/domain/TaxonomyChart';
 import { SecurityEditor, type EditorSection } from '@/components/domain/SecurityEditor';
 import { SecurityDrawer } from '@/components/domain/SecurityDrawer';
@@ -33,7 +37,8 @@ import { useAccountDetail, useAccountHoldings } from '@/api/use-accounts';
 import { useStatementOfAssets, useHoldings } from '@/api/use-reports';
 import { useReportingPeriod, usePerformanceSecurities } from '@/api/use-performance';
 import { useInvestmentsView, useSaveInvestmentsView } from '@/api/use-investments-view';
-import { useTableLayout } from '@/api/use-table-layout';
+import { layoutKeys } from '@/api/use-table-layout';
+import { apiFetch } from '@/api/fetch';
 import type { ColumnVisibilityGroup } from '@/components/shared/DataTable';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { usePrivacy } from '@/context/privacy-context';
@@ -104,46 +109,72 @@ export default function Investments() {
     { label: t('columnGroups.identity'), columns: [...COLUMN_GROUPS.identity] },
   ], [t]);
 
-  // Table column layout (order + sizing + sorting + visibility)
-  const tableLayout = useTableLayout('investments', {
-    sorting: [],
-    columnSizing: {},
-    columnOrder: [],
-    columnVisibility: defaultColumnVisibility,
+  // Read the persisted table layout (read-only — DataTable owns all writes via its own useTableLayout).
+  // Using a direct useQuery instead of useTableLayout avoids a duplicate useMutation instance that
+  // shared the same query key, causing cancelQueries + setQueryData races when the user toggled columns.
+  const queryClient = useQueryClient();
+  const layoutQueryKey = layoutKeys.one('investments');
+  const { data: savedLayout, isLoading: layoutLoading } = useQuery({
+    queryKey: layoutQueryKey,
+    queryFn: () => apiFetch<TableLayoutEntry>('/api/settings/table-layouts/investments'),
+    staleTime: Infinity,
+    retry: false,
   });
 
-  // One-time migration: if old investmentsView.columns has data and tableLayout visibility
-  // is still at defaults, migrate the old visibility into the new unified system
+  // One-shot mutation used only for the legacy migration and ?view= param writes.
+  // After those one-time writes, all persistence is delegated to DataTable's internal useTableLayout.
+  const layoutMigrateMutation = useMutation({
+    mutationFn: (columnVisibility: VisibilityState) =>
+      apiFetch<TableLayoutEntry>('/api/settings/table-layouts/investments', {
+        method: 'PUT',
+        body: JSON.stringify({ columnVisibility }),
+      }),
+    onMutate: async (columnVisibility) => {
+      await queryClient.cancelQueries({ queryKey: layoutQueryKey });
+      const prev = queryClient.getQueryData<TableLayoutEntry>(layoutQueryKey);
+      queryClient.setQueryData<TableLayoutEntry>(layoutQueryKey, (old) => ({
+        ...(old ?? { sorting: [], columnSizing: {}, columnOrder: [], version: 1 }),
+        columnVisibility,
+      }));
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(layoutQueryKey, ctx.prev);
+    },
+  });
+
+  // Derive current visibility from persisted layout (reactive — updates whenever DataTable saves).
+  const currentVis: VisibilityState = savedLayout?.columnVisibility ?? defaultColumnVisibility;
+
+  // One-time migration: if old investmentsView.columns has data and the persisted layout is still
+  // at defaults, migrate the old visibility into the new unified system.
   const migrationDoneRef = useRef(false);
   useEffect(() => {
-    if (migrationDoneRef.current || tableLayout.isLoading) return;
+    if (migrationDoneRef.current || layoutLoading) return;
     migrationDoneRef.current = true;
 
-    // Check if there's legacy column data in investmentsView
     if (savedView?.columns && Array.isArray(savedView.columns) && savedView.columns.length > 0) {
-      // Check if the persisted layout has no explicit visibility yet (still using defaults)
-      const currentVis = tableLayout.columnVisibility;
       const isUsingDefaults = Object.keys(currentVis).length === 0 ||
         (ALL_COLUMN_IDS as readonly string[]).every(id =>
           currentVis[id] === defaultColumnVisibility[id]
         );
 
       if (isUsingDefaults) {
-        // Migrate: old format is a list of visible column IDs
         const vis: Record<string, boolean> = {};
         for (const id of ALL_COLUMN_IDS) {
           vis[id] = (savedView.columns as string[]).includes(id);
         }
-        tableLayout.setColumnVisibility(vis);
+        layoutMigrateMutation.mutate(vis);
       }
     }
-  }, [savedView, tableLayout.isLoading, tableLayout.columnVisibility, defaultColumnVisibility, tableLayout]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedView, layoutLoading]);
 
-  // Handle ?view= backward compat: pre-select group columns on first load
+  // Handle ?view= backward compat: pre-select group columns on first load.
   const viewParam = searchParams.get('view');
   const viewHandledRef = useRef(false);
   useEffect(() => {
-    if (!viewParam || viewHandledRef.current || tableLayout.isLoading) return;
+    if (!viewParam || viewHandledRef.current || layoutLoading) return;
     viewHandledRef.current = true;
     const groupMap: Record<string, keyof typeof COLUMN_GROUPS> = {
       performance: 'performance',
@@ -152,21 +183,21 @@ export default function Investments() {
     const group = groupMap[viewParam];
     if (group) {
       const groupCols = COLUMN_GROUPS[group] as readonly string[];
-      const newVis = { ...tableLayout.columnVisibility };
+      const newVis = { ...currentVis };
       for (const col of groupCols) {
         newVis[col] = true;
       }
-      tableLayout.setColumnVisibility(newVis);
+      layoutMigrateMutation.mutate(newVis);
     }
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       next.delete('view');
       return next;
     }, { replace: true });
-  }, [viewParam, tableLayout.isLoading, tableLayout.columnVisibility, tableLayout, setSearchParams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewParam, layoutLoading, setSearchParams]);
 
   // Derive needsPerf / needsStatement from current column visibility
-  const currentVis = tableLayout.columnVisibility;
   const needsPerf = (PERF_COLUMNS as readonly string[]).some(c => currentVis[c] !== false);
   const needsStatement = (STATEMENT_COLUMNS as readonly string[]).some(c => currentVis[c] !== false) || !needsPerf;
 
@@ -339,22 +370,11 @@ export default function Investments() {
         subtitle={t('subtitle')}
         actions={<>
           {/* Chart mode toggle */}
-          <div className="flex gap-0.5 bg-muted rounded-md p-0.5">
-            {chartModes.map(m => (
-              <button
-                key={m.value}
-                onClick={() => setChartMode(m.value)}
-                className={cn(
-                  'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-                  chartMode === m.value
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            segments={chartModes}
+            value={chartMode}
+            onChange={setChartMode}
+          />
           <Separator orientation="vertical" className="h-6" />
           <Button onClick={handleFetchAll} disabled={fetchAll.isPending}>
             {fetchAll.isPending ? tSecurities('actions.updating') : tSecurities('actions.updatePrices')}
@@ -444,7 +464,7 @@ export default function Investments() {
 
       {/* Allocation chart — global or per-account */}
       {chartMode !== 'off' && chartItems.length > 0 && (!accountFilterId ? !summaryLoading : !!filterHoldings) && (
-        <Card style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: '180ms' }}>
+        <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '180ms' }}>
           <CardContent className="pt-6">
             <TaxonomyChart
               items={chartItems}

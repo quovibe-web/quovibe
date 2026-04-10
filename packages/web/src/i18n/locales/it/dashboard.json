@@ -1,5 +1,10 @@
 {
   "title": "Dashboard",
+  "hero": {
+    "portfolioValue": "Valore del Portafoglio",
+    "configureMetrics": "Configura metriche",
+    "selectMetrics": "Seleziona metriche"
+  },
   "addDashboard": "Nuova dashboard",
   "addDashboardDescription": "Inserisci un nome per la nuova dashboard",
   "dashboardName": "Nome dashboard",
@@ -12,6 +17,11 @@
   "tabActions": "Azioni scheda",
   "cannotDeleteLast": "Impossibile eliminare l'ultima dashboard",
   "addWidget": "Aggiungi widget",
+  "gridColumnsAuto": "Auto",
+  "widgetSize": "Dimensione",
+  "widgetSizeSmall": "Piccolo (1 col.)",
+  "widgetSizeMedium": "Medio (2 col.)",
+  "widgetSizeLarge": "Grande (3 col.)",
   "dataSeriesMenuItem": "Serie dati...",
   "period": "Periodo...",
   "deleteWidget": "Elimina",
@@ -54,7 +64,8 @@
       "all-time-high": "Il valore più alto mai raggiunto dal portafoglio, con la data in cui si è verificato.",
       "distance-from-ath": "Quanto il valore attuale del portafoglio è al di sotto del massimo storico, in percentuale.",
       "invested-capital": "Valore d'acquisto totale di tutti i titoli per il periodo di riferimento attivo.",
-      "watchlist": "Monitor compatto dei prezzi per una lista di osservazione selezionata"
+      "watchlist": "Monitor compatto dei prezzi per una lista di osservazione selezionata",
+      "top-holdings": "Le posizioni più grandi per valore di mercato, con il peso nel portafoglio e il rendimento del periodo."
     }
   },
   "widget": {
@@ -101,6 +112,12 @@
     },
     "distanceFromAth": {
       "currentVsAth": "{{current}} vs {{ath}}"
+    },
+    "topHoldings": {
+      "noHoldings": "Nessuna posizione in questo periodo",
+      "loadError": "Errore nel caricamento delle posizioni",
+      "showMore_one": "+ {{count}} altro",
+      "showMore_other": "+ {{count}} altri"
     }
   },
   "noChartData": "Nessun dato per questo periodo",
@@ -129,7 +146,8 @@
     "all-time-high": "Massimo Storico",
     "distance-from-ath": "Distanza dal Massimo",
     "invested-capital": "Capitale Investito",
-    "watchlist": "Watchlist"
+    "watchlist": "Watchlist",
+    "top-holdings": "Principali posizioni"
   },
   "dataSeries": {
     "dialogTitle": "Serie Dati",
@@ -164,5 +182,21 @@
     "all": "TUTTO",
     "clear": "Rimuovi periodo personalizzato"
   },
-  "resetWidgetsToGlobal": "Ripristina widget al periodo globale"
+  "resetWidgetsToGlobal": "Ripristina widget al periodo globale",
+  "templates": {
+    "getStarted": "Inizia con un modello",
+    "getStartedDesc": "Scegli un modello per popolare la dashboard o inizia da zero.",
+    "startFromScratch": "Inizia da zero",
+    "startFromTemplate": "Inizia da un modello (opzionale)",
+    "widgetCount_one": "{{count}} widget",
+    "widgetCount_other": "{{count}} widget",
+    "performance": "Performance",
+    "performanceDesc": "Valore di mercato, TTWROR, TIR, Delta e un grafico delle performance.",
+    "risk": "Rischio",
+    "riskDesc": "Drawdown, volatilità, semivarianza, indice di Sharpe e grafico del drawdown.",
+    "income": "Reddito e Valore",
+    "incomeDesc": "Capitale investito, valore di mercato, delta, variazione assoluta e heatmap dei rendimenti.",
+    "complete": "Panoramica Completa",
+    "completeDesc": "Tutte le metriche principali — performance, rischio, grafico e movers in un'unica dashboard."
+  }
 }

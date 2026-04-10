@@ -6,11 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+// Flexoki chart palette — must stay in sync with --color-chart-1…8 in globals.css
 export const PALETTE = [
-  '#4ade80', '#f97316', '#a78bfa', '#38bdf8',
-  '#f472b6', '#facc15', '#34d399', '#fb923c',
-  '#818cf8', '#22d3ee', '#e879f9', '#fbbf24',
-  '#6ee7b7', '#f87171', '#60a5fa', '#c084fc',
+  '#4385BE', '#3AA99F', '#DA702C', '#D14D41',
+  '#8B7EC8', '#879A39', '#D0A215', '#CE5D97',
 ];
 
 interface Props {

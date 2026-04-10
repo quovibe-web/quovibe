@@ -1,5 +1,10 @@
 {
   "title": "Tableau de bord",
+  "hero": {
+    "portfolioValue": "Valeur du portefeuille",
+    "configureMetrics": "Configurer les métriques",
+    "selectMetrics": "Sélectionner les métriques"
+  },
   "addDashboard": "Nouveau tableau de bord",
   "addDashboardDescription": "Saisissez un nom pour le nouveau tableau de bord",
   "dashboardName": "Nom du tableau de bord",
@@ -12,6 +17,11 @@
   "tabActions": "Actions de l'onglet",
   "cannotDeleteLast": "Impossible de supprimer le dernier tableau de bord",
   "addWidget": "Ajouter un widget",
+  "gridColumnsAuto": "Auto",
+  "widgetSize": "Taille",
+  "widgetSizeSmall": "Petite (1 col.)",
+  "widgetSizeMedium": "Moyenne (2 col.)",
+  "widgetSizeLarge": "Grande (3 col.)",
   "dataSeriesMenuItem": "Séries de données...",
   "period": "Période...",
   "deleteWidget": "Supprimer",
@@ -54,7 +64,8 @@
       "all-time-high": "Valeur la plus haute jamais atteinte par le portefeuille, avec la date à laquelle elle s'est produite.",
       "distance-from-ath": "Écart entre la valeur actuelle du portefeuille et son plus haut historique, en pourcentage.",
       "invested-capital": "Valeur d'achat totale de toutes les positions pour la période de référence active.",
-      "watchlist": "Moniteur de cours compact pour une liste de suivi sélectionnée"
+      "watchlist": "Moniteur de cours compact pour une liste de suivi sélectionnée",
+      "top-holdings": "Vos plus grandes positions par valeur de marché, avec le poids dans le portefeuille et le rendement de la période."
     }
   },
   "widget": {
@@ -101,6 +112,12 @@
     },
     "distanceFromAth": {
       "currentVsAth": "{{current}} vs {{ath}}"
+    },
+    "topHoldings": {
+      "noHoldings": "Aucune position dans cette période",
+      "loadError": "Erreur lors du chargement des positions",
+      "showMore_one": "+ {{count}} de plus",
+      "showMore_other": "+ {{count}} de plus"
     }
   },
   "noChartData": "Aucune donnée pour cette période",
@@ -129,7 +146,8 @@
     "all-time-high": "Plus Haut Historique",
     "distance-from-ath": "Distance du PHH",
     "invested-capital": "Capital Investi",
-    "watchlist": "Liste de suivi"
+    "watchlist": "Liste de suivi",
+    "top-holdings": "Principales positions"
   },
   "dataSeries": {
     "dialogTitle": "Séries de données",
@@ -164,5 +182,21 @@
     "all": "TOUT",
     "clear": "Supprimer la période personnalisée"
   },
-  "resetWidgetsToGlobal": "Réinitialiser les widgets à la période globale"
+  "resetWidgetsToGlobal": "Réinitialiser les widgets à la période globale",
+  "templates": {
+    "getStarted": "Démarrer avec un modèle",
+    "getStartedDesc": "Choisissez un modèle pour alimenter votre tableau de bord ou commencez de zéro.",
+    "startFromScratch": "Commencer de zéro",
+    "startFromTemplate": "Partir d'un modèle (optionnel)",
+    "widgetCount_one": "{{count}} widget",
+    "widgetCount_other": "{{count}} widgets",
+    "performance": "Performance",
+    "performanceDesc": "Valeur de marché, TTWROR, TRI, Delta et un graphique de performance.",
+    "risk": "Risque",
+    "riskDesc": "Drawdown, volatilité, semi-variance, ratio de Sharpe et graphique du drawdown.",
+    "income": "Revenus & Valeur",
+    "incomeDesc": "Capital investi, valeur de marché, delta, variation absolue et carte de chaleur des rendements.",
+    "complete": "Vue d'ensemble complète",
+    "completeDesc": "Toutes les métriques clés — performance, risque, graphique et movers dans un seul tableau de bord."
+  }
 }

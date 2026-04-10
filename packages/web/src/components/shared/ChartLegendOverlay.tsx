@@ -286,8 +286,8 @@ function SortableExtendedItem({
           ref={setNodeRef}
           style={style}
           className={cn(
-            'flex items-center gap-1.5 px-1.5 py-0.5 rounded text-xs cursor-pointer select-none',
-            'border border-transparent hover:border-border/50 hover:bg-muted/30 transition-colors',
+            'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs cursor-pointer select-none',
+            'bg-muted/50 hover:bg-muted transition-colors',
           )}
           onClick={handleClick}
           onTouchStart={handleTouchStart}
@@ -308,21 +308,29 @@ function SortableExtendedItem({
             <Popover>
               <PopoverTrigger asChild>
                 <button
-                  className="inline-block w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: item.color }}
+                  className="shrink-0 flex items-center"
                   onClick={(e) => e.stopPropagation()}
                   title={t('chart.colorLabel')}
-                />
+                >
+                  <svg width="8" height="3" className="shrink-0">
+                    <line x1="0" y1="1.5" x2="8" y2="1.5"
+                      stroke={item.color} strokeWidth="2.5"
+                      strokeDasharray={item.lineStyle === 'dashed' ? '3 2' : item.lineStyle === 'dotted' ? '1 2' : undefined}
+                    />
+                  </svg>
+                </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" side="bottom" align="start">
                 <LegendColorPicker currentColor={item.color} onSelect={(c) => onColorChange(c)} />
               </PopoverContent>
             </Popover>
           ) : (
-            <span
-              className="inline-block w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: item.color }}
-            />
+            <svg width="8" height="3" className="shrink-0">
+              <line x1="0" y1="1.5" x2="8" y2="1.5"
+                stroke={item.color} strokeWidth="2.5"
+                strokeDasharray={item.lineStyle === 'dashed' ? '3 2' : item.lineStyle === 'dotted' ? '1 2' : undefined}
+              />
+            </svg>
           )}
 
           {/* Line style indicator — click cycles solid → dashed → dotted */}
@@ -339,13 +347,13 @@ function SortableExtendedItem({
           )}
 
           {/* Label */}
-          <span className={cn('text-foreground whitespace-nowrap', !item.visible && 'line-through opacity-50')}>
+          <span className={cn('font-medium text-foreground whitespace-nowrap', !item.visible && 'line-through opacity-50')}>
             {item.label}
           </span>
 
           {/* Crosshair value */}
           {crosshairValue && (
-            <span className={cn('font-mono font-medium whitespace-nowrap text-foreground', isPrivate && 'blur-sm')}>
+            <span className={cn('tabular-nums whitespace-nowrap text-muted-foreground', isPrivate && 'blur-sm')}>
               {crosshairValue}
             </span>
           )}
@@ -457,7 +465,7 @@ export function ExtendedChartLegendOverlay({
   if (items.length === 0) return null;
 
   return (
-    <div className={cn('group/ext-legend flex flex-wrap gap-x-1 gap-y-0.5 text-xs py-1', className)}>
+    <div className={cn('group/ext-legend flex flex-wrap gap-1.5 text-xs py-1', className)}>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={items.map((i) => i.id)} strategy={horizontalListSortingStrategy}>
           {items.map((item) => (

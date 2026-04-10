@@ -26,7 +26,8 @@
     "rename": "Rename",
     "changeLogo": "Change logo",
     "retire": "Retire account",
-    "reactivateAccount": "Reactivate account"
+    "reactivateAccount": "Reactivate account",
+    "fetchLogo": "Fetch logo"
   },
   "menu": {
     "stockSplit": "Stock Split…",
@@ -91,6 +92,7 @@
     "securities": "Securities",
     "cash": "Cash",
     "return": "Return",
+    "performance": "Gain/Loss",
     "viewDetails": "View full details",
     "securitiesCount_one": "{{count}} security",
     "securitiesCount_other": "{{count}} securities"
@@ -120,5 +122,16 @@
   "retired": {
     "show": "Show retired accounts",
     "hide": "Hide retired accounts"
+  },
+  "viewMode": {
+    "cards": "Cards",
+    "summary": "Summary"
+  },
+  "logo": {
+    "brokerWebsite": "Broker website",
+    "brokerWebsitePlaceholder": "interactivebrokers.com",
+    "fetch": "Fetch logo",
+    "fetching": "Fetching…",
+    "fetchFailed": "Could not fetch logo"
   }
 }

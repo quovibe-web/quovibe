@@ -31,6 +31,7 @@ import { useChartTheme } from '@/hooks/use-chart-theme';
 import { ChartSkeleton } from '@/components/shared/ChartSkeleton';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
 import { FadeIn } from '@/components/shared/FadeIn';
+import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { useAnalyticsContext } from '@/context/analytics-context';
 import { cn, txTypeKey } from '@/lib/utils';
 import type { PaymentGroup } from '@/api/types';
@@ -178,30 +179,14 @@ export default function Payments() {
     setActions(
       <div className="flex items-center gap-3">
         {/* Gross / Net toggle */}
-        <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
-          <button
-            className={cn(
-              'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-              amountMode === 'gross'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-            onClick={() => setAmountMode('gross')}
-          >
-            {t('payments.gross')}
-          </button>
-          <button
-            className={cn(
-              'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-              amountMode === 'net'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-            onClick={() => setAmountMode('net')}
-          >
-            {t('payments.net')}
-          </button>
-        </div>
+        <SegmentedControl
+          segments={[
+            { value: 'gross', label: t('payments.gross') },
+            { value: 'net', label: t('payments.net') },
+          ]}
+          value={amountMode}
+          onChange={setAmountMode}
+        />
 
         <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
           <SelectTrigger className="w-36">
@@ -241,8 +226,7 @@ export default function Payments() {
           <FadeIn>
           {/* Section 0: Earnings Summary Card */}
           {data && (
-            <Card className="relative overflow-hidden" style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: '0ms' }}>
-              <div className="absolute top-0 left-0 right-0 h-[3px] bg-primary opacity-80" />
+            <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '0ms' }}>
               <CardContent className="pt-6">
                 <div className="text-sm text-muted-foreground mb-1">
                   {t('payments.earningsChart')}

@@ -43,7 +43,7 @@ export function InstrumentDetail({
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [isPreviewLoading]);
 
   const chartData = useMemo(() => {
     if (!previewData?.prices.length) return [];
@@ -123,7 +123,7 @@ export function InstrumentDetail({
                   data={chartData}
                   width={chartWidth}
                   height={120}
-                  color={palette[7] ?? palette[0]}
+                  color={palette[1] ?? palette[0]}
                   fillOpacity={0.15}
                 />
               )}

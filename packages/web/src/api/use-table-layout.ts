@@ -8,7 +8,7 @@ import type { TableLayoutEntry } from '@quovibe/shared';
 // Query keys
 // ---------------------------------------------------------------------------
 
-const layoutKeys = {
+export const layoutKeys = {
   all: ['settings', 'table-layouts'] as const,
   one: (tableId: string) => ['settings', 'table-layouts', tableId] as const,
 };

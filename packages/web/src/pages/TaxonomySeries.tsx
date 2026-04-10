@@ -21,10 +21,10 @@ import { formatPercentage, formatCurrency } from '@/lib/formatters';
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { useLightweightChart } from '@/hooks/use-lightweight-chart';
-import { cn } from '@/lib/utils';
 import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
 import { buildSeriesOptions } from '@/lib/chart-series-factory';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
+import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FadeIn } from '@/components/shared/FadeIn';
@@ -249,7 +249,7 @@ export default function TaxonomySeries() {
       {/* Chart + Metrics */}
       {selectedCategoryId && (
         <FadeIn>
-        <Card style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: '120ms' }}>
+        <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '120ms' }}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between gap-4">
               {/* Left: category name + headline metric */}
@@ -284,30 +284,14 @@ export default function TaxonomySeries() {
                   hasOhlc={false}
                   onTypeChange={handleTypeChange}
                 />
-              <div className="flex items-center rounded-lg border border-border p-0.5">
-                <button
-                  onClick={() => setChartMode('ttwror')}
-                  className={cn(
-                    'px-3 py-1 rounded-md text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-                    chartMode === 'ttwror'
-                      ? 'bg-[var(--qv-surface-elevated)] text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {t('taxonomySeries.ttwrorPercent')}
-                </button>
-                <button
-                  onClick={() => setChartMode('mv')}
-                  className={cn(
-                    'px-3 py-1 rounded-md text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-                    chartMode === 'mv'
-                      ? 'bg-[var(--qv-surface-elevated)] text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {t('taxonomySeries.marketValue')}
-                </button>
-              </div>
+              <SegmentedControl
+                segments={[
+                  { value: 'ttwror', label: t('taxonomySeries.ttwrorPercent') },
+                  { value: 'mv', label: t('taxonomySeries.marketValue') },
+                ]}
+                value={chartMode}
+                onChange={setChartMode}
+              />
               </div>
             </div>
           </CardHeader>

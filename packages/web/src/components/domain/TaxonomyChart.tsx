@@ -30,7 +30,7 @@ interface TreemapContentProps {
 }
 
 function TreemapContent({ x, y, width, height, name, percentage, color }: TreemapContentProps) {
-  if (width < 40 || height < 30) return null;
+  if (width <= 0 || height <= 0) return null;
   return (
     <g>
       <rect x={x} y={y} width={width} height={height} rx={4} fill={color} opacity={0.85} stroke="var(--color-background)" strokeWidth={2} />

@@ -19,15 +19,11 @@ build/
 .env.local
 .env.*.local
 
-# Database
-data/*.db
-data/*.db-shm
-data/*.db-wal
-data/*.bak.*
+# Database — all runtime DBs and WAL artifacts, except schema.db (schema-only bootstrap template)
+data/
 !data/schema.db
 
 # Sidecar settings (generated at runtime, not versioned)
-data/quovibe.settings.json
 *.xml
 
 # Claude Code — local machine settings only
@@ -120,5 +116,15 @@ trans_sample/
 *.jpg
 *.jpeg
 *.webp
+!docs/screenshots/quovibe1.png
+!docs/screenshots/quopheat.png
+!docs/screenshots/quodeta.png
+!docs/screenshots/quotree.png
+!docs/screenshots/quoinvest2.png
+!docs/screenshots/quobench.png
+!docs/screenshots/quodiv.png
+!docs/screenshots/quorebal.png
+!docs/screenshots/quofulltrans.png
+!docs/screenshots/quowatch.png
 *.mp4
 *.zip

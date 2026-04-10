@@ -52,11 +52,11 @@ function ToggleGroup() {
   }
 
   return (
-    <div className="flex items-center gap-0.5 rounded-lg bg-[var(--qv-surface-elevated)] p-0.5">
+    <div className="flex items-center gap-0.5 rounded-full bg-muted p-0.5">
       <button
         onClick={handlePrivacy}
         className={cn(
-          'p-1.5 rounded-md transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+          'p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           isPrivate
             ? 'bg-card text-foreground'
             : 'text-muted-foreground hover:text-foreground'
@@ -69,7 +69,7 @@ function ToggleGroup() {
       <button
         onClick={() => handleTheme('light')}
         className={cn(
-          'p-1.5 rounded-md transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+          'hidden md:inline-flex p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           theme === 'light'
             ? 'bg-card text-primary'
             : 'text-muted-foreground hover:text-foreground'
@@ -82,7 +82,7 @@ function ToggleGroup() {
       <button
         onClick={() => handleTheme('system')}
         className={cn(
-          'p-1.5 rounded-md transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+          'hidden md:inline-flex p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           theme === 'system'
             ? 'bg-card text-primary'
             : 'text-muted-foreground hover:text-foreground'
@@ -95,7 +95,7 @@ function ToggleGroup() {
       <button
         onClick={() => handleTheme('dark')}
         className={cn(
-          'p-1.5 rounded-md transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+          'hidden md:inline-flex p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           theme === 'dark'
             ? 'bg-card text-primary'
             : 'text-muted-foreground hover:text-foreground'
@@ -233,7 +233,7 @@ function PeriodSelector() {
             variant="ghost"
             size="sm"
             className={cn(
-              'h-7 px-2.5 text-xs font-medium rounded-md',
+              'h-7 px-2.5 text-xs font-medium rounded-full',
               PERIOD_PILL,
               isPeriodActive(d.resolved) && PERIOD_PILL_ACTIVE,
             )}
@@ -249,7 +249,7 @@ function PeriodSelector() {
             variant="ghost"
             size="sm"
             className={cn(
-              'h-7 px-2.5 text-xs font-medium rounded-md',
+              'h-7 px-2.5 text-xs font-medium rounded-full',
               PERIOD_PILL,
               isAllActive && PERIOD_PILL_ACTIVE,
             )}
@@ -269,7 +269,7 @@ function PeriodSelector() {
             variant="ghost"
             size="sm"
             className={cn(
-              'h-7 px-2.5 text-xs font-medium rounded-md max-w-[160px] truncate',
+              'h-7 px-2.5 text-xs font-medium rounded-full max-w-[160px] truncate',
               PERIOD_PILL,
               isPeriodActive(p.resolved) && PERIOD_PILL_ACTIVE,
             )}
@@ -481,11 +481,17 @@ function PeriodSelector() {
 
 interface TopBarProps {
   onMenuClick?: () => void;
+  isScrolled?: boolean;
 }
 
-export function TopBar({ onMenuClick }: TopBarProps) {
+export function TopBar({ onMenuClick, isScrolled = false }: TopBarProps) {
   return (
-    <header className="h-14 border-b border-border flex items-center gap-3 px-4 lg:px-6 shrink-0 bg-background">
+    <header className={cn(
+      "h-14 flex items-center gap-3 px-4 lg:px-6 shrink-0 transition-all duration-300 ease-out border-b",
+      isScrolled
+        ? "bg-[var(--qv-bg)]/80 backdrop-blur-xl border-border shadow-sm supports-not-[backdrop-filter]:bg-[var(--qv-bg)]"
+        : "bg-background border-transparent"
+    )}>
       {/* Hamburger for small screens (<md) */}
       {onMenuClick && (
         <Button
@@ -499,17 +505,22 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         </Button>
       )}
       {/* Mobile logo (no sidebar visible on small screens) */}
-      <div className="md:hidden flex items-center gap-1 mr-1">
-        <span className="text-sm tracking-tight">
-          <span className="font-normal" style={{ color: 'var(--color-primary)' }}>Q</span>
-          <span className="font-extrabold" style={{ color: 'var(--color-chart-5)' }}>V</span>
-        </span>
+      <div className="md:hidden flex items-center mr-1">
+        <svg viewBox="0 0 120 120" fill="none" className="h-[18px] w-[18px]">
+          <path d="M60 22 Q82 22, 82 44" stroke="var(--qv-text-primary)" strokeWidth="8" fill="none" strokeLinecap="round" />
+          <path d="M98 60 Q98 82, 76 82" stroke="var(--qv-text-primary)" strokeWidth="8" fill="none" strokeLinecap="round" />
+          <path d="M60 98 Q38 98, 38 76" stroke="var(--qv-text-primary)" strokeWidth="8" fill="none" strokeLinecap="round" />
+          <path d="M22 60 Q22 38, 44 38" stroke="var(--qv-text-primary)" strokeWidth="8" fill="none" strokeLinecap="round" />
+          <circle cx="60" cy="60" r="8" fill="var(--qv-warning)" />
+        </svg>
       </div>
 
       <PeriodSelector />
 
       <div className="ml-auto flex items-center gap-1">
-        <LanguageSwitcher />
+        <div className="hidden md:block">
+          <LanguageSwitcher />
+        </div>
         <ToggleGroup />
       </div>
     </header>

@@ -2,7 +2,7 @@ import { Router, type Router as RouterType } from 'express';
 import type { RequestHandler } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { eq, asc, and, like } from 'drizzle-orm';
-import { createSecuritySchema, filterTradingDays, resolveCalendarId, updateSecurityAttributesSchema, updateSecurityTaxonomiesSchema } from '@quovibe/shared';
+import { createSecuritySchema, filterTradingDays, resolveCalendarId, updateSecurityAttributesSchema, updateSecurityTaxonomiesSchema, updateAccountLogoSchema } from '@quovibe/shared';
 import { securities, latestPrices, prices, securityAttributes } from '../db/schema';
 import { convertPriceFromDb } from '../services/unit-conversion';
 import { fetchNetSharesPerSecurity } from '../services/performance.service';
@@ -461,12 +461,35 @@ const deleteSecurity: RequestHandler = (req, res) => {
   res.json({ ok: true });
 };
 
+const updateSecurityLogo: RequestHandler = (req, res) => {
+  const sqlite = getSqlite(req);
+  const id = req.params['id'] as string;
+  const { logoUrl } = updateAccountLogoSchema.parse(req.body);
+
+  if (logoUrl === null) {
+    sqlite.prepare("DELETE FROM security_attr WHERE security = ? AND attr_uuid = 'logo'").run(id); // db-route-ok
+  } else {
+    sqlite.transaction(() => {
+      sqlite.prepare("DELETE FROM security_attr WHERE security = ? AND attr_uuid = 'logo'").run(id); // db-route-ok
+      sqlite
+        .prepare( // db-route-ok
+          `INSERT INTO security_attr (security, attr_uuid, type, value, seq)
+           VALUES (?, 'logo', 'string', ?, 0)`,
+        )
+        .run(id, logoUrl);
+    })();
+  }
+
+  res.json({ ok: true });
+};
+
 securitiesRouter.get('/', listSecurities);
 securitiesRouter.get('/:id', getSecurity);
 securitiesRouter.post('/', createSecurity);
 securitiesRouter.put('/:id', updateSecurity);
 securitiesRouter.delete('/:id', deleteSecurity);
 securitiesRouter.put('/:id/attributes', updateAttributesHandler);
+securitiesRouter.put('/:id/logo', updateSecurityLogo);
 securitiesRouter.put('/:id/taxonomy', updateTaxonomyHandler);
 securitiesRouter.put('/:id/prices/fetch', fetchSecurityPricesHandler);
 securitiesRouter.post('/:id/prices/test-fetch', testFetchPricesHandler);

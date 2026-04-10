@@ -3,14 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { differenceInDays, parseISO } from 'date-fns';
 import { Settings } from 'lucide-react';
 import {
-  LineSeries, AreaSeries,
+  LineSeries, BaselineSeries,
   LineStyle as LwcLineStyle,
   PriceScaleMode,
   type ISeriesApi, type SeriesType,
 } from 'lightweight-charts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { usePerformanceChart, useReportingPeriod } from '@/api/use-performance';
+import { SegmentedControl } from '@/components/shared/SegmentedControl';
+import { usePerformanceChart, useReportingPeriod, useCalculation } from '@/api/use-performance';
+import { ChartSummaryBar } from '@/components/domain/ChartSummaryBar';
 import { useChartSeries } from '@/api/use-chart-series';
 import { useSecurities } from '@/api/use-securities';
 import { formatPercentage, computeTtwrorPa } from '@/lib/formatters';
@@ -45,8 +46,9 @@ export default function PerformanceChart() {
   const { t } = useTranslation('performance');
   const { periodStart, periodEnd } = useReportingPeriod();
   const { data: chart, isLoading, isFetching } = usePerformanceChart({ periodStart, periodEnd });
+  const { data: calcData, isLoading: calcLoading } = useCalculation();
   const { isPrivate } = usePrivacy();
-  const { dividend, palette } = useChartColors();
+  const { dividend, palette, loss } = useChartColors();
 
   const [configOpen, setConfigOpen] = useState(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -178,30 +180,14 @@ export default function PerformanceChart() {
   useEffect(() => {
     setActions(
       <>
-        <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
-          <button
-            className={cn(
-              'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-              ttwrorMode === 'cumulative'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-            onClick={() => setTtwrorMode('cumulative')}
-          >
-            {t('chart.cumulative')}
-          </button>
-          <button
-            className={cn(
-              'px-3 py-1 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-              ttwrorMode === 'annualized'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-            onClick={() => setTtwrorMode('annualized')}
-          >
-            {t('chart.annualizedPa')}
-          </button>
-        </div>
+        <SegmentedControl
+          segments={[
+            { value: 'cumulative', label: t('chart.cumulative') },
+            { value: 'annualized', label: t('chart.annualizedPa') },
+          ]}
+          value={ttwrorMode}
+          onChange={setTtwrorMode}
+        />
         <ChartExportButton
           chartRef={chartContainerRef}
           filename={`performance-chart-${periodStart}-to-${periodEnd}`}
@@ -237,6 +223,12 @@ export default function PerformanceChart() {
       ttwror: computeTtwrorPa(p.ttwror, differenceInDays(parseISO(p.date), start)),
     }));
   }, [chartData, ttwrorMode, periodStart]);
+
+  // Derive summary bar data
+  const totalReturn = displayData.length > 0
+    ? displayData[displayData.length - 1].ttwror // native-ok
+    : 0;
+  const absoluteGain = calcData ? parseFloat(calcData.absolutePerformance) : 0;
 
   // --- Lightweight Charts setup ---
 
@@ -316,14 +308,17 @@ export default function PerformanceChart() {
       .map((p) => ({ time: p.date, value: p.ttwror }))
       .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
 
-    const portfolioType = portfolioAreaFill ? 'area' as const : 'line' as const;
+    const portfolioType = portfolioAreaFill ? 'baseline' as const : 'line' as const;
     const { options: portfolioOptions } = buildSeriesOptions(portfolioType, {
       color: portfolioColor,
+      profitColor: portfolioColor,
+      lossColor: loss,
+      basePrice: 0,
       lineStyle: toLwcLineStyle(portfolioLineStyle),
       priceScaleId: 'right',
       visible: portfolioVisible,
     });
-    const PortfolioConstructor = portfolioAreaFill ? AreaSeries : LineSeries;
+    const PortfolioConstructor = portfolioAreaFill ? BaselineSeries : LineSeries;
     const portfolioSeries = chart.addSeries(PortfolioConstructor, portfolioOptions);
     portfolioSeries.setData(portfolioData);
     seriesMapRef.current.set('portfolio-default', {
@@ -353,14 +348,17 @@ export default function PerformanceChart() {
         })
         .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
 
-      const rsType = rs.config.areaFill ? 'area' as const : 'line' as const;
+      const rsType = rs.config.areaFill ? 'baseline' as const : 'line' as const;
       const { options: rsOptions } = buildSeriesOptions(rsType, {
         color,
+        profitColor: color,
+        lossColor: loss,
+        basePrice: 0,
         lineStyle,
         priceScaleId: 'right',
         visible: isVisible,
       });
-      const RsConstructor = rs.config.areaFill ? AreaSeries : LineSeries;
+      const RsConstructor = rs.config.areaFill ? BaselineSeries : LineSeries;
       const lwcSeries = chart.addSeries(RsConstructor, rsOptions);
       lwcSeries.setData(seriesData);
       seriesMapRef.current.set(rs.config.id, { series: lwcSeries, visible: isVisible });
@@ -384,7 +382,7 @@ export default function PerformanceChart() {
     chart.timeScale().fitContent();
     setLegendTrigger((v) => v + 1); // native-ok — seriesMapRef is a ref, must trigger re-render for legend
 
-  }, [displayData, chartSeries, ttwrorMode, periodStart, dividend, palette[0], ready]);
+  }, [displayData, chartSeries, ttwrorMode, periodStart, dividend, loss, palette[0], ready]);
 
   // --- Build legend items for ExtendedChartLegendOverlay ---
 
@@ -441,44 +439,50 @@ export default function PerformanceChart() {
   }, [legendTrigger, chartConfig, chartSeries, seriesNameMap, ttwrorMode, t, dividend, ready]);
 
   return (
-    <Card style={{ animation: 'qv-stagger-in 0.5s ease-out both', animationDelay: '120ms' }}>
-        <CardHeader>
-          <CardTitle className="text-base">{t('chart.entirePortfolio')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="relative" style={{ minHeight: 360 }}>
-            {isLoading && <ChartSkeleton height={360} />}
-            <div className={cn(isLoading && 'invisible')}>
-              <div className="flex items-center justify-between mb-1">
-                <ExtendedChartLegendOverlay
-                  chart={chartRef.current}
-                  items={legendItems}
-                  onToggleVisibility={handleToggleVisibility}
-                  onColorChange={handleColorChange}
-                  onLineStyleChange={handleLineStyleChange}
-                  onAreaFillToggle={handleAreaFillToggle}
-                  onRemove={handleRemoveSeries}
-                  onReorder={handleReorder}
-                  onIsolate={handleIsolate}
-                />
-              </div>
-              <div
-                ref={chartContainerRef}
-                className={cn(
-                  'relative',
-                  isFetching && !isLoading && 'opacity-60 transition-opacity duration-200',
-                )}
-                style={{
-                  filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
-                  transition: 'filter 0.2s ease',
-                }}
-              >
-                <div ref={containerRef} className="w-full" style={{ height: 360 }} />
-              </div>
-            </div>
+    <div className="space-y-3" style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '120ms' }}>
+      {/* Summary bar */}
+      <ChartSummaryBar
+        totalReturn={totalReturn}
+        absoluteGain={absoluteGain}
+        periodStart={periodStart}
+        periodEnd={periodEnd}
+        isLoading={isLoading || calcLoading}
+      />
+
+      {/* Chart area */}
+      <div className="relative" style={{ minHeight: 400 }}>
+        {isLoading && <ChartSkeleton height={400} />}
+        <div className={cn(isLoading && 'invisible')}>
+          <div className="mb-1">
+            <ExtendedChartLegendOverlay
+              chart={chartRef.current}
+              items={legendItems}
+              onToggleVisibility={handleToggleVisibility}
+              onColorChange={handleColorChange}
+              onLineStyleChange={handleLineStyleChange}
+              onAreaFillToggle={handleAreaFillToggle}
+              onRemove={handleRemoveSeries}
+              onReorder={handleReorder}
+              onIsolate={handleIsolate}
+            />
           </div>
-        </CardContent>
-        <DataSeriesPickerDialog open={configOpen} onOpenChange={setConfigOpen} />
-    </Card>
+          <div
+            ref={chartContainerRef}
+            className={cn(
+              'relative',
+              isFetching && !isLoading && 'opacity-60 transition-opacity duration-200',
+            )}
+            style={{
+              filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
+              transition: 'filter 0.2s ease',
+            }}
+          >
+            <div ref={containerRef} className="w-full" style={{ height: 400 }} />
+          </div>
+        </div>
+      </div>
+
+      <DataSeriesPickerDialog open={configOpen} onOpenChange={setConfigOpen} />
+    </div>
   );
 }

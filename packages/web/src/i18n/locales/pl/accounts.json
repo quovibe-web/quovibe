@@ -26,7 +26,8 @@
     "rename": "Zmień nazwę",
     "changeLogo": "Zmień logo",
     "retire": "Archiwizuj konto",
-    "reactivateAccount": "Reaktywuj konto"
+    "reactivateAccount": "Reaktywuj konto",
+    "fetchLogo": "Pobierz logo"
   },
   "menu": {
     "stockSplit": "Podział akcji…",
@@ -91,6 +92,7 @@
     "securities": "Papiery wartościowe",
     "cash": "Gotówka",
     "return": "Stopa zwrotu",
+    "performance": "Zysk/Strata",
     "viewDetails": "Zobacz pełne szczegóły",
     "securitiesCount_one": "{{count}} papier wartościowy",
     "securitiesCount_few": "{{count}} papiery wartościowe",
@@ -122,5 +124,16 @@
   "retired": {
     "show": "Pokaż zarchiwizowane konta",
     "hide": "Ukryj zarchiwizowane konta"
+  },
+  "viewMode": {
+    "cards": "Karty",
+    "summary": "Podsumowanie"
+  },
+  "logo": {
+    "brokerWebsite": "Strona brokera",
+    "brokerWebsitePlaceholder": "interactivebrokers.com",
+    "fetch": "Pobierz logo",
+    "fetching": "Pobieranie…",
+    "fetchFailed": "Nie można pobrać logo"
   }
 }

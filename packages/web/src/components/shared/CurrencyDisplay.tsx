@@ -1,7 +1,8 @@
-import { formatCurrency } from '@/lib/formatters';
+import NumberFlow from '@number-flow/react';
 import { usePrivacy } from '@/context/privacy-context';
 import { useDisplayPreferences } from '@/hooks/use-display-preferences';
 import { cn } from '@/lib/utils';
+import i18n from '@/i18n';
 
 interface CurrencyDisplayProps {
   value: number;
@@ -12,6 +13,8 @@ interface CurrencyDisplayProps {
   className?: string;
   /** Override showCurrencyCode from display preferences */
   showCurrencyCode?: boolean;
+  /** Disable NumberFlow animation (render static text) */
+  animated?: boolean;
 }
 
 export function CurrencyDisplay({
@@ -21,6 +24,7 @@ export function CurrencyDisplay({
   colorSign,
   className,
   showCurrencyCode: showCurrencyCodeProp,
+  animated = true,
 }: CurrencyDisplayProps) {
   const { isPrivate } = usePrivacy();
   const { showCurrencyCode: showCurrencyCodePref } = useDisplayPreferences();
@@ -35,9 +39,44 @@ export function CurrencyDisplay({
           : undefined
       : undefined;
 
+  if (isPrivate) {
+    return <span className={cn('tabular-nums', colorClass, className)}>••••••</span>;
+  }
+
+  const currencyCode = currency || 'EUR';
+
+  if (showCurrencyCode) {
+    return (
+      <span className={cn('tabular-nums', colorClass, className)}>
+        <NumberFlow
+          className="muted-fraction"
+          value={value}
+          animated={animated}
+          locales={i18n.language}
+          format={{
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }}
+        />
+        {' '}{currencyCode}
+      </span>
+    );
+  }
+
   return (
     <span className={cn('tabular-nums', colorClass, className)}>
-      {isPrivate ? '••••••' : formatCurrency(value, currency, { showCurrencyCode })}
+      <NumberFlow
+        className="muted-fraction"
+        value={value}
+        animated={animated}
+        locales={i18n.language}
+        format={{
+          style: 'currency',
+          currency: currencyCode,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }}
+      />
     </span>
   );
 }

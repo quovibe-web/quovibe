@@ -19,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useAccounts, useCreateAccount } from '@/api/use-accounts';
+import { useAccounts, useCreateAccount, useUpdateAccountLogo } from '@/api/use-accounts';
+import { useResolveLogo } from '@/api/use-logo';
 import { CURRENCIES } from '@/lib/currencies';
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
 import { UnsavedChangesAlert } from '@/components/shared/UnsavedChangesAlert';
@@ -33,10 +34,14 @@ interface Props {
 
 export function CreateAccountDialog({ open, onOpenChange }: Props) {
   const { t } = useTranslation('accounts');
+  const { t: tCommon } = useTranslation('common');
   const { data: accounts = [] } = useAccounts();
   const createMutation = useCreateAccount();
+  const resolveLogoMutation = useResolveLogo();
+  const logoMutation = useUpdateAccountLogo();
 
   const [name, setName] = useState('');
+  const [website, setWebsite] = useState('');
   const [type, setType] = useState<'DEPOSIT' | 'SECURITIES'>('DEPOSIT');
   const [currency, setCurrency] = useState('EUR');
   const [refAccountId, setRefAccountId] = useState('');
@@ -63,8 +68,13 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
     setRefAccountId('');
     setNewDepositName('');
     setNewDepositCurrency('EUR');
+    setWebsite('');
     setIsDirty(false);
     setError(null);
+  }
+
+  function normalizeDomain(raw: string): string {
+    return raw.trim().replace(/^https?:\/\//, '').replace(/\/$/, '').split('/')[0];
   }
 
   async function handleSave() {
@@ -87,8 +97,14 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
 
     try {
       if (type === 'DEPOSIT') {
-        await createMutation.mutateAsync({ name: name.trim(), type: 'DEPOSIT', currency });
+        const depositAccount = await createMutation.mutateAsync({ name: name.trim(), type: 'DEPOSIT', currency });
         toast.success(t('toasts.depositCreated'));
+        const domain = normalizeDomain(website);
+        if (domain) {
+          void resolveLogoMutation.mutateAsync({ domain })
+            .then(({ logoUrl }) => logoMutation.mutate({ id: (depositAccount as { id: string }).id, logoUrl }))
+            .catch(() => {/* silent — user can upload manually */});
+        }
       } else {
         let resolvedRefId = refAccountId;
 
@@ -99,6 +115,12 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
             currency: newDepositCurrency,
           });
           resolvedRefId = (deposit as { id: string }).id;
+          const domain = normalizeDomain(website);
+          if (domain) {
+            void resolveLogoMutation.mutateAsync({ domain })
+              .then(({ logoUrl }) => logoMutation.mutate({ id: resolvedRefId, logoUrl }))
+              .catch(() => {/* silent */});
+          }
         }
 
         await createMutation.mutateAsync({
@@ -176,6 +198,21 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
                 </div>
               )}
 
+              {/* Broker website — only for DEPOSIT accounts */}
+              {type === 'DEPOSIT' && (
+                <div className="grid gap-1.5">
+                  <Label htmlFor="website">
+                    {t('logo.brokerWebsite')} <span className="text-muted-foreground text-xs">{tCommon('optional')}</span>
+                  </Label>
+                  <Input
+                    id="website"
+                    value={website}
+                    placeholder={t('logo.brokerWebsitePlaceholder')}
+                    onChange={e => { setWebsite(e.target.value); setIsDirty(true); }}
+                  />
+                </div>
+              )}
+
               {/* Reference Account (Securities only) */}
               {type === 'SECURITIES' && (
                 <div className="space-y-1">
@@ -224,6 +261,17 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="website-inline">
+                      {t('logo.brokerWebsite')} <span className="text-muted-foreground text-xs">{tCommon('optional')}</span>
+                    </Label>
+                    <Input
+                      id="website-inline"
+                      value={website}
+                      placeholder={t('logo.brokerWebsitePlaceholder')}
+                      onChange={e => { setWebsite(e.target.value); setIsDirty(true); }}
+                    />
                   </div>
                 </div>
               )}

@@ -1,19 +1,28 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueries } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Landmark } from 'lucide-react';
+import { CostMethod } from '@quovibe/shared';
+import type { CalculationBreakdownResponse } from '@quovibe/shared';
 import { useAccounts, accountsKeys } from '@/api/use-accounts';
 import { apiFetch } from '@/api/fetch';
 import type { AccountHoldingsResponse } from '@/api/types';
+import { useReportingPeriod, performanceKeys } from '@/api/use-performance';
 import { AccountSummaryStrip } from '@/components/domain/AccountSummaryStrip';
 import { BrokerageUnitCard } from '@/components/domain/BrokerageUnitCard';
 import { StandaloneDepositCard } from '@/components/domain/StandaloneDepositCard';
 import { CreateAccountDialog } from '@/components/domain/CreateAccountDialog';
+import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
+import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
+import { usePrivacy } from '@/context/privacy-context';
+import { formatPercentage, formatCurrency } from '@/lib/formatters';
 
 export default function AccountsHub() {
   const { t } = useTranslation('accounts');
@@ -22,6 +31,10 @@ export default function AccountsHub() {
   const [showRetired, setShowRetired] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'cards' | 'summary'>('cards');
+  const navigate = useNavigate();
+  const { isPrivate } = usePrivacy();
+  const { periodStart, periodEnd } = useReportingPeriod();
 
   // 2. Fetch accounts
   const { data: accounts = [], isLoading } = useAccounts(showRetired);
@@ -29,7 +42,7 @@ export default function AccountsHub() {
   // 3. Derive portfolios BEFORE useQueries (rules of hooks)
   const portfolios = useMemo(() => accounts.filter(a => a.type === 'portfolio'), [accounts]);
 
-  // 4. Prefetch holdings for all portfolios
+  // 4. Prefetch holdings and performance for all portfolios
   const holdingsQueries = useQueries({
     queries: portfolios.map(p => ({
       queryKey: accountsKeys.holdings(p.id),
@@ -37,7 +50,24 @@ export default function AccountsHub() {
     })),
   });
 
-  // 5. Build holdingsMap
+  const perfQueries = useQueries({
+    queries: portfolios.map(p => ({
+      queryKey: performanceKeys.calculation(periodStart, periodEnd, true, CostMethod.MOVING_AVERAGE, p.id, true),
+      queryFn: () => {
+        const params = new URLSearchParams({
+          periodStart,
+          periodEnd,
+          preTax: 'true',
+          costMethod: CostMethod.MOVING_AVERAGE,
+          filter: p.id,
+          withReference: 'true',
+        });
+        return apiFetch<CalculationBreakdownResponse>(`/api/performance/calculation?${params}`);
+      },
+    })),
+  });
+
+  // 5. Build holdingsMap and perfMap
   const holdingsMap = useMemo(() => {
     const map = new Map<string, AccountHoldingsResponse>();
     portfolios.forEach((p, i) => {
@@ -45,6 +75,14 @@ export default function AccountsHub() {
     });
     return map;
   }, [portfolios, holdingsQueries]);
+
+  const perfMap = useMemo(() => {
+    const map = new Map<string, CalculationBreakdownResponse>();
+    portfolios.forEach((p, i) => {
+      if (perfQueries[i]?.data) map.set(p.id, perfQueries[i].data!);
+    });
+    return map;
+  }, [portfolios, perfQueries]);
 
   // 6. Compute brokerageUnits and standaloneDeposits
   const { brokerageUnits, standaloneDeposits } = useMemo(() => {
@@ -84,50 +122,136 @@ export default function AccountsHub() {
         <>
           <AccountSummaryStrip />
 
-          <div className="flex items-center gap-2">
-            <Checkbox
-              checked={showRetired}
-              onCheckedChange={(checked) => setShowRetired(!!checked)}
-            />
-            <span className="text-sm text-muted-foreground">{t('retired.show')}</span>
-          </div>
-
-          {brokerageUnits.length > 0 && (
-            <div className="flex items-center gap-3 max-w-[720px]">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-xs text-muted-foreground uppercase tracking-widest">
-                {t('brokerage.title')}
-              </span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-          )}
-
-          <div className="max-w-[720px] space-y-3.5">
-            {brokerageUnits.map(unit => (
-              <BrokerageUnitCard
-                key={unit.portfolio.id}
-                unit={unit}
-                isExpanded={expandedId === unit.portfolio.id}
-                onExpand={() => setExpandedId(prev => prev === unit.portfolio.id ? null : unit.portfolio.id)}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={showRetired}
+                onCheckedChange={(checked) => setShowRetired(!!checked)}
               />
-            ))}
+              <span className="text-sm text-muted-foreground">{t('retired.show')}</span>
+            </div>
+            <SegmentedControl
+              segments={[
+                { value: 'cards', label: t('viewMode.cards') },
+                { value: 'summary', label: t('viewMode.summary') },
+              ]}
+              value={viewMode}
+              onChange={setViewMode}
+              size="sm"
+            />
           </div>
 
-          {standaloneDeposits.length > 0 && (
+          {viewMode === 'cards' && (
             <>
-              <div className="flex items-center gap-3 max-w-[720px]">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground uppercase tracking-widest">
-                  {t('standalone.title')}
-                </span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
+              {brokerageUnits.length > 0 && (
+                <div className="flex items-center gap-3 max-w-[720px]">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-muted-foreground uppercase tracking-widest">
+                    {t('brokerage.title')}
+                  </span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+              )}
+
               <div className="max-w-[720px] space-y-3.5">
-                {standaloneDeposits.map(d => (
-                  <StandaloneDepositCard key={d.id} account={d} />
+                {brokerageUnits.map(unit => (
+                  <BrokerageUnitCard
+                    key={unit.portfolio.id}
+                    unit={unit}
+                    isExpanded={expandedId === unit.portfolio.id}
+                    onExpand={() => setExpandedId(prev => prev === unit.portfolio.id ? null : unit.portfolio.id)}
+                    perf={perfMap.get(unit.portfolio.id)}
+                  />
                 ))}
               </div>
+
+              {standaloneDeposits.length > 0 && (
+                <>
+                  <div className="flex items-center gap-3 max-w-[720px]">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground uppercase tracking-widest">
+                      {t('standalone.title')}
+                    </span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                  <div className="max-w-[720px] space-y-3.5">
+                    {standaloneDeposits.map(d => (
+                      <StandaloneDepositCard key={d.id} account={d} />
+                    ))}
+                  </div>
+                </>
+              )}
             </>
+          )}
+
+          {viewMode === 'summary' && (
+            <div className="max-w-[720px] space-y-4">
+              {brokerageUnits.length > 0 && (
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <div className="px-4 py-2 bg-muted/50 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {t('brokerage.title')}
+                  </div>
+                  <div className="divide-y divide-border">
+                    {brokerageUnits.map(unit => {
+                      const holdings = unit.holdings;
+                      const mv = holdings ? parseFloat(holdings.totalValue ?? '0') : 0;
+                      const perf = perfMap.get(unit.portfolio.id);
+                      const perfPct = perf ? parseFloat(perf.absolutePerformancePct) : null;
+                      const absPerf = perf ? parseFloat(perf.absolutePerformance) : null;
+                      const isPositive = absPerf !== null ? absPerf >= 0 : true;
+
+                      return (
+                        <button
+                          key={unit.portfolio.id}
+                          onClick={() => navigate(`/accounts/${unit.portfolio.id}`)}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">{unit.portfolio.name}</div>
+                            {unit.deposit && (
+                              <div className="text-[10px] text-muted-foreground truncate">{unit.deposit.name}</div>
+                            )}
+                          </div>
+                          <div className="text-right shrink-0">
+                            <CurrencyDisplay value={mv} className="text-sm" />
+                            {!isPrivate && perf && (
+                              <div className={cn('text-[10px] tabular-nums', isPositive ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
+                                {perfPct !== null ? formatPercentage(perfPct) : '—'}
+                                {absPerf !== null && (
+                                  <span className="ml-1 opacity-70">{formatCurrency(absPerf)}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {standaloneDeposits.length > 0 && (
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <div className="px-4 py-2 bg-muted/50 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {t('standalone.title')}
+                  </div>
+                  <div className="divide-y divide-border">
+                    {standaloneDeposits.map(d => (
+                      <button
+                        key={d.id}
+                        onClick={() => navigate(`/accounts/${d.id}`)}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{d.name}</div>
+                        </div>
+                        <CurrencyDisplay value={parseFloat(d.balance ?? '0')} className="text-sm" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </>
       )}

@@ -59,7 +59,11 @@
     "noAttributes": "Nessun attributo assegnato.",
     "addAttribute": "Aggiungi nuovo attributo…",
     "change": "Cambia…",
-    "upload": "Carica…"
+    "upload": "Carica…",
+    "fetchLogo": "Recupera logo",
+    "fetchingLogo": "Recupero…",
+    "fetchLogoFailed": "Impossibile recuperare il logo",
+    "logo": "Logo"
   },
   "historicalQuotes": {
     "provider": "Provider",
@@ -196,10 +200,10 @@
     "exchange": "Borsa",
     "type": "Tipo",
     "sector": "Settore",
-    "notAvailable": "\u2014",
+    "notAvailable": "—",
     "pricePreview": "Anteprima Prezzi",
     "priceCount": "{{count}} quotazioni storiche",
-    "priceRange": "{{start}} \u2013 {{end}}",
+    "priceRange": "{{start}} – {{end}}",
     "noPrices": "Nessuna quotazione storica disponibile",
     "noPricesHint": "Puoi configurare un feed prezzi dopo l'aggiunta",
     "addToPortfolio": "Aggiungi al Portafoglio",

@@ -1,11 +1,7 @@
-<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" width="40" height="40">
-  <defs>
-    <linearGradient id="g" x1="0.1" y1="0.9" x2="0.9" y2="0.1">
-      <stop offset="0%" stop-color="#0891b2"/>
-      <stop offset="100%" stop-color="#7c3aed"/>
-    </linearGradient>
-  </defs>
-  <circle cx="16" cy="21" r="11" stroke="url(#g)" stroke-width="2.8" fill="none"/>
-  <path d="M22.5 27 L29 17 L34.5 9" stroke="url(#g)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <circle cx="34.5" cy="9" r="2.2" fill="url(#g)"/>
+<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" width="120" height="120">
+  <path d="M60 22 Q82 22, 82 44" stroke="#100f0f" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M98 60 Q98 82, 76 82" stroke="#100f0f" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M60 98 Q38 98, 38 76" stroke="#100f0f" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M22 60 Q22 38, 44 38" stroke="#100f0f" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <circle cx="60" cy="60" r="6" fill="#ad8301"/>
 </svg>

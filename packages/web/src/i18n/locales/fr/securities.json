@@ -59,7 +59,11 @@
     "noAttributes": "Aucun attribut assigné.",
     "addAttribute": "Ajouter un nouvel attribut…",
     "change": "Modifier…",
-    "upload": "Télécharger…"
+    "upload": "Télécharger…",
+    "fetchLogo": "Récupérer le logo",
+    "fetchingLogo": "Récupération…",
+    "fetchLogoFailed": "Impossible de récupérer le logo",
+    "logo": "Logo"
   },
   "historicalQuotes": {
     "provider": "Fournisseur",
@@ -196,10 +200,10 @@
     "exchange": "Bourse",
     "type": "Type",
     "sector": "Secteur",
-    "notAvailable": "\u2014",
+    "notAvailable": "—",
     "pricePreview": "Aperçu des cours",
     "priceCount": "{{count}} cotations historiques",
-    "priceRange": "{{start}} \u2013 {{end}}",
+    "priceRange": "{{start}} – {{end}}",
     "noPrices": "Aucune cotation historique disponible",
     "noPricesHint": "Vous pourrez configurer un flux de cotations après l'ajout",
     "addToPortfolio": "Ajouter au portefeuille",

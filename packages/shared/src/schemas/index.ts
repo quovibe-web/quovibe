@@ -10,3 +10,4 @@ export * from './data-series.schema';
 export * from './benchmark.schema';
 export * from './prices.schema';
 export * from './watchlist.schema';
+export * from './logo.schema';

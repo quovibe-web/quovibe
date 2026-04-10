@@ -1,5 +1,10 @@
 {
   "title": "Panel",
+  "hero": {
+    "portfolioValue": "Valor de la cartera",
+    "configureMetrics": "Configurar métricas",
+    "selectMetrics": "Seleccionar métricas"
+  },
   "addDashboard": "Nuevo panel",
   "addDashboardDescription": "Introduzca un nombre para el nuevo panel",
   "dashboardName": "Nombre del panel",
@@ -12,6 +17,11 @@
   "tabActions": "Acciones de la pestaña",
   "cannotDeleteLast": "No se puede eliminar el último panel",
   "addWidget": "Añadir widget",
+  "gridColumnsAuto": "Auto",
+  "widgetSize": "Tamaño",
+  "widgetSizeSmall": "Pequeño (1 col.)",
+  "widgetSizeMedium": "Mediano (2 col.)",
+  "widgetSizeLarge": "Grande (3 col.)",
   "dataSeriesMenuItem": "Series de datos...",
   "period": "Período...",
   "deleteWidget": "Eliminar",
@@ -54,7 +64,8 @@
       "all-time-high": "El valor más alto registrado en el portafolio, con la fecha en que ocurrió.",
       "distance-from-ath": "Qué tan lejos está el valor actual del portafolio de su máximo histórico, en porcentaje.",
       "invested-capital": "Valor de compra total de todas las posiciones para el período de referencia activo.",
-      "watchlist": "Monitor de precios compacto para una lista de seguimiento seleccionada"
+      "watchlist": "Monitor de precios compacto para una lista de seguimiento seleccionada",
+      "top-holdings": "Sus posiciones más grandes por valor de mercado, mostrando el peso en cartera y el rendimiento del período."
     }
   },
   "widget": {
@@ -101,6 +112,12 @@
     },
     "distanceFromAth": {
       "currentVsAth": "{{current}} vs {{ath}}"
+    },
+    "topHoldings": {
+      "noHoldings": "Sin posiciones en este período",
+      "loadError": "Error al cargar las posiciones",
+      "showMore_one": "+ {{count}} más",
+      "showMore_other": "+ {{count}} más"
     }
   },
   "noChartData": "Sin datos para este período",
@@ -129,7 +146,8 @@
     "all-time-high": "Máximo Histórico",
     "distance-from-ath": "Distancia del ATH",
     "invested-capital": "Capital Invertido",
-    "watchlist": "Watchlist"
+    "watchlist": "Watchlist",
+    "top-holdings": "Principales posiciones"
   },
   "dataSeries": {
     "dialogTitle": "Series de datos",
@@ -164,5 +182,21 @@
     "all": "TODO",
     "clear": "Eliminar período personalizado"
   },
-  "resetWidgetsToGlobal": "Restablecer widgets al período global"
+  "resetWidgetsToGlobal": "Restablecer widgets al período global",
+  "templates": {
+    "getStarted": "Comenzar con una plantilla",
+    "getStartedDesc": "Elige una plantilla para llenar tu panel o comienza desde cero.",
+    "startFromScratch": "Comenzar desde cero",
+    "startFromTemplate": "Usar una plantilla (opcional)",
+    "widgetCount_one": "{{count}} widget",
+    "widgetCount_other": "{{count}} widgets",
+    "performance": "Rendimiento",
+    "performanceDesc": "Valor de mercado, TTWROR, TIR, Delta y un gráfico de rendimiento.",
+    "risk": "Riesgo",
+    "riskDesc": "Drawdown, volatilidad, semivarianza, ratio de Sharpe y gráfico de drawdown.",
+    "income": "Ingresos y Valor",
+    "incomeDesc": "Capital invertido, valor de mercado, delta, variación absoluta y mapa de calor de rentabilidades.",
+    "complete": "Visión General Completa",
+    "completeDesc": "Todas las métricas clave — rendimiento, riesgo, gráfico y movers en un único panel."
+  }
 }

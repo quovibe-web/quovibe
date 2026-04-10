@@ -862,16 +862,101 @@ export function fetchBatchData(
   return { allTxs, txsBySecurity, allPrices, pricesAtStart, latestPrices, retiredSecIds, retiredAccIds, depositAccIds, secCurrencyMap, depositAccCurrencyMap, securityInfoMap, accountNameMap };
 }
 
+/**
+ * When an account scope is active, TRANSFER_BETWEEN_ACCOUNTS entries must be
+ * appended to the cashflow list so that TTWROR neutralises them.
+ * At full-portfolio level these transfers are internal (cancel out between accounts),
+ * but at single-account level they are external money flows.
+ */
+function appendTransferCashflows(
+  cashflows: Cashflow[],
+  scopedTxs: PerfTransaction[],
+  period: { start: string; end: string },
+): void {
+  for (const tx of scopedTxs) {
+    if (tx.type !== TransactionType.TRANSFER_BETWEEN_ACCOUNTS) continue;
+    if (tx.date < period.start || tx.date > period.end) continue;
+    const gross = new Decimal(tx.amount ?? 0);
+    const transferAmount = tx.isTransferOut ? gross.negated() : gross;
+    cashflows.push({ date: tx.date, amount: transferAmount, type: tx.type });
+  }
+}
+
+/**
+ * Build cashflows for the securities-only scope (no deposit account).
+ * PP §3.3: BUY/SELL → DELIVERY_INBOUND/OUTBOUND using full settlement amount.
+ * PP §3.5: dividends/fees from non-scoped accounts → offsetting REMOVAL/DEPOSIT.
+ */
+function buildSecurityOnlyCashflows(
+  scopedTxs: PerfTransaction[],
+  allTxs: PerfTransaction[],
+  scope: CalcScope,
+  period: { start: string; end: string },
+): Cashflow[] {
+  const cashflows: Cashflow[] = [];
+
+  // §3.3: BUY/SELL from scoped portfolio account → DELIVERY_INBOUND/OUTBOUND
+  for (const tx of scopedTxs) {
+    if (tx.date < period.start || tx.date > period.end) continue;
+    if (!tx.securityId || !scope.securityIds.has(tx.securityId)) continue;
+    const sw = scope.securityWeights?.get(tx.securityId) ?? new Decimal(1);
+    const amount = new Decimal(tx.amount ?? 0).times(sw);
+    if (amount.isZero()) continue;
+    switch (tx.type) {
+      case TransactionType.BUY:
+      case TransactionType.DELIVERY_INBOUND:
+        if (tx.shares != null && tx.shares > 0) {
+          cashflows.push({ date: tx.date, amount, type: TransactionType.DELIVERY_INBOUND });
+        }
+        break;
+      case TransactionType.SELL:
+      case TransactionType.DELIVERY_OUTBOUND:
+        if (tx.shares != null && tx.shares > 0) {
+          cashflows.push({ date: tx.date, amount: amount.negated(), type: TransactionType.DELIVERY_OUTBOUND });
+        }
+        break;
+    }
+  }
+
+  // §3.5: transactions on NON-scoped accounts for scoped securities
+  for (const tx of allTxs) {
+    if (tx.date < period.start || tx.date > period.end) continue;
+    if (!tx.securityId || !scope.securityIds.has(tx.securityId)) continue;
+    if (scope.txFilter && scope.txFilter(tx)) continue;
+    const sw = scope.securityWeights?.get(tx.securityId) ?? new Decimal(1);
+    const amount = new Decimal(tx.amount ?? 0).times(sw);
+    if (amount.isZero()) continue;
+    switch (tx.type) {
+      case TransactionType.DIVIDEND:
+        if (tx.shares != null && tx.shares > 0) {
+          cashflows.push({ date: tx.date, amount: amount.negated(), type: TransactionType.REMOVAL });
+        }
+        break;
+      case TransactionType.FEES:
+        cashflows.push({ date: tx.date, amount, type: TransactionType.DEPOSIT });
+        break;
+      case TransactionType.FEES_REFUND:
+        cashflows.push({ date: tx.date, amount: amount.negated(), type: TransactionType.REMOVAL });
+        break;
+    }
+  }
+
+  return cashflows;
+}
+
 export function computeAllSecurities(
   data: BatchData,
   period: { start: string; end: string },
   costMethod: CostMethod,
   preTax: boolean,
   securityFilter?: Set<string>,
+  txFilter?: (tx: PerfTransaction) => boolean,
 ): SecurityPerfInternal[] {
   const results: SecurityPerfInternal[] = [];
   for (const [securityId, secTxs] of data.txsBySecurity) {
     if (securityFilter && !securityFilter.has(securityId)) continue;
+    const filteredTxs = txFilter ? (secTxs as PerfTransaction[]).filter(txFilter) : secTxs;
+    if (filteredTxs.length === 0) continue;
     const priceMap = data.allPrices.get(securityId) ?? new Map();
     const priceAtStart = data.pricesAtStart.get(securityId) ?? new Decimal(0);
     const latestPriceEntry = data.latestPrices.get(securityId);
@@ -879,7 +964,7 @@ export function computeAllSecurities(
     const latestPriceDate = latestPriceEntry?.date ?? null;
     results.push(
       computeSecurityPerfInternal(
-        secTxs,
+        filteredTxs,
         securityId,
         priceMap,
         priceAtStart,
@@ -1257,7 +1342,9 @@ export function getPortfolioCalc(
   }
 
   // Compute per-security performance (skip non-scoped securities early for efficiency)
-  const secResults = computeAllSecurities(data, period, costMethod, preTax, scope?.securityIds);
+  // When account-scoped, also filter transactions within each security to only the scoped account,
+  // so that MVB/MVE/daily-MV are consistent with the scoped cashflows.
+  const secResults = computeAllSecurities(data, period, costMethod, preTax, scope?.securityIds, scope?.txFilter);
 
   // Scoped transaction list (for cashflows, PNT, standalone fees/taxes, daily cash)
   const scopedTxs: PerfTransaction[] = scope
@@ -1511,43 +1598,9 @@ export function getPortfolioCalc(
 
   let portfolioCashflows: Cashflow[];
   if (isSecurityOnlyScope) {
-    // Security-level cashflows (BUY/SELL/DELIVERY), scaled by security weight.
-    // Exclude DIVIDEND — handled below via §3.5.
-    portfolioCashflows = secResults.flatMap((sr) => {
-      const sw = scope.securityWeights?.get(sr.securityId) ?? new Decimal(1);
-      const secTxs = data.txsBySecurity.get(sr.securityId) ?? [];
-      return resolveSecurityCashflows(secTxs, sr.securityId, !preTax)
-        .filter(cf => cf.type !== TransactionType.DIVIDEND)
-        .map(cf => ({ ...cf, amount: cf.amount.times(sw) }));
-    });
-    // PP §3.5: transactions on non-classified accounts for classified securities.
-    // FEES → FEES + DEPOSIT (transferal). FEES_REFUND → FEES_REFUND + REMOVAL.
-    // DIVIDENDS → offsetting REMOVAL (gross - fees, or gross - fees - taxes for post-tax).
-    for (const tx of scopedTxs) {
-      if (tx.date < period.start || tx.date > period.end) continue;
-      if (!tx.securityId || !scope.securityIds.has(tx.securityId)) continue;
-      const sw = scope.securityWeights?.get(tx.securityId) ?? new Decimal(1);
-      const amount = new Decimal(tx.amount ?? 0).times(sw);
-      if (amount.isZero()) continue;
-      switch (tx.type) {
-        case TransactionType.FEES:
-          portfolioCashflows.push({ date: tx.date, amount, type: TransactionType.DEPOSIT });
-          break;
-        case TransactionType.FEES_REFUND:
-          portfolioCashflows.push({ date: tx.date, amount: amount.negated(), type: TransactionType.REMOVAL });
-          break;
-        case TransactionType.DIVIDEND:
-          // Must match resolveSecurityCashflows logic: gross - fees (pre-tax) or gross - fees - taxes (post-tax).
-          if (tx.shares != null && tx.shares > 0) {
-            const divGross = getGrossAmount(tx);
-            const divFees = getFees(tx);
-            const divTaxes = preTax ? new Decimal(0) : getTaxes(tx);
-            const divCfOut = divGross.minus(divFees).minus(divTaxes).times(sw);
-            portfolioCashflows.push({ date: tx.date, amount: divCfOut.negated(), type: TransactionType.REMOVAL });
-          }
-          break;
-      }
-    }
+    portfolioCashflows = buildSecurityOnlyCashflows(
+      scopedTxs as PerfTransaction[], data.allTxs as PerfTransaction[], scope, period,
+    );
   } else if (isTaxonomyScopeWithDeposits) {
     // Taxonomy scope with deposit accounts: combine security-level + deposit-level cashflows.
     // Security CFs scaled by security weight, deposit CFs scaled by account weight.
@@ -1625,6 +1678,10 @@ export function getPortfolioCalc(
   } else {
     // Full portfolio or account scope: portfolio-level cashflows (DEPOSIT/REMOVAL/DELIVERY)
     portfolioCashflows = resolvePortfolioCashflows(scopedTxs);
+
+    if (scope && !scope.isTaxonomyScope) {
+      appendTransferCashflows(portfolioCashflows, scopedTxs as PerfTransaction[], period);
+    }
   }
 
   const snapshots = buildDailySnapshotsWithCarry(portfolioCashflows, portfolioTotalDailyMV, period);
@@ -1810,10 +1867,10 @@ export function getChartData(
   scope?: CalcScope,
 ): ChartPoint[] {
   const data = fetchBatchData(sqlite, period);
-  const secResults = computeAllSecurities(data, period, CostMethod.FIFO, true, scope?.securityIds);
+  const scopedTxs = scope ? data.allTxs.filter(scope.txFilter) : data.allTxs;
+  const secResults = computeAllSecurities(data, period, CostMethod.FIFO, true, scope?.securityIds, scope?.txFilter);
 
   // Scoped transaction list and deposit account IDs (mirrors getPortfolioCalc)
-  const scopedTxs = scope ? data.allTxs.filter(scope.txFilter) : data.allTxs;
   const scopedDepositAccIds = scope ? scope.depositAccIds : data.depositAccIds;
 
   // Use scoped securities + accounts for both MV line and TTWROR,
@@ -1826,12 +1883,12 @@ export function getChartData(
   // (BUY/SELL/DIVIDEND/DELIVERY) instead of portfolio-level (DEPOSIT/REMOVAL/DELIVERY).
   // Without this, TTWROR treats BUY-day MV jumps as returns instead of cashflows.
   const isSecurityOnlyScope = scope && scope.depositAccIds.size === 0 && scope.securityIds.size > 0;
-  const portfolioCashflows = isSecurityOnlyScope
-    ? secResults.flatMap((sr) => {
-        const secTxs = data.txsBySecurity.get(sr.securityId) ?? [];
-        return resolveSecurityCashflows(secTxs, sr.securityId, false);
-      })
+  const portfolioCashflows: Cashflow[] = isSecurityOnlyScope
+    ? buildSecurityOnlyCashflows(scopedTxs as PerfTransaction[], data.allTxs as PerfTransaction[], scope, period)
     : resolvePortfolioCashflows(scopedTxs);
+  if (scope && !scope.isTaxonomyScope && !isSecurityOnlyScope) {
+    appendTransferCashflows(portfolioCashflows, scopedTxs as PerfTransaction[], period);
+  }
   const snapshots = buildDailySnapshotsWithCarry(portfolioCashflows, portfolioTotalDailyMV, period);
   const ttwrorResult = computeTTWROR(snapshots, periodDays);
 
@@ -2234,9 +2291,9 @@ export function getReturnsHeatmap(sqlite: BetterSqlite3.Database, scope?: CalcSc
   const period = periodParam ?? { start: minDate, end: today };
 
   const data = fetchBatchData(sqlite, period);
-  const secResults = computeAllSecurities(data, period, CostMethod.FIFO, true, scope?.securityIds);
-
   const scopedTxs = scope ? data.allTxs.filter(scope.txFilter) : data.allTxs;
+  const secResults = computeAllSecurities(data, period, CostMethod.FIFO, true, scope?.securityIds, scope?.txFilter);
+
   const scopedDepositAccIds = scope ? scope.depositAccIds : data.depositAccIds;
 
   const portfolioTotalDailyMV = buildPortfolioTotalDailyMV(secResults, scopedTxs, period, scopedDepositAccIds);
@@ -2247,11 +2304,11 @@ export function getReturnsHeatmap(sqlite: BetterSqlite3.Database, scope?: CalcSc
   // Without this, TTWROR treats BUY-day MV jumps as returns instead of cashflows.
   const isSecurityOnlyScope = scope && scope.depositAccIds.size === 0 && scope.securityIds.size > 0;
   const portfolioCashflows: Cashflow[] = isSecurityOnlyScope
-    ? secResults.flatMap((sr) => {
-        const secTxs = data.txsBySecurity.get(sr.securityId) ?? [];
-        return resolveSecurityCashflows(secTxs, sr.securityId, false);
-      })
+    ? buildSecurityOnlyCashflows(scopedTxs as PerfTransaction[], data.allTxs as PerfTransaction[], scope, period)
     : resolvePortfolioCashflows(scopedTxs);
+  if (scope && !scope.isTaxonomyScope && !isSecurityOnlyScope) {
+    appendTransferCashflows(portfolioCashflows, scopedTxs as PerfTransaction[], period);
+  }
   const snapshots = buildDailySnapshotsWithCarry(portfolioCashflows, portfolioTotalDailyMV, period);
   // Prepend a dummy "day before inception" snapshot (MVE=0) so computeTTWROR captures
   // the inception factor at i=1: factor = MVE_day0 / (0 + CFin_day0).

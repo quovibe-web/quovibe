@@ -151,6 +151,28 @@ export function formatPeriodRange(periodStart: string, periodEnd: string, lng?: 
   return `${startStr} – ${endStr}`;
 }
 
+// ---------------------------------------------------------------------------
+// Period-sensitive navigation helpers (shared by Sidebar + CommandPalette)
+// ---------------------------------------------------------------------------
+
+const PERIOD_SENSITIVE_PREFIXES = ['/', '/analytics', '/allocation', '/investments', '/accounts', '/taxonomies'];
+
+/** Check if a route path should carry period search params. */
+export function isPeriodSensitivePath(path: string): boolean {
+  return PERIOD_SENSITIVE_PREFIXES.some((prefix) =>
+    prefix === '/' ? path === '/' : path.startsWith(prefix),
+  );
+}
+
+/** Extract periodStart & periodEnd from a search string, returning a query string. */
+export function extractPeriodSearch(search: string): string {
+  const params = new URLSearchParams(search);
+  const ps = params.get('periodStart');
+  const pe = params.get('periodEnd');
+  if (!ps || !pe) return '';
+  return `?periodStart=${ps}&periodEnd=${pe}`;
+}
+
 const SHORT_LABEL_MAX_LENGTH = 20;
 
 export function formatPeriodShortLabel(period: ReportingPeriodDef, t: TFunction): string {

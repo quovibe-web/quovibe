@@ -26,7 +26,8 @@
     "rename": "Hernoemen",
     "changeLogo": "Logo wijzigen",
     "retire": "Rekening archiveren",
-    "reactivateAccount": "Rekening heractiveren"
+    "reactivateAccount": "Rekening heractiveren",
+    "fetchLogo": "Logo ophalen"
   },
   "menu": {
     "stockSplit": "Aandelensplitsing…",
@@ -91,6 +92,7 @@
     "securities": "Effecten",
     "cash": "Liquiditeiten",
     "return": "Rendement",
+    "performance": "Winst/Verlies",
     "viewDetails": "Volledige details bekijken",
     "securitiesCount_one": "{{count}} effect",
     "securitiesCount_other": "{{count}} effecten"
@@ -120,5 +122,16 @@
   "retired": {
     "show": "Gearchiveerde rekeningen tonen",
     "hide": "Gearchiveerde rekeningen verbergen"
+  },
+  "viewMode": {
+    "cards": "Kaarten",
+    "summary": "Overzicht"
+  },
+  "logo": {
+    "brokerWebsite": "Makelaar website",
+    "brokerWebsitePlaceholder": "interactivebrokers.com",
+    "fetch": "Logo ophalen",
+    "fetching": "Ophalen…",
+    "fetchFailed": "Logo kon niet worden opgehaald"
   }
 }

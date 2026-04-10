@@ -12,6 +12,7 @@ import {
   useUpdateAccount,
   useUpdateAccountLogo,
 } from '@/api/use-accounts';
+import { useResolveLogo } from '@/api/use-logo';
 import { resizeToPng } from '@/lib/image-utils';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { cn } from '@/lib/utils';
@@ -44,6 +45,9 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [renameOpen, setRenameOpen] = useState(false);
+  const [showDomainPrompt, setShowDomainPrompt] = useState(false);
+  const [domainInput, setDomainInput] = useState('');
+  const [isFetchingLogo, setIsFetchingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const menuActionRef = useRef(false);
 
@@ -52,6 +56,7 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
   const reactivateMutation = useReactivateAccount();
   const updateMutation = useUpdateAccount();
   const logoMutation = useUpdateAccountLogo();
+  const resolveLogoMutation = useResolveLogo();
 
   const balance = parseFloat(account.balance);
   const currency = account.currency ?? 'EUR';
@@ -64,6 +69,22 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
     }
     if (!confirm(t('actions.deleteConfirm', { name: account.name }))) return;
     deleteMutation.mutate(account.id);
+  }
+
+  async function handleFetchLogo() {
+    const domain = domainInput.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+    if (!domain) return;
+    setIsFetchingLogo(true);
+    try {
+      const { logoUrl } = await resolveLogoMutation.mutateAsync({ domain });
+      logoMutation.mutate({ id: account.id, logoUrl });
+      setShowDomainPrompt(false);
+      setDomainInput('');
+    } catch {
+      toast.error(t('logo.fetchFailed'));
+    } finally {
+      setIsFetchingLogo(false);
+    }
   }
 
   function handleRetire(e: Event) {
@@ -143,6 +164,9 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
                 <DropdownMenuItem onSelect={() => { menuActionRef.current = true; fileInputRef.current?.click(); }}>
                   {t('actions.changeLogo')}
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => { menuActionRef.current = true; setShowDomainPrompt(prev => !prev); }}>
+                  {t('actions.fetchLogo')}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={(e) => { menuActionRef.current = true; handleRetire(e); }}>
                   {account.isRetired ? t('actions.reactivateAccount') : t('actions.retire')}
@@ -155,6 +179,25 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
             </DropdownMenu>
           </div>
         </div>
+
+        {showDomainPrompt && (
+          <div className="px-4 pb-3 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+            <Input
+              autoFocus
+              value={domainInput}
+              placeholder={t('logo.brokerWebsitePlaceholder')}
+              className="h-7 text-xs"
+              onChange={e => setDomainInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') void handleFetchLogo();
+                if (e.key === 'Escape') { setShowDomainPrompt(false); setDomainInput(''); }
+              }}
+            />
+            <Button size="sm" variant="outline" className="h-7 text-xs shrink-0" disabled={isFetchingLogo} onClick={handleFetchLogo}>
+              {isFetchingLogo ? t('logo.fetching') : t('logo.fetch')}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Hidden file input for logo upload — outside card to avoid navigation */}

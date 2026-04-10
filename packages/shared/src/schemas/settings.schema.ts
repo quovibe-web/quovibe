@@ -90,6 +90,10 @@ export const dashboardSchema = z.object({
   id: z.string(),
   name: z.string(),
   widgets: z.array(dashboardWidgetSchema).default([]),
+  metricsStripIds: z.array(z.string()).optional(),
+  columns: z.union([
+    z.literal('auto'), z.literal(2), z.literal(3), z.literal(4), z.literal(5),
+  ]).default('auto'),
 });
 
 export type DashboardWidget = z.infer<typeof dashboardWidgetSchema>;

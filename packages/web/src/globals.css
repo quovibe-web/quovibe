@@ -2,7 +2,8 @@
 
 @theme {
   /* Typography */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'DM Serif Display', Georgia, serif;
 
   /* ──────────────────────────────────────────────
      Brand palette (light mode defaults)
@@ -10,25 +11,25 @@
   /* Legacy brand aliases removed — use --color-primary and --color-chart-* instead */
 
   /* ──────────────────────────────────────────────
-     Surfaces (light) — Cool institutional slate
+     Surfaces (light) — Warm Flexoki-inspired
      ────────────────────────────────────────────── */
-  --qv-bg: #f4f5f7;
-  --qv-surface: #ffffff;
-  --qv-surface-elevated: #f0f1f4;
-  --qv-surface-3: #e4e5e9;
-  --qv-border: #d4d6dc;
-  --qv-border-strong: #b4b7bf;
-  --qv-text-primary: #09090b;
-  --qv-text-muted: #71717a;
-  --qv-text-faint: #a1a1aa;
+  --qv-bg: #f2f0e5;
+  --qv-surface: #fffcf0;
+  --qv-surface-elevated: #e6e4d9;
+  --qv-surface-3: #d6d4c8;
+  --qv-border: #d0cdc2;
+  --qv-border-strong: #b7b5ac;
+  --qv-text-primary: #100f0f;
+  --qv-text-muted: #6f6e69;
+  --qv-text-faint: #b7b5ac;
 
   /* Semantic (light) */
-  --qv-success: #0a8f6c;
-  --qv-danger: #c8222e;
-  --qv-warning: #b86e00;
-  --qv-info: #0284c7;
-  --qv-positive: #059669;
-  --qv-negative: #dc2626;
+  --qv-success: #66800b;
+  --qv-danger: #af3029;
+  --qv-warning: #ad8301;
+  --qv-info: #4385be;
+  --qv-positive: #66800b;
+  --qv-negative: #d14d41;
 
   /* ──────────────────────────────────────────────
      shadcn remapping → brand tokens
@@ -39,7 +40,7 @@
   --color-card-foreground: var(--qv-text-primary);
   --color-popover: var(--qv-surface);
   --color-popover-foreground: var(--qv-text-primary);
-  --color-primary: hsl(225, 32%, 46%);
+  --color-primary: #205EA6;
   --color-primary-foreground: #ffffff;
   --color-secondary: var(--qv-surface-elevated);
   --color-secondary-foreground: var(--qv-text-primary);
@@ -50,27 +51,27 @@
   --color-destructive: var(--qv-danger);
   --color-border: var(--qv-border);
   --color-input: var(--qv-border);
-  --color-ring: hsl(225 30% 50% / 0.35);
+  --color-ring: rgba(32, 94, 166, 0.35);
 
-  /* Chart palette — institutional tinted neutrals (8 colors) */
-  --color-chart-1: hsl(220, 28%, 52%);
-  --color-chart-2: hsl(175, 25%, 48%);
-  --color-chart-3: hsl(35, 30%, 52%);
-  --color-chart-4: hsl(350, 25%, 52%);
-  --color-chart-5: hsl(245, 25%, 56%);
-  --color-chart-6: hsl(155, 22%, 48%);
-  --color-chart-7: hsl(25, 30%, 52%);
-  --color-chart-8: hsl(195, 28%, 48%);
+  /* Chart palette — Flexoki accents (8 colors) */
+  --color-chart-1: #4385BE;
+  --color-chart-2: #3AA99F;
+  --color-chart-3: #DA702C;
+  --color-chart-4: #D14D41;
+  --color-chart-5: #8B7EC8;
+  --color-chart-6: #879A39;
+  --color-chart-7: #D0A215;
+  --color-chart-8: #CE5D97;
 
   /* Sidebar */
   --color-sidebar: var(--qv-surface);
   --color-sidebar-foreground: var(--qv-text-primary);
-  --color-sidebar-primary: hsl(225, 32%, 46%);
+  --color-sidebar-primary: #205EA6;
   --color-sidebar-primary-foreground: #ffffff;
   --color-sidebar-accent: var(--qv-surface-elevated);
   --color-sidebar-accent-foreground: var(--qv-text-primary);
   --color-sidebar-border: var(--qv-border);
-  --color-sidebar-ring: hsl(225, 30%, 50%);
+  --color-sidebar-ring: #205EA6;
 
   /* Financial semantic */
   --color-profit: var(--qv-positive);
@@ -86,53 +87,53 @@
 }
 
 /* ──────────────────────────────────────────────
-   DARK MODE — Institutional zinc dark room
+   DARK MODE — Warm Flexoki dark
    ────────────────────────────────────────────── */
 html.dark {
   /* Legacy brand aliases removed — use --color-primary and --color-chart-* instead */
 
   /* Canvas & Surfaces (4-layer hierarchy via lightness delta) */
-  --qv-bg: #09090b;
-  --qv-surface: #18181b;
-  --qv-surface-elevated: rgba(39, 39, 42, 0.80);
-  --qv-surface-3: rgba(63, 63, 70, 0.60);
+  --qv-bg: #100f0f;
+  --qv-surface: #1c1b1a;
+  --qv-surface-elevated: #282726;
+  --qv-surface-3: #343331;
 
   /* Borders (opacity-based for layered surfaces) */
-  --qv-border: rgba(255, 255, 255, 0.07);
-  --qv-border-strong: rgba(255, 255, 255, 0.13);
+  --qv-border: rgba(255, 252, 240, 0.07);
+  --qv-border-strong: rgba(255, 252, 240, 0.12);
 
   /* Typography (NEVER pure white) */
-  --qv-text-primary: #f4f4f5;
-  --qv-text-muted: #a1a1aa;
-  --qv-text-faint: #71717a;
+  --qv-text-primary: #cecdc3;
+  --qv-text-muted: #878580;
+  --qv-text-faint: #575653;
 
   /* Financial accents (desaturated, legible on dark) */
-  --qv-success: #34d399;
-  --qv-danger: #fb7185;
-  --qv-warning: #fbbf24;
-  --qv-info: #38bdf8;
-  --qv-positive: rgba(52, 211, 153, 0.90);
-  --qv-negative: rgba(251, 113, 133, 0.90);
+  --qv-success: #99d52a;
+  --qv-danger: #d14d41;
+  --qv-warning: #d0a215;
+  --qv-info: #4385be;
+  --qv-positive: #99d52a;
+  --qv-negative: #d14d41;
 
   /* shadcn dark overrides */
-  --color-primary: hsl(225, 30%, 52%);
+  --color-primary: #4385BE;
   --color-primary-foreground: #ffffff;
   --color-popover: var(--qv-surface);
-  --color-ring: hsl(225 30% 55% / 0.35);
+  --color-ring: rgba(67, 133, 190, 0.35);
 
-  /* Chart palette — slightly brighter for dark backgrounds */
-  --color-chart-1: hsl(220, 33%, 60%);
-  --color-chart-2: hsl(175, 30%, 56%);
-  --color-chart-3: hsl(35, 35%, 60%);
-  --color-chart-4: hsl(350, 30%, 60%);
-  --color-chart-5: hsl(245, 30%, 64%);
-  --color-chart-6: hsl(155, 27%, 56%);
-  --color-chart-7: hsl(25, 35%, 60%);
-  --color-chart-8: hsl(195, 33%, 56%);
+  /* Chart palette — same Flexoki accents (work on both backgrounds) */
+  --color-chart-1: #4385BE;
+  --color-chart-2: #3AA99F;
+  --color-chart-3: #DA702C;
+  --color-chart-4: #D14D41;
+  --color-chart-5: #8B7EC8;
+  --color-chart-6: #879A39;
+  --color-chart-7: #D0A215;
+  --color-chart-8: #CE5D97;
 
   /* Sidebar */
   --color-sidebar: var(--qv-surface);
-  --color-sidebar-primary: hsl(225, 30%, 52%);
+  --color-sidebar-primary: #4385BE;
   --color-sidebar-primary-foreground: #ffffff;
 }
 
@@ -170,23 +171,31 @@ html.dark {
   /* Light mode atmospheric body gradient */
   html:not(.dark) body {
     background-image:
-      radial-gradient(ellipse 75% 45% at 15% 0%, rgba(80, 95, 143, 0.06) 0%, transparent 60%),
-      radial-gradient(ellipse 55% 35% at 88% 100%, rgba(80, 95, 143, 0.04) 0%, transparent 55%);
+      radial-gradient(ellipse 75% 45% at 15% 0%, rgba(100, 90, 70, 0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 35% at 88% 100%, rgba(100, 90, 70, 0.03) 0%, transparent 55%);
   }
 
   /* Light mode depth: cards float above tinted background */
   html:not(.dark) [data-slot="card"] {
-    box-shadow: 0 1px 3px rgba(9, 9, 11, 0.06), 0 4px 12px rgba(9, 9, 11, 0.04);
+    box-shadow: 0 1px 3px rgba(16, 15, 15, 0.05), 0 4px 12px rgba(16, 15, 15, 0.03);
+    transition: box-shadow 200ms ease-out, transform 200ms ease-out;
   }
 
   html:not(.dark) [data-slot="card"]:hover {
-    box-shadow: 0 2px 6px rgba(9, 9, 11, 0.08), 0 8px 20px rgba(9, 9, 11, 0.06);
+    box-shadow: 0 2px 6px rgba(16, 15, 15, 0.07), 0 8px 20px rgba(16, 15, 15, 0.05);
+    transform: translateY(-1px);
   }
 
   /* Dark mode: elevation via border + lightness delta, NO shadows */
   html.dark [data-slot="card"] {
     box-shadow: none;
     border-color: var(--qv-border);
+    transition: border-color 200ms ease-out, transform 200ms ease-out;
+  }
+
+  html.dark [data-slot="card"]:hover {
+    border-color: var(--qv-border-strong);
+    transform: translateY(-1px);
   }
 
   /* Light mode table header distinction */
@@ -204,11 +213,11 @@ html.dark {
 
 /* Page entrance animation — opacity only, no layout shift */
 @keyframes qv-page-enter {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 @utility qv-page {
-  animation: qv-page-enter 150ms ease-out;
+  animation: qv-page-enter 200ms ease-out both;
 }
 
 /* Staggered children reveal */
@@ -235,9 +244,22 @@ html.dark {
   to { opacity: 1; }
 }
 @utility qv-fade-in {
-  animation: qv-fade-in 0.3s ease-out;
+  animation: qv-fade-in 0.3s ease-out both;
 }
 
+/* Muted fraction digits for financial values (number-flow) */
+number-flow-react.muted-fraction::part(decimal),
+number-flow-react.muted-fraction::part(fraction) {
+  color: var(--qv-text-faint);
+}
+
+/* Compact widget mode — reduces text-2xl to text-xl in detail zone (desktop only) */
+@media (min-width: 768px) {
+  .qv-compact-widget .text-2xl {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+}
 
 /* Interactive surface transitions (apply to nav items, table rows, cards) */
 @utility transition-surface {

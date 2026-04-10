@@ -56,7 +56,8 @@
     "savedPrices": "{{count}} cotações guardadas.",
     "accountDeleted": "Conta excluída",
     "securityDeleted": "Título excluído",
-    "imageTooLarge": "Imagem muito grande (máx. 5 MB)"
+    "imageTooLarge": "Imagem muito grande (máx. 5 MB)",
+    "logoNotFound": "Logo não encontrado — pode carregar manualmente."
   },
   "deleteConfirm": {
     "title": "Confirmar exclusão",

@@ -31,6 +31,7 @@ export interface WidgetDefBase {
   /** i18n key for the qualifier shown on LINE 4 of KPI widgets (e.g. "cumulative", "annualized"). Null for non-KPI widgets. */
   qualifierKey: string | null;
   category: WidgetCategory;
+  zone: 'chart' | 'detail';
   defaultSpan: 1 | 2 | 3;
   /**
    * Default configuration values for this widget type.

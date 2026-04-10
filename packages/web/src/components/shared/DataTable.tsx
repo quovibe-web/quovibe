@@ -54,7 +54,7 @@ import {
 } from '@/components/ui/tooltip';
 import {
   DndContext,
-  closestCenter,
+  pointerWithin,
   DragOverlay,
 } from '@dnd-kit/core';
 import {
@@ -1201,7 +1201,7 @@ export function DataTable<TData, TValue>({
       {enableReorder ? (
         <DndContext
           sensors={dnd.sensors}
-          collisionDetection={closestCenter}
+          collisionDetection={pointerWithin}
           modifiers={[restrictToHorizontalAxis]}
           onDragStart={dnd.handleDragStart}
           onDragEnd={dnd.handleDragEnd}

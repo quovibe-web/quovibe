@@ -26,7 +26,8 @@
     "rename": "Renombrar",
     "changeLogo": "Cambiar logo",
     "retire": "Archivar cuenta",
-    "reactivateAccount": "Reactivar cuenta"
+    "reactivateAccount": "Reactivar cuenta",
+    "fetchLogo": "Obtener logo"
   },
   "menu": {
     "stockSplit": "División de acciones…",
@@ -91,6 +92,7 @@
     "securities": "Valores",
     "cash": "Efectivo",
     "return": "Rentabilidad",
+    "performance": "Ganancia/Pérdida",
     "viewDetails": "Ver detalles completos",
     "securitiesCount_one": "{{count}} valor",
     "securitiesCount_other": "{{count}} valores"
@@ -120,5 +122,16 @@
   "retired": {
     "show": "Mostrar cuentas archivadas",
     "hide": "Ocultar cuentas archivadas"
+  },
+  "viewMode": {
+    "cards": "Tarjetas",
+    "summary": "Resumen"
+  },
+  "logo": {
+    "brokerWebsite": "Sitio web del bróker",
+    "brokerWebsitePlaceholder": "interactivebrokers.com",
+    "fetch": "Obtener logo",
+    "fetching": "Obteniendo…",
+    "fetchFailed": "No se pudo obtener el logo"
   }
 }

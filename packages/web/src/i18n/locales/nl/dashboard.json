@@ -1,5 +1,10 @@
 {
   "title": "Dashboard",
+  "hero": {
+    "portfolioValue": "Portefeuillewaarde",
+    "configureMetrics": "Statistieken configureren",
+    "selectMetrics": "Statistieken selecteren"
+  },
   "addDashboard": "Nieuw dashboard",
   "addDashboardDescription": "Voer een naam in voor het nieuwe dashboard",
   "dashboardName": "Dashboardnaam",
@@ -12,6 +17,11 @@
   "tabActions": "Tabacties",
   "cannotDeleteLast": "Het laatste dashboard kan niet worden verwijderd",
   "addWidget": "Widget toevoegen",
+  "gridColumnsAuto": "Auto",
+  "widgetSize": "Grootte",
+  "widgetSizeSmall": "Klein (1 kol.)",
+  "widgetSizeMedium": "Middel (2 kol.)",
+  "widgetSizeLarge": "Groot (3 kol.)",
   "dataSeriesMenuItem": "Datareeksen...",
   "period": "Periode...",
   "deleteWidget": "Verwijderen",
@@ -54,7 +64,8 @@
       "all-time-high": "Hoogste ooit geregistreerde portefeuillewaarde, met de datum waarop dit plaatsvond.",
       "distance-from-ath": "Hoe ver de huidige portefeuillewaarde onder het alltime high ligt, als percentage.",
       "invested-capital": "Totale aankoopwaarde van alle posities voor de actieve rapportageperiode.",
-      "watchlist": "Compacte koersmonitor voor een geselecteerde volglijst"
+      "watchlist": "Compacte koersmonitor voor een geselecteerde volglijst",
+      "top-holdings": "Uw grootste posities op marktwaarde, met gewicht in de portefeuille en rendement over de periode."
     }
   },
   "widget": {
@@ -101,6 +112,12 @@
     },
     "distanceFromAth": {
       "currentVsAth": "{{current}} vs {{ath}}"
+    },
+    "topHoldings": {
+      "noHoldings": "Geen posities in deze periode",
+      "loadError": "Fout bij het laden van posities",
+      "showMore_one": "+ {{count}} meer",
+      "showMore_other": "+ {{count}} meer"
     }
   },
   "noChartData": "Geen gegevens voor deze periode",
@@ -129,7 +146,8 @@
     "all-time-high": "Alltime High",
     "distance-from-ath": "Afstand tot ATH",
     "invested-capital": "Geïnvesteerd Kapitaal",
-    "watchlist": "Volglijst"
+    "watchlist": "Volglijst",
+    "top-holdings": "Topposities"
   },
   "dataSeries": {
     "dialogTitle": "Datareeksen",
@@ -164,5 +182,21 @@
     "all": "ALLES",
     "clear": "Widgetperiode verwijderen"
   },
-  "resetWidgetsToGlobal": "Widgets terugzetten naar globale periode"
+  "resetWidgetsToGlobal": "Widgets terugzetten naar globale periode",
+  "templates": {
+    "getStarted": "Aan de slag met een sjabloon",
+    "getStartedDesc": "Kies een sjabloon om je dashboard te vullen of begin vanaf nul.",
+    "startFromScratch": "Vanaf nul beginnen",
+    "startFromTemplate": "Begin met een sjabloon (optioneel)",
+    "widgetCount_one": "{{count}} widget",
+    "widgetCount_other": "{{count}} widgets",
+    "performance": "Prestaties",
+    "performanceDesc": "Marktwaarde, TTWROR, IRR, Delta en een prestatiegrafiek.",
+    "risk": "Risico",
+    "riskDesc": "Drawdown, volatiliteit, semi-variantie, Sharpe-ratio en een drawdowngrafiek.",
+    "income": "Inkomsten & Waarde",
+    "incomeDesc": "Geïnvesteerd kapitaal, marktwaarde, delta, absolute verandering en rendementsheatmap.",
+    "complete": "Volledig Overzicht",
+    "completeDesc": "Alle belangrijke statistieken — prestaties, risico, grafiek en movers in één dashboard."
+  }
 }

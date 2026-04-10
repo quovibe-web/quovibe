@@ -14,7 +14,7 @@ export default function WidgetDistanceFromATH() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 py-1">
+      <div className="grid grid-rows-[1fr_auto] flex-1 items-center justify-items-center pb-2">
         <Skeleton className="h-9 w-28" />
       </div>
     );
@@ -41,7 +41,7 @@ export default function WidgetDistanceFromATH() {
   const privacyFilter = isPrivate ? 'blur(8px) saturate(0)' : 'none';
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 py-1">
+    <div className="grid grid-rows-[1fr_auto] flex-1 items-center justify-items-center pb-2">
       <span
         className={cn('text-2xl font-semibold tabular-nums', colorClass)}
         style={{ filter: privacyFilter }}
@@ -49,7 +49,7 @@ export default function WidgetDistanceFromATH() {
         {formatPercentage(distance.toNumber())}
       </span>
       <span
-        className="text-xs text-muted-foreground mt-5"
+        className="text-xs text-muted-foreground"
         style={{ filter: privacyFilter }}
       >
         {t('widget.distanceFromAth.currentVsAth', {

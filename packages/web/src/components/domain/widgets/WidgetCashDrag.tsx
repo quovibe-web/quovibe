@@ -1,15 +1,16 @@
 import { useTranslation } from 'react-i18next';
 import { useStatementOfAssets } from '@/api/use-reports';
 import { usePrivacy } from '@/context/privacy-context';
-import { useCountUp } from '@/hooks/use-count-up';
-import { formatCurrency, formatPercentage } from '@/lib/formatters';
+import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FadeIn } from '@/components/shared/FadeIn';
+import NumberFlow from '@number-flow/react';
+import i18n from '@/i18n';
 
-const CASH_COLOR = '#fbbf24';
-const INVESTED_COLOR = '#6366f1';
+const CASH_COLOR = '#D0A215';
+const INVESTED_COLOR = '#8B7EC8';
 
 function DonutChart({ ratio, isPrivate }: { ratio: number; isPrivate: boolean }) {
   const r = 32;
@@ -55,9 +56,7 @@ export default function WidgetCashDrag() {
   const cashValue = data ? parseFloat(data.totals.cashValue) : 0;
   const marketValue = data ? parseFloat(data.totals.marketValue) : 0;
   const securityValue = data ? parseFloat(data.totals.securityValue) : 0;
-  const cashRatio = marketValue > 0 ? cashValue / marketValue : 0;
-
-  const animatedRatio = useCountUp(cashRatio * 100, 1200, !isPrivate);
+  const cashRatio = marketValue > 0 ? cashValue / marketValue : 0; // native-ok
 
   if (isLoading) {
     return (
@@ -89,7 +88,14 @@ export default function WidgetCashDrag() {
         )}
       >
         <div className="text-3xl font-bold tabular-nums" style={{ color: CASH_COLOR }}>
-          {isPrivate ? '••••' : formatPercentage(animatedRatio / 100)}
+          {isPrivate ? '••••' : (
+            <NumberFlow
+              className="muted-fraction"
+              value={cashRatio}
+              locales={i18n.language}
+              format={{ style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }}
+            />
+          )}
         </div>
         <div className="text-[11px] text-muted-foreground mt-0.5">
           {t('widget.cashDrag.cashRatio')}

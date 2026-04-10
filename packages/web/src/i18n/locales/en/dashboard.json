@@ -1,5 +1,10 @@
 {
   "title": "Dashboard",
+  "hero": {
+    "portfolioValue": "Portfolio Value",
+    "configureMetrics": "Configure metrics",
+    "selectMetrics": "Select metrics"
+  },
   "addDashboard": "New dashboard",
   "addDashboardDescription": "Enter a name for the new dashboard",
   "dashboardName": "Dashboard name",
@@ -12,6 +17,11 @@
   "tabActions": "Tab actions",
   "cannotDeleteLast": "Cannot delete the last dashboard",
   "addWidget": "Add widget",
+  "gridColumnsAuto": "Auto",
+  "widgetSize": "Size",
+  "widgetSizeSmall": "Small (1 col)",
+  "widgetSizeMedium": "Medium (2 col)",
+  "widgetSizeLarge": "Large (3 col)",
   "dataSeriesMenuItem": "Data series...",
   "period": "Period...",
   "deleteWidget": "Delete",
@@ -54,7 +64,8 @@
       "all-time-high": "Highest total portfolio value ever recorded, with the date it occurred.",
       "distance-from-ath": "How far the current portfolio value is below its all-time high, as a percentage.",
       "invested-capital": "Total purchase value of all holdings for the active reporting period.",
-      "watchlist": "Compact price monitor for a selected watchlist"
+      "watchlist": "Compact price monitor for a selected watchlist",
+      "top-holdings": "Your largest positions by market value, showing portfolio weight and period return."
     }
   },
   "widget": {
@@ -101,6 +112,12 @@
     },
     "distanceFromAth": {
       "currentVsAth": "{{current}} vs {{ath}}"
+    },
+    "topHoldings": {
+      "noHoldings": "No holdings in this period",
+      "loadError": "Error loading holdings",
+      "showMore_one": "+ {{count}} more",
+      "showMore_other": "+ {{count}} more"
     }
   },
   "noChartData": "No data for this period",
@@ -129,7 +146,8 @@
     "all-time-high": "All-Time High",
     "distance-from-ath": "Distance from ATH",
     "invested-capital": "Invested Capital",
-    "watchlist": "Watchlist"
+    "watchlist": "Watchlist",
+    "top-holdings": "Top Holdings"
   },
   "dataSeries": {
     "dialogTitle": "Data Series",
@@ -164,5 +182,21 @@
     "all": "ALL",
     "clear": "Clear period override"
   },
-  "resetWidgetsToGlobal": "Reset widgets to global period"
+  "resetWidgetsToGlobal": "Reset widgets to global period",
+  "templates": {
+    "getStarted": "Get started with a template",
+    "getStartedDesc": "Choose a template to populate your dashboard, or start from scratch.",
+    "startFromScratch": "Start from scratch",
+    "startFromTemplate": "Start from a template (optional)",
+    "widgetCount_one": "{{count}} widget",
+    "widgetCount_other": "{{count}} widgets",
+    "performance": "Performance",
+    "performanceDesc": "Market value, TTWROR, IRR, Delta and a performance chart.",
+    "risk": "Risk",
+    "riskDesc": "Drawdown, volatility, semivariance, Sharpe ratio and a drawdown chart.",
+    "income": "Income & Value",
+    "incomeDesc": "Invested capital, market value, delta, absolute change and a returns heatmap.",
+    "complete": "Complete Overview",
+    "completeDesc": "All key metrics — performance, risk, chart and movers in one dashboard."
+  }
 }

@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { isPeriodSensitivePath, extractPeriodSearch } from '@/lib/period-utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { ExpandableNavItem } from './ExpandableNavItem';
 import { CreateTaxonomyDialog } from '../domain/CreateTaxonomyDialog';
@@ -8,6 +10,9 @@ import { DeleteTaxonomyDialog } from '../domain/DeleteTaxonomyDialog';
 import { apiFetch } from '@/api/fetch';
 import { taxonomyKeys } from '@/api/use-taxonomies';
 import { useReorderTaxonomy } from '@/api/use-taxonomy-mutations';
+import { useTheme } from '@/hooks/use-theme';
+import { useUpdateSettings } from '@/api/use-portfolio';
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import {
   LayoutDashboard,
   Landmark,
@@ -20,6 +25,9 @@ import {
   Settings,
   Menu,
   ExternalLink,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -92,26 +100,19 @@ const MOBILE_NAV: NavItem[] = [
 
 function QuovibeLogo() {
   return (
-    <svg viewBox="0 0 180 32" fill="none" className="h-8 w-auto">
-      <defs>
-        <linearGradient id="sidebar-logo-g" x1="0" y1="32" x2="50" y2="0">
-          <stop offset="0%" stopColor="var(--color-primary)" />
-          <stop offset="100%" stopColor="var(--color-chart-5)" />
-        </linearGradient>
-      </defs>
-      {/* $ prompt */}
-      <text x="0" y="23" fontFamily="'JetBrains Mono', monospace" fontSize="22" fontWeight="300" fill="var(--color-chart-5)" opacity="0.6">$</text>
-      {/* quo */}
-      <text x="16" y="23" fontFamily="'JetBrains Mono', monospace" fontSize="22" fontWeight="800" fill="var(--color-primary)" letterSpacing="-1">quo</text>
-      {/* pipe */}
-      <text x="57" y="23" fontFamily="'JetBrains Mono', monospace" fontSize="22" fontWeight="300" fill="var(--color-primary)">|</text>
-      {/* vibe */}
-      <text x="70" y="23" fontFamily="'Outfit', sans-serif" fontSize="22" fontWeight="200" fill="var(--qv-text-muted)" letterSpacing="2">vibe</text>
-      {/* Micro sparkline */}
-      <path d="M132 22 L138 18 L142 20 L148 12 L152 14 L158 6 L164 9 L170 3"
-            stroke="url(#sidebar-logo-g)" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
-      <circle cx="170" cy="3" r="1.5" fill="var(--color-chart-5)" opacity="0.5" />
-    </svg>
+    <div className="flex items-center gap-2.5">
+      <svg viewBox="0 0 120 120" fill="none" className="h-7 w-7 shrink-0">
+        <path d="M60 22 Q82 22, 82 44" stroke="var(--qv-text-primary)" strokeWidth="6" fill="none" strokeLinecap="round" />
+        <path d="M98 60 Q98 82, 76 82" stroke="var(--qv-text-primary)" strokeWidth="6" fill="none" strokeLinecap="round" />
+        <path d="M60 98 Q38 98, 38 76" stroke="var(--qv-text-primary)" strokeWidth="6" fill="none" strokeLinecap="round" />
+        <path d="M22 60 Q22 38, 44 38" stroke="var(--qv-text-primary)" strokeWidth="6" fill="none" strokeLinecap="round" />
+        <circle cx="60" cy="60" r="6" fill="var(--qv-warning)" />
+      </svg>
+      <span className="text-xl" style={{ letterSpacing: '-0.3px' }}>
+        <span style={{ fontFamily: "'DM Serif Display', serif", color: 'var(--qv-text-primary)' }}>quo</span>
+        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 300, color: 'var(--qv-text-muted)' }}>vibe</span>
+      </span>
+    </div>
   );
 }
 
@@ -135,23 +136,7 @@ function VersionBadge({ className }: { className?: string }) {
   );
 }
 
-/** Pages that are period-sensitive and should carry search params across navigation. */
-const PERIOD_SENSITIVE_PREFIXES = ['/', '/analytics', '/allocation', '/investments', '/accounts', '/taxonomies'];
-
-function isPeriodSensitivePath(path: string): boolean {
-  return PERIOD_SENSITIVE_PREFIXES.some((prefix) =>
-    prefix === '/' ? path === '/' : path.startsWith(prefix)
-  );
-}
-
-/** Extract only periodStart/periodEnd from current search params. */
-function extractPeriodSearch(search: string): string {
-  const params = new URLSearchParams(search);
-  const ps = params.get('periodStart');
-  const pe = params.get('periodEnd');
-  if (!ps || !pe) return '';
-  return `?periodStart=${ps}&periodEnd=${pe}`;
-}
+// isPeriodSensitivePath / extractPeriodSearch imported from period-utils
 
 function SidebarNavItem({ item, onClick }: { item: NavItem; onClick?: () => void }) {
   const { t } = useTranslation('navigation');
@@ -168,9 +153,9 @@ function SidebarNavItem({ item, onClick }: { item: NavItem; onClick?: () => void
       onClick={onClick}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+          'relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           isActive
-            ? 'bg-[var(--qv-surface-elevated)] text-foreground font-medium'
+            ? 'bg-[var(--qv-surface-elevated)] text-foreground font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-4 before:w-[3px] before:rounded-full before:bg-primary'
             : 'text-muted-foreground hover:bg-[var(--qv-surface-elevated)] hover:text-foreground'
         )
       }
@@ -207,7 +192,7 @@ export function DesktopSidebar() {
   }, [reorderMutation]);
 
   return (
-    <aside className="hidden lg:flex w-64 h-screen border-r border-border bg-card flex-col shrink-0">
+    <aside className="hidden lg:flex w-64 h-screen border-r border-border bg-[var(--qv-bg)] flex-col shrink-0">
       {/* Logo */}
       <div className="px-5 py-5">
         <QuovibeLogo />
@@ -219,9 +204,6 @@ export function DesktopSidebar() {
         <nav className="space-y-6">
           {NAV.map((section) => (
             <div key={section.sectionKey}>
-              <p className="px-3 mb-2 text-xs font-medium text-[var(--qv-text-faint)] uppercase tracking-wider">
-                {t(section.sectionKey)}
-              </p>
               <ul className="space-y-0.5">
                 {section.items.map((item) => (
                   <li key={item.to}>
@@ -322,10 +304,9 @@ export function MobileNav() {
   );
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-border bg-card/95 backdrop-blur-lg safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-border bg-card/80 backdrop-blur-2xl backdrop-saturate-150 safe-bottom">
       <div className="flex items-center justify-around h-16 px-2">
         {MOBILE_NAV.map((item) => {
-          const Icon = item.icon;
           const periodSearch = isPeriodSensitivePath(item.to) ? extractPeriodSearch(location.search) : '';
           const to = periodSearch ? { pathname: item.to, search: periodSearch } : item.to;
           return (
@@ -333,17 +314,26 @@ export function MobileNav() {
               key={item.to}
               to={to}
               end={item.to === '/'}
-              className={({ isActive }) =>
-                cn(
-                  'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-0',
-                  isActive
-                    ? 'text-foreground'
-                    : 'text-muted-foreground'
-                )
-              }
+              className="relative flex flex-col items-center gap-0.5 px-3 py-1.5 min-w-0"
             >
-              <Icon className="h-5 w-5" />
-              <span className="text-[10px] font-medium truncate">{t(item.labelKey)}</span>
+              {({ isActive }) => {
+                const Icon = item.icon;
+                return (
+                  <>
+                    {isActive && (
+                      <motion.div
+                        layoutId="mobile-nav-indicator"
+                        className="absolute inset-0 rounded-lg bg-[var(--qv-surface-elevated)]"
+                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      />
+                    )}
+                    <Icon className={cn('h-5 w-5 relative z-10', isActive ? 'text-foreground' : 'text-muted-foreground')} />
+                    <span className={cn('text-[10px] font-medium truncate relative z-10', isActive ? 'text-foreground' : 'text-muted-foreground')}>
+                      {t(item.labelKey)}
+                    </span>
+                  </>
+                );
+              }}
             </NavLink>
           );
         })}
@@ -404,13 +394,16 @@ export function CollapsedSidebar() {
   const allItems = NAV.flatMap((section) => section.items);
 
   return (
-    <aside className="hidden md:flex lg:hidden w-14 h-screen border-r border-border bg-card flex-col items-center shrink-0">
+    <aside className="hidden md:flex lg:hidden w-14 h-screen border-r border-border bg-[var(--qv-bg)] flex-col items-center shrink-0">
       {/* Logo mark */}
       <div className="flex items-center justify-center h-14 shrink-0">
-        <span className="text-base tracking-tight">
-          <span className="font-normal" style={{ color: 'var(--color-primary)' }}>Q</span>
-          <span className="font-extrabold" style={{ color: 'var(--color-chart-5)' }}>V</span>
-        </span>
+        <svg viewBox="0 0 120 120" fill="none" className="h-6 w-6">
+          <path d="M60 22 Q82 22, 82 44" stroke="var(--qv-text-primary)" strokeWidth="7" fill="none" strokeLinecap="round" />
+          <path d="M98 60 Q98 82, 76 82" stroke="var(--qv-text-primary)" strokeWidth="7" fill="none" strokeLinecap="round" />
+          <path d="M60 98 Q38 98, 38 76" stroke="var(--qv-text-primary)" strokeWidth="7" fill="none" strokeLinecap="round" />
+          <path d="M22 60 Q22 38, 44 38" stroke="var(--qv-text-primary)" strokeWidth="7" fill="none" strokeLinecap="round" />
+          <circle cx="60" cy="60" r="7" fill="var(--qv-warning)" />
+        </svg>
       </div>
       <Separator />
 
@@ -433,9 +426,9 @@ export function CollapsedSidebar() {
                     end={item.end !== false}
                     className={({ isActive }) =>
                       cn(
-                        'flex items-center justify-center w-10 h-10 rounded-lg transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+                        'relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
                         isActive
-                          ? 'bg-[var(--qv-surface-elevated)] text-foreground'
+                          ? 'bg-[var(--qv-surface-elevated)] text-foreground after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-4 after:h-[3px] after:rounded-full after:bg-primary'
                           : 'text-muted-foreground hover:bg-[var(--qv-surface-elevated)] hover:text-foreground'
                       )
                     }
@@ -466,10 +459,17 @@ interface SidebarDrawerProps {
 
 export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
   const { t } = useTranslation('navigation');
+  const { theme, setTheme } = useTheme();
+  const { mutate: updateSettings } = useUpdateSettings();
+
+  function handleTheme(next: 'light' | 'dark' | 'system') {
+    setTheme(next);
+    updateSettings({ theme: next });
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="w-64 p-0">
+      <SheetContent side="left" className="w-64 p-0 bg-[var(--qv-bg)]">
         <SheetHeader className="px-5 py-5">
           <SheetTitle className="sr-only">{t('sheetTitle')}</SheetTitle>
           <QuovibeLogo />
@@ -479,9 +479,6 @@ export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
           <nav className="space-y-6">
             {NAV.map((section) => (
               <div key={section.sectionKey}>
-                <p className="px-3 mb-2 text-xs font-medium text-[var(--qv-text-faint)] uppercase tracking-wider">
-                  {t(section.sectionKey)}
-                </p>
                 <ul className="space-y-0.5">
                   {section.items.map((item) => (
                     <li key={item.to}>
@@ -493,6 +490,45 @@ export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
             ))}
           </nav>
         </ScrollArea>
+        {/* Theme + Language (mobile only — hidden from TopBar on small screens) */}
+        <div className="border-t border-border px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-1 rounded-full bg-muted p-0.5">
+            <button
+              onClick={() => handleTheme('light')}
+              className={cn(
+                'p-1.5 rounded-full transition-colors duration-150',
+                theme === 'light' ? 'bg-background text-primary' : 'text-muted-foreground hover:text-foreground'
+              )}
+              title={t('theme.light')}
+              aria-label={t('theme.light')}
+            >
+              <Sun className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleTheme('system')}
+              className={cn(
+                'p-1.5 rounded-full transition-colors duration-150',
+                theme === 'system' ? 'bg-background text-primary' : 'text-muted-foreground hover:text-foreground'
+              )}
+              title={t('theme.system')}
+              aria-label={t('theme.system')}
+            >
+              <Monitor className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleTheme('dark')}
+              className={cn(
+                'p-1.5 rounded-full transition-colors duration-150',
+                theme === 'dark' ? 'bg-background text-primary' : 'text-muted-foreground hover:text-foreground'
+              )}
+              title={t('theme.dark')}
+              aria-label={t('theme.dark')}
+            >
+              <Moon className="h-4 w-4" />
+            </button>
+          </div>
+          <LanguageSwitcher />
+        </div>
         <div className="border-t border-border px-4 py-3">
           <VersionBadge />
         </div>

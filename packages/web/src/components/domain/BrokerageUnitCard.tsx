@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Landmark, MoreHorizontal } from 'lucide-react';
+import type { CalculationBreakdownResponse } from '@quovibe/shared';
 import { toast } from 'sonner';
 
 import type { BrokerageUnit } from '@/api/types';
@@ -12,6 +13,7 @@ import {
   useUpdateAccountLogo,
   useUpdateAccount,
 } from '@/api/use-accounts';
+import { useResolveLogo } from '@/api/use-logo';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,24 +35,33 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { resizeToPng } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
+import { formatPercentage, formatCurrency } from '@/lib/formatters';
+import { usePrivacy } from '@/context/privacy-context';
 
 interface BrokerageUnitCardProps {
   unit: BrokerageUnit;
   onExpand: () => void;
   isExpanded: boolean;
+  perf?: CalculationBreakdownResponse;
 }
 
-export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitCardProps) {
+export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: BrokerageUnitCardProps) {
   const { t } = useTranslation('accounts');
   const { t: tCommon } = useTranslation('common');
+  const { isPrivate } = usePrivacy();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [renameOpen, setRenameOpen] = useState(false);
+
+  const [showDomainPrompt, setShowDomainPrompt] = useState(false);
+  const [domainInput, setDomainInput] = useState('');
+  const [isFetchingLogo, setIsFetchingLogo] = useState(false);
 
   const deleteMutation = useDeleteAccount();
   const deactivateMutation = useDeactivateAccount();
   const reactivateMutation = useReactivateAccount();
   const logoMutation = useUpdateAccountLogo();
   const updateMutation = useUpdateAccount();
+  const resolveLogoMutation = useResolveLogo();
 
   const { portfolio, deposit, holdings } = unit;
 
@@ -87,6 +98,22 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitC
       logoMutation.mutate({ id: portfolio.id, logoUrl: dataUrl });
     } catch {
       toast.error(tCommon('toasts.imageTooLarge'));
+    }
+  }
+
+  async function handleFetchLogo() {
+    const domain = domainInput.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+    if (!domain) return;
+    setIsFetchingLogo(true);
+    try {
+      const { logoUrl } = await resolveLogoMutation.mutateAsync({ domain });
+      logoMutation.mutate({ id: unit.portfolio.id, logoUrl });
+      setShowDomainPrompt(false);
+      setDomainInput('');
+    } catch {
+      toast.error(t('logo.fetchFailed'));
+    } finally {
+      setIsFetchingLogo(false);
     }
   }
 
@@ -160,6 +187,9 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitC
               <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
                 {t('actions.changeLogo')}
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setShowDomainPrompt(prev => !prev)}>
+                {t('actions.fetchLogo')}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={handleRetire}>
                 {portfolio.isRetired ? t('actions.reactivateAccount') : t('actions.retire')}
@@ -185,7 +215,7 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitC
         </div>
       )}
 
-      {/* Footer row: securities, cash, holdings count */}
+      {/* Footer row: securities, cash, performance */}
       <div className="flex items-start justify-between px-4 pb-4">
         <div>
           <p className="text-xs text-muted-foreground font-medium">{t('card.securities')}</p>
@@ -203,6 +233,22 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitC
             className="text-sm font-semibold tabular-nums"
           />
         </div>
+        {perf && !isPrivate && (() => {
+          const perfPct = parseFloat(perf.absolutePerformancePct);
+          const absPerf = parseFloat(perf.absolutePerformance);
+          const isPositive = absPerf >= 0;
+          return (
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground font-medium">{t('card.performance')}</p>
+              <p className={cn('text-sm font-semibold tabular-nums', isPositive ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
+                {formatPercentage(perfPct)}
+              </p>
+              <p className={cn('text-[10px] tabular-nums opacity-70', isPositive ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
+                {formatCurrency(absPerf)}
+              </p>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Rename dialog */}
@@ -248,6 +294,25 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded }: BrokerageUnitC
           </form>
         </DialogContent>
       </Dialog>
+
+      {showDomainPrompt && (
+        <div className="px-4 pb-3 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+          <Input
+            autoFocus
+            value={domainInput}
+            placeholder={t('logo.brokerWebsitePlaceholder')}
+            className="h-7 text-xs"
+            onChange={e => setDomainInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') void handleFetchLogo();
+              if (e.key === 'Escape') { setShowDomainPrompt(false); setDomainInput(''); }
+            }}
+          />
+          <Button size="sm" variant="outline" className="h-7 text-xs shrink-0" disabled={isFetchingLogo} onClick={handleFetchLogo}>
+            {isFetchingLogo ? t('logo.fetching') : t('logo.fetch')}
+          </Button>
+        </div>
+      )}
 
       {/* Hidden file input for logo upload */}
       <input

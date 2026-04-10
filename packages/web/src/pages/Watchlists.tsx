@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -56,6 +57,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
+import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
 import { formatDate } from '@/lib/formatters';
 import {
   useWatchlists,
@@ -146,14 +148,21 @@ function SortableTab({
         ) : (
           <button
             className={cn(
-              'px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-              isActive
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+              'relative px-3 py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+              !isActive && 'text-muted-foreground hover:text-foreground hover:bg-muted',
             )}
             onClick={onSwitchTab}
           >
-            {watchlist.name}
+            {isActive && (
+              <motion.div
+                layoutId="watchlist-tab-indicator"
+                className="absolute inset-0 rounded-full bg-primary"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+              />
+            )}
+            <span className={cn('relative z-10', isActive ? 'text-primary-foreground' : '')}>
+              {watchlist.name}
+            </span>
           </button>
         )}
         {/* Kebab menu -- visible on active, hover-reveal on inactive */}
@@ -243,40 +252,6 @@ function SortableTab({
 }
 
 // ---------------------------------------------------------------------------
-// SecurityAvatar — logo or initials
-// ---------------------------------------------------------------------------
-
-function SecurityAvatar({ name, logoUrl }: { name: string; logoUrl: string | null }) {
-  const initials = name
-    .split(/\s+/)
-    .slice(0, 2) // native-ok
-    .map((w) => w[0]) // native-ok
-    .join('')
-    .toUpperCase();
-
-  if (logoUrl) {
-    return (
-      <img
-        src={logoUrl}
-        alt={name}
-        className="h-8 w-8 rounded-full object-cover shrink-0"
-        onError={(e) => {
-          // Fallback to initials on load error
-          (e.target as HTMLImageElement).style.display = 'none';
-          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-        }}
-      />
-    );
-  }
-
-  return (
-    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
-      {initials}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Watchlists page
 // ---------------------------------------------------------------------------
 
@@ -299,6 +274,7 @@ export default function Watchlists() {
   const [searchQuery, setSearchQuery] = useState('');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addInstrumentDialogOpen, setAddInstrumentDialogOpen] = useState(false);
+  const [createEmptyOpen, setCreateEmptyOpen] = useState(false);
   const [editSecurityId, setEditSecurityId] = useState<string | null>(null);
   const [editSection, setEditSection] = useState<EditorSection | undefined>(undefined);
   const { mutate: addSecurity } = useAddWatchlistSecurity();
@@ -401,6 +377,11 @@ export default function Watchlists() {
   function handleCreateNew() {
     setAddDialogOpen(false);
     setAddInstrumentDialogOpen(true);
+  }
+
+  function handleCreateEmpty() {
+    setAddInstrumentDialogOpen(false);
+    setCreateEmptyOpen(true);
   }
 
   function handleInstrumentCreated(securityUuid: string) {
@@ -508,7 +489,7 @@ export default function Watchlists() {
                   {/* Name */}
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
-                      <SecurityAvatar name={sec.name} logoUrl={sec.logoUrl} />
+                      <SecurityAvatar name={sec.name} logoUrl={sec.logoUrl} size="md" rounded="full" />
                       <div className="min-w-0">
                         <div className="font-medium truncate">{sec.name}</div>
                         {sec.isin && (
@@ -730,6 +711,7 @@ export default function Watchlists() {
           open={addInstrumentDialogOpen}
           onOpenChange={setAddInstrumentDialogOpen}
           onCreated={handleInstrumentCreated}
+          onCreateEmpty={handleCreateEmpty}
         />
       )}
 
@@ -745,6 +727,20 @@ export default function Watchlists() {
             }
           }}
           initialSection={editSection}
+        />
+      )}
+
+      {createEmptyOpen && (
+        <SecurityEditor
+          mode="create"
+          open={createEmptyOpen}
+          onOpenChange={(open) => { if (!open) setCreateEmptyOpen(false); }}
+          onCreated={(securityUuid) => {
+            setCreateEmptyOpen(false);
+            if (activeWatchlist) {
+              addSecurity({ watchlistId: activeWatchlist.id, securityId: securityUuid });
+            }
+          }}
         />
       )}
     </div>

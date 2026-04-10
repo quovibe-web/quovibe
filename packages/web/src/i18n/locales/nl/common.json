@@ -56,7 +56,8 @@
     "savedPrices": "{{count}} koersen opgeslagen.",
     "accountDeleted": "Rekening verwijderd",
     "securityDeleted": "Waardepapier verwijderd",
-    "imageTooLarge": "Afbeelding te groot (max. 5 MB)"
+    "imageTooLarge": "Afbeelding te groot (max. 5 MB)",
+    "logoNotFound": "Logo niet gevonden — u kunt het handmatig uploaden."
   },
   "deleteConfirm": {
     "title": "Verwijdering bevestigen",

@@ -58,7 +58,8 @@
     "savedPrices": "Zapisano {{count}} cen.",
     "accountDeleted": "Konto usunięte",
     "securityDeleted": "Papier wartościowy usunięty",
-    "imageTooLarge": "Obraz zbyt duży (maks. 5 MB)"
+    "imageTooLarge": "Obraz zbyt duży (maks. 5 MB)",
+    "logoNotFound": "Logo nie znaleziono — możesz je przesłać ręcznie."
   },
   "deleteConfirm": {
     "title": "Potwierdź usunięcie",

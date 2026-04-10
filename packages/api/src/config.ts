@@ -21,4 +21,6 @@ const dataRoot = process.env.DB_PATH ? process.cwd() : findMonorepoRoot();
 
 export const DB_PATH = process.env.DB_PATH ?? path.resolve(dataRoot, 'data/portfolio.db');
 export const DB_BACKUP_MAX = parseInt(process.env.DB_BACKUP_MAX ?? '3', 10);
-export const SCHEMA_PATH = process.env.SCHEMA_PATH ?? path.resolve(dataRoot, 'data/schema.db');
+// Derive schema.db location from DB_PATH when set — process.cwd() is the package dir in monorepo dev,
+// not the monorepo root, so relative resolution would point to the wrong place.
+export const SCHEMA_PATH = process.env.SCHEMA_PATH ?? path.join(path.dirname(DB_PATH), 'schema.db');

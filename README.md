@@ -20,6 +20,10 @@
 
 ---
 
+![Dashboard](docs/screenshots/quovibe1.png)
+
+---
+
 ## Features
 
 - **Performance analytics** — TTWROR, IRR, volatility, Sharpe ratio, max drawdown, benchmark alpha
@@ -30,6 +34,32 @@
 - **Multi-currency** — Automatic FX conversion via ECB rates
 - **Data import** — XML (ppxml2db-compatible format), CSV wizard, Web HTML table, Custom JSON, Yahoo Finance & Alpha Vantage price feeds
 - **Self-hosted** — SQLite + Docker, no cloud dependency, privacy mode, 8 languages
+
+---
+
+## Screenshots
+
+<p>
+  <img src="docs/screenshots/quodeta.png" width="49%">
+  <img src="docs/screenshots/quopheat.png" width="49%">
+</p>
+
+<p>
+  <img src="docs/screenshots/quobench.png" width="49%">
+  <img src="docs/screenshots/quodiv.png" width="49%">
+</p>
+
+<p>
+  <img src="docs/screenshots/quotree.png" width="49%">
+  <img src="docs/screenshots/quorebal.png" width="49%">
+</p>
+
+<p>
+  <img src="docs/screenshots/quofulltrans.png" width="49%">
+  <img src="docs/screenshots/quowatch.png" width="49%">
+</p>
+
+![Security Detail](docs/screenshots/quoinvest2.png)
 
 ---
 

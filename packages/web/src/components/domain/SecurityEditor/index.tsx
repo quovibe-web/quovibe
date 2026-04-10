@@ -235,12 +235,24 @@ export function SecurityEditor({
         id = securityId!;
       }
 
+      // Save non-logo attributes via full-replace endpoint FIRST
+      // (this does DELETE all + INSERT, so it must run before the logo save)
       await apiFetch(`/api/securities/${id}/attributes`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          attributes: attributes.map(a => ({ typeId: a.typeId, value: a.value })),
+          attributes: attributes
+            .filter(a => a.typeId !== 'logo' && a.value !== '')
+            .map(a => ({ typeId: a.typeId, value: a.value })),
         }),
+      });
+
+      // Save logo via dedicated endpoint (only touches logo row, no full replace)
+      const logoAttr = attributes.find(a => a.typeId === 'logo');
+      await apiFetch(`/api/securities/${id}/logo`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logoUrl: logoAttr?.value || null }),
       });
 
       await apiFetch(`/api/securities/${id}/taxonomy`, {
@@ -318,6 +330,8 @@ export function SecurityEditor({
             <AttributesSection
               attributes={attributes}
               onChange={handleAttributesChange}
+              ticker={masterData.ticker}
+              instrumentType={detail?.instrumentType ?? undefined}
             />
 
             <TaxonomiesSection

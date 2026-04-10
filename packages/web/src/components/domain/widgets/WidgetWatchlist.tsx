@@ -4,6 +4,7 @@ import { useWatchlists } from '@/api/use-watchlists';
 import { usePrivacy } from '@/context/privacy-context';
 import { useWidgetConfig } from '@/context/widget-config-context';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
+import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
 import { cn } from '@/lib/utils';
 
 export default function WidgetWatchlist() {
@@ -51,12 +52,15 @@ export default function WidgetWatchlist() {
           return (
             <div
               key={sec.id}
-              className="flex items-center justify-between p-2 border-b last:border-b-0 cursor-pointer hover:bg-muted/50"
+              className="flex items-center gap-2 justify-between p-2 border-b last:border-b-0 cursor-pointer hover:bg-muted/50"
               onClick={() => navigate(`/investments/${sec.id}`)}
             >
-              <div className="min-w-0">
-                <div className="text-xs font-medium truncate">{sec.name}</div>
-                <div className="text-[10px] text-muted-foreground">{sec.ticker}</div>
+              <div className="flex items-center gap-2 min-w-0">
+                <SecurityAvatar name={sec.name} logoUrl={sec.logoUrl} size="sm" />
+                <div className="min-w-0">
+                  <div className="text-xs font-medium truncate">{sec.name}</div>
+                  <div className="text-[10px] text-muted-foreground">{sec.ticker}</div>
+                </div>
               </div>
               <div className="text-right shrink-0 ml-2">
                 <div className="text-xs tabular-nums">

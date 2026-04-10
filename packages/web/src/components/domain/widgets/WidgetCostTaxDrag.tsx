@@ -89,8 +89,8 @@ export default function WidgetCostTaxDrag() {
   const periodStart = periodOverride?.periodStart ?? urlStart;
   const periodEnd = periodOverride?.periodEnd ?? urlEnd;
 
-  const feeColor = '#fb923c';
-  const taxColor = '#a78bfa';
+  const feeColor = '#DA702C';
+  const taxColor = '#8B7EC8';
 
   if (isLoading) {
     return (

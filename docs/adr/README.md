@@ -57,3 +57,4 @@ Each file follows the naming convention `ADR-NNN-slug.md`:
 | 010 | [ADR-010-db-transaction-atomicity.md](./ADR-010-db-transaction-atomicity.md) | DB transaction atomicity | accepted | 2026-03-08 |
 | 011 | [ADR-011-sqlite-wal-mode.md](./ADR-011-sqlite-wal-mode.md) | SQLite WAL mode | accepted | 2026-03-08 |
 | 012 | [ADR-012-sidecar-settings-file.md](./ADR-012-sidecar-settings-file.md) | Sidecar settings file for quovibe-only state | accepted | 2026-03-19 |
+| 013 | [ADR-013-auto-logo-resolution.md](./ADR-013-auto-logo-resolution.md) | Stateless logo resolver endpoint for automatic logo fetching | accepted | 2026-04-08 |

@@ -26,7 +26,8 @@
     "rename": "Rinomina",
     "changeLogo": "Cambia logo",
     "retire": "Archivia conto",
-    "reactivateAccount": "Riattiva conto"
+    "reactivateAccount": "Riattiva conto",
+    "fetchLogo": "Recupera logo"
   },
   "menu": {
     "stockSplit": "Frazionamento Azionario…",
@@ -91,6 +92,7 @@
     "securities": "Titoli",
     "cash": "Liquidità",
     "return": "Rendimento",
+    "performance": "Guadagno/Perdita",
     "viewDetails": "Visualizza dettagli completi",
     "securitiesCount_one": "{{count}} titolo",
     "securitiesCount_other": "{{count}} titoli"
@@ -120,5 +122,16 @@
   "retired": {
     "show": "Mostra conti archiviati",
     "hide": "Nascondi conti archiviati"
+  },
+  "viewMode": {
+    "cards": "Schede",
+    "summary": "Riepilogo"
+  },
+  "logo": {
+    "brokerWebsite": "Sito web del broker",
+    "brokerWebsitePlaceholder": "interactivebrokers.com",
+    "fetch": "Recupera logo",
+    "fetching": "Recupero…",
+    "fetchFailed": "Impossibile recuperare il logo"
   }
 }

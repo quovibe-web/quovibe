@@ -59,7 +59,11 @@
     "noAttributes": "Brak przypisanych atrybutów.",
     "addAttribute": "Dodaj nowy atrybut…",
     "change": "Zmień…",
-    "upload": "Prześlij…"
+    "upload": "Prześlij…",
+    "fetchLogo": "Pobierz logo",
+    "fetchingLogo": "Pobieranie…",
+    "fetchLogoFailed": "Nie można pobrać logo",
+    "logo": "Logo"
   },
   "historicalQuotes": {
     "provider": "Dostawca",
@@ -196,10 +200,10 @@
     "exchange": "Giełda",
     "type": "Typ",
     "sector": "Sektor",
-    "notAvailable": "\u2014",
+    "notAvailable": "—",
     "pricePreview": "Podgląd notowań",
     "priceCount": "{{count}} notowań historycznych",
-    "priceRange": "{{start}} \u2013 {{end}}",
+    "priceRange": "{{start}} – {{end}}",
     "noPrices": "Brak dostępnych notowań historycznych",
     "noPricesHint": "Możesz skonfigurować feed notowań po dodaniu",
     "addToPortfolio": "Dodaj do portfela",

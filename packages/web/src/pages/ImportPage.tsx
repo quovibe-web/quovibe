@@ -31,28 +31,22 @@ interface ImportPageProps {
   onClose?: () => void;
 }
 
-// Inline SVG logo — uses unique gradient IDs (import-hero-g) to avoid collisions with Sidebar SVG (sidebar-logo-g)
-function QuovibeLogo({ isLight }: { isLight: boolean }) {
-  const vibeColor = isLight ? '#3a3a5a' : 'rgba(255,255,255,0.35)';
+// Inline logo — aperture mark + serif/sans wordmark, fully CSS-var driven
+function QuovibeLogo() {
   return (
-    <svg viewBox="0 0 260 70" fill="none" className="w-64 h-auto">
-      <defs>
-        <linearGradient id="import-hero-g" x1="0" y1="70" x2="70" y2="0">
-          <stop offset="0%" stopColor="#0891b2" />
-          <stop offset="100%" stopColor="#7c3aed" />
-        </linearGradient>
-      </defs>
-      {/* $ prompt */}
-      <text x="0" y="34" fontFamily="'JetBrains Mono', monospace" fontSize="40" fontWeight="300" fill="#7c3aed" opacity="0.7">$</text>
-      {/* quo */}
-      <text x="26" y="34" fontFamily="'JetBrains Mono', monospace" fontSize="40" fontWeight="800" fill="#0891b2" letterSpacing="-1.5">quo</text>
-      {/* Sparkline */}
-      <path d="M128 28 L136 22 L142 25 L150 12 L156 16 L164 6 L172 10 L180 2"
-            stroke="url(#import-hero-g)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="180" cy="2" r="2.5" fill="#7c3aed" />
-      {/* vibe */}
-      <text x="0" y="64" fontFamily="'Outfit', sans-serif" fontSize="40" fontWeight="200" fill={vibeColor} letterSpacing="10" opacity="0.4">vibe</text>
-    </svg>
+    <div className="flex flex-col items-center gap-4">
+      <svg viewBox="0 0 120 120" fill="none" className="w-12 h-12">
+        <path d="M60 22 Q82 22, 82 44" stroke="var(--qv-text-primary)" strokeWidth="5.5" fill="none" strokeLinecap="round" />
+        <path d="M98 60 Q98 82, 76 82" stroke="var(--qv-text-primary)" strokeWidth="5.5" fill="none" strokeLinecap="round" />
+        <path d="M60 98 Q38 98, 38 76" stroke="var(--qv-text-primary)" strokeWidth="5.5" fill="none" strokeLinecap="round" />
+        <path d="M22 60 Q22 38, 44 38" stroke="var(--qv-text-primary)" strokeWidth="5.5" fill="none" strokeLinecap="round" />
+        <circle cx="60" cy="60" r="6" fill="var(--qv-warning)" />
+      </svg>
+      <span className="text-4xl" style={{ letterSpacing: '-0.5px' }}>
+        <span style={{ fontFamily: "'DM Serif Display', serif", color: 'var(--qv-text-primary)' }}>quo</span>
+        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 300, color: 'var(--qv-text-muted)' }}>vibe</span>
+      </span>
+    </div>
   );
 }
 
@@ -174,57 +168,29 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
     );
   }
 
-  const isLight = resolvedTheme === 'light';
-
-  // First-run mode: branded full-page layout
+  // First-run mode: branded full-page layout using Flexoki tokens
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden qv-page"
-      style={{
-        background: isLight
-          ? 'linear-gradient(135deg, #d6e8f4 0%, #eaeff9 35%, #f0f3fb 60%, #e8e2f4 100%)'
-          : 'var(--qv-bg)',
-      }}
-    >
-      {/* Glow blobs */}
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden qv-page bg-background">
+
+      {/* Warm Flexoki glow blobs — gold top-left, blue bottom-right */}
       <div
-        className="absolute pointer-events-none"
+        className="absolute pointer-events-none rounded-full"
         style={{
-          top: '-60px',
-          left: '-60px',
-          width: isLight ? '420px' : '320px',
-          height: isLight ? '420px' : '320px',
-          borderRadius: '50%',
-          background: isLight
-            ? 'radial-gradient(circle, rgba(8,145,178,0.30) 0%, transparent 65%)'
-            : 'radial-gradient(circle, color-mix(in srgb, var(--color-primary) 18%, transparent) 0%, transparent 70%)',
+          top: '-80px',
+          left: '-80px',
+          width: '350px',
+          height: '350px',
+          background: 'radial-gradient(circle, color-mix(in srgb, var(--color-chart-7) 10%, transparent) 0%, transparent 70%)',
         }}
       />
       <div
-        className="absolute pointer-events-none"
+        className="absolute pointer-events-none rounded-full"
         style={{
-          bottom: '-40px',
-          right: '-40px',
-          width: isLight ? '380px' : '280px',
-          height: isLight ? '380px' : '280px',
-          borderRadius: '50%',
-          background: isLight
-            ? 'radial-gradient(circle, rgba(124,58,237,0.22) 0%, transparent 65%)'
-            : 'radial-gradient(circle, color-mix(in srgb, var(--color-chart-5) 18%, transparent) 0%, transparent 70%)',
-        }}
-      />
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '600px',
-          height: '250px',
-          borderRadius: '50%',
-          background: isLight
-            ? 'radial-gradient(ellipse, rgba(124,58,237,0.08) 0%, transparent 70%)'
-            : 'radial-gradient(ellipse, color-mix(in srgb, var(--color-chart-5) 6%, transparent) 0%, transparent 70%)',
+          bottom: '-60px',
+          right: '-60px',
+          width: '300px',
+          height: '300px',
+          background: 'radial-gradient(circle, color-mix(in srgb, var(--color-primary) 8%, transparent) 0%, transparent 70%)',
         }}
       />
 
@@ -241,17 +207,14 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
       </div>
 
       {/* Hero branding */}
-      <div className="flex flex-col items-center justify-center mb-8 relative">
-        {/* Scanline texture */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-30"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(0deg, rgba(8,145,178,0.015) 0px, transparent 1px, transparent 3px)',
-          }}
-        />
-        <QuovibeLogo isLight={resolvedTheme === 'light'} />
-        <p className="text-sm text-muted-foreground mt-4 tracking-widest font-mono uppercase opacity-50">
+      <div className="flex flex-col items-center justify-center mb-8">
+        <div style={{ animation: 'qv-stagger-in 0.4s ease-out both' }}>
+          <QuovibeLogo />
+        </div>
+        <p
+          className="text-sm text-muted-foreground mt-4 tracking-widest font-mono uppercase opacity-50"
+          style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '100ms' }}
+        >
           {t('import.tagline')}
         </p>
       </div>
@@ -260,14 +223,9 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
       <div className="w-full max-w-2xl flex flex-col sm:flex-row gap-4">
         {/* Card left: Import from XML */}
         <div
-          className="flex-1 rounded-xl p-6 space-y-4"
-          style={{
-            background: isLight ? 'linear-gradient(145deg, #ffffff 0%, #f5f7ff 100%)' : 'var(--qv-surface)',
-            border: `1px solid ${isLight ? 'rgba(15,23,42,0.09)' : 'var(--qv-border)'}`,
-            boxShadow: isLight
-              ? '0 4px 24px rgba(15,23,42,0.10), 0 1px 4px rgba(15,23,42,0.06)'
-              : '0 1px 3px rgba(0,0,0,0.3)',
-          }}
+          className="flex-1 rounded-xl p-6 space-y-4 bg-card border border-border"
+          data-slot="card"
+          style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '150ms' }}
         >
           <div className="space-y-1">
             <h3 className="text-lg font-semibold text-foreground">
@@ -298,11 +256,6 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
               disabled={!canSubmit || isActive}
               onClick={handleSubmit}
               className={canSubmit && !isActive ? 'cursor-pointer transition-all duration-150 hover:brightness-110 hover:saturate-110 active:scale-[0.98]' : ''}
-              style={canSubmit && !isActive ? {
-                background: 'var(--color-primary)',
-                border: 'none',
-                color: 'var(--color-primary-foreground)',
-              } : undefined}
             >
               {t('import.importButton')}
             </Button>
@@ -311,14 +264,9 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
 
         {/* Card right: Start from scratch */}
         <div
-          className="flex-1 rounded-xl p-6 flex flex-col items-center justify-center gap-4 text-center"
-          style={{
-            background: isLight ? 'linear-gradient(145deg, #ffffff 0%, #f5f7ff 100%)' : 'var(--qv-surface)',
-            border: `1px solid ${isLight ? 'rgba(15,23,42,0.09)' : 'var(--qv-border)'}`,
-            boxShadow: isLight
-              ? '0 4px 24px rgba(15,23,42,0.10), 0 1px 4px rgba(15,23,42,0.06)'
-              : '0 1px 3px rgba(0,0,0,0.3)',
-          }}
+          className="flex-1 rounded-xl p-6 flex flex-col items-center justify-center gap-4 text-center bg-card border border-border"
+          data-slot="card"
+          style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '200ms' }}
         >
           <Sparkles size={40} style={{ color: 'var(--color-chart-5)' }} />
           <div className="space-y-1">
@@ -332,11 +280,6 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
           <Button
             onClick={() => setShowInitDialog(true)}
             className="cursor-pointer transition-all duration-150 hover:brightness-110 hover:saturate-110 active:scale-[0.98]"
-            style={{
-              background: 'var(--color-primary)',
-              border: 'none',
-              color: 'var(--color-primary-foreground)',
-            }}
           >
             {t('import.startButton')}
           </Button>
@@ -344,7 +287,10 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
       </div>
 
       {/* Footer */}
-      <p className="mt-8 text-xs text-muted-foreground/50">
+      <p
+        className="mt-8 text-xs text-muted-foreground/50"
+        style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '300ms' }}
+      >
         {t('import.tagline')}
       </p>
 
@@ -361,11 +307,6 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
             <AlertDialogAction
               onClick={() => navigate('/')}
               className="cursor-pointer transition-all duration-150 hover:brightness-110 hover:saturate-110 active:scale-[0.98]"
-              style={{
-                background: 'var(--color-primary)',
-                border: 'none',
-                color: 'var(--color-primary-foreground)',
-              }}
             >
               {t('import.goToDashboard')}
             </AlertDialogAction>
@@ -401,11 +342,6 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
                 });
               }}
               className="cursor-pointer transition-all duration-150 hover:brightness-110 hover:saturate-110 active:scale-[0.98]"
-              style={{
-                background: 'var(--color-primary)',
-                border: 'none',
-                color: 'var(--color-primary-foreground)',
-              }}
             >
               {initMutation.isPending ? t('common:waiting') : t('common:confirm')}
             </AlertDialogAction>
@@ -426,11 +362,6 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
             <AlertDialogAction
               onClick={() => navigate('/')}
               className="cursor-pointer transition-all duration-150 hover:brightness-110 hover:saturate-110 active:scale-[0.98]"
-              style={{
-                background: 'var(--color-primary)',
-                border: 'none',
-                color: 'var(--color-primary-foreground)',
-              }}
             >
               {t('import.goToDashboard')}
             </AlertDialogAction>

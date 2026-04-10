@@ -1,5 +1,10 @@
 {
   "title": "Panel",
+  "hero": {
+    "portfolioValue": "Wartość portfela",
+    "configureMetrics": "Konfiguruj metryki",
+    "selectMetrics": "Wybierz metryki"
+  },
   "addDashboard": "Nowy panel",
   "addDashboardDescription": "Wprowadź nazwę dla nowego panelu",
   "dashboardName": "Nazwa panelu",
@@ -12,6 +17,11 @@
   "tabActions": "Akcje karty",
   "cannotDeleteLast": "Nie można usunąć ostatniego panelu",
   "addWidget": "Dodaj widget",
+  "gridColumnsAuto": "Auto",
+  "widgetSize": "Rozmiar",
+  "widgetSizeSmall": "Mały (1 kol.)",
+  "widgetSizeMedium": "Średni (2 kol.)",
+  "widgetSizeLarge": "Duży (3 kol.)",
   "dataSeriesMenuItem": "Serie danych...",
   "period": "Okres...",
   "deleteWidget": "Usuń",
@@ -54,7 +64,8 @@
       "all-time-high": "Najwyższa kiedykolwiek odnotowana wartość portfela, z datą jej wystąpienia.",
       "distance-from-ath": "O ile bieżąca wartość portfela jest niższa od historycznego maksimum, jako procent.",
       "invested-capital": "Całkowita wartość zakupu wszystkich pozycji dla aktywnego okresu rozliczeniowego.",
-      "watchlist": "Kompaktowy monitor kursów dla wybranej listy obserwowanych"
+      "watchlist": "Kompaktowy monitor kursów dla wybranej listy obserwowanych",
+      "top-holdings": "Twoje największe pozycje według wartości rynkowej, z udziałem w portfelu i stopą zwrotu w okresie."
     }
   },
   "widget": {
@@ -103,6 +114,14 @@
     },
     "distanceFromAth": {
       "currentVsAth": "{{current}} vs {{ath}}"
+    },
+    "topHoldings": {
+      "noHoldings": "Brak pozycji w tym okresie",
+      "loadError": "Błąd ładowania pozycji",
+      "showMore_one": "+ {{count}} więcej",
+      "showMore_few": "+ {{count}} więcej",
+      "showMore_many": "+ {{count}} więcej",
+      "showMore_other": "+ {{count}} więcej"
     }
   },
   "noChartData": "Brak danych dla tego okresu",
@@ -131,7 +150,8 @@
     "all-time-high": "Historyczne Maksimum",
     "distance-from-ath": "Odległość od ATH",
     "invested-capital": "Zainwestowany Kapitał",
-    "watchlist": "Lista obserwowanych"
+    "watchlist": "Lista obserwowanych",
+    "top-holdings": "Główne pozycje"
   },
   "dataSeries": {
     "dialogTitle": "Serie danych",
@@ -166,5 +186,23 @@
     "all": "WSZYSTKO",
     "clear": "Usuń okres niestandardowy"
   },
-  "resetWidgetsToGlobal": "Przywróć widgety do okresu globalnego"
+  "resetWidgetsToGlobal": "Przywróć widgety do okresu globalnego",
+  "templates": {
+    "getStarted": "Zacznij od szablonu",
+    "getStartedDesc": "Wybierz szablon, aby wypełnić pulpit, lub zacznij od zera.",
+    "startFromScratch": "Zacznij od zera",
+    "startFromTemplate": "Użyj szablonu (opcjonalnie)",
+    "widgetCount_one": "{{count}} widget",
+    "widgetCount_few": "{{count}} widgety",
+    "widgetCount_many": "{{count}} widgetów",
+    "widgetCount_other": "{{count}} widgetów",
+    "performance": "Wydajność",
+    "performanceDesc": "Wartość rynkowa, TTWROR, IRR, Delta i wykres wydajności.",
+    "risk": "Ryzyko",
+    "riskDesc": "Drawdown, zmienność, semiwariancja, wskaźnik Sharpe'a i wykres drawdownu.",
+    "income": "Dochód i Wartość",
+    "incomeDesc": "Zainwestowany kapitał, wartość rynkowa, delta, zmiana absolutna i mapa ciepła zwrotów.",
+    "complete": "Pełny Przegląd",
+    "completeDesc": "Wszystkie kluczowe wskaźniki — wydajność, ryzyko, wykres i movers w jednym pulpicie."
+  }
 }

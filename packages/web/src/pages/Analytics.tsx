@@ -32,16 +32,16 @@ export default function Analytics() {
       />
 
       {/* Tab strip */}
-      <nav className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
+      <nav className="inline-flex rounded-full border border-border bg-muted/50 p-0.5">
         {TABS.map((tab) => (
           <NavLink
             key={tab.path}
             to={{ pathname: tab.path, search: periodSearch }}
             className={({ isActive }) =>
               cn(
-                'px-4 py-1.5 text-xs font-medium rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+                'px-4 py-1.5 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
                 isActive
-                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground',
               )
             }
