@@ -14,6 +14,7 @@ import type {
   FeeItem, TaxItem, CashCurrencyGainItem, PntItem,
   CapitalGainsBreakdown, RealizedGainsBreakdown, EarningsBreakdown,
   FeesBreakdown, TaxesBreakdown, CashCurrencyGainsBreakdown, PntBreakdown,
+  OpenPositionPnLBreakdown,
 } from '@quovibe/shared';
 import type { CostTransaction } from '@quovibe/engine';
 import {
@@ -34,6 +35,8 @@ import {
   computeMaxDrawdown,
   computeVolatility,
   computeSharpeRatio,
+  computeFIFO,
+  computeMovingAverage,
 } from '@quovibe/engine';
 import { safeDecimal, convertAmountFromDb } from './unit-conversion';
 import { buildRateMap } from './fx.service';
@@ -604,6 +607,14 @@ export interface SecurityPerfInternal {
   sharesEnd: Decimal;
   dailyMV: Map<string, Decimal>;
   dailyReturns: Array<{ date: string; r: Decimal; cumR: Decimal }>;
+  // Broker-style open-position PnL (since-inception, unrealized on currently-held shares only).
+  // MA = moving-average / PMC convention (matches Directa, Fineco, etc.)
+  // FIFO = first-in-first-out alternative
+  openPositionCost: Decimal;      // MA: PMC × heldShares (cost basis of what's still held)
+  openPositionValue: Decimal;     // currentPrice × heldShares
+  openPositionPnL: Decimal;       // openPositionValue − openPositionCost
+  openPositionCostFifo: Decimal;  // FIFO cost of remaining lots
+  openPositionPnLFifo: Decimal;   // openPositionValue − openPositionCostFifo
 }
 
 function computeSecurityPerfInternal(
@@ -677,6 +688,16 @@ function computeSecurityPerfInternal(
   const sharesEnd = sharesAt(secTxs, period.end, true);
   const valueAtStart = sharesStart.times(effectivePriceAtStart);
 
+  // Broker-style open-position PnL — full history (no period rebasing), unrealized only.
+  // MA gives the PMC convention used by Italian retail brokers (Directa, Fineco, …).
+  const maAll   = computeMovingAverage(allCostTxs, latestPrice);
+  const fifoAll = computeFIFO(allCostTxs, latestPrice);
+  const openPositionValue    = sharesEnd.times(latestPrice);
+  const openPositionCost     = maAll.purchaseValue;
+  const openPositionPnL      = maAll.unrealizedGain;
+  const openPositionCostFifo = fifoAll.purchaseValue;
+  const openPositionPnLFifo  = fifoAll.unrealizedGain;
+
   // Price at period end: last known from price map, fall back to latest
   const filledPrices = carryForwardPrices(mergedPriceMap, period.start, period.end);
   const priceAtEnd = filledPrices.get(period.end) ?? latestPrice;
@@ -722,6 +743,11 @@ function computeSecurityPerfInternal(
     sharesEnd,
     dailyMV,
     dailyReturns: ttwrorResult.dailyReturns,
+    openPositionCost,
+    openPositionValue,
+    openPositionPnL,
+    openPositionCostFifo,
+    openPositionPnLFifo,
   };
 }
 
@@ -774,6 +800,7 @@ export interface PortfolioCalcResult {
   volatility: string;
   semivariance: string;
   sharpeRatio: string | null;
+  openPositionPnL: OpenPositionPnLBreakdown;
 }
 
 export interface ChartPoint {
@@ -1369,6 +1396,11 @@ export function getPortfolioCalc(
   let totalTaxes = new Decimal(0);
   let totalDividends = new Decimal(0);
   let totalInterest = new Decimal(0);
+  let totalOpenPositionCost     = new Decimal(0);
+  let totalOpenPositionValue    = new Decimal(0);
+  let totalOpenPositionPnL      = new Decimal(0);
+  let totalOpenPositionCostFifo = new Decimal(0);
+  let totalOpenPositionPnLFifo  = new Decimal(0);
 
   for (const sr of secResults) {
     const sw = scope?.securityWeights?.get(sr.securityId) ?? new Decimal(1);
@@ -1384,6 +1416,11 @@ export function getPortfolioCalc(
     totalFees = totalFees.plus(sr.fees.times(sw));
     totalTaxes = totalTaxes.plus(sr.taxes.times(sw));
     totalDividends = totalDividends.plus(sr.dividends);
+    totalOpenPositionCost     = totalOpenPositionCost.plus(sr.openPositionCost.times(sw));
+    totalOpenPositionValue    = totalOpenPositionValue.plus(sr.openPositionValue.times(sw));
+    totalOpenPositionPnL      = totalOpenPositionPnL.plus(sr.openPositionPnL.times(sw));
+    totalOpenPositionCostFifo = totalOpenPositionCostFifo.plus(sr.openPositionCostFifo.times(sw));
+    totalOpenPositionPnLFifo  = totalOpenPositionPnLFifo.plus(sr.openPositionPnLFifo.times(sw));
 
     if (includeItems) {
       const secInfo = data.securityInfoMap.get(sr.securityId);
@@ -1811,6 +1848,25 @@ export function getPortfolioCalc(
     volatility: volResult.volatility.toString(),
     semivariance: volResult.semivariance.toString(),
     sharpeRatio: sharpeRatio?.toString() ?? null,
+    openPositionPnL: (() => {
+      const pnlPct = totalOpenPositionCost.gt(0)
+        ? totalOpenPositionPnL.div(totalOpenPositionCost)
+        : new Decimal(0);
+      const fifoMv = totalOpenPositionCostFifo.gt(0)
+        ? totalOpenPositionPnLFifo.div(totalOpenPositionCostFifo)
+        : new Decimal(0);
+      return {
+        value:       totalOpenPositionPnL.toString(),
+        percentage:  pnlPct.toString(),
+        cost:        totalOpenPositionCost.toString(),
+        marketValue: totalOpenPositionValue.toString(),
+        fifo: {
+          value:      totalOpenPositionPnLFifo.toString(),
+          percentage: fifoMv.toString(),
+          cost:       totalOpenPositionCostFifo.toString(),
+        },
+      };
+    })(),
   };
 }
 

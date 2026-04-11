@@ -196,8 +196,8 @@ export default function AccountsHub() {
                       const holdings = unit.holdings;
                       const mv = holdings ? parseFloat(holdings.totalValue ?? '0') : 0;
                       const perf = perfMap.get(unit.portfolio.id);
-                      const perfPct = perf ? parseFloat(perf.absolutePerformancePct) : null;
-                      const absPerf = perf ? parseFloat(perf.absolutePerformance) : null;
+                      const perfPct = perf ? parseFloat(perf.openPositionPnL.percentage) : null;
+                      const absPerf = perf ? parseFloat(perf.openPositionPnL.value) : null;
                       const isPositive = absPerf !== null ? absPerf >= 0 : true;
 
                       return (

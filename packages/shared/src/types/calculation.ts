@@ -108,6 +108,27 @@ export interface PntBreakdown {
   items: PntItem[];               // NEW: individual transactions
 }
 
+// Broker-style open-position PnL (since-inception, unrealized only on currently-held shares).
+// Matches the "Guadagno/Perdita" convention used by Italian retail brokers (Directa, Fineco…):
+//   PMC = moving-average buy cost (buy fees capitalized), rolled by partial sells
+//   openPositionPnL = Σ(currentPrice − PMC) × heldShares   (per security, across portfolio)
+//   percentage      = openPositionPnL / Σ(PMC × heldShares)
+// Both Moving-Average (default) and FIFO decompositions are provided.
+// Fully closed positions contribute zero. Dividends, interest, realized gains are excluded.
+export interface OpenPositionPnLBreakdown {
+  // Moving-average / PMC convention — matches Italian broker "Guadagno/Perdita"
+  value: string;            // total unrealized PnL (€, or base currency)
+  percentage: string;       // value / cost  (ratio: 0.0842 = 8.42%)
+  cost: string;             // Σ PMC × heldShares (cost basis of currently-held shares)
+  marketValue: string;      // Σ currentPrice × heldShares
+  // FIFO alternative — same concept, different cost-basis convention
+  fifo: {
+    value: string;          // unrealized PnL under FIFO lot matching
+    percentage: string;     // fifo.value / fifo.cost
+    cost: string;           // FIFO cost of remaining lots
+  };
+}
+
 // Top-level response
 // Replaces the existing PortfolioCalcResponse. This is a coordinated structural
 // change: fees/taxes/cashCurrencyGains change from string → object with total+items.
@@ -148,4 +169,5 @@ export interface CalculationBreakdownResponse {
   lastDayDeltaValue: string;
   lastDayDelta: string;
   lastDayAbsolutePerformance: string;
+  openPositionPnL: OpenPositionPnLBreakdown;
 }

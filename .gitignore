@@ -24,7 +24,7 @@ data/
 !data/schema.db
 
 # Sidecar settings (generated at runtime, not versioned)
-*.xml
+quovibe.settings.json
 
 # Claude Code — local machine settings only
 .claude/settings.local.json
@@ -54,7 +54,7 @@ packages/api/src/__debug__/
 debug-console-initial.txt
 
 # Test files
-PP_TEST_*.xml
+zz_SOT_DB
 
 # Test coverage
 coverage/

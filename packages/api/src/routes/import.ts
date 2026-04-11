@@ -58,7 +58,7 @@ const uploadXml: RequestHandler = async (req, res) => {
     // Clean up temp DB after swap
     try { fs.unlinkSync(result.tempDbPath); } catch { /* ok */ }
 
-    console.log('[quovibe] Import completato. App ricaricata (hot reload).');
+    console.log('[quovibe] Import completed. App Reloaded (hot reload).');
     res.json({ status: 'success', accounts: result.accounts, securities: result.securities, reloaded: true });
   } catch (err) {
     if (err instanceof ImportError) {

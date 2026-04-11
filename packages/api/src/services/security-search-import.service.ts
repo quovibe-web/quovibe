@@ -16,8 +16,8 @@ export function importSecurityPrices(
   prices: PriceInput[],
 ): { ok: true; count: number } {
   const insertPrice = sqlite.prepare(`
-    INSERT OR REPLACE INTO price (security, tstamp, value, high, low, volume)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO price (security, tstamp, value)
+    VALUES (?, ?, ?)
   `);
   const insertLatest = sqlite.prepare(`
     INSERT OR REPLACE INTO latest_price (security, tstamp, value)
@@ -31,10 +31,8 @@ export function importSecurityPrices(
     for (const p of prices) {
       const dbPrice = convertPriceToDb({
         close: new Decimal(p.close),
-        ...(p.high != null ? { high: new Decimal(p.high) } : {}),
-        ...(p.low != null ? { low: new Decimal(p.low) } : {}),
       });
-      insertPrice.run(securityId, p.date, dbPrice.close, dbPrice.high ?? null, dbPrice.low ?? null, p.volume ?? null);
+      insertPrice.run(securityId, p.date, dbPrice.close);
     }
 
     // Sync latest_price from global max

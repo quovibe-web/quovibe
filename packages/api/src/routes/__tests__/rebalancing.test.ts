@@ -71,14 +71,10 @@ function createTestDb() {
       value TEXT, seq INTEGER DEFAULT 0, PRIMARY KEY (account, attr_uuid)
     );
     CREATE TABLE latest_price (
-      security TEXT PRIMARY KEY, tstamp TEXT, value INTEGER NOT NULL,
-      open INTEGER,
-      high INTEGER, low INTEGER, volume INTEGER
+      security TEXT PRIMARY KEY, tstamp TEXT, value INTEGER NOT NULL
     );
     CREATE TABLE price (
       security TEXT, tstamp TEXT NOT NULL, value INTEGER NOT NULL,
-      open INTEGER,
-      high INTEGER, low INTEGER, volume INTEGER,
       PRIMARY KEY (security, tstamp)
     );
     CREATE TABLE taxonomy (
@@ -124,8 +120,8 @@ function createTestDb() {
   sqlite.exec(`INSERT INTO security (uuid,name,currency) VALUES ('sec-B','Beta Inc','EUR')`);
 
   // Prices: sec-A = 50 EUR, sec-B = 100 EUR (value stored as price * 10^8)
-  sqlite.exec(`INSERT INTO price VALUES ('sec-A','2026-03-17',5000000000,NULL,NULL,NULL,NULL)`);
-  sqlite.exec(`INSERT INTO price VALUES ('sec-B','2026-03-17',10000000000,NULL,NULL,NULL,NULL)`);
+  sqlite.exec(`INSERT INTO price VALUES ('sec-A','2026-03-17',5000000000)`);
+  sqlite.exec(`INSERT INTO price VALUES ('sec-B','2026-03-17',10000000000)`);
 
   // BUY transactions: sec-A 100 shares, sec-B 50 shares (shares * 10^8)
   // sec-A: 100 shares × 50 EUR = 5000 EUR | amount stored as hecto-units (amount * 10^2)

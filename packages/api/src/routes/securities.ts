@@ -161,14 +161,10 @@ const getSecurity: RequestHandler = async (req, res) => {
     .orderBy(asc(prices.date));
 
   const allPrices = priceRows.map(p => {
-    const converted = convertPriceFromDb({ close: p.close, open: p.open, high: p.high, low: p.low });
+    const converted = convertPriceFromDb({ close: p.close });
     return {
       date: p.date,
       value: converted.close.toString(),
-      open: converted.open?.toString() ?? null,
-      high: converted.high?.toString() ?? null,
-      low: converted.low?.toString() ?? null,
-      volume: p.volume ?? null,
     };
   });
 
