@@ -234,8 +234,8 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: Brokerag
           />
         </div>
         {perf && !isPrivate && (() => {
-          const perfPct = parseFloat(perf.absolutePerformancePct);
-          const absPerf = parseFloat(perf.absolutePerformance);
+          const perfPct = parseFloat(perf.openPositionPnL.percentage);
+          const absPerf = parseFloat(perf.openPositionPnL.value);
           const isPositive = absPerf >= 0;
           return (
             <div className="text-right">

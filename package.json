@@ -23,6 +23,7 @@
     "@typescript-eslint/eslint-plugin": "^8.58.0",
     "@typescript-eslint/parser": "^8.58.0",
     "eslint": "^10.1.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "glob": "^13.0.6",
     "tsx": "^4.7.0",
     "typescript": "^5.4.0",

@@ -91,10 +91,6 @@ export const prices = sqliteTable('price', {
   securityId: text('security').references(() => securities.id).notNull(),
   date: text('tstamp').notNull(),
   close: integer('value').notNull(),
-  open: integer('open'),
-  high: integer('high'),
-  low: integer('low'),
-  volume: integer('volume'),
 }, (t) => ({ pk: primaryKey({ columns: [t.securityId, t.date] }) }));
 
 export const latestPrices = sqliteTable('latest_price', {
@@ -103,10 +99,6 @@ export const latestPrices = sqliteTable('latest_price', {
     .primaryKey(),
   date: text('tstamp').notNull(),
   value: integer('value').notNull(),
-  open: integer('open'),
-  high: integer('high'),
-  low: integer('low'),
-  volume: integer('volume'),
 });
 
 // ─── TRANSACTIONS (sistema a doppia entrata) ──────

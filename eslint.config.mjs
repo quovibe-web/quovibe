@@ -1,5 +1,6 @@
 import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
+import reactHooksPlugin from 'eslint-plugin-react-hooks';
 
 export default [
   {
@@ -8,10 +9,11 @@ export default [
       parser: tsParser,
       parserOptions: { ecmaVersion: 2024, sourceType: 'module' },
     },
-    plugins: { '@typescript-eslint': tsPlugin },
+    plugins: { '@typescript-eslint': tsPlugin, 'react-hooks': reactHooksPlugin },
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
   {
