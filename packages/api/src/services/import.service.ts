@@ -4,6 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import Database from 'better-sqlite3';
+import type BetterSqlite3 from 'better-sqlite3';
 import * as cheerio from 'cheerio';
 import { v4 as uuidv4 } from 'uuid'; // uuid is already in packages/api/package.json
 import { verifySchema, applyExtensions } from '../db/verify';
@@ -90,6 +91,50 @@ export function validateXmlFormat(xmlPath: string): void {
       'INVALID_FORMAT',
       'Il file XML non ha attributi ID. Esporta con: File → Salva come → XML con attributi ID',
     );
+  }
+}
+
+/**
+ * Copies quovibe-owned table data (vf_exchange_rate) from the live DB
+ * into the newly-created import DB so FX rates survive re-imports.
+ * Opens the live DB readonly (WAL mode allows concurrent readers).
+ */
+export function preserveCustomTables(
+  newDb: BetterSqlite3.Database,
+  liveDbPath: string,
+): void {
+  if (!fs.existsSync(liveDbPath)) return;
+
+  let liveDb: BetterSqlite3.Database | null = null;
+  try {
+    liveDb = new Database(liveDbPath, { readonly: true });
+
+    const exists = liveDb.prepare(
+      `SELECT 1 FROM sqlite_master WHERE type='table' AND name='vf_exchange_rate'`,
+    ).get();
+    if (!exists) return;
+
+    const rows = liveDb.prepare(
+      'SELECT date, from_currency, to_currency, rate FROM vf_exchange_rate',
+    ).all() as { date: string; from_currency: string; to_currency: string; rate: string }[];
+
+    if (rows.length === 0) return;
+
+    const insert = newDb.prepare(
+      `INSERT OR IGNORE INTO vf_exchange_rate (date, from_currency, to_currency, rate)
+       VALUES (?, ?, ?, ?)`,
+    );
+    newDb.transaction(() => {
+      for (const r of rows) {
+        insert.run(r.date, r.from_currency, r.to_currency, r.rate);
+      }
+    })();
+
+    console.log(`[quovibe] Preserved ${rows.length} FX rates from previous database`);
+  } catch (err) {
+    console.warn('[quovibe] Could not preserve FX rates:', (err as Error).message);
+  } finally {
+    try { liveDb?.close(); } catch { /* ok */ }
   }
 }
 
@@ -189,6 +234,9 @@ export async function runImport(xmlPath: string): Promise<ImportResult> {
     let securities = 0;
     try {
       applyExtensions(newDb);
+
+      // Preserve quovibe-owned data from the current live DB
+      preserveCustomTables(newDb, DB_PATH);
 
       // Count imported data
       accounts = (newDb.prepare('SELECT COUNT(*) as cnt FROM account').get() as { cnt: number }).cnt;

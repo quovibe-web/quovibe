@@ -773,6 +773,7 @@ export interface SecurityPerfResult {
 }
 
 export interface PortfolioCalcResult {
+  baseCurrency: string;
   initialValue: string;
   capitalGains: CapitalGainsBreakdown;
   realizedGains: RealizedGainsBreakdown;
@@ -1790,6 +1791,7 @@ export function getPortfolioCalc(
   const pntItems = includeItems ? fetchPntItems(sqlite, period, data.accountNameMap) : [];
 
   return {
+    baseCurrency,
     initialValue: displayMVB.toString(),
     capitalGains: {
       unrealized: totalUnrealized.toString(),

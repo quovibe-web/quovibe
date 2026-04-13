@@ -5,6 +5,7 @@ import { useReportingPeriod } from '@/api/use-performance';
 import { usePrivacy } from '@/context/privacy-context';
 import { computeDragMetrics } from '@/lib/drag-utils';
 import { formatCurrency, formatPercentage } from '@/lib/formatters';
+import { useBaseCurrency } from '@/hooks/use-base-currency';
 import { cn } from '@/lib/utils';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -83,6 +84,7 @@ export default function WidgetCostTaxDrag() {
   const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, error, isFetching } = useWidgetCalculation();
   const { isPrivate } = usePrivacy();
+  const baseCurrency = useBaseCurrency();
 
   const { periodOverride } = useWidgetConfig();
   const { periodStart: urlStart, periodEnd: urlEnd } = useReportingPeriod();
@@ -176,7 +178,7 @@ export default function WidgetCostTaxDrag() {
           <span className="text-xs text-muted-foreground">{t('widget.costTaxDrag.totalCostDrag')}</span>
           <div className="flex gap-3 items-baseline">
             <span className="text-sm font-semibold text-foreground tabular-nums">
-              {isPrivate ? '••••' : formatCurrency(totalCosts)}
+              {isPrivate ? '••••' : formatCurrency(totalCosts, baseCurrency)}
             </span>
             {metrics.gainsAvailable && metrics.totalGainsPct !== null && (
               <span className="text-xs font-medium tabular-nums" style={{ color: 'var(--qv-negative, #f87171)' }}>

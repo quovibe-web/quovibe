@@ -5,6 +5,7 @@ import os from 'os';
 import Database from 'better-sqlite3';
 import { runImport, isImportInProgress, ImportError } from '../services/import.service';
 import { updateAppState, getSettings } from '../services/settings.service';
+import { fetchAllExchangeRates } from '../services/fx-fetcher.service';
 import { DB_PATH } from '../config';
 
 // Multer: save uploads to OS temp dir with a unique filename
@@ -54,6 +55,21 @@ const uploadXml: RequestHandler = async (req, res) => {
 
     // Write lastImport to sidecar (AFTER reload completes — sidecar survives DB swap)
     updateAppState({ lastImport: new Date().toISOString() });
+
+    // Fire-and-forget: fetch FX rates so multi-currency portfolios work immediately.
+    // Opens its own DB connection (old handle is closed after reload).
+    try {
+      const fxDb = new Database(DB_PATH);
+      fetchAllExchangeRates(fxDb)
+        .then(summary => {
+          console.log(`[quovibe] Auto-fetched ${summary.totalFetched} FX rates after import`);
+          fxDb.close();
+        })
+        .catch(err => {
+          console.warn('[quovibe] FX auto-fetch after import failed:', (err as Error).message);
+          try { fxDb.close(); } catch { /* ok */ }
+        });
+    } catch { /* DB open failed — non-fatal, user can fetch manually */ }
 
     // Clean up temp DB after swap
     try { fs.unlinkSync(result.tempDbPath); } catch { /* ok */ }

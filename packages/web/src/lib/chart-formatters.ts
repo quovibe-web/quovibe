@@ -5,10 +5,11 @@ export function chartTooltipFormatter(
   _name: string,
   props: { dataKey?: string },
   currencyOptions?: FormatCurrencyOptions,
+  currency?: string,
 ): [string, string] {
   const dataKey = props?.dataKey ?? _name;
   if (dataKey === 'marketValue') {
-    return [formatCurrency(value, undefined, currencyOptions), _name];
+    return [formatCurrency(value, currency, currencyOptions), _name];
   }
   if (dataKey === 'ttwror' || dataKey.startsWith('benchmark_')) {
     return [formatPercentage(value), _name];

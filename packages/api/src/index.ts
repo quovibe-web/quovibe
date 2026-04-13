@@ -11,6 +11,7 @@ import { openDatabase, type OpenDatabaseResult } from './db/open-db';
 import { createApp } from './create-app';
 import { PriceScheduler } from './workers/price-scheduler';
 import { loadSettings, migrateLastImportFromDb } from './services/settings.service';
+import { fetchAllExchangeRates, needsFxFetch } from './services/fx-fetcher.service';
 
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
 const PRICE_CRON_SCHEDULE = process.env.PRICE_CRON_SCHEDULE ?? '0 18 * * 1-5'; // weekdays 18:00
@@ -159,6 +160,14 @@ function addStaticServing(app: Express): void {
 function start() {
   try {
     currentApp = buildFullApp();
+
+    // Auto-fetch FX rates if table is empty and portfolio has foreign currencies
+    if (currentDbHandle && needsFxFetch(currentDbHandle.sqlite)) {
+      console.log('[quovibe] FX rates table empty with foreign currencies — auto-fetching...');
+      fetchAllExchangeRates(currentDbHandle.sqlite)
+        .then(r => console.log(`[quovibe] Auto-fetched ${r.totalFetched} FX rates on startup`))
+        .catch(err => console.warn('[quovibe] Startup FX auto-fetch failed:', (err as Error).message));
+    }
   } catch {
     // DB not ready (missing or invalid schema) — start in setup mode
     console.warn('[quovibe] DB non pronto, avvio in setup mode (solo /api/import)');

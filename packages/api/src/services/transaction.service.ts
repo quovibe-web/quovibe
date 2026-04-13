@@ -4,6 +4,7 @@ import type BetterSqlite3 from 'better-sqlite3';
 import { TransactionType } from '@quovibe/shared';
 import type { CreateTransactionInput } from '@quovibe/shared';
 import { convertTransactionToDb } from './unit-conversion';
+import { getRate } from './fx.service';
 
 type UnitType = 'FEE' | 'TAX' | 'FOREX';
 
@@ -156,6 +157,9 @@ function getCrossEntries(
   switch (type) {
     case TransactionType.BUY:
     case TransactionType.SELL: {
+      if (crossAccountId) {
+        return [{ fromAcc, toAcc: crossAccountId }];
+      }
       const acct = sqlite
         .prepare('SELECT referenceAccount FROM account WHERE uuid = ?')
         .get(accountId!) as { referenceAccount: string | null } | undefined;
@@ -191,18 +195,46 @@ function buildUnits(xactId: string, input: CreateTransactionInput): UnitRow[] {
 
   switch (type) {
     case TransactionType.BUY:
-    case TransactionType.SELL:
-      if (fees && fees > 0) addUnit('FEE', toDb(fees));
-      if (taxes && taxes > 0) addUnit('TAX', toDb(taxes));
+    case TransactionType.SELL: {
+      // FEE unit — with forex fields if feesFx provided
+      const totalFeesDeposit = (fees ?? 0) + (input.feesFx && fxRate
+        ? new Decimal(input.feesFx).div(new Decimal(fxRate)).toNumber() : 0);
+      if (totalFeesDeposit > 0) {
+        const feeExtra: Partial<UnitRow> = {};
+        if (input.feesFx && fxRate) {
+          feeExtra.forex_amount = toDb(input.feesFx);
+          feeExtra.forex_currency = fxCurrencyCode ?? null;
+          feeExtra.exchangeRate = String(fxRate);
+        }
+        addUnit('FEE', toDb(totalFeesDeposit), feeExtra);
+      }
+      // TAX unit — with forex fields if taxesFx provided
+      const totalTaxesDeposit = (taxes ?? 0) + (input.taxesFx && fxRate
+        ? new Decimal(input.taxesFx).div(new Decimal(fxRate)).toNumber() : 0);
+      if (totalTaxesDeposit > 0) {
+        const taxExtra: Partial<UnitRow> = {};
+        if (input.taxesFx && fxRate) {
+          taxExtra.forex_amount = toDb(input.taxesFx);
+          taxExtra.forex_currency = fxCurrencyCode ?? null;
+          taxExtra.exchangeRate = String(fxRate);
+        }
+        addUnit('TAX', toDb(totalTaxesDeposit), taxExtra);
+      }
+      // FOREX unit — ppxml2db convention:
+      //   amount = gross in deposit currency, forex_amount = gross in security currency
+      //   exchangeRate = deposit→security, forex_currency = security currency
       if (fxRate) {
-        const forexAmt = Math.round(parseFloat(new Decimal(amount).times(fxRate).times(100).toPrecision(15)));
+        const grossSecurityHecto = Math.round(
+          parseFloat(new Decimal(amount).times(new Decimal(fxRate)).times(100).toPrecision(15))
+        );
         addUnit('FOREX', amt, {
-          forex_amount: forexAmt,
+          forex_amount: grossSecurityHecto,
           forex_currency: fxCurrencyCode ?? null,
           exchangeRate: String(fxRate),
         });
       }
       break;
+    }
     case TransactionType.DELIVERY_INBOUND:
       if (fees && fees > 0) addUnit('FEE', toDb(fees));
       break;
@@ -326,21 +358,66 @@ export function createTransaction(
 
     const acctype = resolved.acctype ?? 'account';
 
-    // Resolve currency: explicit > effective account currency > referenceAccount currency (for BUY/SELL)
+    // Resolve currency for BUY/SELL: use the cash (deposit) account's currency.
+    // Priority: explicit currencyCode > crossAccountId currency > referenceAccount currency > EUR
     let currency = input.currencyCode ?? resolved.currency ?? null;
+    if (!currency && BUY_SELL_TYPES.has(input.type)) {
+      const cashAccountId = input.crossAccountId ?? acctRow?.referenceAccount ?? null;
+      if (cashAccountId) {
+        const cashRow = sqlite.prepare('SELECT currency FROM account WHERE uuid = ?').get(cashAccountId) as { currency: string | null } | undefined;
+        currency = cashRow?.currency ?? null;
+      }
+    }
     if (!currency && acctRow?.referenceAccount) {
       const refRow = sqlite.prepare('SELECT currency FROM account WHERE uuid = ?').get(acctRow.referenceAccount) as { currency: string | null } | undefined;
       currency = refRow?.currency ?? null;
     }
     if (!currency) currency = 'EUR';
 
+    // For BUY/SELL: look up security currency for FX detection
+    let securityCurrency: string | null = null;
+    if (BUY_SELL_TYPES.has(input.type) && input.securityId) {
+      const secRow = sqlite.prepare('SELECT currency FROM security WHERE uuid = ?').get(input.securityId) as { currency: string | null } | undefined;
+      securityCurrency = secRow?.currency ?? null;
+    }
+    const isCrossCurrency = !!(securityCurrency && securityCurrency !== currency);
+
+    // Cross-currency BUY/SELL: resolve exchange rate and convert amounts
+    let fxInput = input;
+    let grossDeposit = input.amount;
+    if (isCrossCurrency && BUY_SELL_TYPES.has(input.type)) {
+      const exchangeRate = input.fxRate
+        ? new Decimal(input.fxRate)
+        : getRate(sqlite, currency, securityCurrency!, input.date);
+
+      if (exchangeRate && !exchangeRate.isZero()) {
+        grossDeposit = new Decimal(input.amount).div(exchangeRate).toNumber();
+        fxInput = {
+          ...input,
+          amount: grossDeposit,
+          fxRate: exchangeRate.toNumber(),
+          fxCurrencyCode: securityCurrency!,
+        };
+      }
+    }
+
+    // Compute amounts in deposit currency (after FX conversion)
+    const feesFxDeposit = isCrossCurrency && input.feesFx && fxInput.fxRate
+      ? new Decimal(input.feesFx).div(new Decimal(fxInput.fxRate)).toNumber()
+      : 0;
+    const taxesFxDeposit = isCrossCurrency && input.taxesFx && fxInput.fxRate
+      ? new Decimal(input.taxesFx).div(new Decimal(fxInput.fxRate)).toNumber()
+      : 0;
+    const totalFees = (input.fees ?? 0) + feesFxDeposit;
+    const totalTaxes = (input.taxes ?? 0) + taxesFxDeposit;
+
     const nextXmlid = ((sqlite.prepare('SELECT COALESCE(MAX(_xmlid), 0) + 1 AS n FROM xact').get() as { n: number }).n);
     const nextOrder = ((sqlite.prepare('SELECT COALESCE(MAX(_order), 0) + 1 AS n FROM xact').get() as { n: number }).n);
 
-    const fromAmount = computeNetAmountDb(input.type, input.amount, input.fees ?? 0, input.taxes ?? 0);
+    const fromAmount = computeNetAmountDb(input.type, grossDeposit, totalFees, totalTaxes);
     const fromShares = sharesDb ?? 0;
-    const feesDb = Math.round(parseFloat(new Decimal(input.fees ?? 0).times(100).toPrecision(15)));
-    const taxesDb = Math.round(parseFloat(new Decimal(input.taxes ?? 0).times(100).toPrecision(15)));
+    const feesDb = Math.round(parseFloat(new Decimal(totalFees).times(100).toPrecision(15)));
+    const taxesDb = Math.round(parseFloat(new Decimal(totalTaxes).times(100).toPrecision(15)));
 
     sqlite
       .prepare(
@@ -365,10 +442,6 @@ export function createTransaction(
         nextOrder,
       );
 
-    const resolvedInput = resolved.effectiveAccountId !== input.accountId
-      ? { ...input, accountId: resolved.effectiveAccountId ?? undefined }
-      : input;
-
     // Dual-entry: create destination row for BUY/SELL (cash side) and transfer types (dest side)
     let destXactId: string | null = null;
     if (DUAL_ENTRY_TYPES.has(input.type)) {
@@ -387,9 +460,9 @@ export function createTransaction(
         : toDbType(input.type);
       // (GAP-02 extends this const for SECURITY_TRANSFER in this same block)
 
-      // BUY/SELL → dest is the referenceAccount (deposit); transfers → dest is crossAccountId
+      // BUY/SELL → crossAccountId overrides referenceAccount; transfers → dest is crossAccountId
       const destAccountId = BUY_SELL_TYPES.has(input.type)
-        ? acctRow?.referenceAccount ?? null
+        ? (input.crossAccountId ?? acctRow?.referenceAccount ?? null)
         : (input.crossAccountId ?? null);
 
       if (destAccountId) {
@@ -397,15 +470,16 @@ export function createTransaction(
         const destAccRow = sqlite
           .prepare('SELECT type FROM account WHERE uuid = ?')
           .get(destAccountId) as { type: string } | undefined;
+
         const destXmlid = ((sqlite.prepare('SELECT COALESCE(MAX(_xmlid), 0) + 1 AS n FROM xact').get() as { n: number }).n);
         const destOrder = ((sqlite.prepare('SELECT COALESCE(MAX(_order), 0) + 1 AS n FROM xact').get() as { n: number }).n);
 
         // Destination row values:
-        // BUY/SELL: shares=0, same amount (cash counter-entry)
+        // BUY/SELL: shares=0, same amount in deposit currency (cash counter-entry)
         // SECURITY_TRANSFER: positive shares (inbound), amount=0, same security
         // TRANSFER_BETWEEN_ACCOUNTS: shares=0, positive amount (inbound cash)
         const destShares = input.type === TransactionType.SECURITY_TRANSFER ? (sharesDb ?? 0) : 0;
-        const destAmount = computeNetAmountDb(input.type, input.amount, input.fees ?? 0, input.taxes ?? 0);
+        const destAmount = fromAmount; // Both rows in deposit currency
         // D4 fix: ppxml2db stores security UUID on the cash-side row for BUY/SELL
         const destSecurity = (BUY_SELL_TYPES.has(input.type) || input.type === TransactionType.SECURITY_TRANSFER)
           ? (input.securityId ?? null) : null;
@@ -433,6 +507,9 @@ export function createTransaction(
       }
     }
 
+    const resolvedInput = resolved.effectiveAccountId !== fxInput.accountId
+      ? { ...fxInput, accountId: resolved.effectiveAccountId ?? undefined }
+      : fxInput;
     insertTransactionDeps(sqlite, xactId, resolvedInput, currency, destXactId);
     return xactId;
   });
@@ -461,17 +538,63 @@ export function updateTransaction(
 
     const acctype = resolved.acctype ?? 'account';
 
+    // Resolve currency for BUY/SELL: use the cash (deposit) account's currency.
+    // Priority: explicit currencyCode > crossAccountId currency > referenceAccount currency > EUR
     let currency = input.currencyCode ?? resolved.currency ?? null;
+    if (!currency && BUY_SELL_TYPES.has(input.type)) {
+      const cashAccountId = input.crossAccountId ?? acctRow?.referenceAccount ?? null;
+      if (cashAccountId) {
+        const cashRow = sqlite.prepare('SELECT currency FROM account WHERE uuid = ?').get(cashAccountId) as { currency: string | null } | undefined;
+        currency = cashRow?.currency ?? null;
+      }
+    }
     if (!currency && acctRow?.referenceAccount) {
       const refRow = sqlite.prepare('SELECT currency FROM account WHERE uuid = ?').get(acctRow.referenceAccount) as { currency: string | null } | undefined;
       currency = refRow?.currency ?? null;
     }
     if (!currency) currency = 'EUR';
 
-    const fromAmountUpdate = computeNetAmountDb(input.type, input.amount, input.fees ?? 0, input.taxes ?? 0);
+    // For BUY/SELL: look up security currency for FX detection
+    let securityCurrency: string | null = null;
+    if (BUY_SELL_TYPES.has(input.type) && input.securityId) {
+      const secRow = sqlite.prepare('SELECT currency FROM security WHERE uuid = ?').get(input.securityId) as { currency: string | null } | undefined;
+      securityCurrency = secRow?.currency ?? null;
+    }
+    const isCrossCurrency = !!(securityCurrency && securityCurrency !== currency);
+
+    // Cross-currency BUY/SELL: resolve exchange rate and convert amounts
+    let fxInput = input;
+    let grossDeposit = input.amount;
+    if (isCrossCurrency && BUY_SELL_TYPES.has(input.type)) {
+      const exchangeRate = input.fxRate
+        ? new Decimal(input.fxRate)
+        : getRate(sqlite, currency, securityCurrency!, input.date);
+
+      if (exchangeRate && !exchangeRate.isZero()) {
+        grossDeposit = new Decimal(input.amount).div(exchangeRate).toNumber();
+        fxInput = {
+          ...input,
+          amount: grossDeposit,
+          fxRate: exchangeRate.toNumber(),
+          fxCurrencyCode: securityCurrency!,
+        };
+      }
+    }
+
+    // Compute amounts in deposit currency (after FX conversion)
+    const feesFxDeposit = isCrossCurrency && input.feesFx && fxInput.fxRate
+      ? new Decimal(input.feesFx).div(new Decimal(fxInput.fxRate)).toNumber()
+      : 0;
+    const taxesFxDeposit = isCrossCurrency && input.taxesFx && fxInput.fxRate
+      ? new Decimal(input.taxesFx).div(new Decimal(fxInput.fxRate)).toNumber()
+      : 0;
+    const totalFees = (input.fees ?? 0) + feesFxDeposit;
+    const totalTaxes = (input.taxes ?? 0) + taxesFxDeposit;
+
+    const fromAmountUpdate = computeNetAmountDb(input.type, grossDeposit, totalFees, totalTaxes);
     const fromSharesUpdate = sharesDb ?? 0;
-    const feesDbUpdate = Math.round(parseFloat(new Decimal(input.fees ?? 0).times(100).toPrecision(15)));
-    const taxesDbUpdate = Math.round(parseFloat(new Decimal(input.taxes ?? 0).times(100).toPrecision(15)));
+    const feesDbUpdate = Math.round(parseFloat(new Decimal(totalFees).times(100).toPrecision(15)));
+    const taxesDbUpdate = Math.round(parseFloat(new Decimal(totalTaxes).times(100).toPrecision(15)));
 
     sqlite
       .prepare(
@@ -494,10 +617,6 @@ export function updateTransaction(
       );
 
     deleteTransactionDeps(sqlite, id);
-    const resolvedInput = resolved.effectiveAccountId !== input.accountId
-      ? { ...input, accountId: resolved.effectiveAccountId ?? undefined }
-      : input;
-
     // Dual-entry: create destination row for BUY/SELL (cash side) and transfer types (dest side)
     let destXactId: string | null = null;
     if (DUAL_ENTRY_TYPES.has(input.type)) {
@@ -509,9 +628,9 @@ export function updateTransaction(
         ? 'TRANSFER_IN'
         : toDbType(input.type);
 
-      // BUY/SELL → dest is the referenceAccount (deposit); transfers → dest is crossAccountId
+      // BUY/SELL → crossAccountId overrides referenceAccount; transfers → dest is crossAccountId
       const destAccountId = BUY_SELL_TYPES.has(input.type)
-        ? acctRow?.referenceAccount ?? null
+        ? (input.crossAccountId ?? acctRow?.referenceAccount ?? null)
         : (input.crossAccountId ?? null);
 
       if (DUAL_ENTRY_TYPES.has(input.type) && !BUY_SELL_TYPES.has(input.type) && !destAccountId) {
@@ -525,15 +644,16 @@ export function updateTransaction(
         const destAccRow = sqlite
           .prepare('SELECT type FROM account WHERE uuid = ?')
           .get(destAccountId) as { type: string } | undefined;
+
         const destXmlid = ((sqlite.prepare('SELECT COALESCE(MAX(_xmlid), 0) + 1 AS n FROM xact').get() as { n: number }).n);
         const destOrder = ((sqlite.prepare('SELECT COALESCE(MAX(_order), 0) + 1 AS n FROM xact').get() as { n: number }).n);
 
         // Destination row values:
-        // BUY/SELL: shares=0, same amount (cash counter-entry)
+        // BUY/SELL: shares=0, same amount in deposit currency (cash counter-entry)
         // SECURITY_TRANSFER: positive shares (inbound), amount=0, same security
         // TRANSFER_BETWEEN_ACCOUNTS: shares=0, positive amount (inbound cash)
         const destShares = input.type === TransactionType.SECURITY_TRANSFER ? (sharesDb ?? 0) : 0;
-        const destAmount = computeNetAmountDb(input.type, input.amount, input.fees ?? 0, input.taxes ?? 0);
+        const destAmount = fromAmountUpdate; // Both rows in deposit currency
         // D4 fix: ppxml2db stores security UUID on the cash-side row for BUY/SELL
         const destSecurity = (BUY_SELL_TYPES.has(input.type) || input.type === TransactionType.SECURITY_TRANSFER)
           ? (input.securityId ?? null) : null;
@@ -561,6 +681,9 @@ export function updateTransaction(
       }
     }
 
+    const resolvedInput = resolved.effectiveAccountId !== fxInput.accountId
+      ? { ...fxInput, accountId: resolved.effectiveAccountId ?? undefined }
+      : fxInput;
     insertTransactionDeps(sqlite, id, resolvedInput, currency, destXactId);
     return id;
   });

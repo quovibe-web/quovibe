@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,11 +26,13 @@ import {
 } from '@/components/ui/select';
 import { useAccounts } from '@/api/use-accounts';
 import { useSecurities } from '@/api/use-securities';
-import { useUpdateTransaction } from '@/api/use-transactions';
+import { useUpdateTransaction, useTransactionDetail } from '@/api/use-transactions';
+import { useFxRate } from '@/api/use-fx';
 import type { TransactionListItem } from '@/api/types';
 import { getDateLocale } from '@/lib/formatters';
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
 import { UnsavedChangesAlert } from '@/components/shared/UnsavedChangesAlert';
+import { computeFxAmounts, extractFxFromUnits } from '@/lib/fx-utils';
 
 interface Props {
   open: boolean;
@@ -43,8 +45,10 @@ export function EditBuyDialog({ open, onOpenChange, transaction }: Props) {
   const { data: accounts = [] } = useAccounts();
   const { data: securities = [] } = useSecurities();
   const updateMutation = useUpdateTransaction();
+  const { data: txDetail } = useTransactionDetail(open ? transaction?.uuid ?? null : null);
 
   const portfolioAccounts = accounts.filter((a) => a.type === 'portfolio');
+  const depositAccounts = accounts.filter((a) => a.type === 'account');
 
   const [securityId, setSecurityId] = useState('');
   const [accountId, setAccountId] = useState('');
@@ -56,6 +60,10 @@ export function EditBuyDialog({ open, onOpenChange, transaction }: Props) {
   const [fees, setFees] = useState('');
   const [taxes, setTaxes] = useState('');
   const [note, setNote] = useState('');
+  const [crossAccountId, setCrossAccountId] = useState('');
+  const [fxRate, setFxRate] = useState('');
+  const [feesFx, setFeesFx] = useState('');
+  const [taxesFx, setTaxesFx] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,25 +98,80 @@ export function EditBuyDialog({ open, onOpenChange, transaction }: Props) {
 
     setFees(feeVal ? String(feeVal) : '0');
     setTaxes(taxVal ? String(taxVal) : '0');
+
     setIsDirty(false);
     setError(null);
   }, [transaction]);
+
+  // Derive crossAccountId from transaction or portfolio's referenceAccount
+  useEffect(() => {
+    if (!transaction) return;
+    const txCrossAccount = transaction.crossAccountId;
+    if (txCrossAccount) {
+      setCrossAccountId(txCrossAccount);
+    } else {
+      const portfolio = accounts.find((a) => a.id === (transaction.account ?? ''));
+      setCrossAccountId(portfolio?.referenceAccountId ?? '');
+    }
+  }, [transaction, accounts]);
+
+  // Restore FX data from transaction detail units
+  useEffect(() => {
+    if (!txDetail) return;
+    const fx = extractFxFromUnits(txDetail.units);
+    setFxRate(fx.fxRate);
+    setFeesFx(fx.feesFx);
+    setTaxesFx(fx.taxesFx);
+  }, [txDetail]);
 
   function markDirty<T>(setter: React.Dispatch<React.SetStateAction<T>>) {
     return (value: T) => { setter(value); setIsDirty(true); };
   }
 
   const selectedAccount = portfolioAccounts.find((a) => a.id === accountId);
-  const cashAccount = accounts.find((a) => a.id === selectedAccount?.referenceAccountId);
+  const cashAccount = accounts.find((a) => a.id === crossAccountId) ??
+    accounts.find((a) => a.id === selectedAccount?.referenceAccountId);
 
   const sharesNum = parseFloat(shares) || 0;
   const priceNum = parseFloat(price) || 0;
   const feesNum = parseFloat(fees) || 0;
   const taxesNum = parseFloat(taxes) || 0;
-  const subTotal = useMemo(() => sharesNum * priceNum, [sharesNum, priceNum]);
-  const debitNote = useMemo(() => subTotal + feesNum + taxesNum, [subTotal, feesNum, taxesNum]);
+  const subTotal = sharesNum * priceNum;
 
   const currency = cashAccount?.currency ?? transaction?.currencyCode ?? 'EUR';
+
+  // FX detection
+  const selectedSecurity = securities.find(s => s.id === securityId);
+  const securityCurrency = selectedSecurity?.currency ?? null;
+  const isCrossCurrency = !!(securityCurrency && cashAccount?.currency && securityCurrency !== cashAccount.currency);
+
+  const fxDateStr = date ? format(date, 'yyyy-MM-dd') : null;
+  const { data: fxData } = useFxRate(
+    isCrossCurrency ? cashAccount?.currency ?? null : null,
+    isCrossCurrency ? securityCurrency : null,
+    fxDateStr,
+  );
+
+  // Auto-fill fxRate from API; intentionally omits fxRate from deps to avoid overwriting user edits
+  useEffect(() => {
+    if (isCrossCurrency && fxData?.rate && !fxRate) {
+      setFxRate(fxData.rate);
+      setIsDirty(true);
+    }
+  }, [fxData?.rate, isCrossCurrency]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // FX computed values
+  const fxRateNum = parseFloat(fxRate) || 0;
+  const feesFxNumVal = parseFloat(feesFx) || 0;
+  const taxesFxNumVal = parseFloat(taxesFx) || 0;
+  const fx = computeFxAmounts({
+    isCrossCurrency, fxRate: fxRateNum, grossSecurity: subTotal,
+    feesFx: feesFxNumVal, taxesFx: taxesFxNumVal,
+    feesDeposit: feesNum, taxesDeposit: taxesNum,
+  });
+  const debitNote = isCrossCurrency
+    ? fx.grossDeposit + fx.totalFees + fx.totalTaxes
+    : subTotal + feesNum + taxesNum;
 
   function handleSave() {
     if (!transaction) return;
@@ -131,6 +194,14 @@ export function EditBuyDialog({ open, onOpenChange, transaction }: Props) {
           fees: feesNum > 0 ? feesNum : undefined,
           taxes: taxesNum > 0 ? taxesNum : undefined,
           note: note || undefined,
+          ...(crossAccountId ? { crossAccountId } : {}),
+          ...(isCrossCurrency && fxRateNum > 0 ? {
+            fxRate: fxRateNum,
+            fxCurrencyCode: securityCurrency,
+            currencyCode: cashAccount?.currency,
+          } : {}),
+          ...(feesFxNumVal > 0 ? { feesFx: feesFxNumVal } : {}),
+          ...(taxesFxNumVal > 0 ? { taxesFx: taxesFxNumVal } : {}),
         },
       },
       {
@@ -195,11 +266,23 @@ export function EditBuyDialog({ open, onOpenChange, transaction }: Props) {
                     ))}
                   </SelectContent>
                 </Select>
-                {cashAccount && (
-                  <p className="text-xs text-muted-foreground">
-                    {t('form.cashAccountLinked')} {cashAccount.name} ({cashAccount.currency})
-                  </p>
-                )}
+              </div>
+
+              {/* Cash Account (deposit) */}
+              <div className="space-y-1">
+                <Label>{t('form.cashAccount')}</Label>
+                <Select value={crossAccountId} onValueChange={markDirty(setCrossAccountId)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('form.selectCashAccount')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {depositAccounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name} ({a.currency})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Date */}
@@ -261,43 +344,107 @@ export function EditBuyDialog({ open, onOpenChange, transaction }: Props) {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t('form.grossValue')}</span>
                 <span className="font-medium">
-                  {subTotal.toFixed(2)} {currency}
+                  {subTotal.toFixed(2)} {isCrossCurrency ? securityCurrency : currency}
                 </span>
               </div>
 
-              {/* Fees */}
-              <div className="space-y-1">
-                <Label>{t('form.fees')}</Label>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    type="number"
-                    step="any"
-                    min="0"
-                    value={fees}
-                    onChange={(e) => { setFees(e.target.value); setIsDirty(true); }}
-                    placeholder="0.00"
-                    className="flex-1"
-                  />
-                  <span className="text-sm text-muted-foreground w-10">{currency}</span>
-                </div>
-              </div>
+              {/* FX Section — cross-currency only */}
+              {isCrossCurrency && (
+                <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {t('form.grossInSecurityCcy', { ccy: securityCurrency })}
+                    </span>
+                    <span className="font-medium">{subTotal.toFixed(2)} {securityCurrency}</span>
+                  </div>
 
-              {/* Taxes */}
-              <div className="space-y-1">
-                <Label>{t('form.taxes')}</Label>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    type="number"
-                    step="any"
-                    min="0"
-                    value={taxes}
-                    onChange={(e) => { setTaxes(e.target.value); setIsDirty(true); }}
-                    placeholder="0.00"
-                    className="flex-1"
-                  />
-                  <span className="text-sm text-muted-foreground w-10">{currency}</span>
+                  <div className="space-y-1">
+                    <Label>{t('form.exchangeRate')} ({cashAccount?.currency}/{securityCurrency})</Label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={fxRate}
+                      onChange={(e) => { setFxRate(e.target.value); setIsDirty(true); }}
+                      placeholder={t('form.fxRatePlaceholder')}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {t('form.convertedGross', { ccy: cashAccount?.currency })}
+                    </span>
+                    <span className="font-medium">{fx.grossDeposit.toFixed(2)} {cashAccount?.currency}</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label>{t('form.feesInCcy', { ccy: securityCurrency })}</Label>
+                      <Input type="number" step="any" value={feesFx}
+                        onChange={(e) => { setFeesFx(e.target.value); setIsDirty(true); }}
+                        placeholder="0.00" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>{t('form.feesInCcy', { ccy: cashAccount?.currency })}</Label>
+                      <Input type="number" step="any" value={fees}
+                        onChange={(e) => { setFees(e.target.value); setIsDirty(true); }}
+                        placeholder="0.00" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label>{t('form.taxesInCcy', { ccy: securityCurrency })}</Label>
+                      <Input type="number" step="any" value={taxesFx}
+                        onChange={(e) => { setTaxesFx(e.target.value); setIsDirty(true); }}
+                        placeholder="0.00" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>{t('form.taxesInCcy', { ccy: cashAccount?.currency })}</Label>
+                      <Input type="number" step="any" value={taxes}
+                        onChange={(e) => { setTaxes(e.target.value); setIsDirty(true); }}
+                        placeholder="0.00" />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {!isCrossCurrency && (
+                <>
+                  {/* Fees */}
+                  <div className="space-y-1">
+                    <Label>{t('form.fees')}</Label>
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={fees}
+                        onChange={(e) => { setFees(e.target.value); setIsDirty(true); }}
+                        placeholder="0.00"
+                        className="flex-1"
+                      />
+                      <span className="text-sm text-muted-foreground w-10">{currency}</span>
+                    </div>
+                  </div>
+
+                  {/* Taxes */}
+                  <div className="space-y-1">
+                    <Label>{t('form.taxes')}</Label>
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={taxes}
+                        onChange={(e) => { setTaxes(e.target.value); setIsDirty(true); }}
+                        placeholder="0.00"
+                        className="flex-1"
+                      />
+                      <span className="text-sm text-muted-foreground w-10">{currency}</span>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Debit Note (read-only) */}
               <div className="flex items-center justify-between text-sm border-t pt-2">
