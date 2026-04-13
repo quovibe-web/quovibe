@@ -1,7 +1,5 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { apiFetch } from './fetch';
-import { securitiesKeys } from './use-securities';
-import { accountsKeys } from './use-accounts';
 import type { TransactionDetail } from './types';
 
 export const transactionKeys = {
@@ -53,10 +51,11 @@ export function useTransactions(
 }
 
 function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: transactionKeys.all });
-  qc.invalidateQueries({ queryKey: securitiesKeys.all });
-  qc.invalidateQueries({ queryKey: accountsKeys.all });
+  qc.invalidateQueries({ queryKey: ['transactions'] });
+  qc.invalidateQueries({ queryKey: ['securities'] });
+  qc.invalidateQueries({ queryKey: ['accounts'] });
   qc.invalidateQueries({ queryKey: ['performance'] });
+  qc.invalidateQueries({ queryKey: ['reports'] });
 }
 
 export function useCreateTransaction() {
