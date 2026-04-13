@@ -70,7 +70,7 @@ export function AccountDetailTabs({ accountId, depositAccountId, isPortfolio }: 
             return (
               <CurrencyDisplay
                 value={displayValue}
-                currency={row.original.currencyCode ?? 'EUR'}
+                currency={row.original.currencyCode}
                 colorize={sign !== 0}
               />
             );
@@ -78,7 +78,7 @@ export function AccountDetailTabs({ accountId, depositAccountId, isPortfolio }: 
           return (
             <CurrencyDisplay
               value={absValue}
-              currency={row.original.currencyCode ?? 'EUR'}
+              currency={row.original.currencyCode}
               colorize={sign !== 0}
               colorSign={sign !== 0 ? sign : undefined}
             />

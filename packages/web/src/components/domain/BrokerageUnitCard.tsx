@@ -36,6 +36,7 @@ import { Label } from '@/components/ui/label';
 import { resizeToPng } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
 import { formatPercentage, formatCurrency } from '@/lib/formatters';
+import { useBaseCurrency } from '@/hooks/use-base-currency';
 import { usePrivacy } from '@/context/privacy-context';
 
 interface BrokerageUnitCardProps {
@@ -49,6 +50,7 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: Brokerag
   const { t } = useTranslation('accounts');
   const { t: tCommon } = useTranslation('common');
   const { isPrivate } = usePrivacy();
+  const baseCurrency = useBaseCurrency();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [renameOpen, setRenameOpen] = useState(false);
 
@@ -244,7 +246,7 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: Brokerag
                 {formatPercentage(perfPct)}
               </p>
               <p className={cn('text-[10px] tabular-nums opacity-70', isPositive ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
-                {formatCurrency(absPerf)}
+                {formatCurrency(absPerf, baseCurrency)}
               </p>
             </div>
           );

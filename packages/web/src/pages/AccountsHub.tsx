@@ -23,6 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { usePrivacy } from '@/context/privacy-context';
 import { formatPercentage, formatCurrency } from '@/lib/formatters';
+import { useBaseCurrency } from '@/hooks/use-base-currency';
 
 export default function AccountsHub() {
   const { t } = useTranslation('accounts');
@@ -34,6 +35,7 @@ export default function AccountsHub() {
   const [viewMode, setViewMode] = useState<'cards' | 'summary'>('cards');
   const navigate = useNavigate();
   const { isPrivate } = usePrivacy();
+  const baseCurrency = useBaseCurrency();
   const { periodStart, periodEnd } = useReportingPeriod();
 
   // 2. Fetch accounts
@@ -218,7 +220,7 @@ export default function AccountsHub() {
                               <div className={cn('text-[10px] tabular-nums', isPositive ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
                                 {perfPct !== null ? formatPercentage(perfPct) : '—'}
                                 {absPerf !== null && (
-                                  <span className="ml-1 opacity-70">{formatCurrency(absPerf)}</span>
+                                  <span className="ml-1 opacity-70">{formatCurrency(absPerf, baseCurrency)}</span>
                                 )}
                               </div>
                             )}

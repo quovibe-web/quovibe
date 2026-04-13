@@ -321,7 +321,7 @@ export default function Payments() {
                           <td className="px-4 py-2 text-right">
                             <CurrencyDisplay
                               value={parseFloat(amountMode === 'gross' ? payment.grossAmount : payment.netAmount)}
-                              currency={payment.currencyCode ?? 'EUR'}
+                              currency={payment.currencyCode}
                             />
                           </td>
                         </tr>

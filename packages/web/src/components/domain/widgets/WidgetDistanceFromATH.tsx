@@ -5,11 +5,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTranslation } from 'react-i18next';
 import { formatPercentage, formatCurrency } from '@/lib/formatters';
+import { useBaseCurrency } from '@/hooks/use-base-currency';
 import { cn } from '@/lib/utils';
 
 export default function WidgetDistanceFromATH() {
   const { athValue, currentMV, isLoading, isError } = useAllTimeHigh();
   const { isPrivate } = usePrivacy();
+  const baseCurrency = useBaseCurrency();
   const { t } = useTranslation('dashboard');
 
   if (isLoading) {
@@ -53,8 +55,8 @@ export default function WidgetDistanceFromATH() {
         style={{ filter: privacyFilter }}
       >
         {t('widget.distanceFromAth.currentVsAth', {
-          current: formatCurrency(curr.toNumber()),
-          ath: formatCurrency(ath.toNumber()),
+          current: formatCurrency(curr.toNumber(), baseCurrency),
+          ath: formatCurrency(ath.toNumber(), baseCurrency),
         })}
       </span>
     </div>

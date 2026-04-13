@@ -203,7 +203,7 @@ function buildColumns(
           <div className="text-right">
             <CurrencyDisplay
               value={absValue}
-              currency={row.original.currencyCode ?? 'EUR'}
+              currency={row.original.currencyCode}
               colorize={sign !== 0}
               colorSign={sign !== 0 ? sign : undefined}
             />
