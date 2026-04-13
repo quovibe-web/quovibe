@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FadeIn } from '@/components/shared/FadeIn';
-import { CashBreakdown } from '@/components/shared/CashBreakdown';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Info } from 'lucide-react';
 import NumberFlow from '@number-flow/react';
 import i18n from '@/i18n';
 
@@ -104,22 +105,35 @@ export default function WidgetCashDrag() {
           {t('widget.cashDrag.cashRatio')}
         </div>
 
-        <div className="my-4">
+        <div className="my-[26px]">
           <DonutChart ratio={cashRatio} isPrivate={isPrivate} />
         </div>
 
         <div className="w-full flex flex-col gap-1.5">
-          <div>
-            <div className="flex justify-between text-xs">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ background: CASH_COLOR }} />
-                <span className="text-muted-foreground">{t('widget.cashDrag.cash')}</span>
-              </div>
-              <span className="text-foreground font-medium tabular-nums">
-                {isPrivate ? '••••' : formatCurrency(cashValue, baseCurrency)}
-              </span>
+          <div className="flex justify-between text-xs">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full" style={{ background: CASH_COLOR }} />
+              <span className="text-muted-foreground">{t('widget.cashDrag.cash')}</span>
+              {!isPrivate && data.totals.cashByCurrency.length > 1 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground/50 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <div className="flex flex-col gap-0.5">
+                      {data.totals.cashByCurrency.map((entry) => (
+                        <span key={entry.currency} className="tabular-nums">
+                          {formatCurrency(parseFloat(entry.value), entry.currency)}
+                        </span>
+                      ))}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
-            <CashBreakdown cashByCurrency={data.totals.cashByCurrency ?? []} className="mt-0.5 text-right" />
+            <span className="text-foreground font-medium tabular-nums">
+              {isPrivate ? '••••' : formatCurrency(cashValue, baseCurrency)}
+            </span>
           </div>
           <div className="flex justify-between text-xs">
             <div className="flex items-center gap-1.5">
