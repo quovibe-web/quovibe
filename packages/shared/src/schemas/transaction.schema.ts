@@ -28,6 +28,8 @@ export const createTransactionSchema = z.object({
   crossAccountId: z.string().uuid().optional(),
   fxRate: z.number().positive().optional(),
   fxCurrencyCode: z.string().length(3).optional(),
+  feesFx: z.number().min(0).optional(),
+  taxesFx: z.number().min(0).optional(),
 }).superRefine((data, ctx) => {
   if (SHARE_TYPES.has(data.type) && (data.shares == null || data.shares <= 0)) {
     ctx.addIssue({
