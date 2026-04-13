@@ -110,6 +110,36 @@ function saveRates(
   tx();
 }
 
+// ─── Public: check if FX fetch is needed ─────────────────────────────────────
+
+/**
+ * Returns true if the vf_exchange_rate table is empty AND the portfolio
+ * contains foreign currencies that need FX data.
+ */
+export function needsFxFetch(sqlite: BetterSqlite3.Database): boolean {
+  try {
+    const count = sqlite.prepare(
+      'SELECT COUNT(*) as cnt FROM vf_exchange_rate',
+    ).get() as { cnt: number };
+    if (count.cnt > 0) return false;
+
+    const baseProp = sqlite.prepare(
+      `SELECT value FROM property WHERE name = 'portfolio.currency'`,
+    ).get() as { value: string } | undefined;
+    const baseCurrency = baseProp?.value ?? 'EUR';
+
+    const rows = sqlite.prepare(`
+      SELECT DISTINCT currency FROM security WHERE currency IS NOT NULL
+      UNION
+      SELECT DISTINCT currency FROM account WHERE currency IS NOT NULL
+    `).all() as { currency: string }[];
+
+    return rows.some(r => r.currency !== baseCurrency);
+  } catch {
+    return false;
+  }
+}
+
 // ─── Public: fetch exchange rates ─────────────────────────────────────────────
 
 export async function fetchExchangeRates(
