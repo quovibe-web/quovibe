@@ -324,6 +324,27 @@ describe.skipIf(!hasSqliteBindings)('Multi-currency integration', () => {
       // ≈ 7315.39
       expect(totalMV).toBeGreaterThan(7000);
       expect(totalMV).toBeLessThan(8000);
+
+      // cashByCurrency should contain native balances grouped by currency
+      expect(body.totals.cashByCurrency).toBeDefined();
+      expect(Array.isArray(body.totals.cashByCurrency)).toBe(true);
+
+      // EUR cash: 5000 deposit - 1000 BUY = 4000 EUR native
+      const eurCash = body.totals.cashByCurrency.find(
+        (c: { currency: string }) => c.currency === 'EUR',
+      );
+      expect(eurCash).toBeDefined();
+      expect(new Decimal(eurCash.value).toNumber()).toBeCloseTo(4000, 0);
+
+      // USD cash: 2000 deposit - 1000 BUY = 1000 USD native
+      const usdCash = body.totals.cashByCurrency.find(
+        (c: { currency: string }) => c.currency === 'USD',
+      );
+      expect(usdCash).toBeDefined();
+      expect(new Decimal(usdCash.value).toNumber()).toBeCloseTo(1000, 0);
+
+      // Base currency (EUR) should come first
+      expect(body.totals.cashByCurrency[0].currency).toBe('EUR');
     });
   });
 

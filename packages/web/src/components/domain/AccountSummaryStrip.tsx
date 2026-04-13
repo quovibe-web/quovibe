@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { SummaryStrip } from '@/components/shared/SummaryStrip';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
+import { CashBreakdown } from '@/components/shared/CashBreakdown';
 import { MetricCardSkeleton } from '@/components/shared/MetricCardSkeleton';
 import { useAccounts } from '@/api/use-accounts';
 import { useStatementOfAssets } from '@/api/use-reports';
@@ -25,6 +26,7 @@ export function AccountSummaryStrip() {
 
   const totalAccounts = accounts.length; // native-ok
   const cashValue = parseFloat(statement?.totals.cashValue ?? '0');
+  const cashByCurrency = statement?.totals.cashByCurrency ?? [];
 
   return (
     <SummaryStrip
@@ -39,10 +41,13 @@ export function AccountSummaryStrip() {
         {
           label: t('summary.cash'),
           value: (
-            <CurrencyDisplay
-              value={cashValue}
-              className="text-2xl font-semibold tabular-nums"
-            />
+            <div>
+              <CurrencyDisplay
+                value={cashValue}
+                className="text-2xl font-semibold tabular-nums"
+              />
+              <CashBreakdown cashByCurrency={cashByCurrency} className="mt-1" />
+            </div>
           ),
         },
       ]}

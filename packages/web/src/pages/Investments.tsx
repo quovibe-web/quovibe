@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { DataTable } from '@/components/shared/DataTable';
 import { TableToolbar } from '@/components/shared/TableToolbar';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
+import { CashBreakdown } from '@/components/shared/CashBreakdown';
 import { FadeIn } from '@/components/shared/FadeIn';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SummaryStrip } from '@/components/shared/SummaryStrip';
@@ -436,7 +437,10 @@ export default function Investments() {
                   <span className="text-2xl font-semibold text-muted-foreground">—</span>
                 )
               ) : statement ? (
-                <CurrencyDisplay value={parseFloat(statement.totals.cashValue)} colorize className="text-2xl font-semibold tabular-nums" />
+                <div>
+                  <CurrencyDisplay value={parseFloat(statement.totals.cashValue)} colorize className="text-2xl font-semibold tabular-nums" />
+                  <CashBreakdown cashByCurrency={statement.totals.cashByCurrency ?? []} className="mt-1" />
+                </div>
               ) : (
                 <span className="text-2xl font-semibold text-muted-foreground">—</span>
               ),

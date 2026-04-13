@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FadeIn } from '@/components/shared/FadeIn';
+import { CashBreakdown } from '@/components/shared/CashBreakdown';
 import NumberFlow from '@number-flow/react';
 import i18n from '@/i18n';
 
@@ -108,14 +109,17 @@ export default function WidgetCashDrag() {
         </div>
 
         <div className="w-full flex flex-col gap-1.5">
-          <div className="flex justify-between text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ background: CASH_COLOR }} />
-              <span className="text-muted-foreground">{t('widget.cashDrag.cash')}</span>
+          <div>
+            <div className="flex justify-between text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full" style={{ background: CASH_COLOR }} />
+                <span className="text-muted-foreground">{t('widget.cashDrag.cash')}</span>
+              </div>
+              <span className="text-foreground font-medium tabular-nums">
+                {isPrivate ? '••••' : formatCurrency(cashValue, baseCurrency)}
+              </span>
             </div>
-            <span className="text-foreground font-medium tabular-nums">
-              {isPrivate ? '••••' : formatCurrency(cashValue, baseCurrency)}
-            </span>
+            <CashBreakdown cashByCurrency={data.totals.cashByCurrency ?? []} className="mt-0.5 text-right" />
           </div>
           <div className="flex justify-between text-xs">
             <div className="flex items-center gap-1.5">

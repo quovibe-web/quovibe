@@ -59,7 +59,12 @@ export interface StatementOfAssetsResponse {
   date: string;
   securities: StatementSecurityEntry[];
   depositAccounts: StatementAccountEntry[];
-  totals: { marketValue: string; securityValue: string; cashValue: string };
+  totals: {
+    marketValue: string;
+    securityValue: string;
+    cashValue: string;
+    cashByCurrency: Array<{ currency: string; value: string }>;
+  };
 }
 
 export interface HoldingsItem {
