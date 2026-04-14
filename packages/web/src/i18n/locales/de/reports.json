@@ -109,6 +109,7 @@
   },
   "assetAllocation": {
     "title": "Klassifizierungen",
+    "subtitle": "Allocation and rebalancing by taxonomy",
     "noTaxonomies": "Keine Taxonomien definiert. Importieren Sie ein Portfolio mit Taxonomiedaten, um diese Ansicht zu verwenden.",
     "date": "Datum",
     "columns": {
@@ -127,7 +128,7 @@
     },
     "expandAll": "Alle ausklappen",
     "collapseAll": "Alle einklappen",
-    "subtitle": "Allocation and rebalancing by taxonomy"
+    "withoutClassification": "Ohne Klassifizierung"
   },
   "taxonomySeries": {
     "title": "Datenreihen",
@@ -220,5 +221,27 @@
     "assignCategoryDescription": "Wählen Sie eine Kategorie zum Zuweisen",
     "deleteError": "Fehler beim Löschen der Klassifizierung",
     "renameDescription": "Geben Sie einen neuen Namen für diese Klassifizierung ein"
+  },
+  "taxonomyUi": {
+    "chartMode": {
+      "donut": "Donut",
+      "treemap": "Treemap",
+      "off": "Keine"
+    },
+    "columns": {
+      "target": "Ziel %",
+      "actual": "Ist %",
+      "delta": "Δ",
+      "split": "Aufteilung"
+    },
+    "withoutClassification": {
+      "empty": "Alles klassifiziert ✓"
+    },
+    "allocationSumWarning": "Unterelemente summieren zu {{sum}}%. Sollten 100% ergeben.",
+    "picker": {
+      "searchPlaceholder": "Kategorien suchen...",
+      "noMatches": "Keine Kategorie entspricht \"{{query}}\"",
+      "breadcrumbSeparator": " › "
+    }
   }
 }

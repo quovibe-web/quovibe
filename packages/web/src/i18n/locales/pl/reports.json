@@ -111,6 +111,7 @@
   },
   "assetAllocation": {
     "title": "Taksonomie",
+    "subtitle": "Allocation and rebalancing by taxonomy",
     "noTaxonomies": "Brak zdefiniowanych taksonomii. Zaimportuj portfel z danymi taksonomii, aby użyć tego widoku.",
     "date": "Data",
     "columns": {
@@ -129,7 +130,7 @@
     },
     "expandAll": "Rozwiń wszystko",
     "collapseAll": "Zwiń wszystko",
-    "subtitle": "Allocation and rebalancing by taxonomy"
+    "withoutClassification": "Bez Klasyfikacji"
   },
   "taxonomySeries": {
     "title": "Serie danych",
@@ -222,5 +223,27 @@
     "assignCategoryDescription": "Wybierz kategorię do przypisania",
     "deleteError": "Błąd podczas usuwania klasyfikacji",
     "renameDescription": "Wprowadź nową nazwę dla tej klasyfikacji"
+  },
+  "taxonomyUi": {
+    "chartMode": {
+      "donut": "Donut",
+      "treemap": "Mapa drzewa",
+      "off": "Brak"
+    },
+    "columns": {
+      "target": "Cel %",
+      "actual": "Rzeczywisty %",
+      "delta": "Δ",
+      "split": "Podział"
+    },
+    "withoutClassification": {
+      "empty": "Wszystko sklasyfikowane ✓"
+    },
+    "allocationSumWarning": "Elementy podrzędne sumują się do {{sum}}%. Powinny sumować się do 100%.",
+    "picker": {
+      "searchPlaceholder": "Szukaj kategorii...",
+      "noMatches": "Żadna kategoria nie pasuje do \"{{query}}\"",
+      "breadcrumbSeparator": " › "
+    }
   }
 }

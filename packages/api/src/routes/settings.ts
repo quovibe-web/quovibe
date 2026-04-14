@@ -1,5 +1,5 @@
 import { Router, type RequestHandler, type Router as RouterType } from 'express';
-import { reportingPeriodDefSchema, resolveReportingPeriod, investmentsViewSchema, chartConfigV2Schema, tableIdSchema, tableLayoutEntrySchema } from '@quovibe/shared';
+import { reportingPeriodDefSchema, resolveReportingPeriod, investmentsViewSchema, allocationViewSchema, chartConfigV2Schema, tableIdSchema, tableLayoutEntrySchema } from '@quovibe/shared';
 import { getSettings, updateSettings } from '../services/settings.service';
 import { getSqlite } from '../helpers/request';
 
@@ -100,6 +100,23 @@ settingsRouter.put('/investments-view', (req, res) => {
   const body = investmentsViewSchema.removeDefault().partial().parse(req.body);
   const updated = updateSettings({ investmentsView: body });
   res.json(updated.investmentsView);
+});
+
+// GET /api/settings/allocation-view
+settingsRouter.get('/allocation-view', (_req, res) => {
+  const { allocationView } = getSettings();
+  res.json(allocationView ?? { chartMode: 'pie' });
+});
+
+// PUT /api/settings/allocation-view
+settingsRouter.put('/allocation-view', (req, res) => {
+  const parsed = allocationViewSchema.removeDefault().partial().safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'INVALID_ALLOCATION_VIEW', details: parsed.error.format() });
+    return;
+  }
+  const updated = updateSettings({ allocationView: parsed.data });
+  res.json(updated.allocationView);
 });
 
 // GET /api/settings/chart-config

@@ -109,6 +109,7 @@
   },
   "assetAllocation": {
     "title": "Taxonomias",
+    "subtitle": "Allocation and rebalancing by taxonomy",
     "noTaxonomies": "Sem taxonomias definidas. Importe uma carteira com dados de taxonomia para usar esta vista.",
     "date": "Data",
     "columns": {
@@ -127,7 +128,7 @@
     },
     "expandAll": "Expandir tudo",
     "collapseAll": "Recolher tudo",
-    "subtitle": "Allocation and rebalancing by taxonomy"
+    "withoutClassification": "Sem Classificação"
   },
   "taxonomySeries": {
     "title": "Séries de dados",
@@ -220,5 +221,27 @@
     "assignCategoryDescription": "Selecione uma categoria para atribuir",
     "deleteError": "Erro ao eliminar a taxonomia",
     "renameDescription": "Introduza um novo nome para esta taxonomia"
+  },
+  "taxonomyUi": {
+    "chartMode": {
+      "donut": "Donut",
+      "treemap": "Mapa de árvore",
+      "off": "Nenhum"
+    },
+    "columns": {
+      "target": "Meta %",
+      "actual": "Real %",
+      "delta": "Δ",
+      "split": "Divisão"
+    },
+    "withoutClassification": {
+      "empty": "Tudo classificado ✓"
+    },
+    "allocationSumWarning": "Os filhos somam {{sum}}%. Deveriam somar 100%.",
+    "picker": {
+      "searchPlaceholder": "Pesquisar categorias...",
+      "noMatches": "Nenhuma categoria corresponde a \"{{query}}\"",
+      "breadcrumbSeparator": " › "
+    }
   }
 }

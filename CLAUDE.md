@@ -1,3 +1,7 @@
+# Skill Model Overrides
+
+- When invoking the `simplify` skill, always pass `model: "opus"` to every Agent tool call spawned by that skill.
+
 # Language Convention
 
 - The user writes in English — always respond in English.
