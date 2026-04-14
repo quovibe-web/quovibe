@@ -58,3 +58,4 @@ Each file follows the naming convention `ADR-NNN-slug.md`:
 | 011 | [ADR-011-sqlite-wal-mode.md](./ADR-011-sqlite-wal-mode.md) | SQLite WAL mode | accepted | 2026-03-08 |
 | 012 | [ADR-012-sidecar-settings-file.md](./ADR-012-sidecar-settings-file.md) | Sidecar settings file for quovibe-only state | accepted | 2026-03-19 |
 | 013 | [ADR-013-auto-logo-resolution.md](./ADR-013-auto-logo-resolution.md) | Stateless logo resolver endpoint for automatic logo fetching | accepted | 2026-04-08 |
+| 014 | [ADR-014-multi-currency.md](./ADR-014-multi-currency.md) | Introduction of custom `vf_exchange_rate` table | accepted | 2026-04-13 |

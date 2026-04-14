@@ -223,6 +223,7 @@ const listTransactions: RequestHandler = (req, res) => {
       ...r,
       date: r.date,
       type: normalizedType,
+      currencyCode: r.currency as string,
       amount: converted.amount?.toNumber() ?? null,
       shares: converted.shares?.toNumber() ?? null,
       fees: convertAmountFromDb(r.fees as number | null).toNumber(),
@@ -283,6 +284,7 @@ const createTransaction: RequestHandler = (req, res) => {
   });
   res.status(201).json({
     ...row,
+    currencyCode: (row?.currency as string) ?? null,
     amount: created.amount?.toNumber() ?? null,
     shares: created.shares?.toNumber() ?? null,
     fees: convertAmountFromDb(row?.fees as number | null).toNumber(),
@@ -330,6 +332,7 @@ const updateTransaction: RequestHandler = (req, res) => {
   });
   res.json({
     ...row,
+    currencyCode: (row?.currency as string) ?? null,
     amount: updated.amount?.toNumber() ?? null,
     shares: updated.shares?.toNumber() ?? null,
     fees: convertAmountFromDb(row?.fees as number | null).toNumber(),
@@ -423,6 +426,7 @@ const getTransaction: RequestHandler = (req, res) => {
   res.json({
     ...row,
     type: normalizedType,
+    currencyCode: row.currency as string,
     amount: converted.amount?.toNumber() ?? null,
     shares: converted.shares?.toNumber() ?? null,
     fees: convertAmountFromDb(row.fees as number | null).toNumber(),

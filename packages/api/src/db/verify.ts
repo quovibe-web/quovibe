@@ -1,4 +1,5 @@
 import type BetterSqlite3 from 'better-sqlite3';
+import { VF_EXCHANGE_RATE_DDL } from './extensions';
 
 type Database = BetterSqlite3.Database;
 
@@ -77,15 +78,7 @@ export function verifyColumnTypes(db: Database): void {
 }
 
 export function applyExtensions(db: Database): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS vf_exchange_rate (
-      date TEXT NOT NULL,
-      from_currency TEXT NOT NULL,
-      to_currency TEXT NOT NULL,
-      rate TEXT NOT NULL,
-      PRIMARY KEY (date, from_currency, to_currency)
-    )
-  `);
+  db.exec(VF_EXCHANGE_RATE_DDL);
 
   // Ensure property table exists (OPTIONAL in ppxml2db but required by quovibe)
   // Schema matches ppxml2db's own definition exactly

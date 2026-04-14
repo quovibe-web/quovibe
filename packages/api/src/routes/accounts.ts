@@ -183,6 +183,7 @@ const getAccountTransactions: RequestHandler = (req, res) => {
     return {
       ...r,
       type: normalizedType,
+      currencyCode: r.currency as string,
       amount: converted.amount?.toNumber() ?? r.amount,
       shares: converted.shares?.toNumber() ?? r.shares,
       fees: convertAmountFromDb(r.fees as number | null).toNumber(),

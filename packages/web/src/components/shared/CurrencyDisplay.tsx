@@ -1,6 +1,7 @@
 import NumberFlow from '@number-flow/react';
 import { usePrivacy } from '@/context/privacy-context';
 import { useDisplayPreferences } from '@/hooks/use-display-preferences';
+import { useBaseCurrency } from '@/hooks/use-base-currency';
 import { cn } from '@/lib/utils';
 import i18n from '@/i18n';
 
@@ -19,7 +20,7 @@ interface CurrencyDisplayProps {
 
 export function CurrencyDisplay({
   value,
-  currency = 'EUR',
+  currency,
   colorize = false,
   colorSign,
   className,
@@ -28,6 +29,7 @@ export function CurrencyDisplay({
 }: CurrencyDisplayProps) {
   const { isPrivate } = usePrivacy();
   const { showCurrencyCode: showCurrencyCodePref } = useDisplayPreferences();
+  const baseCurrency = useBaseCurrency();
   const showCurrencyCode = showCurrencyCodeProp ?? showCurrencyCodePref;
 
   const colorClass =
@@ -43,7 +45,7 @@ export function CurrencyDisplay({
     return <span className={cn('tabular-nums', colorClass, className)}>••••••</span>;
   }
 
-  const currencyCode = currency || 'EUR';
+  const currencyCode = currency || baseCurrency;
 
   if (showCurrencyCode) {
     return (

@@ -59,7 +59,12 @@ export interface StatementOfAssetsResponse {
   date: string;
   securities: StatementSecurityEntry[];
   depositAccounts: StatementAccountEntry[];
-  totals: { marketValue: string; securityValue: string; cashValue: string };
+  totals: {
+    marketValue: string;
+    securityValue: string;
+    cashValue: string;
+    cashByCurrency: Array<{ currency: string; value: string }>;
+  };
 }
 
 export interface HoldingsItem {
@@ -204,6 +209,16 @@ export interface AccountListItem {
 export interface TransactionUnit {
   type: string;
   amount: string | null;
+  currency?: string | null;
+  forexAmount?: number | null;
+  forexCurrency?: string | null;
+  exchangeRate?: string | null;
+}
+
+export interface TransactionDetail extends TransactionListItem {
+  fees: number;
+  taxes: number;
+  source?: string | null;
 }
 
 export interface TransactionListItem {

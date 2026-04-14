@@ -179,7 +179,6 @@ quovibe/
 │       │   │   ├── use-investments-view.ts     # Column visibility sidecar
 │       │   │   ├── use-movers.ts               # Top/bottom performers query
 │       │   │   ├── use-performance.ts
-│       │   │   ├── use-periodic-returns.ts    # Periodic return bars (daily/weekly/monthly/quarterly/yearly)
 │       │   │   ├── use-portfolio.ts
 │       │   │   ├── use-rebalancing.ts
 │       │   │   ├── use-reporting-periods.ts
@@ -291,8 +290,6 @@ quovibe/
 │       │   │       ├── FadeIn.tsx                # Fade-in animation
 │       │   │       ├── LanguageSwitcher.tsx
 │       │   │       ├── ChartExportButton.tsx     # Export chart as PNG
-│       │   │       ├── ChartLegend.tsx           # Shared chart legend (dot/line/dashed indicators)
-│       │   │       ├── InteractiveChartLegend.tsx # Clickable legend with series toggle
 │       │   │       ├── ChartSkeleton.tsx
 │       │   │       ├── ChartTooltip.tsx          # Frosted glass tooltip + ChartTooltipRow
 │       │   │       ├── MetricCardSkeleton.tsx
@@ -341,10 +338,8 @@ quovibe/
 │       │   │   ├── use-theme.ts
 │       │   │   ├── use-chart-colors.ts         # Theme-aware chart palette (reads CSS vars at runtime)
 │       │   │   ├── use-chart-theme.ts          # Centralized chart grid/axis/cursor styling tokens
-│       │   │   ├── use-chart-ticks.ts
 │       │   │   ├── useColumnDnd.ts              # Column drag-and-drop reordering (@dnd-kit)
 │       │   │   ├── useColumnVisibility.ts
-│       │   │   ├── use-count-up.ts             # Animated count-up for KPI values
 │       │   │   ├── use-debounce.ts             # Generic debounce hook (used by search)
 │       │   │   ├── use-display-preferences.ts
 │       │   │   ├── useInvestmentsColumns.tsx   # Column definitions + performance columns

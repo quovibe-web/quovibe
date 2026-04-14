@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Eye, EyeOff, Trash2 } from 'lucide-react';
@@ -31,6 +31,25 @@ import { StockSplitDialog } from '@/components/domain/StockSplitDialog';
 import { CorporateEventDialog } from '@/components/domain/CorporateEventDialog';
 import { AccountDetailTabs } from '@/components/domain/AccountDetailTabs';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Label } from '@/components/ui/label';
+import { TransactionForm, type TransactionFormValues } from '@/components/domain/TransactionForm';
+import { useCreateTransaction } from '@/api/use-transactions';
+import { preparePayload } from '@/lib/transaction-payload';
 
 export default function AccountDetail() {
   const { id } = useParams<{ id: string }>();
@@ -41,6 +60,10 @@ export default function AccountDetail() {
   const [splitOpen, setSplitOpen] = useState(false);
   const [eventOpen, setEventOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [newSheetOpen, setNewSheetOpen] = useState(false);
+  const [newTxType, setNewTxType] = useState<TransactionType>(TransactionType.BUY);
+  const newTxFormRef = useRef<HTMLFormElement>(null);
+  const createMutation = useCreateTransaction();
 
   const { data: account, isLoading, isFetching } = useAccountDetail(id ?? '');
   const { data: allAccounts = [], isLoading: accountsLoading } = useAccounts(true);
@@ -77,10 +100,21 @@ export default function AccountDetail() {
     });
   }
 
-  function goToNewTransaction(type: TransactionType) {
-    navigate(
-      `/transactions/new?accountId=${id}&accountType=${account!.type}&type=${type}`,
-    );
+  function openNewTransaction(type: TransactionType) {
+    setNewTxType(type);
+    setNewSheetOpen(true);
+  }
+
+  function handleNewTxSubmit(values: TransactionFormValues) {
+    createMutation.mutate(preparePayload(values), {
+      onSuccess: () => {
+        toast.success(tCommon('toasts.transactionCreated'));
+        setNewSheetOpen(false);
+      },
+      onError: (err) => {
+        toast.error((err as Error).message ?? tCommon('toasts.errorDeleting'));
+      },
+    });
   }
 
   return (
@@ -157,7 +191,7 @@ export default function AccountDetail() {
             </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {availableTypes.map(tp => (
-              <DropdownMenuItem key={tp} onClick={() => goToNewTransaction(tp)}>
+              <DropdownMenuItem key={tp} onClick={() => openNewTransaction(tp)}>
                 {tTx('types.' + txTypeKey(tp))}
               </DropdownMenuItem>
             ))}
@@ -258,6 +292,49 @@ export default function AccountDetail() {
       </AlertDialog>
       <StockSplitDialog open={splitOpen} onOpenChange={setSplitOpen} />
       <CorporateEventDialog open={eventOpen} onOpenChange={setEventOpen} />
+      {/* New Transaction Sheet */}
+      <Sheet open={newSheetOpen} onOpenChange={setNewSheetOpen}>
+        <SheetContent side="right" className="sm:max-w-lg w-full flex flex-col">
+          <SheetHeader>
+            <SheetTitle>{tTx('newTransaction')}</SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-2">
+            <Label className="mb-1.5 block">{tTx('transactionType')}</Label>
+            <Select value={newTxType} onValueChange={(v) => setNewTxType(v as TransactionType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableTypes.map((tp) => (
+                  <SelectItem key={tp} value={tp}>{tTx('types.' + txTypeKey(tp))}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <ScrollArea className="flex-1 min-h-0 px-4">
+            <TransactionForm
+              key={newTxType}
+              type={newTxType}
+              onSubmit={handleNewTxSubmit}
+              isSubmitting={createMutation.isPending}
+              hideSubmitButton
+              formRef={newTxFormRef}
+              preselectedAccountId={id}
+            />
+          </ScrollArea>
+          <SheetFooter className="border-t px-4 py-3 flex-row justify-end gap-2">
+            <Button variant="outline" onClick={() => setNewSheetOpen(false)}>
+              {tCommon('cancel')}
+            </Button>
+            <Button
+              onClick={() => newTxFormRef.current?.requestSubmit()}
+              disabled={createMutation.isPending}
+            >
+              {createMutation.isPending ? tCommon('saving') : tCommon('save')}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
       </>
     )}
     </div>

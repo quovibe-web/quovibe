@@ -68,7 +68,7 @@ export function CashAccountView({ depositAccountId }: CashAccountViewProps) {
           return (
             <CurrencyDisplay
               value={displayValue}
-              currency={row.original.currencyCode ?? 'EUR'}
+              currency={row.original.currencyCode}
               colorize={sign !== 0}
             />
           );

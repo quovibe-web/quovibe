@@ -3,6 +3,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Treemap } from 'rech
 import { useTranslation } from 'react-i18next';
 import type { HoldingsItem } from '@/api/types';
 import { formatCurrency, formatPercentage } from '@/lib/formatters';
+import { useBaseCurrency } from '@/hooks/use-base-currency';
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { ChartTooltip } from '@/components/shared/ChartTooltip';
@@ -55,6 +56,7 @@ export function TaxonomyChart({
 }: TaxonomyChartProps) {
   const { t } = useTranslation('reports');
   const { isPrivate } = usePrivacy();
+  const baseCurrency = useBaseCurrency();
   const { palette } = useChartColors();
   const [localActiveIndex, setLocalActiveIndex] = useState<number | null>(null);
 
@@ -138,7 +140,7 @@ export function TaxonomyChart({
                       <ChartTooltip>
                         <div className="font-medium">{item.name}</div>
                         <div className="text-muted-foreground">
-                          {formatCurrency(item.value)}
+                          {formatCurrency(item.value, baseCurrency)}
                           {item.percentage != null && ` (${formatPercentage(item.percentage / 100)})`}
                         </div>
                       </ChartTooltip>
@@ -188,7 +190,7 @@ export function TaxonomyChart({
                         <ChartTooltip>
                           <div className="font-medium">{item.name}</div>
                           <div className="text-muted-foreground">
-                            {formatCurrency(item.value)}
+                            {formatCurrency(item.value, baseCurrency)}
                             {item.percentage != null && ` (${formatPercentage(item.percentage / 100)})`}
                           </div>
                         </ChartTooltip>
@@ -210,7 +212,7 @@ export function TaxonomyChart({
                       {activeItem.name}
                     </span>
                     <span className="text-sm font-semibold tabular-nums mt-0.5">
-                      {formatCurrency(activeItem.value)}
+                      {formatCurrency(activeItem.value, baseCurrency)}
                     </span>
                     <span className="text-[11px] tabular-nums text-muted-foreground">
                       {formatPercentage(activeItem.percentage / 100)}
@@ -222,7 +224,7 @@ export function TaxonomyChart({
                       {centerLabel ?? t('common:total')}
                     </span>
                     <span className="text-base font-semibold tabular-nums mt-0.5">
-                      {isPrivate ? '••••••' : formatCurrency(total)}
+                      {isPrivate ? '••••••' : formatCurrency(total, baseCurrency)}
                     </span>
                   </>
                 )}

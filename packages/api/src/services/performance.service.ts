@@ -773,6 +773,7 @@ export interface SecurityPerfResult {
 }
 
 export interface PortfolioCalcResult {
+  baseCurrency: string;
   initialValue: string;
   capitalGains: CapitalGainsBreakdown;
   realizedGains: RealizedGainsBreakdown;
@@ -1790,6 +1791,7 @@ export function getPortfolioCalc(
   const pntItems = includeItems ? fetchPntItems(sqlite, period, data.accountNameMap) : [];
 
   return {
+    baseCurrency,
     initialValue: displayMVB.toString(),
     capitalGains: {
       unrealized: totalUnrealized.toString(),
@@ -2193,7 +2195,12 @@ export interface StatementOfAssetsResult {
   date: string;
   securities: StatementSecurityEntry[];
   depositAccounts: StatementAccountEntry[];
-  totals: { marketValue: string; securityValue: string; cashValue: string };
+  totals: {
+    marketValue: string;
+    securityValue: string;
+    cashValue: string;
+    cashByCurrency: Array<{ currency: string; value: string }>;
+  };
 }
 
 export function getStatementOfAssets(
@@ -2294,12 +2301,17 @@ export function getStatementOfAssets(
 
   const acctEntries: StatementAccountEntry[] = [];
   let totalCashValue = new Decimal(0);
+  const nativeCashByCurrency = new Map<string, Decimal>();
 
   for (const acct of accounts) {
     const balance = allDepositBalances.get(acct.uuid) ?? new Decimal(0);
 
     if (balance.isZero()) continue;
     const acctCurrency = acct.currency ?? baseCurrency;
+    nativeCashByCurrency.set(
+      acctCurrency,
+      (nativeCashByCurrency.get(acctCurrency) ?? new Decimal(0)).plus(balance),
+    );
     let convertedBalance = balance;
     if (acctCurrency !== baseCurrency) {
       const rateMap = soaRateMaps.get(acctCurrency);
@@ -2316,6 +2328,17 @@ export function getStatementOfAssets(
   }
 
   const totalMV = totalSecValue.plus(totalCashValue);
+
+  const cashByCurrencyArr: Array<{ currency: string; value: string }> = [];
+  const sortedCurrencies = [...nativeCashByCurrency.keys()].sort((a, b) => {
+    if (a === baseCurrency) return -1;
+    if (b === baseCurrency) return 1;
+    return a.localeCompare(b);
+  });
+  for (const cur of sortedCurrencies) {
+    cashByCurrencyArr.push({ currency: cur, value: nativeCashByCurrency.get(cur)!.toString() });
+  }
+
   return {
     date,
     securities: secEntries,
@@ -2324,6 +2347,7 @@ export function getStatementOfAssets(
       marketValue: totalMV.toString(),
       securityValue: totalSecValue.toString(),
       cashValue: totalCashValue.toString(),
+      cashByCurrency: cashByCurrencyArr,
     },
   };
 }

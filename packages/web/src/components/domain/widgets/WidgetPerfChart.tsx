@@ -11,6 +11,7 @@ import { useChartColors } from '@/hooks/use-chart-colors';
 import { useLightweightChart } from '@/hooks/use-lightweight-chart';
 import { differenceInDays, parseISO } from 'date-fns';
 import { formatPercentage, formatCurrency, computeTtwrorPa } from '@/lib/formatters';
+import { useBaseCurrency } from '@/hooks/use-base-currency';
 import { cn } from '@/lib/utils';
 import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
 import { buildSeriesOptions } from '@/lib/chart-series-factory';
@@ -30,6 +31,7 @@ export default function WidgetPerfChart() {
   const { t } = useTranslation('performance');
   const { t: tDash } = useTranslation('dashboard');
   const { isPrivate } = usePrivacy();
+  const baseCurrency = useBaseCurrency();
   const { profit, loss } = useChartColors();
   const toolbarTarget = useWidgetToolbarPortal();
 
@@ -136,7 +138,7 @@ export default function WidgetPerfChart() {
           visible: true,
           formatValue: isPercentage
             ? (v: number) => formatPercentage(v)
-            : (v: number) => formatCurrency(v),
+            : (v: number) => formatCurrency(v, baseCurrency),
         },
       ]
     : [];

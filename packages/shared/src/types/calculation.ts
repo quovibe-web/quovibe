@@ -136,6 +136,7 @@ export interface OpenPositionPnLBreakdown {
 // category (realizedGains.total === capitalGains.realized by design).
 // The only frontend consumer (useCalculation / Calculation.tsx) is updated simultaneously.
 export interface CalculationBreakdownResponse {
+  baseCurrency: string;
   initialValue: string;
   capitalGains: CapitalGainsBreakdown;
   realizedGains: RealizedGainsBreakdown;

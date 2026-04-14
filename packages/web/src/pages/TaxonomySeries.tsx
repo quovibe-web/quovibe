@@ -18,6 +18,7 @@ import { useTaxonomies } from '@/api/use-taxonomies';
 import { useTaxonomySeries } from '@/api/use-taxonomy-series';
 import { usePortfolio, useUpdateSettings } from '@/api/use-portfolio';
 import { formatPercentage, formatCurrency } from '@/lib/formatters';
+import { useBaseCurrency } from '@/hooks/use-base-currency';
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { useLightweightChart } from '@/hooks/use-lightweight-chart';
@@ -63,6 +64,7 @@ export default function TaxonomySeries() {
   const { t: tNav } = useTranslation('navigation');
   const { data: taxonomies, isLoading: taxonomiesLoading } = useTaxonomies();
   const { isPrivate } = usePrivacy();
+  const baseCurrency = useBaseCurrency();
   const { profit, loss, palette } = useChartColors();
   const [selectedTaxonomyId, setSelectedTaxonomyId] = useState<string | undefined>(undefined);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -175,7 +177,7 @@ export default function TaxonomySeries() {
 
   // Format value for legend crosshair display
   const formatLegendValue = (v: number) =>
-    chartMode === 'mv' ? formatCurrency(v) : formatPercentage(v);
+    chartMode === 'mv' ? formatCurrency(v, baseCurrency) : formatPercentage(v);
 
   // Build legend items — depends on seriesVersion so it re-derives after every series rebuild
   const legendItems: LegendSeriesItem[] = seriesVersion > 0 && seriesRef.current && slice
@@ -196,7 +198,7 @@ export default function TaxonomySeries() {
   }
 
   return (
-    <div className="qv-page space-y-6">
+    <div className="qv-page qv-no-card-lift space-y-6">
       <PageHeader
         title={tNav('items.dataSeries')}
         subtitle={t('taxonomySeries.subtitle')}

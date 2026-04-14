@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { apiFetch } from './fetch';
-import { securitiesKeys } from './use-securities';
-import { accountsKeys } from './use-accounts';
+import type { TransactionDetail } from './types';
 
 export const transactionKeys = {
   all: ['transactions'] as const,
   firstDate: ['transactions', 'first-date'] as const,
+  detail: (id: string) => ['transactions', 'detail', id] as const,
   filtered: (filters: Record<string, unknown>, page: number, pageSize: number) =>
     ['transactions', filters, page, pageSize] as const,
 };
@@ -22,6 +22,14 @@ export function useFirstTransactionDate() {
     queryKey: transactionKeys.firstDate,
     queryFn: () => apiFetch<{ date: string | null }>('/api/transactions/first-date'),
     staleTime: Infinity,
+  });
+}
+
+export function useTransactionDetail(id: string | null) {
+  return useQuery({
+    queryKey: transactionKeys.detail(id ?? ''),
+    queryFn: () => apiFetch<TransactionDetail>(`/api/transactions/${id}`),
+    enabled: !!id,
   });
 }
 
@@ -43,10 +51,11 @@ export function useTransactions(
 }
 
 function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: transactionKeys.all });
-  qc.invalidateQueries({ queryKey: securitiesKeys.all });
-  qc.invalidateQueries({ queryKey: accountsKeys.all });
+  qc.invalidateQueries({ queryKey: ['transactions'] });
+  qc.invalidateQueries({ queryKey: ['securities'] });
+  qc.invalidateQueries({ queryKey: ['accounts'] });
   qc.invalidateQueries({ queryKey: ['performance'] });
+  qc.invalidateQueries({ queryKey: ['reports'] });
 }
 
 export function useCreateTransaction() {

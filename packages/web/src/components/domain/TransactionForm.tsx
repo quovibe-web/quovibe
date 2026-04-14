@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
 import { AccountAvatar } from '@/components/shared/AccountAvatar';
 import { format, parse, isValid } from 'date-fns';
@@ -21,6 +21,8 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { useAccounts } from '@/api/use-accounts';
 import { useSecurities } from '@/api/use-securities';
+import { useFxRate } from '@/api/use-fx';
+import { computeFxAmounts } from '@/lib/fx-utils';
 import { AddInstrumentDialog } from '@/components/domain/AddInstrumentDialog';
 import { SecurityEditor } from '@/components/domain/SecurityEditor';
 import { getDateLocale } from '@/lib/formatters';
@@ -46,6 +48,9 @@ const PORTFOLIO_ONLY_TYPES = new Set([
   TransactionType.SECURITY_TRANSFER,
 ]);
 
+// Transaction types that use a portfolio + deposit (cash) cross-account
+const BUY_SELL_TYPES = new Set([TransactionType.BUY, TransactionType.SELL]);
+
 // Transaction types that only apply to deposit (cash) accounts
 const CASH_ONLY_TYPES = new Set([
   TransactionType.DEPOSIT,
@@ -60,8 +65,8 @@ const CASH_ONLY_TYPES = new Set([
 ]);
 
 const FIELD_CONFIG: Record<TransactionType, FieldConfig> = {
-  [TransactionType.BUY]: { security: 'required', shares: true, amount: false, price: true, fees: true, taxes: true, accountId: true, crossAccountId: false, note: true },
-  [TransactionType.SELL]: { security: 'required', shares: true, amount: false, price: true, fees: true, taxes: true, accountId: true, crossAccountId: false, note: true },
+  [TransactionType.BUY]: { security: 'required', shares: true, amount: false, price: true, fees: true, taxes: true, accountId: true, crossAccountId: true, note: true },
+  [TransactionType.SELL]: { security: 'required', shares: true, amount: false, price: true, fees: true, taxes: true, accountId: true, crossAccountId: true, note: true },
   [TransactionType.DELIVERY_INBOUND]: { security: 'required', shares: true, amount: false, price: true, fees: true, taxes: false, accountId: true, crossAccountId: false, note: true },
   [TransactionType.DELIVERY_OUTBOUND]: { security: 'required', shares: true, amount: false, price: true, fees: false, taxes: false, accountId: true, crossAccountId: false, note: true },
   [TransactionType.DEPOSIT]: { security: false, shares: false, amount: true, price: false, fees: false, taxes: false, accountId: true, crossAccountId: false, note: true },
@@ -89,6 +94,11 @@ export interface TransactionFormValues {
   accountId?: string;
   crossAccountId?: string;
   note?: string;
+  fxRate?: string;
+  fxCurrencyCode?: string;
+  currencyCode?: string;
+  feesFx?: string;
+  taxesFx?: string;
 }
 
 interface TransactionFormProps {
@@ -115,10 +125,11 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
     return accounts;
   }, [accounts, type]);
 
-  // Cross-account dropdown: SECURITY_TRANSFER → portfolio, TRANSFER_BETWEEN_ACCOUNTS → deposit
+  // Cross-account dropdown: SECURITY_TRANSFER → portfolio, TRANSFER_BETWEEN_ACCOUNTS / BUY / SELL → deposit
   const filteredCrossAccounts = useMemo(() => {
     if (type === TransactionType.SECURITY_TRANSFER) return accounts.filter(a => a.type === 'portfolio');
     if (type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS) return accounts.filter(a => a.type === 'account');
+    if (BUY_SELL_TYPES.has(type)) return accounts.filter(a => a.type === 'account');
     return accounts;
   }, [accounts, type]);
 
@@ -151,6 +162,50 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
     setFields((prev) => ({ ...prev, [key]: value }));
   }
 
+  // Auto-populate crossAccountId from the portfolio's referenceAccount on BUY/SELL
+  useEffect(() => {
+    if (!BUY_SELL_TYPES.has(type)) return;
+    if (fields.crossAccountId) return; // already set
+    const portfolio = accounts.find(a => a.id === fields.accountId);
+    if (portfolio?.referenceAccountId) {
+      set('crossAccountId', portfolio.referenceAccountId);
+    }
+  }, [fields.accountId, fields.crossAccountId, accounts, type]);
+
+  // Detect cross-currency: compare security currency vs cash account currency
+  const selectedSecurity = securities.find(s => s.id === fields.securityId);
+  const selectedCashAccount = filteredCrossAccounts.find(a => a.id === fields.crossAccountId);
+  const securityCurrency = selectedSecurity?.currency ?? null;
+  const cashCurrency = selectedCashAccount?.currency ?? null;
+  const isCrossCurrency = !!(securityCurrency && cashCurrency && securityCurrency !== cashCurrency);
+
+  // Fetch exchange rate when cross-currency (deposit->security convention)
+  const fxDateStr = format(date, 'yyyy-MM-dd');
+  const { data: fxData } = useFxRate(
+    isCrossCurrency ? cashCurrency : null,
+    isCrossCurrency ? securityCurrency : null,
+    isCrossCurrency ? fxDateStr : null,
+  );
+
+  // Auto-fill fxRate from API; intentionally omits fields.fxRate from deps to avoid overwriting user edits
+  useEffect(() => {
+    if (isCrossCurrency && fxData?.rate && !fields.fxRate) {
+      set('fxRate', fxData.rate);
+    }
+  }, [fxData?.rate, isCrossCurrency]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Computed FX amounts
+  const fxRateVal = fields.fxRate ? parseFloat(fields.fxRate) : 0;
+  const grossSecurity = (parseFloat(fields.shares || '0') || 0) * (parseFloat(fields.price || '0') || 0);
+  const feesFxNum = parseFloat(fields.feesFx || '0') || 0;
+  const taxesFxNum = parseFloat(fields.taxesFx || '0') || 0;
+  const fx = computeFxAmounts({
+    isCrossCurrency, fxRate: fxRateVal, grossSecurity,
+    feesFx: feesFxNum, taxesFx: taxesFxNum,
+    feesDeposit: parseFloat(fields.fees || '0') || 0,
+    taxesDeposit: parseFloat(fields.taxes || '0') || 0,
+  });
+
   function handleInstrumentCreated(id: string) {
     setAddInstrumentOpen(false);
     setCreateEmptyOpen(false);
@@ -182,10 +237,18 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
       return;
     }
 
+    const fxFields: Partial<TransactionFormValues> = {};
+    if (isCrossCurrency && fields.fxRate) {
+      fxFields.fxRate = fields.fxRate;
+      fxFields.fxCurrencyCode = securityCurrency ?? undefined;
+      fxFields.currencyCode = cashCurrency ?? undefined;
+    }
+
     onSubmit({
       type,
       date: format(date, 'yyyy-MM-dd') + 'T' + time,
       ...fields,
+      ...fxFields,
     });
   }
 
@@ -291,6 +354,62 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
         </div>
       )}
 
+      {/* Account */}
+      {cfg.accountId && (
+        <div className="space-y-1">
+          <Label>
+            {BUY_SELL_TYPES.has(type)
+              ? t('form.securitiesAccount')
+              : cfg.crossAccountId
+                ? t('form.fromAccount')
+                : t('form.account')}
+          </Label>
+          <Select
+            value={fields.accountId}
+            onValueChange={(v) => set('accountId', v)}
+            disabled={!!preselectedAccountId}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={t('form.selectAccount')} />
+            </SelectTrigger>
+            <SelectContent>
+              {filteredAccounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  <div className="flex items-center gap-2">
+                    <AccountAvatar name={a.name} logoUrl={a.logoUrl} size="xs" />
+                    <span>{a.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* Cross Account */}
+      {cfg.crossAccountId && (
+        <div className="space-y-1">
+          <Label>
+            {BUY_SELL_TYPES.has(type) ? t('form.cashAccount') : t('form.toAccount')}
+          </Label>
+          <Select value={fields.crossAccountId} onValueChange={(v) => set('crossAccountId', v)}>
+            <SelectTrigger>
+              <SelectValue placeholder={t('form.selectAccount')} />
+            </SelectTrigger>
+            <SelectContent>
+              {filteredCrossAccounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  <div className="flex items-center gap-2">
+                    <AccountAvatar name={a.name} logoUrl={a.logoUrl} size="xs" />
+                    <span>{a.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Shares + Price side-by-side when both visible */}
       {showSharesAndPrice ? (
         <div className="grid grid-cols-2 gap-3">
@@ -358,104 +477,112 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
         </div>
       )}
 
-      {/* Fees + Taxes side-by-side when both visible */}
-      {showFeesAndTaxes ? (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label>{t('form.feesOptional')}</Label>
-            <Input
-              type="number"
-              step="any"
-              value={fields.fees}
-              onChange={(e) => set('fees', e.target.value)}
-              placeholder="0.00"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label>{t('form.taxesOptional')}</Label>
-            <Input
-              type="number"
-              step="any"
-              value={fields.taxes}
-              onChange={(e) => set('taxes', e.target.value)}
-              placeholder="0.00"
-            />
-          </div>
-        </div>
-      ) : (
+      {/* Fees + Taxes side-by-side when both visible (hidden when FX section is showing) */}
+      {!(BUY_SELL_TYPES.has(type) && isCrossCurrency) && (
         <>
-          {cfg.fees && (
-            <div className="space-y-1">
-              <Label>{t('form.feesOptional')}</Label>
-              <Input
-                type="number"
-                step="any"
-                value={fields.fees}
-                onChange={(e) => set('fees', e.target.value)}
-                placeholder="0.00"
-              />
+          {showFeesAndTaxes ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>{t('form.feesOptional')}</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={fields.fees}
+                  onChange={(e) => set('fees', e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>{t('form.taxesOptional')}</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={fields.taxes}
+                  onChange={(e) => set('taxes', e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
             </div>
-          )}
-          {cfg.taxes && (
-            <div className="space-y-1">
-              <Label>{t('form.taxesOptional')}</Label>
-              <Input
-                type="number"
-                step="any"
-                value={fields.taxes}
-                onChange={(e) => set('taxes', e.target.value)}
-                placeholder="0.00"
-              />
-            </div>
+          ) : (
+            <>
+              {cfg.fees && (
+                <div className="space-y-1">
+                  <Label>{t('form.feesOptional')}</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={fields.fees}
+                    onChange={(e) => set('fees', e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+              )}
+              {cfg.taxes && (
+                <div className="space-y-1">
+                  <Label>{t('form.taxesOptional')}</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={fields.taxes}
+                    onChange={(e) => set('taxes', e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+              )}
+            </>
           )}
         </>
       )}
 
-      {/* Account */}
-      {cfg.accountId && (
-        <div className="space-y-1">
-          <Label>{cfg.crossAccountId ? t('form.fromAccount') : t('form.account')}</Label>
-          <Select
-            value={fields.accountId}
-            onValueChange={(v) => set('accountId', v)}
-            disabled={!!preselectedAccountId}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={t('form.selectAccount')} />
-            </SelectTrigger>
-            <SelectContent>
-              {filteredAccounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  <div className="flex items-center gap-2">
-                    <AccountAvatar name={a.name} logoUrl={a.logoUrl} size="xs" />
-                    <span>{a.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      {/* FX Section — cross-currency BUY/SELL only */}
+      {BUY_SELL_TYPES.has(type) && isCrossCurrency && (
+        <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">
+              {t('form.grossInSecurityCcy', { ccy: securityCurrency })}
+            </span>
+            <span className="font-medium">{grossSecurity.toFixed(2)} {securityCurrency}</span>
+          </div>
 
-      {/* Cross Account */}
-      {cfg.crossAccountId && (
-        <div className="space-y-1">
-          <Label>{t('form.toAccount')}</Label>
-          <Select value={fields.crossAccountId} onValueChange={(v) => set('crossAccountId', v)}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('form.selectAccount')} />
-            </SelectTrigger>
-            <SelectContent>
-              {filteredCrossAccounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  <div className="flex items-center gap-2">
-                    <AccountAvatar name={a.name} logoUrl={a.logoUrl} size="xs" />
-                    <span>{a.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="space-y-1">
+            <Label>{t('form.exchangeRate')} ({cashCurrency}/{securityCurrency})</Label>
+            <Input
+              type="number"
+              step="any"
+              value={fields.fxRate ?? ''}
+              onChange={(e) => set('fxRate', e.target.value)}
+              placeholder={t('form.fxRatePlaceholder')}
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">
+              {t('form.convertedGross', { ccy: cashCurrency })}
+            </span>
+            <span className="font-medium">{fx.grossDeposit.toFixed(2)} {cashCurrency}</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>{t('form.feesInCcy', { ccy: securityCurrency })}</Label>
+              <Input type="number" step="any" value={fields.feesFx ?? ''} onChange={(e) => set('feesFx', e.target.value)} placeholder="0.00" />
+            </div>
+            <div className="space-y-1">
+              <Label>{t('form.feesInCcy', { ccy: cashCurrency })}</Label>
+              <Input type="number" step="any" value={fields.fees ?? ''} onChange={(e) => set('fees', e.target.value)} placeholder="0.00" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>{t('form.taxesInCcy', { ccy: securityCurrency })}</Label>
+              <Input type="number" step="any" value={fields.taxesFx ?? ''} onChange={(e) => set('taxesFx', e.target.value)} placeholder="0.00" />
+            </div>
+            <div className="space-y-1">
+              <Label>{t('form.taxesInCcy', { ccy: cashCurrency })}</Label>
+              <Input type="number" step="any" value={fields.taxes ?? ''} onChange={(e) => set('taxes', e.target.value)} placeholder="0.00" />
+            </div>
+          </div>
         </div>
       )}
 
