@@ -124,7 +124,7 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: Brokerag
   return (
     <div
       className={cn(
-        'max-w-[720px] bg-card border rounded-lg overflow-hidden cursor-pointer',
+        'max-w-[720px] bg-card border rounded-lg overflow-hidden cursor-pointer qv-card-interactive',
         isRetired && 'border-l-[3px] border-l-[var(--qv-warning)]',
       )}
       onClick={onExpand}

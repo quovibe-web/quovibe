@@ -198,6 +198,49 @@ html.dark {
     transform: translateY(-1px);
   }
 
+  /* Baseline border-color is set explicitly because Tailwind v4's `border` utility only
+     sets style+width, not color. On hover all 4 sides shift to --qv-border-strong via
+     the shorthand; for retired cards, Tailwind's longhand `border-l-[var(--qv-warning)]`
+     (in @layer utilities) overrides the shorthand for the left side specifically,
+     preserving the warning accent without any extra rule. */
+  html:not(.dark) .qv-card-interactive {
+    border-color: var(--qv-border);
+    box-shadow: 0 1px 3px rgba(16, 15, 15, 0.05), 0 4px 12px rgba(16, 15, 15, 0.03);
+    transition:
+      box-shadow 200ms ease-out,
+      transform 200ms ease-out,
+      border-color 200ms ease-out;
+  }
+
+  html:not(.dark) .qv-card-interactive:is(:hover, :focus-visible) {
+    box-shadow: 0 4px 12px rgba(16, 15, 15, 0.08), 0 12px 28px rgba(16, 15, 15, 0.06);
+    transform: translateY(-2px);
+    border-color: var(--qv-border-strong);
+  }
+
+  html.dark .qv-card-interactive {
+    border-color: var(--qv-border);
+    box-shadow: none;
+    transition:
+      transform 200ms ease-out,
+      border-color 200ms ease-out;
+  }
+
+  html.dark .qv-card-interactive:is(:hover, :focus-visible) {
+    transform: translateY(-2px);
+    border-color: var(--qv-border-strong);
+  }
+
+  .qv-card-interactive:active {
+    transform: translateY(0);
+    transition-duration: 80ms;
+  }
+
+  .qv-card-interactive:focus-visible {
+    outline: 2px solid var(--qv-border-strong);
+    outline-offset: 2px;
+  }
+
   /* Light mode table header distinction */
   html:not(.dark) [data-slot="table-header"] tr {
     background-color: var(--qv-surface-elevated);

@@ -100,7 +100,7 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
     <>
       <div
         className={cn(
-          'max-w-[720px] bg-card border rounded-lg overflow-hidden cursor-pointer',
+          'max-w-[720px] bg-card border rounded-lg overflow-hidden cursor-pointer qv-card-interactive',
           account.isRetired && 'border-l-[3px] border-l-[var(--qv-warning)]',
         )}
         onClick={() => {
