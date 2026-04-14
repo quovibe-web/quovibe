@@ -354,6 +354,62 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
         </div>
       )}
 
+      {/* Account */}
+      {cfg.accountId && (
+        <div className="space-y-1">
+          <Label>
+            {BUY_SELL_TYPES.has(type)
+              ? t('form.securitiesAccount')
+              : cfg.crossAccountId
+                ? t('form.fromAccount')
+                : t('form.account')}
+          </Label>
+          <Select
+            value={fields.accountId}
+            onValueChange={(v) => set('accountId', v)}
+            disabled={!!preselectedAccountId}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={t('form.selectAccount')} />
+            </SelectTrigger>
+            <SelectContent>
+              {filteredAccounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  <div className="flex items-center gap-2">
+                    <AccountAvatar name={a.name} logoUrl={a.logoUrl} size="xs" />
+                    <span>{a.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* Cross Account */}
+      {cfg.crossAccountId && (
+        <div className="space-y-1">
+          <Label>
+            {BUY_SELL_TYPES.has(type) ? t('form.cashAccount') : t('form.toAccount')}
+          </Label>
+          <Select value={fields.crossAccountId} onValueChange={(v) => set('crossAccountId', v)}>
+            <SelectTrigger>
+              <SelectValue placeholder={t('form.selectAccount')} />
+            </SelectTrigger>
+            <SelectContent>
+              {filteredCrossAccounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  <div className="flex items-center gap-2">
+                    <AccountAvatar name={a.name} logoUrl={a.logoUrl} size="xs" />
+                    <span>{a.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Shares + Price side-by-side when both visible */}
       {showSharesAndPrice ? (
         <div className="grid grid-cols-2 gap-3">
@@ -527,62 +583,6 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
               <Input type="number" step="any" value={fields.taxes ?? ''} onChange={(e) => set('taxes', e.target.value)} placeholder="0.00" />
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Account */}
-      {cfg.accountId && (
-        <div className="space-y-1">
-          <Label>
-            {BUY_SELL_TYPES.has(type)
-              ? t('form.securitiesAccount')
-              : cfg.crossAccountId
-                ? t('form.fromAccount')
-                : t('form.account')}
-          </Label>
-          <Select
-            value={fields.accountId}
-            onValueChange={(v) => set('accountId', v)}
-            disabled={!!preselectedAccountId}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={t('form.selectAccount')} />
-            </SelectTrigger>
-            <SelectContent>
-              {filteredAccounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  <div className="flex items-center gap-2">
-                    <AccountAvatar name={a.name} logoUrl={a.logoUrl} size="xs" />
-                    <span>{a.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Cross Account */}
-      {cfg.crossAccountId && (
-        <div className="space-y-1">
-          <Label>
-            {BUY_SELL_TYPES.has(type) ? t('form.cashAccount') : t('form.toAccount')}
-          </Label>
-          <Select value={fields.crossAccountId} onValueChange={(v) => set('crossAccountId', v)}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('form.selectAccount')} />
-            </SelectTrigger>
-            <SelectContent>
-              {filteredCrossAccounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  <div className="flex items-center gap-2">
-                    <AccountAvatar name={a.name} logoUrl={a.logoUrl} size="xs" />
-                    <span>{a.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       )}
 

@@ -198,7 +198,7 @@ export default function TaxonomySeries() {
   }
 
   return (
-    <div className="qv-page space-y-6">
+    <div className="qv-page qv-no-card-lift space-y-6">
       <PageHeader
         title={tNav('items.dataSeries')}
         subtitle={t('taxonomySeries.subtitle')}

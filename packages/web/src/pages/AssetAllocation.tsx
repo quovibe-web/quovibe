@@ -1179,7 +1179,7 @@ export default function AssetAllocation() {
 
 
   return (
-    <div className="qv-page space-y-6">
+    <div className="qv-page qv-no-card-lift space-y-6">
       <PageHeader title={t('assetAllocation.title')} subtitle={t('assetAllocation.subtitle')} />
 
       {taxonomiesLoading ? (

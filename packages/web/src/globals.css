@@ -198,6 +198,16 @@ html.dark {
     transform: translateY(-1px);
   }
 
+  /* Opt-out: pages that wrap content in `.qv-no-card-lift` disable the
+     hover translateY on every nested card. Used by the Taxonomies pages
+     (`/allocation`, `/taxonomies/*`) where the lift caused row-level
+     rendering glitches. Other card hover affordances (shadow / border
+     color) are intentionally preserved. */
+  html:not(.dark) .qv-no-card-lift [data-slot="card"]:hover,
+  html.dark .qv-no-card-lift [data-slot="card"]:hover {
+    transform: none;
+  }
+
   /* Baseline border-color is set explicitly because Tailwind v4's `border` utility only
      sets style+width, not color. On hover all 4 sides shift to --qv-border-strong via
      the shorthand; for retired cards, Tailwind's longhand `border-l-[var(--qv-warning)]`
