@@ -74,6 +74,7 @@ export function updateSettings(partial: {
   dashboards?: QuovibeSettings['dashboards'];
   activeDashboard?: string | null;
   investmentsView?: Partial<QuovibeSettings['investmentsView']>;
+  allocationView?: Partial<QuovibeSettings['allocationView']>;
   chartConfig?: Partial<QuovibeSettings['chartConfig']>;
   tableLayouts?: QuovibeSettings['tableLayouts'];
 }): QuovibeSettings {
@@ -89,6 +90,7 @@ export function updateSettings(partial: {
     investmentsView: { ...cached.investmentsView, ...partial.investmentsView,
       columns: partial.investmentsView?.columns ?? cached.investmentsView?.columns ?? [],
     },
+    allocationView: { ...cached.allocationView, ...partial.allocationView },
     chartConfig: partial.chartConfig
       ? { version: 2 as const, series: partial.chartConfig.series ?? cached.chartConfig?.series ?? [] }
       : cached.chartConfig ?? { version: 2, series: [] },

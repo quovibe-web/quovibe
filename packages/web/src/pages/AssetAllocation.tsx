@@ -15,7 +15,10 @@ import {
   type SortingState,
   flexRender,
 } from '@tanstack/react-table';
-import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, MoreHorizontal, Plus, TrendingUp, Landmark } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, MoreHorizontal, Plus, TrendingUp, Landmark } from 'lucide-react';
+import { SegmentedControl } from '@/components/shared/SegmentedControl';
+import { useAllocationView, useSaveAllocationView } from '@/api/use-allocation-view';
+import type { AllocationView } from '@quovibe/shared';
 import { sortNumeric } from '@/lib/table-sort-functions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +54,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
+import { SplitBar } from '@/components/shared/SplitBar';
 import { TaxonomyChart } from '@/components/domain/TaxonomyChart';
 import { RebalancingTable } from '@/components/domain/RebalancingTable';
 import { AssignCategoryDialog } from '@/components/domain/AssignCategoryDialog';
@@ -93,24 +97,42 @@ interface TreeItem {
   assignmentId?: number;
   itemId?: string;
   itemType?: 'security' | 'account';
+  splits?: Array<{ categoryName: string; color: string | null; weight: number }>;
+  childAllocationSumBp?: number;
 }
+
+const UNCLASSIFIED_ID = '__unclassified__';
+const UNCLASSIFIED_CHILD_PREFIX = '__unclassified:';
+
+const MutedDash = () => <span className="text-sm text-muted-foreground">—</span>;
 
 function buildTree(
   items: AssetAllocationItem[],
   hideRetired: boolean,
   hideZeroValue: boolean,
   treeCategories?: TaxonomyTreeCategory[],
+  residual?: {
+    items: Array<{ id: string; name: string; itemType: 'security' | 'account' }>;
+  },
 ): TreeItem[] {
-  // Build lookup maps from taxonomy tree for colors and assignment IDs
   const colorLookup = new Map<string, string | null>();
   const assignmentLookup = new Map<string, number>();
+  const weightLookup = new Map<string, number | null>();
+  const splitsLookup = new Map<string, Array<{ categoryName: string; color: string | null; weight: number }>>();
 
   if (treeCategories) {
     function walkTree(cats: TaxonomyTreeCategory[]) {
       for (const cat of cats) {
         colorLookup.set(cat.id, cat.color);
+        weightLookup.set(cat.id, cat.weight ?? null);
         for (const a of cat.assignments) {
           assignmentLookup.set(`${cat.id}:${a.itemId}`, a.assignmentId);
+          let splits = splitsLookup.get(a.itemId);
+          if (!splits) {
+            splits = [];
+            splitsLookup.set(a.itemId, splits);
+          }
+          splits.push({ categoryName: cat.name, color: cat.color, weight: a.weight ?? 0 });
         }
         if (cat.children?.length) walkTree(cat.children);
       }
@@ -129,26 +151,35 @@ function buildTree(
     const key = parentId ?? '__root__';
     return (byParent.get(key) ?? []).map((item) => {
       const childCategories = nest(item.categoryId);
+      const childAllocationSumBp = childCategories.length > 0
+        ? childCategories.reduce((acc, c) => acc + (c.weight ?? 0), 0)
+        : undefined; // leaf: no sibling-sum concept
 
       // Build security leaf rows for this category
       let securities: AssetAllocationSecurity[] = item.securities ?? [];
       if (hideRetired) securities = securities.filter((s) => !s.isRetired);
       if (hideZeroValue) securities = securities.filter((s) => parseFloat(s.marketValue) !== 0);
 
-      const secRows: TreeItem[] = securities.map((s) => ({
-        id: `${item.categoryId}:${s.securityId}`,
-        name: s.name,
-        nodeType: 'security' as const,
-        marketValue: s.marketValue,
-        percentage: s.percentage ?? '0',
-        depth: item.depth + 1,
-        isRetired: s.isRetired,
-        weight: s.weight,
-        logoUrl: s.logoUrl,
-        assignmentId: assignmentLookup.get(`${item.categoryId}:${s.securityId}`),
-        itemId: s.securityId,
-        itemType: (s.isAccount ? 'account' : 'security') as 'security' | 'account',
-      }));
+      const secRows: TreeItem[] = securities.map((s) => {
+        const allSplits = splitsLookup.get(s.securityId) ?? [];
+        const splits = allSplits.length > 1 ? allSplits : undefined;
+
+        return {
+          id: `${item.categoryId}:${s.securityId}`,
+          name: s.name,
+          nodeType: 'security' as const,
+          marketValue: s.marketValue,
+          percentage: s.percentage ?? '0',
+          depth: item.depth + 1,
+          isRetired: s.isRetired,
+          weight: s.weight,
+          logoUrl: s.logoUrl,
+          assignmentId: assignmentLookup.get(`${item.categoryId}:${s.securityId}`),
+          itemId: s.securityId,
+          itemType: (s.isAccount ? 'account' : 'security') as 'security' | 'account',
+          splits,
+        };
+      });
 
       const subRows: TreeItem[] = [...childCategories, ...secRows];
 
@@ -162,13 +193,46 @@ function buildTree(
         categoryId: item.categoryId,
         parentId: item.parentId,
         isLeaf: item.isLeaf,
+        weight: weightLookup.get(item.categoryId) ?? undefined,
         color: colorLookup.get(item.categoryId) ?? null,
         subRows: subRows.length > 0 ? subRows : undefined,
+        childAllocationSumBp,
       };
       return categoryRow;
     });
   }
-  return nest(null);
+
+  const top = nest(null);
+
+  if (residual) {
+    const secRows: TreeItem[] = residual.items.map((r) => ({
+      id: `${UNCLASSIFIED_CHILD_PREFIX}${r.id}`,
+      name: r.name,
+      nodeType: 'security' as const,
+      marketValue: '0',
+      percentage: '0',
+      depth: 1,
+      itemId: r.id,
+      itemType: r.itemType,
+    }));
+
+    const residualRow: TreeItem = {
+      id: UNCLASSIFIED_ID,
+      name: '',
+      nodeType: 'category',
+      marketValue: '',
+      percentage: '0',
+      depth: 0,
+      subRows: secRows,
+      categoryId: undefined,
+      parentId: null,
+      isLeaf: secRows.length === 0,
+      color: null,
+    };
+    top.push(residualRow);
+  }
+
+  return top;
 }
 
 // ----- Category Context Menu -----
@@ -436,14 +500,71 @@ function WeightCell({ assignmentId, weight, taxonomyId }: {
   );
 }
 
-function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategoryId, onHighlightCategory: _onHighlightCategory, usedColors }: {
+function TargetAllocationCell({
+  categoryId,
+  allocationBp,
+  taxonomyId,
+  date,
+}: {
+  categoryId: string;
+  allocationBp: number | null;
+  taxonomyId: string;
+  date: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState('');
+  const { mutate } = useUpdateAllocation(taxonomyId, date);
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type="number"
+        step="0.1"
+        min="0"
+        max="100"
+        className="w-16 h-6 px-1 border rounded text-sm text-right bg-background"
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onBlur={() => {
+          const num = parseFloat(val);
+          if (!isNaN(num)) mutate({ categoryId, allocation: Math.round(num * 100) });
+          setEditing(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          if (e.key === 'Escape') setEditing(false);
+        }}
+      />
+    );
+  }
+
+  return (
+    <button
+      className="text-sm tabular-nums hover:underline cursor-pointer"
+      onClick={() => { setVal(allocationBp != null ? String(allocationBp / 100) : ''); setEditing(true); }}
+    >
+      {allocationBp != null && allocationBp > 0 ? formatPercentage(allocationBp / 10000) : '—'}
+    </button>
+  );
+}
+
+function computeDrift(row: TreeItem): number {
+  if (row.nodeType !== 'category') return 0;
+  const actualPct = parseFloat(row.percentage);
+  const targetPct = (row.weight ?? 0) / 100;
+  if (targetPct === 0) return 0;
+  return actualPct - targetPct;
+}
+
+function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategoryId, usedColors, date }: {
   data: TreeItem[];
   taxonomyId: string;
   taxonomyName: string;
   rootId: string | null;
   highlightedCategoryId?: string | null;
-  onHighlightCategory?: (id: string | null) => void;
   usedColors?: Set<string>;
+  date: string;
 }) {
   const { t } = useTranslation('reports');
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -466,45 +587,146 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
     {
       accessorKey: 'name',
       header: t('assetAllocation.columns.category'),
-      cell: ({ row }) => (
-        <div style={{ paddingLeft: `${row.depth * 20}px` }} className="flex items-center gap-1.5">
-          {row.getCanExpand() ? (
-            <button onClick={row.getToggleExpandedHandler()} className="text-muted-foreground hover:text-foreground p-0.5">
-              {row.getIsExpanded() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            </button>
-          ) : (
-            <span className="w-[14px]" />
-          )}
-          {row.original.nodeType === 'category' && (
-            <span
-              className="inline-block h-3 w-3 rounded-full shrink-0 border border-white/20"
-              style={{ backgroundColor: row.original.color || '#888' }}
-            />
-          )}
-          {row.original.nodeType === 'security' && row.original.logoUrl ? (
-            <img src={row.original.logoUrl} alt="" className="h-5 w-5 rounded-md object-contain flex-shrink-0" />
-          ) : row.original.nodeType === 'security' ? (
-            row.original.itemType === 'account'
-              ? <Landmark className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              : <TrendingUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          ) : null}
-          <span className={cn(
-            row.original.nodeType === 'category' ? 'font-medium' : 'text-sm',
-            row.original.isRetired ? 'text-muted-foreground line-through' : '',
-          )}>
-            {row.original.name}
-          </span>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const expandAffordance = row.getCanExpand() ? (
+          <button onClick={row.getToggleExpandedHandler()} className="text-muted-foreground hover:text-foreground p-0.5">
+            {row.getIsExpanded() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+        ) : (
+          <span className="w-[14px]" />
+        );
+
+        if (row.original.id === UNCLASSIFIED_ID) {
+          return (
+            <div style={{ paddingLeft: `${row.depth * 20}px` }} className="flex items-center gap-1.5">
+              {expandAffordance}
+              {row.original.subRows?.length ? (
+                <span className="font-medium text-muted-foreground">
+                  {t('assetAllocation.withoutClassification')}
+                  <span className="ml-2 text-xs">({row.original.subRows.length})</span>
+                </span>
+              ) : (
+                <span className="italic text-muted-foreground">
+                  {t('taxonomyUi.withoutClassification.empty')}
+                </span>
+              )}
+            </div>
+          );
+        }
+
+        const sumWarning = row.original.nodeType === 'category'
+          && row.original.childAllocationSumBp !== undefined
+          && row.original.childAllocationSumBp !== 10000
+          ? t('taxonomyUi.allocationSumWarning', {
+              sum: formatPercentage(row.original.childAllocationSumBp / 10000).replace('%', '').trim(),
+            })
+          : null;
+
+        return (
+          <div style={{ paddingLeft: `${row.depth * 20}px` }} className="flex items-center gap-1.5">
+            {expandAffordance}
+            {sumWarning && (
+              <span title={sumWarning}>
+                <AlertTriangle size={14} className="text-[var(--qv-warning)] shrink-0" aria-label={sumWarning} />
+              </span>
+            )}
+            {row.original.nodeType === 'category' && (
+              <span
+                className="inline-block h-3 w-3 rounded-full shrink-0 border border-white/20"
+                style={{ backgroundColor: row.original.color || '#888' }}
+              />
+            )}
+            {row.original.nodeType === 'security' && row.original.logoUrl ? (
+              <img src={row.original.logoUrl} alt="" className="h-5 w-5 rounded-md object-contain flex-shrink-0" />
+            ) : row.original.nodeType === 'security' ? (
+              row.original.itemType === 'account'
+                ? <Landmark className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                : <TrendingUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            ) : null}
+            <span className={cn(
+              row.original.nodeType === 'category' ? 'font-medium' : 'text-sm',
+              row.original.isRetired ? 'text-muted-foreground line-through' : '',
+            )}>
+              {row.original.name}
+            </span>
+          </div>
+        );
+      },
     },
+    {
+      id: 'split',
+      header: t('taxonomyUi.columns.split', { defaultValue: 'Split' }),
+      enableSorting: false,
+      cell: ({ row }) => {
+        if (row.original.nodeType !== 'security' || !row.original.splits) return null;
+        return <SplitBar segments={row.original.splits} />;
+      },
+    },
+    // Target % — editable on category rows, muted on security rows
+    {
+      id: 'targetPct',
+      header: t('taxonomyUi.columns.target'),
+      enableSorting: true,
+      sortingFn: (a, b) => (a.original.weight ?? 0) - (b.original.weight ?? 0),
+      cell: ({ row }) => {
+        if (row.original.id === UNCLASSIFIED_ID) return <MutedDash />;
+        if (row.original.nodeType !== 'category' || !row.original.categoryId) {
+          return <span className="text-sm text-muted-foreground">—</span>;
+        }
+        return (
+          <TargetAllocationCell
+            categoryId={row.original.categoryId}
+            allocationBp={row.original.weight ?? null}
+            taxonomyId={taxonomyId}
+            date={date}
+          />
+        );
+      },
+    },
+    // Actual % — computed from holdings, read-only
+    {
+      id: 'actualPct',
+      accessorKey: 'percentage',
+      header: t('taxonomyUi.columns.actual'),
+      sortingFn: (a, b) => sortNumeric(a, b, 'percentage'),
+      cell: ({ row }) => {
+        if (row.original.id === UNCLASSIFIED_ID) return <MutedDash />;
+        return (
+          <span className="text-sm tabular-nums">
+            {formatPercentage(parseFloat(row.original.percentage) / 100)}
+          </span>
+        );
+      },
+    },
+    // Δ — colored drift on category rows, muted on security rows
+    {
+      id: 'drift',
+      header: t('taxonomyUi.columns.delta'),
+      enableSorting: true,
+      sortingFn: (a, b) => {
+        const da = computeDrift(a.original);
+        const db = computeDrift(b.original);
+        return da - db;
+      },
+      cell: ({ row }) => {
+        if (row.original.id === UNCLASSIFIED_ID) return <MutedDash />;
+        if (row.original.nodeType !== 'category') {
+          return <span className="text-sm text-muted-foreground">—</span>;
+        }
+        const drift = computeDrift(row.original);
+        if (drift === 0) return <span className="text-sm text-muted-foreground tabular-nums">{formatPercentage(0, 1)}</span>;
+        const sign = drift > 0 ? '+' : '';
+        const cls = drift > 0 ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]';
+        return <span className={cn('text-sm tabular-nums', cls)}>{sign}{formatPercentage(drift / 100, 1)}</span>;
+      },
+    },
+    // Assignment weight — shown only on security rows (replaces the old weight column)
     {
       id: 'weight',
       header: t('assetAllocation.columns.weight'),
       enableSorting: false,
       cell: ({ row }) => {
-        if (row.original.nodeType === 'category') {
-          return <span className="text-sm text-muted-foreground">—</span>;
-        }
+        if (row.original.nodeType === 'category') return null;
         if (row.original.assignmentId != null) {
           return (
             <WeightCell
@@ -521,15 +743,17 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
       accessorKey: 'marketValue',
       header: t('assetAllocation.columns.marketValue'),
       sortingFn: sortNumeric,
-      cell: ({ row }) => (
-        <CurrencyDisplay value={parseFloat(row.original.marketValue)} className="text-sm" />
-      ),
+      cell: ({ row }) => {
+        if (row.original.id === UNCLASSIFIED_ID) return <MutedDash />;
+        return <CurrencyDisplay value={parseFloat(row.original.marketValue)} className="text-sm" />;
+      },
     },
     {
       accessorKey: 'percentage',
       header: t('assetAllocation.columns.portfolioPercent'),
       sortingFn: sortNumeric,
       cell: ({ row }) => {
+        if (row.original.id === UNCLASSIFIED_ID) return <MutedDash />;
         const pct = parseFloat(row.original.percentage);
         if (pct === 0 && row.original.nodeType === 'security') return null;
         return <span className="text-sm">{formatPercentage(pct / 100)}</span>;
@@ -540,6 +764,7 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
       header: '',
       enableSorting: false,
       cell: ({ row }) => {
+        if (row.original.id === UNCLASSIFIED_ID || row.original.id.startsWith(UNCLASSIFIED_CHILD_PREFIX)) return null;
         if (row.original.nodeType === 'category' && row.original.categoryId) {
           return (
             <CategoryMenu
@@ -566,7 +791,7 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
         return null;
       },
     },
-  ], [t, taxonomyId, usedColors]);
+  ], [t, taxonomyId, usedColors, date]);
 
   const table = useReactTable<TreeItem>({
     data,
@@ -583,12 +808,12 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
 
   return (
     <>
-    <div className="flex items-center gap-1 mb-2">
-      <Button variant="ghost" size="sm" onClick={() => table.toggleAllRowsExpanded(true)}>
+    <div className="flex items-center gap-1 mb-4">
+      <Button variant="ghost" size="sm" onClick={() => { setRootExpanded(true); table.toggleAllRowsExpanded(true); }}>
         <ChevronsUpDown size={14} className="mr-1" />
         {t('assetAllocation.expandAll')}
       </Button>
-      <Button variant="ghost" size="sm" onClick={() => table.toggleAllRowsExpanded(false)}>
+      <Button variant="ghost" size="sm" onClick={() => { setRootExpanded(false); table.toggleAllRowsExpanded(false); }}>
         <ChevronsDownUp size={14} className="mr-1" />
         {t('assetAllocation.collapseAll')}
       </Button>
@@ -617,8 +842,11 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
                 )}
                 onClick={h.column.getToggleSortingHandler()}
               >
-                {flexRender(h.column.columnDef.header, h.getContext())}
-                {h.column.getIsSorted() === 'asc' ? ' ↑' : h.column.getIsSorted() === 'desc' ? ' ↓' : ''}
+                <span className="inline-flex items-center gap-1 align-middle">
+                  {flexRender(h.column.columnDef.header, h.getContext())}
+                  {h.column.getIsSorted() === 'asc' && <ArrowUp size={12} className="text-muted-foreground" />}
+                  {h.column.getIsSorted() === 'desc' && <ArrowDown size={12} className="text-muted-foreground" />}
+                </span>
               </TableHead>
             ))}
           </TableRow>
@@ -637,9 +865,7 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
                     <span>{taxonomyName}</span>
                   </div>
                 </TableCell>
-                <TableCell />
-                <TableCell />
-                <TableCell />
+                <TableCell colSpan={7} />
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <span className="inline-block h-3.5 w-3.5 shrink-0" />
@@ -838,94 +1064,6 @@ function collectAssignedIds(categories: TaxonomyTreeCategory[]): Set<string> {
   return ids;
 }
 
-interface UnassignedItem { id: string; name: string; type: 'security' | 'account' }
-
-function WithoutClassification({ taxonomyId }: { taxonomyId: string }) {
-  const { t } = useTranslation('reports');
-  const { data: tree } = useTaxonomyTree(taxonomyId);
-  const { data: securities = [] } = useSecurities();
-  const { data: accounts = [] } = useAccounts();
-  const [expanded, setExpanded] = useState(false);
-  const [assignDialog, setAssignDialog] = useState<UnassignedItem | null>(null);
-
-  const unassigned = useMemo(() => {
-    if (!tree) return [];
-    const assigned = collectAssignedIds(tree.categories);
-    const result: UnassignedItem[] = [];
-    for (const s of securities) {
-      if (!assigned.has(s.id)) result.push({ id: s.id, name: s.name, type: 'security' });
-    }
-    for (const a of accounts) {
-      if (a.type === 'account' && !assigned.has(a.id)) result.push({ id: a.id, name: a.name, type: 'account' });
-    }
-    return result.sort((a, b) => a.name.localeCompare(b.name));
-  }, [tree, securities, accounts]);
-
-  return (
-    <div className="mt-6">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        <span>{t('taxonomyManagement.withoutClassification')}</span>
-        <span className="text-xs">({unassigned.length})</span>
-      </button>
-      {expanded && (
-        <div className="border rounded-md divide-y">
-          {unassigned.map((item) => (
-            <ContextMenu key={item.id}>
-              <ContextMenuTrigger asChild>
-                <div
-                  className="flex items-center justify-between px-4 py-2 group hover:bg-accent/5"
-                >
-                  <div className="flex items-center gap-2">
-                    {item.type === 'security'
-                      ? <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
-                      : <Landmark className="h-3.5 w-3.5 text-muted-foreground" />}
-                    <span className="text-sm">{item.name}</span>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="p-1 rounded-md hover:bg-accent/50 opacity-30 group-hover:opacity-100 transition-opacity">
-                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setAssignDialog(item)}>
-                        {t('taxonomyManagement.assignTo')}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </ContextMenuTrigger>
-              <ContextMenuContent>
-                <ContextMenuItem onClick={() => setAssignDialog(item)}>
-                  {t('taxonomyManagement.assignTo')}
-                </ContextMenuItem>
-              </ContextMenuContent>
-            </ContextMenu>
-          ))}
-          {unassigned.length === 0 && (
-            <div className="px-4 py-3 text-sm text-muted-foreground italic">
-              {t('taxonomyManagement.allAssigned')}
-            </div>
-          )}
-        </div>
-      )}
-      {assignDialog && (
-        <AssignCategoryDialog
-          taxonomyId={taxonomyId}
-          itemId={assignDialog.id}
-          itemType={assignDialog.type}
-          mode="assign"
-          onClose={() => setAssignDialog(null)}
-        />
-      )}
-    </div>
-  );
-}
-
 function TaxonomySection({
   taxonomy, date, viewMode, hideRetired, hideZeroValue,
 }: {
@@ -938,6 +1076,9 @@ function TaxonomySection({
   const { t } = useTranslation('reports');
   const { data, isLoading, isError, error, isFetching } = useAssetAllocation(date, taxonomy.id);
   const { data: taxonomyTree } = useTaxonomyTree(taxonomy.id);
+  const { data: allocationView } = useAllocationView();
+  const { mutate: saveAllocationView } = useSaveAllocationView();
+  const chartMode = allocationView?.chartMode ?? 'pie';
   const { data: securities = [] } = useSecurities();
   const { data: accounts = [] } = useAccounts();
   const [highlightedCategoryId, setHighlightedCategoryId] = useState<string | null>(null);
@@ -957,24 +1098,46 @@ function TaxonomySection({
     if (!hideZeroValue) return allItems;
     return allItems.filter(item => parseFloat(item.marketValue) !== 0);
   }, [allItems, hideZeroValue]);
-  const treeData = useMemo(
-    () => buildTree(filteredItems, hideRetired, hideZeroValue, taxonomyTree?.categories),
-    [filteredItems, hideRetired, hideZeroValue, taxonomyTree],
+
+  const assignedIds = useMemo(
+    () => (taxonomyTree ? collectAssignedIds(taxonomyTree.categories) : new Set<string>()),
+    [taxonomyTree],
   );
 
-  // Build color lookup from taxonomy tree for chart
-  const categoryColorMap = useMemo(() => {
+  const residual = useMemo(() => {
+    if (!taxonomyTree) return null;
+    const items: Array<{ id: string; name: string; itemType: 'security' | 'account' }> = [];
+    for (const s of securities) {
+      if (!assignedIds.has(s.id)) items.push({ id: s.id, name: s.name, itemType: 'security' });
+    }
+    for (const a of accounts) {
+      if (a.type === 'account' && !assignedIds.has(a.id)) {
+        items.push({ id: a.id, name: a.name, itemType: 'account' });
+      }
+    }
+    items.sort((a, b) => a.name.localeCompare(b.name));
+    return { items };
+  }, [taxonomyTree, assignedIds, securities, accounts]);
+
+  const treeData = useMemo(
+    () => buildTree(filteredItems, hideRetired, hideZeroValue, taxonomyTree?.categories, residual ?? undefined),
+    [filteredItems, hideRetired, hideZeroValue, taxonomyTree, residual],
+  );
+
+  const { categoryColorMap, usedColors } = useMemo(() => {
     const map = new Map<string, string | null>();
+    const colors = new Set<string>();
     if (taxonomyTree?.categories) {
       function walk(cats: TaxonomyTreeCategory[]) {
         for (const cat of cats) {
           map.set(cat.id, cat.color);
+          if (cat.color) colors.add(cat.color.toLowerCase());
           if (cat.children?.length) walk(cat.children);
         }
       }
       walk(taxonomyTree.categories);
     }
-    return map;
+    return { categoryColorMap: map, usedColors: colors };
   }, [taxonomyTree]);
 
   const chartItems: HoldingsItem[] = useMemo(
@@ -991,25 +1154,8 @@ function TaxonomySection({
     [allItems, categoryColorMap],
   );
 
-  // Collect colors already used by categories (for duplicate prevention in color picker)
-  const usedColors = useMemo(() => {
-    const colors = new Set<string>();
-    if (taxonomyTree?.categories) {
-      function walk(cats: TaxonomyTreeCategory[]) {
-        for (const cat of cats) {
-          if (cat.color) colors.add(cat.color.toLowerCase());
-          if (cat.children?.length) walk(cat.children);
-        }
-      }
-      walk(taxonomyTree.categories);
-    }
-    return colors;
-  }, [taxonomyTree]);
-
-  // Metric cards data
   const metrics = useMemo(() => {
     if (!taxonomyTree) return null;
-    const assignedIds = collectAssignedIds(taxonomyTree.categories);
     const assignedCount = assignedIds.size;
     const depositAccounts = accounts.filter(a => a.type === 'account');
     const totalItemCount = securities.length + depositAccounts.length;
@@ -1026,7 +1172,7 @@ function TaxonomySection({
     const categoriesCount = countCategories(taxonomyTree.categories);
 
     return { assignedCount, totalItemCount, unassignedCount, categoriesCount };
-  }, [taxonomyTree, securities, accounts]);
+  }, [taxonomyTree, assignedIds, securities, accounts]);
 
   if (viewMode === 'rebalancing') {
     return (
@@ -1070,7 +1216,19 @@ function TaxonomySection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{taxonomy.name}</CardTitle>
+        <div className="flex items-center justify-between gap-4">
+          <CardTitle className="text-base">{taxonomy.name}</CardTitle>
+          <SegmentedControl<AllocationView['chartMode']>
+            size="sm"
+            segments={[
+              { value: 'pie', label: t('taxonomyUi.chartMode.donut') },
+              { value: 'treemap', label: t('taxonomyUi.chartMode.treemap') },
+              { value: 'off', label: t('taxonomyUi.chartMode.off') },
+            ]}
+            value={chartMode}
+            onChange={(v) => { if (v !== chartMode) saveAllocationView({ chartMode: v }); }}
+          />
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading ? (
@@ -1085,16 +1243,24 @@ function TaxonomySection({
         ) : allItems.length === 0 ? (
           <p className="text-muted-foreground text-sm">{t('assetAllocation.noData')}</p>
         ) : (
-          <div className={cn(isRefetching && 'opacity-60 transition-opacity duration-200')}>
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              <div className="flex-shrink-0">
-                <TaxonomyChart
-                  items={chartItems}
-                  showLegend={false}
-                  highlightedId={highlightedCategoryId}
-                  onHighlightChange={setHighlightedCategoryId}
-                />
-              </div>
+          <div className={cn('space-y-6', isRefetching && 'opacity-60 transition-opacity duration-200')}>
+            <div className={cn(
+              'flex gap-6',
+              chartMode === 'treemap'
+                ? 'flex-col'
+                : 'flex-col md:flex-row items-center',
+            )}>
+              {chartMode !== 'off' && (
+                <div className={chartMode === 'treemap' ? 'w-full' : 'flex-shrink-0'}>
+                  <TaxonomyChart
+                    items={chartItems}
+                    mode={chartMode === 'treemap' ? 'treemap' : 'pie'}
+                    showLegend={false}
+                    highlightedId={highlightedCategoryId}
+                    onHighlightChange={setHighlightedCategoryId}
+                  />
+                </div>
+              )}
               {metrics && (
                 <div className="grid grid-cols-2 gap-3 flex-1">
                   <div className="bg-secondary rounded-lg px-4 py-3">
@@ -1138,10 +1304,9 @@ function TaxonomySection({
               taxonomyName={taxonomy.name}
               rootId={taxonomyTree?.rootId ?? null}
               highlightedCategoryId={highlightedCategoryId}
-              onHighlightCategory={setHighlightedCategoryId}
               usedColors={usedColors}
+              date={date}
             />
-            <WithoutClassification taxonomyId={taxonomy.id} />
             <p className="text-sm text-muted-foreground text-right">
               {t('assetAllocation.total')}{' '}
               <CurrencyDisplay

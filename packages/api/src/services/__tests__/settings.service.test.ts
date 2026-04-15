@@ -364,3 +364,20 @@ describe('updatePreferences — defaultDataSeriesTaxonomyId round-trip', () => {
     expect(getSettings().preferences.defaultDataSeriesTaxonomyId).toBeUndefined();
   });
 });
+
+describe('updateSettings — allocationView', () => {
+  test('partial-merges allocationView.chartMode', async () => {
+    const { loadSettings, updateSettings, getSettings } = await importService();
+    loadSettings();
+
+    const before = getSettings();
+    expect(before.allocationView.chartMode).toBe('pie');
+
+    updateSettings({ allocationView: { chartMode: 'treemap' } });
+
+    const after = getSettings();
+    expect(after.allocationView.chartMode).toBe('treemap');
+    // Sibling namespaces are untouched
+    expect(after.investmentsView).toEqual(before.investmentsView);
+  });
+});

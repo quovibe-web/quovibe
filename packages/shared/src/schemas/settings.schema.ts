@@ -118,6 +118,16 @@ export const investmentsViewSchema = z.object({
 export type InvestmentsView = z.infer<typeof investmentsViewSchema>;
 
 // ---------------------------------------------------------------------------
+// Allocation (/allocation page) view schema
+// ---------------------------------------------------------------------------
+
+export const allocationViewSchema = z.object({
+  chartMode: z.enum(['pie', 'treemap', 'off']).default('pie'),
+}).default({});
+
+export type AllocationView = z.infer<typeof allocationViewSchema>;
+
+// ---------------------------------------------------------------------------
 // Table layout schema
 // ---------------------------------------------------------------------------
 
@@ -171,6 +181,7 @@ export const quovibeSettingsSchema = z.object({
   dashboards: z.array(dashboardSchema).default([]),
   activeDashboard: z.string().nullable().default(null),
   investmentsView: investmentsViewSchema,
+  allocationView: allocationViewSchema,
   chartConfig: chartConfigV2Schema.default({ version: 2, series: [] }),
   tableLayouts: tableLayoutsSchema,
 });

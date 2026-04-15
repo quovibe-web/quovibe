@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
-import { TaxonomyNodePicker } from '@/components/domain/TaxonomyNodePicker';
+import { TaxonomyNodePickerPopover } from '@/components/domain/TaxonomyNodePickerPopover';
 import { useTaxonomies } from '@/api/use-taxonomies';
 import { useTaxonomySeries } from '@/api/use-taxonomy-series';
 import { usePortfolio, useUpdateSettings } from '@/api/use-portfolio';
@@ -86,6 +86,11 @@ export default function TaxonomySeries() {
   const categoryIdsArray = useMemo(
     () => (selectedCategoryId ? [selectedCategoryId] : []),
     [selectedCategoryId],
+  );
+
+  const selectedTaxonomy = useMemo(
+    () => taxonomies?.find((tx) => tx.id === selectedTaxonomyId),
+    [taxonomies, selectedTaxonomyId],
   );
 
   function handleTaxonomyChange(id: string) {
@@ -235,8 +240,9 @@ export default function TaxonomySeries() {
           </div>
         )}
         {selectedTaxonomyId && (
-          <TaxonomyNodePicker
+          <TaxonomyNodePickerPopover
             taxonomyId={selectedTaxonomyId}
+            taxonomyName={selectedTaxonomy?.name ?? ''}
             selectedId={selectedCategoryId}
             onSelectionChange={setSelectedCategoryId}
           />

@@ -76,8 +76,34 @@
     "switchPalette": "Switch to default palette",
     "switchColorblindPalette": "Switch to colorblind-safe palette",
     "year": "Year",
-    "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    "monthsFull": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    "months": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ],
+    "monthsFull": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ],
     "noData": "No data available.",
     "yearTotal": "{{year}} total:"
   },
@@ -101,7 +127,8 @@
       "nonZeroOnly": "Value > 0"
     },
     "expandAll": "Expand all",
-    "collapseAll": "Collapse all"
+    "collapseAll": "Collapse all",
+    "withoutClassification": "Without Classification"
   },
   "taxonomySeries": {
     "title": "Data Series",
@@ -194,5 +221,27 @@
     "assignCategoryDescription": "Select a category to assign",
     "deleteError": "Error deleting taxonomy",
     "renameDescription": "Enter a new name for this taxonomy"
+  },
+  "taxonomyUi": {
+    "chartMode": {
+      "donut": "Donut",
+      "treemap": "Treemap",
+      "off": "None"
+    },
+    "columns": {
+      "target": "Target %",
+      "actual": "Actual %",
+      "delta": "Δ",
+      "split": "Split"
+    },
+    "withoutClassification": {
+      "empty": "All classified ✓"
+    },
+    "allocationSumWarning": "Children sum to {{sum}}%. Should sum to 100%.",
+    "picker": {
+      "searchPlaceholder": "Search categories...",
+      "noMatches": "No categories match \"{{query}}\"",
+      "breadcrumbSeparator": " › "
+    }
   }
 }
