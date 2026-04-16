@@ -173,6 +173,7 @@ const preferencesSchema = z.object({
   privacyMode: z.boolean().default(false),
   activeReportingPeriodId: z.string().optional(),
   defaultDataSeriesTaxonomyId: z.string().optional(),
+  chartStyle: z.object({}).passthrough().default({}),   // reserved; empty in v1
 }).default({});
 
 export const portfolioEntrySchema = z.object({
