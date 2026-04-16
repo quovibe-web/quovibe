@@ -28,6 +28,7 @@ import { resolveReportingPeriod } from '@quovibe/shared';
 import type { ReportingPeriodDef } from '@quovibe/shared';
 import { formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
+import { PortfolioSwitcher } from './PortfolioSwitcher';
 
 const today = () => new Date();
 const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
@@ -520,6 +521,7 @@ export function TopBar({ onMenuClick, isScrolled = false }: TopBarProps) {
       <PeriodSelector />
 
       <div className="ml-auto flex items-center gap-1">
+        <PortfolioSwitcher />
         <div className="hidden md:block">
           <LanguageSwitcher />
         </div>
