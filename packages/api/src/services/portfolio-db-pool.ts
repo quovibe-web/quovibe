@@ -58,9 +58,9 @@ export function acquirePortfolioDb(id: string): OpenDatabaseResult {
     const handle = openDatabase(filePath);
     entry = { handle, refCount: 0, lastReleased: Date.now() };
     pool.set(id, entry);
-    evictIdleOverCap();
   }
   entry.refCount++;
+  evictIdleOverCap();
   return entry.handle;
 }
 
