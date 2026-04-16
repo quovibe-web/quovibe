@@ -1,22 +1,17 @@
+import { z } from 'zod';
 import { Router, type RequestHandler, type Router as RouterType } from 'express';
 import { reportingPeriodDefSchema, resolveReportingPeriod, investmentsViewSchema, allocationViewSchema, chartConfigV2Schema, tableIdSchema, tableLayoutEntrySchema } from '@quovibe/shared';
 import { getSettings, updateSettings } from '../services/settings.service';
-import { getSqlite } from '../helpers/request';
 
 export const settingsRouter: RouterType = Router();
 
 /** GET /api/settings/reporting-periods */
-const getReportingPeriods: RequestHandler = (req, res) => {
+const getReportingPeriods: RequestHandler = (_req, res) => {
   const { reportingPeriods } = getSettings();
 
-  // Resolve the portfolio's calendar from DB for trading-day fallback
-  const sqlite = getSqlite(req);
-  let globalCalendar = 'default';
-  try {
-    const row = sqlite.prepare('SELECT value FROM property WHERE name = ?')
-      .get('portfolio.calendar') as { value: string } | undefined;
-    if (row) globalCalendar = row.value;
-  } catch { /* use default */ }
+  // Per ADR-015 the settings router is not portfolio-scoped. Calendar lookup
+  // falls back to 'default'; period definitions may override via period.calendarId.
+  const globalCalendar = 'default';
 
   const today = new Date().toISOString().slice(0, 10);
   const resolved = reportingPeriods.map((period) => {
@@ -225,3 +220,18 @@ settingsRouter.delete('/table-layouts/:tableId', (req, res) => {
   updateSettings({ tableLayouts: rest });
   res.json({ ok: true });
 });
+
+// PUT /api/settings/auto-fetch — toggle autoFetchPricesOnFirstOpen
+const putAutoFetchSchema = z.object({ autoFetchPricesOnFirstOpen: z.boolean() });
+
+const putAutoFetch: RequestHandler = (req, res) => {
+  const p = putAutoFetchSchema.safeParse(req.body);
+  if (!p.success) { res.status(400).json({ error: 'INVALID_INPUT' }); return; }
+  const current = getSettings();
+  const updated = updateSettings({
+    app: { ...current.app, autoFetchPricesOnFirstOpen: p.data.autoFetchPricesOnFirstOpen },
+  });
+  res.json({ autoFetchPricesOnFirstOpen: updated.app.autoFetchPricesOnFirstOpen });
+};
+
+settingsRouter.put('/auto-fetch', putAutoFetch);
