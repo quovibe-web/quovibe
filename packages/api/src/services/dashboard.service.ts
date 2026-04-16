@@ -19,8 +19,15 @@ function rowToItem(row: Record<string, unknown>): DashboardItem {
   const sv = row.schema_version as number;
   let widgets = JSON.parse(row.widgets_json as string);
   if (sv < CURRENT_VERSION) widgets = upgradeWidgets(widgets, sv);
-  else if (sv > CURRENT_VERSION) widgets = widgets.map((w: { type: string }) =>
-    ({ ...w, type: 'unsupported-widget', __originalType: w.type }));
+  else if (sv > CURRENT_VERSION) {
+    // Future schema versions may change the widgets_json shape (e.g. object-keyed
+    // map instead of array). Guard against non-array so rowToItem cannot throw
+    // when rendering a forward-compat sentinel — callers see an empty widget list.
+    widgets = Array.isArray(widgets)
+      ? widgets.map((w: { type: string }) =>
+          ({ ...w, type: 'unsupported-widget', __originalType: w.type }))
+      : [];
+  }
   return {
     id: row.id as string,
     name: row.name as string,
