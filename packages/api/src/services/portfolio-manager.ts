@@ -1,0 +1,253 @@
+// packages/api/src/services/portfolio-manager.ts
+import crypto from 'crypto';
+import path from 'path';
+import fs from 'fs';
+import Database from 'better-sqlite3';
+import { DATA_DIR, DEMO_SOURCE_PATH, resolvePortfolioPath } from '../config';
+import { applyBootstrap } from '../db/apply-bootstrap';
+import { atomicCopy, ensureDir, unlinkDbFile } from '../lib/atomic-fs';
+import { seedDefaultDashboard } from './dashboard-seed';
+import {
+  getPortfolioEntry,
+  upsertPortfolioEntry,
+  removePortfolioEntry,
+  findDemoEntry,
+} from './portfolio-registry';
+import { evictPortfolioDb, acquirePortfolioDb, releasePortfolioDb } from './portfolio-db-pool';
+// Wired in Phase 3d. Stub for now — SSE broadcast is not load-bearing for tests.
+const broadcast = (_event: string, _data: unknown) => { /* noop */ };
+import { getSettings, updateSettings } from './settings.service';
+import type { PortfolioEntry } from '@quovibe/shared';
+
+export type CreatePortfolioSource = 'fresh' | 'demo' | 'import-pp-xml' | 'import-quovibe-db';
+
+export interface CreatePortfolioInput {
+  source: CreatePortfolioSource;
+  name: string;                 // ignored for 'demo' (fixed to 'Demo Portfolio')
+  uploadedDbPath?: string;      // required for 'import-quovibe-db'
+  ppxmlTempDbPath?: string;     // required for 'import-pp-xml' (already populated by ppxml2db)
+}
+
+export interface CreatePortfolioResult {
+  entry: PortfolioEntry;
+  alreadyExisted?: boolean;     // true for idempotent demo re-creation
+}
+
+export class PortfolioManagerError extends Error {
+  constructor(public readonly code: string, message?: string) {
+    super(message ?? code);
+    this.name = 'PortfolioManagerError';
+  }
+}
+
+// --- in-process serialization for create ------------------------------------
+
+const createLocks = new Map<string, Promise<CreatePortfolioResult>>();
+
+/**
+ * Create a portfolio. Demo creation is serialized via a singleton lock so
+ * concurrent "Try Demo" clicks return the same id (§3.4d).
+ */
+export async function createPortfolio(input: CreatePortfolioInput): Promise<CreatePortfolioResult> {
+  const lockKey = input.source === 'demo' ? 'demo-singleton' : 'create';
+  const prev = createLocks.get(lockKey) ?? Promise.resolve(null as unknown as CreatePortfolioResult);
+  const next = prev
+    .catch(() => null)
+    .then(() => createPortfolioImpl(input));
+  createLocks.set(lockKey, next);
+  try {
+    return await next;
+  } finally {
+    if (createLocks.get(lockKey) === next) createLocks.delete(lockKey);
+  }
+}
+
+async function createPortfolioImpl(input: CreatePortfolioInput): Promise<CreatePortfolioResult> {
+  ensureDir(DATA_DIR);
+
+  if (input.source === 'demo') {
+    const existing = findDemoEntry();
+    if (existing) return { entry: existing, alreadyExisted: true };
+    return createDemoImpl();
+  }
+  if (input.source === 'fresh') return createFreshImpl(input.name);
+  if (input.source === 'import-pp-xml') {
+    if (!input.ppxmlTempDbPath) {
+      throw new PortfolioManagerError('INVALID_INPUT', 'ppxmlTempDbPath required');
+    }
+    return createImportedPpxmlImpl(input.name, input.ppxmlTempDbPath);
+  }
+  if (input.source === 'import-quovibe-db') {
+    if (!input.uploadedDbPath) {
+      throw new PortfolioManagerError('INVALID_INPUT', 'uploadedDbPath required');
+    }
+    return createImportedQuovibeDbImpl(input.uploadedDbPath);
+  }
+  throw new PortfolioManagerError('INVALID_SOURCE', input.source);
+}
+
+function createFreshImpl(name: string): CreatePortfolioResult {
+  const id = crypto.randomUUID();
+  const entry: PortfolioEntry = {
+    id, name, kind: 'real', source: 'fresh',
+    createdAt: new Date().toISOString(),
+    lastOpenedAt: null,
+  };
+  const filePath = resolvePortfolioPath(entry);
+  const db = new Database(filePath);
+  try {
+    applyBootstrap(db);
+    seedMeta(db, { name, createdAt: entry.createdAt, source: 'fresh' });
+    seedDefaultDashboard(db);
+  } finally {
+    db.close();
+  }
+  finalizeRegistry(entry);
+  broadcast('portfolio.created', { id });
+  return { entry };
+}
+
+function createDemoImpl(): CreatePortfolioResult {
+  if (!fs.existsSync(DEMO_SOURCE_PATH)) {
+    throw new PortfolioManagerError('DEMO_SOURCE_MISSING', DEMO_SOURCE_PATH);
+  }
+  const id = crypto.randomUUID();
+  const entry: PortfolioEntry = {
+    id, name: 'Demo Portfolio', kind: 'demo', source: 'demo',
+    createdAt: new Date().toISOString(),
+    lastOpenedAt: null,
+  };
+  const filePath = resolvePortfolioPath(entry);
+  atomicCopy(DEMO_SOURCE_PATH, filePath);
+  finalizeRegistry(entry);
+  broadcast('portfolio.created', { id });
+  return { entry };
+}
+
+function createImportedPpxmlImpl(name: string, ppxmlTempDbPath: string): CreatePortfolioResult {
+  const id = crypto.randomUUID();
+  const entry: PortfolioEntry = {
+    id, name, kind: 'real', source: 'import-pp-xml',
+    createdAt: new Date().toISOString(),
+    lastOpenedAt: null,
+  };
+  const filePath = resolvePortfolioPath(entry);
+  // ppxml2db.py already populated the temp file. Move it into place and then
+  // apply bootstrap.sql (idempotent additive vf_* tables + indexes).
+  atomicCopy(ppxmlTempDbPath, filePath);
+  const db = new Database(filePath);
+  try {
+    applyBootstrap(db);
+    seedMeta(db, { name, createdAt: entry.createdAt, source: 'import-pp-xml' });
+    seedDefaultDashboard(db);
+  } finally {
+    db.close();
+  }
+  finalizeRegistry(entry);
+  broadcast('portfolio.created', { id });
+  return { entry };
+}
+
+function createImportedQuovibeDbImpl(uploadedDbPath: string): CreatePortfolioResult {
+  // Validation is caller's responsibility — route handler runs
+  // validateQuovibeDbFile(uploadedDbPath) before invoking us. The result
+  // includes the portfolio's original `name`, which we re-read here.
+  const id = crypto.randomUUID();
+  // We read vf_portfolio_meta from the file BEFORE moving it, to produce the entry.
+  const readDb = new Database(uploadedDbPath, { readonly: true });
+  let sourceName = '';
+  let createdAt = new Date().toISOString();
+  try {
+    const n = readDb.prepare("SELECT value FROM vf_portfolio_meta WHERE key = 'name'").get() as
+      { value: string } | undefined;
+    sourceName = n?.value ?? 'Imported Portfolio';
+    const c = readDb.prepare("SELECT value FROM vf_portfolio_meta WHERE key = 'createdAt'").get() as
+      { value: string } | undefined;
+    if (c?.value) createdAt = c.value;
+  } finally {
+    readDb.close();
+  }
+  const entry: PortfolioEntry = {
+    id, name: sourceName, kind: 'real', source: 'import-quovibe-db',
+    createdAt,
+    lastOpenedAt: new Date().toISOString(),
+  };
+  const filePath = resolvePortfolioPath(entry);
+  atomicCopy(uploadedDbPath, filePath);
+  // Idempotent forward-compat fill-in (older exporter may lack newer vf_* tables).
+  const db = new Database(filePath);
+  try { applyBootstrap(db); } finally { db.close(); }
+  finalizeRegistry(entry);
+  broadcast('portfolio.created', { id });
+  return { entry };
+}
+
+function seedMeta(
+  db: Database.Database,
+  values: { name: string; createdAt: string; source: CreatePortfolioSource },
+): void {
+  const stmt = db.prepare('INSERT OR REPLACE INTO vf_portfolio_meta (key, value) VALUES (?, ?)');
+  stmt.run('name', values.name);
+  stmt.run('createdAt', values.createdAt);
+  stmt.run('source', values.source);
+  stmt.run('schemaVersion', '1');
+}
+
+function finalizeRegistry(entry: PortfolioEntry): void {
+  upsertPortfolioEntry(entry);
+  const s = getSettings();
+  const needsDefault = !s.app.defaultPortfolioId && entry.kind === 'real';
+  const needsInit = !s.app.initialized && entry.kind !== 'demo';
+  if (needsDefault || needsInit) {
+    updateSettings({
+      app: {
+        ...s.app,
+        defaultPortfolioId: needsDefault ? entry.id : s.app.defaultPortfolioId,
+        initialized: needsInit ? true : s.app.initialized,
+      },
+    });
+  }
+}
+
+// --- rename / delete --------------------------------------------------------
+
+export function renamePortfolio(id: string, newName: string): PortfolioEntry {
+  if (!newName.trim()) throw new PortfolioManagerError('EMPTY_NAME');
+  const entry = getPortfolioEntry(id);
+  if (!entry) throw new PortfolioManagerError('PORTFOLIO_NOT_FOUND');
+  if (entry.kind === 'demo') throw new PortfolioManagerError('DEMO_PORTFOLIO_IMMUTABLE_METADATA');
+
+  const { sqlite } = acquirePortfolioDb(id);
+  try {
+    sqlite.prepare("UPDATE vf_portfolio_meta SET value = ? WHERE key = 'name'").run(newName);
+  } finally {
+    releasePortfolioDb(id);
+  }
+  const updated: PortfolioEntry = { ...entry, name: newName };
+  upsertPortfolioEntry(updated);
+  broadcast('portfolio.renamed', { id, name: newName });
+  return updated;
+}
+
+export function deletePortfolio(id: string): void {
+  const entry = getPortfolioEntry(id);
+  if (!entry) throw new PortfolioManagerError('PORTFOLIO_NOT_FOUND');
+  if (entry.kind === 'demo') throw new PortfolioManagerError('DEMO_PORTFOLIO_IMMUTABLE_METADATA');
+
+  // Sidecar first (spec §3.4d ordering): even if unlink fails, the portfolio
+  // disappears from the UI. On next boot, rebuildRegistryFromDbs re-registers
+  // the orphan file if it still exists.
+  removePortfolioEntry(id);
+  evictPortfolioDb(id);
+  const filePath = resolvePortfolioPath(entry);
+  unlinkDbFile(filePath);
+  broadcast('portfolio.deleted', { id });
+}
+
+// --- lastOpenedAt bump (used by switcher-pick) ------------------------------
+
+export function touchPortfolio(id: string): void {
+  const entry = getPortfolioEntry(id);
+  if (!entry) throw new PortfolioManagerError('PORTFOLIO_NOT_FOUND');
+  upsertPortfolioEntry({ ...entry, lastOpenedAt: new Date().toISOString() });
+}
