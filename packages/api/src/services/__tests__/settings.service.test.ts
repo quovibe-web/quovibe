@@ -5,30 +5,24 @@ import os from 'os';
 
 // ---------------------------------------------------------------------------
 // Test isolation: use a temp directory so tests never touch the real sidecar.
-// We mock the config module before importing the service so that DB_PATH
-// points to a file inside our temp dir.
+// We point QUOVIBE_DATA_DIR at a temp dir, then reset config's module-level
+// constants so SIDECAR_PATH resolves inside our tempDir.
 // ---------------------------------------------------------------------------
 
 let tempDir: string;
-let tempDbPath: string;
 let sidecarPath: string;
 
 beforeEach(() => {
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'quovibe-settings-test-'));
-  tempDbPath = path.join(tempDir, 'portfolio.db');
   sidecarPath = path.join(tempDir, 'quovibe.settings.json');
 
-  // Override DB_PATH before the service module is evaluated
+  process.env.QUOVIBE_DATA_DIR = tempDir;
   vi.resetModules();
-  vi.doMock('../../config', () => ({
-    DB_PATH: tempDbPath,
-    DB_BACKUP_MAX: 3,
-    SCHEMA_PATH: path.join(tempDir, 'schema.db'),
-  }));
 });
 
 afterEach(() => {
   vi.resetModules();
+  delete process.env.QUOVIBE_DATA_DIR;
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
 

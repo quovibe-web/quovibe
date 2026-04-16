@@ -12,24 +12,16 @@ try { new Database(':memory:').close(); hasSqliteBindings = true; } catch { /* s
 const itIfSqlite = hasSqliteBindings ? it : it.skip;
 
 let tempDir: string;
-let openSqlite: InstanceType<typeof Database> | null = null;
 
 beforeEach(() => {
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'quovibe-av-test-'));
+  process.env.QUOVIBE_DATA_DIR = tempDir;
   vi.resetModules();
-  vi.doMock('../../config', () => ({
-    DB_PATH: path.join(tempDir, 'portfolio.db'),
-    DB_BACKUP_MAX: 3,
-    SCHEMA_PATH: path.join(tempDir, 'schema.db'),
-  }));
 });
 
 afterEach(() => {
-  if (openSqlite) {
-    openSqlite.close();
-    openSqlite = null;
-  }
   vi.resetModules();
+  delete process.env.QUOVIBE_DATA_DIR;
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
 
@@ -37,16 +29,7 @@ async function buildApp() {
   const { createApp } = await import('../../create-app');
   const { loadSettings } = await import('../../services/settings.service');
   loadSettings();
-
-  const sqlite = new Database(':memory:');
-  openSqlite = sqlite;
-  // Required by the getReportingPeriods handler (sibling route) which queries this table
-  sqlite.exec('CREATE TABLE IF NOT EXISTS property (name TEXT PRIMARY KEY, value TEXT)');
-
-  const { drizzle } = await import('drizzle-orm/better-sqlite3');
-  const db = drizzle(sqlite);
-
-  return createApp(db as Parameters<typeof createApp>[0], sqlite);
+  return createApp();
 }
 
 describe('GET /api/settings/allocation-view', () => {

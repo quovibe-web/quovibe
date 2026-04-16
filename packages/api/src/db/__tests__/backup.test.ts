@@ -6,8 +6,9 @@ import os from 'os';
 
 /**
  * These tests verify the backup primitives (VACUUM INTO, checkpoint+copy,
- * rotation) directly, without importing backupDb — which triggers module
- * side-effects (DB open, startup backup) tied to DB_PATH.
+ * rotation) directly on in-memory/temp SQLite handles. The per-portfolio
+ * backup API is introduced in Phase 6; this file stays as a self-contained
+ * primitives test.
  */
 
 function createTmpDir(): string {
