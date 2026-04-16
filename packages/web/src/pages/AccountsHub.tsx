@@ -6,7 +6,7 @@ import { Landmark } from 'lucide-react';
 import { CostMethod } from '@quovibe/shared';
 import type { CalculationBreakdownResponse } from '@quovibe/shared';
 import { useAccounts, accountsKeys } from '@/api/use-accounts';
-import { apiFetch } from '@/api/fetch';
+import { useScopedApi } from '@/api/use-scoped-api';
 import type { AccountHoldingsResponse } from '@/api/types';
 import { useReportingPeriod, performanceKeys } from '@/api/use-performance';
 import { AccountSummaryStrip } from '@/components/domain/AccountSummaryStrip';
@@ -37,6 +37,7 @@ export default function AccountsHub() {
   const { isPrivate } = usePrivacy();
   const baseCurrency = useBaseCurrency();
   const { periodStart, periodEnd } = useReportingPeriod();
+  const api = useScopedApi();
 
   // 2. Fetch accounts
   const { data: accounts = [], isLoading } = useAccounts(showRetired);
@@ -47,14 +48,14 @@ export default function AccountsHub() {
   // 4. Prefetch holdings and performance for all portfolios
   const holdingsQueries = useQueries({
     queries: portfolios.map(p => ({
-      queryKey: accountsKeys.holdings(p.id),
-      queryFn: () => apiFetch<AccountHoldingsResponse>(`/api/accounts/${p.id}/holdings`),
+      queryKey: accountsKeys.holdings(api.portfolioId, p.id),
+      queryFn: () => api.fetch<AccountHoldingsResponse>(`/api/accounts/${p.id}/holdings`),
     })),
   });
 
   const perfQueries = useQueries({
     queries: portfolios.map(p => ({
-      queryKey: performanceKeys.calculation(periodStart, periodEnd, true, CostMethod.MOVING_AVERAGE, p.id, true),
+      queryKey: performanceKeys.calculation(api.portfolioId, periodStart, periodEnd, true, CostMethod.MOVING_AVERAGE, p.id, true),
       queryFn: () => {
         const params = new URLSearchParams({
           periodStart,
@@ -64,7 +65,7 @@ export default function AccountsHub() {
           filter: p.id,
           withReference: 'true',
         });
-        return apiFetch<CalculationBreakdownResponse>(`/api/performance/calculation?${params}`);
+        return api.fetch<CalculationBreakdownResponse>(`/api/performance/calculation?${params}`);
       },
     })),
   });

@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ExpandableNavItem } from './ExpandableNavItem';
 import { CreateTaxonomyDialog } from '../domain/CreateTaxonomyDialog';
 import { DeleteTaxonomyDialog } from '../domain/DeleteTaxonomyDialog';
-import { apiFetch } from '@/api/fetch';
+import { useScopedApi } from '@/api/use-scoped-api';
 import { taxonomyKeys } from '@/api/use-taxonomies';
 import { useReorderTaxonomy } from '@/api/use-taxonomy-mutations';
 import { useTheme } from '@/hooks/use-theme';
@@ -174,6 +174,7 @@ export function DesktopSidebar() {
   const { t } = useTranslation('navigation');
   const { t: tr } = useTranslation('reports');
   const qc = useQueryClient();
+  const api = useScopedApi();
   const reorderMutation = useReorderTaxonomy();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -260,12 +261,12 @@ export function DesktopSidebar() {
               setRenameTarget(null);
               return;
             }
-            await apiFetch(`/api/taxonomies/${renameTarget.id}`, {
+            await api.fetch(`/api/taxonomies/${renameTarget.id}`, {
               method: 'PATCH',
               body: JSON.stringify({ name: newName }),
             });
-            qc.invalidateQueries({ queryKey: taxonomyKeys.all });
-            qc.invalidateQueries({ queryKey: taxonomyKeys.tree(renameTarget.id) });
+            qc.invalidateQueries({ queryKey: taxonomyKeys.all(api.portfolioId) });
+            qc.invalidateQueries({ queryKey: taxonomyKeys.tree(api.portfolioId, renameTarget.id) });
             setRenameTarget(null);
           }}>
             <div className="py-4">

@@ -1,8 +1,11 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { PortfolioLayout } from '@/layouts/PortfolioLayout';
+import { ErrorFallback } from '@/components/shared/ErrorFallback';
+import { RootRedirect } from '@/components/shared/RootRedirect';
+
 const AccountsHub = lazy(() => import('./pages/AccountsHub'));
 const Watchlists = lazy(() => import('./pages/Watchlists'));
-import { Shell } from '@/components/layout/Shell';
 import Dashboard from '@/pages/Dashboard';
 import Investments from '@/pages/Investments';
 import SecurityDetail from '@/pages/SecurityDetail';
@@ -13,37 +16,38 @@ import Calculation from '@/pages/Calculation';
 import PerformanceChart from '@/pages/PerformanceChart';
 import AssetAllocation from '@/pages/AssetAllocation';
 import Payments from '@/pages/Payments';
-import Settings from '@/pages/Settings';
+import UserSettings from '@/pages/UserSettings';
+import PortfolioSettings from '@/pages/PortfolioSettings';
 import TaxonomySeries from '@/pages/TaxonomySeries';
-import ImportPage from '@/pages/ImportPage';
 import CsvImportPage from '@/pages/CsvImportPage';
 import Analytics from '@/pages/Analytics';
-import { ErrorFallback } from '@/components/shared/ErrorFallback';
+import Welcome from '@/pages/Welcome';
 
 function RedirectSecurityDetail() {
-  const { id } = useParams();
-  return <Navigate to={`/investments/${id}`} replace />;
+  const { id, portfolioId } = useParams();
+  return <Navigate to={`/p/${portfolioId}/investments/${id}`} replace />;
 }
 
 function RedirectPerfSecurities() {
+  const { portfolioId } = useParams();
   const [searchParams] = useSearchParams();
   const target = new URLSearchParams(searchParams);
   target.set('view', 'performance');
-  return <Navigate to={`/investments?${target.toString()}`} replace />;
+  return <Navigate to={`/p/${portfolioId}/investments?${target.toString()}`} replace />;
 }
 
 export const router = createBrowserRouter([
+  { path: '/', element: <RootRedirect />, errorElement: <ErrorFallback /> },
+  { path: '/welcome', element: <Welcome />, errorElement: <ErrorFallback /> },
+  { path: '/settings', element: <UserSettings />, errorElement: <ErrorFallback /> },
   {
-    path: '/import',
-    element: <ImportPage />,  // standalone, no sidebar/shell
-    errorElement: <ErrorFallback />,
-  },
-  {
-    path: '/',
-    element: <Shell />,
+    path: '/p/:portfolioId',
+    element: <PortfolioLayout />,
     errorElement: <ErrorFallback />,
     children: [
-      { index: true, element: <Dashboard /> },
+      { index: true, element: <Navigate to="dashboard" replace /> },
+      { path: 'dashboard', element: <Dashboard /> },                     // redirects to :dashboardId → Task 5b.3
+      { path: 'dashboard/:dashboardId', element: <Dashboard /> },
       { path: 'watchlists', element: <Suspense fallback={<div />}><Watchlists /></Suspense> },
       { path: 'investments', element: <Investments /> },
       { path: 'investments/:id', element: <SecurityDetail /> },
@@ -56,28 +60,30 @@ export const router = createBrowserRouter([
         path: 'analytics',
         element: <Analytics />,
         children: [
-          { index: true, element: <Navigate to="/analytics/calculation" replace /> },
+          { index: true, element: <Navigate to="calculation" replace /> },
           { path: 'calculation', element: <Calculation /> },
           { path: 'chart', element: <PerformanceChart /> },
           { path: 'income', element: <Payments /> },
         ],
       },
-      { path: 'performance', element: <Navigate to="/analytics/calculation" replace /> },
-      { path: 'performance/calculation', element: <Navigate to="/analytics/calculation" replace /> },
-      { path: 'performance/chart', element: <Navigate to="/analytics/chart" replace /> },
-      { path: 'performance/taxonomy-series', element: <Navigate to="/taxonomies/data-series" replace /> },
-      { path: 'analytics/data-series', element: <Navigate to="/taxonomies/data-series" replace /> },
-      { path: 'reports/payments', element: <Navigate to="/analytics/income" replace /> },
-      { path: 'reports/statement', element: <Navigate to="/investments" replace /> },
-      { path: 'reports/holdings', element: <Navigate to="/investments" replace /> },
       { path: 'allocation', element: <AssetAllocation /> },
       { path: 'taxonomies/data-series', element: <TaxonomySeries /> },
-      { path: 'reports/asset-allocation', element: <Navigate to="/allocation" replace /> },
-      { path: 'reports/dividends', element: <Navigate to="/analytics/income" replace /> },
-      { path: 'securities', element: <Navigate to="/investments" replace /> },
       { path: 'securities/:id', element: <RedirectSecurityDetail /> },
       { path: 'import/csv', element: <CsvImportPage /> },
-      { path: 'settings', element: <Settings /> },
+      { path: 'settings/data', element: <PortfolioSettings /> },
+      // Legacy aliases retained under portfolio scope
+      { path: 'performance', element: <Navigate to="../analytics/calculation" replace /> },
+      { path: 'performance/calculation', element: <Navigate to="../analytics/calculation" replace /> },
+      { path: 'performance/chart', element: <Navigate to="../analytics/chart" replace /> },
+      { path: 'performance/taxonomy-series', element: <Navigate to="../taxonomies/data-series" replace /> },
+      { path: 'reports/payments', element: <Navigate to="../analytics/income" replace /> },
+      { path: 'reports/statement', element: <Navigate to="../investments" replace /> },
+      { path: 'reports/holdings', element: <Navigate to="../investments" replace /> },
+      { path: 'reports/asset-allocation', element: <Navigate to="../allocation" replace /> },
+      { path: 'reports/dividends', element: <Navigate to="../analytics/income" replace /> },
+      { path: 'securities', element: <Navigate to="../investments" replace /> },
+      { path: 'analytics/data-series', element: <Navigate to="../taxonomies/data-series" replace /> },
+      { path: 'settings', element: <Navigate to="data" replace /> },      // legacy: /settings used to be portfolio-level; now data
     ],
   },
 ]);
