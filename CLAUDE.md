@@ -95,7 +95,7 @@ cashflows, pricing, performance, or data structures:
 | `pnpm lint` | Lint all packages (max 50 warnings) |
 | `pnpm lint:engine` | ESLint zero tolerance: no I/O imports in the engine |
 | `pnpm check:governance` | 14 governance checks (doc alignment, upstream ban, service rules, no direct DB writes in routes) |
-| `pnpm check:arch` | 10 architecture checks (dependency boundaries, import rules) |
+| `pnpm check:arch` | 9 architecture checks (dependency boundaries, import rules) |
 | `pnpm check:all` | test + lint:engine + governance + architecture |
 | `pnpm preflight` | Pre-session gate: build → test → lint → governance → arch |
 | `pnpm postflight` | Post-session gate: same checks + changelog draft |

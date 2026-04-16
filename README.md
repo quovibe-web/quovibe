@@ -233,7 +233,7 @@ Architecture Decision Records: [`docs/adr/`](docs/adr/)
 
 ## Quality
 
-1729+ tests · 13 governance checks · 10 architecture boundary rules — all enforced in CI on every push.
+1729+ tests · 13 governance checks · 9 architecture boundary rules — all enforced in CI on every push.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full quality workflow.
 
 ---
