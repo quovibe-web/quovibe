@@ -237,13 +237,43 @@ export const taxonomyAssignmentData = sqliteTable('taxonomy_assignment_data', {
   value: text('value').notNull(),
 });
 
-// ─── CSV IMPORT CONFIG ───────────────────────────
+// ─── QUOVIBE-OWNED TABLES (vf_*) ─────────────────
 
-export const csvImportConfigs = sqliteTable('csv_import_config', {
+export const vfCsvImportConfigs = sqliteTable('vf_csv_import_config', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  type: text('type').notNull(),        // 'TRADES' | 'PRICES'
-  config: text('config').notNull(),    // JSON blob
+  type: text('type').notNull(),
+  config: text('config').notNull(),
   createdAt: text('createdAt').notNull(),
+  updatedAt: text('updatedAt').notNull(),
+});
+
+export const vfExchangeRates = sqliteTable('vf_exchange_rate', {
+  date: text('date').notNull(),
+  fromCurrency: text('from_currency').notNull(),
+  toCurrency: text('to_currency').notNull(),
+  rate: text('rate').notNull(),
+}, (t) => ({ pk: primaryKey({ columns: [t.date, t.fromCurrency, t.toCurrency] }) }));
+
+export const vfPortfolioMeta = sqliteTable('vf_portfolio_meta', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+});
+
+export const vfDashboards = sqliteTable('vf_dashboard', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  position: integer('position').notNull(),
+  widgetsJson: text('widgets_json').notNull(),
+  schemaVersion: integer('schema_version').notNull().default(1),
+  columns: integer('columns').notNull().default(3),
+  createdAt: text('createdAt').notNull(),
+  updatedAt: text('updatedAt').notNull(),
+});
+
+export const vfChartConfigs = sqliteTable('vf_chart_config', {
+  chartId: text('chart_id').primaryKey(),
+  configJson: text('config_json').notNull(),
+  schemaVersion: integer('schema_version').notNull().default(1),
   updatedAt: text('updatedAt').notNull(),
 });

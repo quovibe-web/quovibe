@@ -4,11 +4,11 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import Database from 'better-sqlite3';
-import type BetterSqlite3 from 'better-sqlite3';
 import * as cheerio from 'cheerio';
 import { v4 as uuidv4 } from 'uuid'; // uuid is already in packages/api/package.json
-import { verifySchema, applyExtensions } from '../db/verify';
-import { DB_PATH, SCHEMA_PATH } from '../config';
+import { verifySchema } from '../db/verify';
+import { applyBootstrap } from '../db/apply-bootstrap';
+import { DB_PATH } from '../config';
 
 const execFileAsync = promisify(execFile);
 
@@ -94,50 +94,6 @@ export function validateXmlFormat(xmlPath: string): void {
   }
 }
 
-/**
- * Copies quovibe-owned table data (vf_exchange_rate) from the live DB
- * into the newly-created import DB so FX rates survive re-imports.
- * Opens the live DB readonly (WAL mode allows concurrent readers).
- */
-export function preserveCustomTables(
-  newDb: BetterSqlite3.Database,
-  liveDbPath: string,
-): void {
-  if (!fs.existsSync(liveDbPath)) return;
-
-  let liveDb: BetterSqlite3.Database | null = null;
-  try {
-    liveDb = new Database(liveDbPath, { readonly: true });
-
-    const exists = liveDb.prepare(
-      `SELECT 1 FROM sqlite_master WHERE type='table' AND name='vf_exchange_rate'`,
-    ).get();
-    if (!exists) return;
-
-    const rows = liveDb.prepare(
-      'SELECT date, from_currency, to_currency, rate FROM vf_exchange_rate',
-    ).all() as { date: string; from_currency: string; to_currency: string; rate: string }[];
-
-    if (rows.length === 0) return;
-
-    const insert = newDb.prepare(
-      `INSERT OR IGNORE INTO vf_exchange_rate (date, from_currency, to_currency, rate)
-       VALUES (?, ?, ?, ?)`,
-    );
-    newDb.transaction(() => {
-      for (const r of rows) {
-        insert.run(r.date, r.from_currency, r.to_currency, r.rate);
-      }
-    })();
-
-    console.log(`[quovibe] Preserved ${rows.length} FX rates from previous database`);
-  } catch (err) {
-    console.warn('[quovibe] Could not preserve FX rates:', (err as Error).message);
-  } finally {
-    try { liveDb?.close(); } catch { /* ok */ }
-  }
-}
-
 export interface ImportResult {
   tempDbPath: string;
   accounts: number;
@@ -149,7 +105,7 @@ export interface ImportResult {
  * 1. Validate XML format
  * 2. Convert XML → temp SQLite via ppxml2db
  * 3. Validate output schema
- * 4. Apply quovibe extensions to temp DB
+ * 4. Apply bootstrap DDL to temp DB
  * 5. Return { tempDbPath, accounts, securities }
  *
  * The caller (route handler) is responsible for the DB lifecycle:
@@ -171,14 +127,7 @@ export async function runImport(xmlPath: string): Promise<ImportResult> {
     // Step 3: Validate XML format (fast, no Python)
     validateXmlFormat(tempXmlPath);
 
-    // Step 4: Seed temp DB with empty schema so ppxml2db can INSERT without running ppxml2db_init.
-    // SCHEMA_PATH is configured via env (Docker: /app/bootstrap/schema.db).
-    const schemaDbPath = SCHEMA_PATH;
-    if (fs.existsSync(schemaDbPath)) {
-      fs.copyFileSync(schemaDbPath, tempDbPath);
-    }
-
-    // Step 5: Run ppxml2db conversion
+    // Step 4: Run ppxml2db conversion
     // ppxml2db.py requires explicit output db path: ppxml2db.py <xml_file> <db>
     const ppxml2dbPath = path.join(VENDOR_DIR, 'ppxml2db.py');
     // Resolve python3 path: follow symlinks to the real binary to avoid execFile ENOENT
@@ -197,6 +146,9 @@ export async function runImport(xmlPath: string): Promise<ImportResult> {
         break;
       } catch { /* not found, try next */ }
     }
+    // ⚠️ LOAD-BEARING ORDERING INVARIANT — see docs/superpowers/specs/2026-04-15-db-bootstrap-architecture-design.md §3.4:
+    // ppxml2db.py MUST run before applyBootstrap against an empty file. Vendor DDL lacks
+    // `IF NOT EXISTS`, so bootstrap-first would cause "table already exists" on vendor CREATE.
     try {
       await execFileAsync(python3, [ppxml2dbPath, tempXmlPath, tempDbPath], {
         timeout: 110_000, // under the 120s route timeout
@@ -228,15 +180,12 @@ export async function runImport(xmlPath: string): Promise<ImportResult> {
       );
     }
 
-    // Apply quovibe extensions to the temp DB (not the live DB — caller handles the swap)
+    // Apply bootstrap DDL to the temp DB (not the live DB — caller handles the swap)
     const newDb = new Database(tempDbPath);
     let accounts = 0;
     let securities = 0;
     try {
-      applyExtensions(newDb);
-
-      // Preserve quovibe-owned data from the current live DB
-      preserveCustomTables(newDb, DB_PATH);
+      applyBootstrap(newDb);
 
       // Count imported data
       accounts = (newDb.prepare('SELECT COUNT(*) as cnt FROM account').get() as { cnt: number }).cnt;

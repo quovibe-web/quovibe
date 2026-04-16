@@ -5,7 +5,7 @@
   "license": "AGPL-3.0-only",
   "main": "./dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node -e \"require('fs').mkdirSync('dist/db',{recursive:true});require('fs').copyFileSync('src/db/bootstrap.sql','dist/db/bootstrap.sql')\"",
     "dev": "nodemon --watch src --ext ts,json --exec \"node_modules/.bin/tsx src/index.ts\"",
     "test": "vitest"
   },

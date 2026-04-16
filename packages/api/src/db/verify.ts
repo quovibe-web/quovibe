@@ -1,5 +1,4 @@
 import type BetterSqlite3 from 'better-sqlite3';
-import { VF_EXCHANGE_RATE_DDL } from './extensions';
 
 type Database = BetterSqlite3.Database;
 
@@ -77,80 +76,3 @@ export function verifyColumnTypes(db: Database): void {
   }
 }
 
-export function applyExtensions(db: Database): void {
-  db.exec(VF_EXCHANGE_RATE_DDL);
-
-  // Ensure property table exists (OPTIONAL in ppxml2db but required by quovibe)
-  // Schema matches ppxml2db's own definition exactly
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS property (
-      name TEXT PRIMARY KEY,
-      special INTEGER NOT NULL DEFAULT 0,
-      value TEXT NOT NULL
-    )
-  `);
-
-  // P0: account_attr — opzionale in ppxml2db, ma richiesto da quovibe (evita crash 500)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS account_attr (
-      account VARCHAR(36) NOT NULL REFERENCES account(uuid),
-      attr_uuid VARCHAR(36) NOT NULL,
-      type VARCHAR(32) NOT NULL,
-      value TEXT,
-      seq INT NOT NULL DEFAULT 0
-    )
-  `);
-
-  const createIndexes = [
-    `CREATE INDEX IF NOT EXISTS idx_xact_date ON xact(date)`,
-    `CREATE INDEX IF NOT EXISTS idx_xact_security ON xact(security)`,
-    `CREATE INDEX IF NOT EXISTS idx_xact_cross_entry_from_acc ON xact_cross_entry(from_acc)`,
-    `CREATE INDEX IF NOT EXISTS idx_xact_cross_entry_to_acc ON xact_cross_entry(to_acc)`,
-    `CREATE INDEX IF NOT EXISTS idx_price_date ON price(tstamp)`,
-    `CREATE INDEX IF NOT EXISTS idx_price_security_date ON price(security, tstamp)`,
-  ];
-  createIndexes.forEach(sql => db.exec(sql));
-
-  // calendar/updatedAt may be missing in older exports — add if needed
-  const addIfMissing = (sql: string) => {
-    try { db.exec(sql); } catch { /* column already exists — safe to ignore */ }
-  };
-  addIfMissing(`ALTER TABLE security ADD COLUMN calendar TEXT`);
-  addIfMissing(`ALTER TABLE security ADD COLUMN updatedAt TEXT`);
-
-  // P3: one-shot migration — recreate latest_price with inline PRIMARY KEY so that
-  // ON CONFLICT(security) upserts work. The original ppxml2db DDL uses a separate
-  // UNIQUE INDEX which SQLite does not recognise for upsert conflict resolution.
-  const lpInfo = db.prepare(`PRAGMA table_info(latest_price)`).all() as { name: string; pk: number }[];
-  const lpHasPk = lpInfo.some(c => c.name === 'security' && c.pk > 0);
-  if (!lpHasPk) {
-    db.exec(`DROP TABLE IF EXISTS latest_price_new`);
-    db.exec(`
-      CREATE TABLE latest_price_new (
-        security VARCHAR(36) NOT NULL PRIMARY KEY REFERENCES security(uuid),
-        tstamp VARCHAR(32) NOT NULL,
-        value BIGINT NOT NULL
-      );
-      INSERT INTO latest_price_new (security, tstamp, value)
-        SELECT security, tstamp, value FROM latest_price;
-      DROP TABLE latest_price;
-      ALTER TABLE latest_price_new RENAME TO latest_price;
-    `);
-  }
-
-  // P2: one-shot migration — corrects xact_cross_entry.type values written by earlier
-  // quovibe versions (used enum values like 'BUY', 'SELL') to ppxml2db conventions.
-  // The query is idempotent: already-migrated values never match the WHERE clauses.
-  try {
-    db.exec(`
-      UPDATE xact_cross_entry SET type = 'buysell'
-        WHERE type IN ('BUY', 'SELL', 'DIVIDENDS');
-      UPDATE xact_cross_entry SET type = 'account-transfer'
-        WHERE type = 'TRANSFER_OUT' AND from_acc IN (SELECT uuid FROM account WHERE type = 'account');
-      UPDATE xact_cross_entry SET type = 'portfolio-transfer'
-        WHERE type IN ('TRANSFER_IN', 'TRANSFER_OUT', 'SECURITY_TRANSFER');
-    `);
-  } catch {
-    // cross_entry potrebbe non avere colonna type nei DB molto vecchi — ignorare
-  }
-}

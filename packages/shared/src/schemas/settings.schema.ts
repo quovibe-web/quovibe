@@ -159,6 +159,8 @@ const appSchema = z.object({
   lastImport: z.string().nullable().default(null),
   appVersion: z.string().nullable().default(null),
   initialized: z.boolean().default(false),
+  defaultPortfolioId: z.string().nullable().default(null),
+  autoFetchPricesOnFirstOpen: z.boolean().default(false),
 }).default({});
 
 const preferencesSchema = z.object({
@@ -173,13 +175,26 @@ const preferencesSchema = z.object({
   defaultDataSeriesTaxonomyId: z.string().optional(),
 }).default({});
 
+export const portfolioEntrySchema = z.object({
+  id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
+  name: z.string().min(1),
+  kind: z.enum(['real', 'demo']),
+  source: z.enum(['fresh', 'demo', 'import-pp-xml', 'import-quovibe-db']),
+  createdAt: z.string(),
+  lastOpenedAt: z.string().nullable().default(null),
+});
+
+export type PortfolioEntry = z.infer<typeof portfolioEntrySchema>;
+
 export const quovibeSettingsSchema = z.object({
+  schemaVersion: z.number().int().default(1),
   version: z.number().int().default(1),
   app: appSchema,
   preferences: preferencesSchema,
   reportingPeriods: z.array(reportingPeriodDefSchema).default([]),
   dashboards: z.array(dashboardSchema).default([]),
   activeDashboard: z.string().nullable().default(null),
+  portfolios: z.array(portfolioEntrySchema).default([]),
   investmentsView: investmentsViewSchema,
   allocationView: allocationViewSchema,
   chartConfig: chartConfigV2Schema.default({ version: 2, series: [] }),
