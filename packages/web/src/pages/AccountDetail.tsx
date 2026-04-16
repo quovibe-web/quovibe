@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { usePortfolio } from '@/context/PortfolioContext';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -56,6 +57,7 @@ export default function AccountDetail() {
   useDocumentTitle('Account');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const portfolio = usePortfolio();
   const { t } = useTranslation('accounts');
   const { t: tCommon } = useTranslation('common');
   const { t: tTx } = useTranslation('transactions');
@@ -93,7 +95,7 @@ export default function AccountDetail() {
     deleteAccount.mutate(account!.id, {
       onSuccess: () => {
         toast.success(tCommon('toasts.accountDeleted'));
-        navigate('/accounts');
+        navigate(`/p/${portfolio.id}/accounts`);
       },
       onError: (err) => {
         toast.error((err as Error).message ?? tCommon('toasts.errorDeleting'));

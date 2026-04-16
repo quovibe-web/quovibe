@@ -13,6 +13,7 @@ import {
   useUpdateAccountLogo,
 } from '@/api/use-accounts';
 import { useResolveLogo } from '@/api/use-logo';
+import { usePortfolio } from '@/context/PortfolioContext';
 import { resizeToPng } from '@/lib/image-utils';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { cn } from '@/lib/utils';
@@ -44,6 +45,7 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
   const { t: tCommon } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
+  const portfolio = usePortfolio();
   const [renameOpen, setRenameOpen] = useState(false);
   const [showDomainPrompt, setShowDomainPrompt] = useState(false);
   const [domainInput, setDomainInput] = useState('');
@@ -105,7 +107,7 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
         )}
         onClick={() => {
           if (menuActionRef.current) { menuActionRef.current = false; return; }
-          navigate(`/accounts/${account.id}${location.search}`);
+          navigate(`/p/${portfolio.id}/accounts/${account.id}${location.search}`);
         }}
       >
         <div className="flex items-center justify-between px-4 py-4">

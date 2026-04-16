@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCreateTaxonomy } from '@/api/use-taxonomy-mutations';
+import { usePortfolio } from '@/context/PortfolioContext';
 
 const TEMPLATES = [
   { key: '', labelKey: 'templateEmpty' },
@@ -35,6 +36,7 @@ interface Props {
 export function CreateTaxonomyDialog({ open, onOpenChange }: Props) {
   const { t } = useTranslation('reports');
   const navigate = useNavigate();
+  const portfolio = usePortfolio();
   const createMutation = useCreateTaxonomy();
 
   const [name, setName] = useState('');
@@ -61,7 +63,7 @@ export function CreateTaxonomyDialog({ open, onOpenChange }: Props) {
         ...(template ? { template } : {}),
       });
       handleClose(false);
-      navigate(`/allocation?taxonomy=${result.id}`);
+      navigate(`/p/${portfolio.id}/allocation?taxonomy=${result.id}`);
     } catch {
       toast.error(t('common:toasts.errorSaving'));
     }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useHoldings } from '@/api/use-reports';
 import { usePerformanceSecurities } from '@/api/use-performance';
 import { useSecurities } from '@/api/use-securities';
+import { usePortfolio } from '@/context/PortfolioContext';
 import { usePrivacy } from '@/context/privacy-context';
 import { useWidgetKpiMeta } from '@/hooks/use-widget-kpi-meta';
 import { useWidgetConfig } from '@/context/widget-config-context';
@@ -107,6 +108,7 @@ function HoldingRow({
 export default function WidgetTopHoldings() {
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
+  const portfolio = usePortfolio();
   const { isPrivate } = usePrivacy();
   const { periodOverride } = useWidgetConfig();
   const { periodStart: urlStart, periodEnd: urlEnd } = useReportingPeriod();
@@ -177,14 +179,14 @@ export default function WidgetTopHoldings() {
             logoUrl={logoMap.get(item.securityId)}
             ttwror={perfMap.get(item.securityId)}
             isPrivate={isPrivate}
-            onClick={() => navigate(`/investments/${item.securityId}`)}
+            onClick={() => navigate(`/p/${portfolio.id}/investments/${item.securityId}`)}
           />
         ))}
 
         {remaining > 0 && (
           <button
             type="button"
-            onClick={() => navigate('/investments')}
+            onClick={() => navigate(`/p/${portfolio.id}/investments`)}
             className="mt-1 text-[11px] text-primary hover:underline text-left pl-6"
           >
             {t('widget.topHoldings.showMore', { count: remaining })}

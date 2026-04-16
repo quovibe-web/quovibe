@@ -7,6 +7,7 @@ import { useTaxonomies } from '@/api/use-taxonomies';
 import { useTaxonomyTree } from '@/api/use-taxonomy-tree';
 import { useSecurities } from '@/api/use-securities';
 import { useResolveSeriesLabel } from '@/api/use-performance';
+import { usePortfolio } from '@/context/PortfolioContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Command,
@@ -192,6 +193,7 @@ function TaxonomySection({
 
 export function DataSeriesSelector({ value, onChange }: DataSeriesSelectorProps) {
   const { t } = useTranslation('dashboard');
+  const portfolio = usePortfolio();
   const [search, setSearch] = useState('');
   const [showAllSecurities, setShowAllSecurities] = useState(false);
 
@@ -425,7 +427,7 @@ export function DataSeriesSelector({ value, onChange }: DataSeriesSelectorProps)
                   <div className="px-2 py-1.5 text-sm text-muted-foreground">
                     <p>{t('dataSeries.noTaxonomies')}</p>
                     <Link
-                      to="/allocation"
+                      to={`/p/${portfolio.id}/allocation`}
                       className="text-xs underline hover:text-foreground"
                     >
                       {t('dataSeries.createTaxonomyLink')}

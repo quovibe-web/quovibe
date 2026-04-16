@@ -21,6 +21,7 @@ import { ImportDropzone } from '@/components/ImportDropzone';
 import { ImportProgress } from '@/components/ImportProgress';
 import { useImport } from '@/api/use-import';
 import { usePortfolio } from '@/api/use-portfolio';
+import { usePortfolio as usePortfolioContext } from '@/context/PortfolioContext';
 import { useInitPortfolio } from '@/api/use-init-portfolio';
 import { useTheme } from '@/hooks/use-theme';
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
@@ -54,6 +55,8 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
   const { t } = useTranslation('settings');
   const navigate = useNavigate();
   const { data: portfolio } = usePortfolio();
+  const currentPortfolio = usePortfolioContext();
+  const dashboardPath = `/p/${currentPortfolio.id}/dashboard`;
   const { state, setFile, submit, reset } = useImport();
   const initMutation = useInitPortfolio();
   const [file, setFileLocal] = useState<File | null>(null);
@@ -68,7 +71,7 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
 
   useEffect(() => {
     if (shouldRedirectAway) {
-      navigate('/', { replace: true });
+      navigate(dashboardPath, { replace: true });
     }
   }, [shouldRedirectAway, navigate]);
 
@@ -85,7 +88,7 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
         toast.success(
           t('import.importSuccess', { accounts: state.accounts, securities: state.securities }),
           {
-            action: { label: t('import.goToDashboard'), onClick: () => navigate('/') },
+            action: { label: t('import.goToDashboard'), onClick: () => navigate(dashboardPath) },
             duration: Infinity,
           }
         );
@@ -305,7 +308,7 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction
-              onClick={() => navigate('/')}
+              onClick={() => navigate(dashboardPath)}
               className="cursor-pointer transition-all duration-150 hover:brightness-110 hover:saturate-110 active:scale-[0.98]"
             >
               {t('import.goToDashboard')}
@@ -360,7 +363,7 @@ export default function ImportPage({ isReimport = false, onClose }: ImportPagePr
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction
-              onClick={() => navigate('/')}
+              onClick={() => navigate(dashboardPath)}
               className="cursor-pointer transition-all duration-150 hover:brightness-110 hover:saturate-110 active:scale-[0.98]"
             >
               {t('import.goToDashboard')}

@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TransactionForm, type TransactionFormValues } from '@/components/domain/TransactionForm';
 import { useCreateTransaction } from '@/api/use-transactions';
+import { usePortfolio } from '@/context/PortfolioContext';
 import { preparePayload } from '@/lib/transaction-payload';
 import { txTypeKey } from '@/lib/utils';
 
@@ -24,6 +25,7 @@ function mapDbTypeToAccountType(dbType: string | null): AccountType | null {
 
 export default function TransactionNew() {
   const navigate = useNavigate();
+  const portfolio = usePortfolio();
   const { t } = useTranslation('transactions');
   const [searchParams] = useSearchParams();
 
@@ -43,7 +45,7 @@ export default function TransactionNew() {
   const { mutate, isPending } = useCreateTransaction();
 
   function handleSubmit(values: TransactionFormValues) {
-    mutate(preparePayload(values), { onSuccess: () => navigate('/transactions') });
+    mutate(preparePayload(values), { onSuccess: () => navigate(`/p/${portfolio.id}/transactions`) });
   }
 
   return (

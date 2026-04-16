@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useWatchlists } from '@/api/use-watchlists';
+import { usePortfolio } from '@/context/PortfolioContext';
 import { usePrivacy } from '@/context/privacy-context';
 import { useWidgetConfig } from '@/context/widget-config-context';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
@@ -11,6 +12,7 @@ export default function WidgetWatchlist() {
   const { t } = useTranslation('watchlists');
   const { isPrivate } = usePrivacy();
   const navigate = useNavigate();
+  const portfolio = usePortfolio();
   const { options } = useWidgetConfig();
   const { data: watchlists } = useWatchlists();
 
@@ -53,7 +55,7 @@ export default function WidgetWatchlist() {
             <div
               key={sec.id}
               className="flex items-center gap-2 justify-between p-2 border-b last:border-b-0 cursor-pointer hover:bg-muted/50"
-              onClick={() => navigate(`/investments/${sec.id}`)}
+              onClick={() => navigate(`/p/${portfolio.id}/investments/${sec.id}`)}
             >
               <div className="flex items-center gap-2 min-w-0">
                 <SecurityAvatar name={sec.name} logoUrl={sec.logoUrl} size="sm" />

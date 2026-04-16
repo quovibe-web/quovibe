@@ -8,6 +8,7 @@ import { ExpandableNavItem } from './ExpandableNavItem';
 import { CreateTaxonomyDialog } from '../domain/CreateTaxonomyDialog';
 import { DeleteTaxonomyDialog } from '../domain/DeleteTaxonomyDialog';
 import { useScopedApi } from '@/api/use-scoped-api';
+import { usePortfolio } from '@/context/PortfolioContext';
 import { taxonomyKeys } from '@/api/use-taxonomies';
 import { useReorderTaxonomy } from '@/api/use-taxonomy-mutations';
 import { useTheme } from '@/hooks/use-theme';
@@ -55,48 +56,63 @@ import { cn } from '@/lib/utils';
 type NavItem = { to: string; labelKey: string; icon: React.ElementType; end?: boolean };
 type NavSection = { sectionKey: string; items: NavItem[] };
 
-const NAV: NavSection[] = [
+// Suffixes under /p/:portfolioId/*. `scopePath(pid, suffix)` turns them into
+// absolute URLs at render time; the sidebar only renders inside PortfolioLayout
+// so `pid` is always defined.
+const NAV_SUFFIXES: NavSection[] = [
   {
     sectionKey: 'sections.main',
     items: [
-      { to: '/', labelKey: 'items.dashboard', icon: LayoutDashboard },
-      { to: '/watchlists', labelKey: 'items.watchlists', icon: List },
+      { to: '', labelKey: 'items.dashboard', icon: LayoutDashboard, end: true },
+      { to: 'watchlists', labelKey: 'items.watchlists', icon: List },
     ],
   },
   {
     sectionKey: 'sections.data',
     items: [
-      { to: '/accounts', labelKey: 'items.accounts', icon: Landmark },
-      { to: '/investments', labelKey: 'items.investments', icon: TrendingUp },
-      { to: '/transactions', labelKey: 'items.transactions', icon: ArrowLeftRight },
+      { to: 'accounts', labelKey: 'items.accounts', icon: Landmark },
+      { to: 'investments', labelKey: 'items.investments', icon: TrendingUp },
+      { to: 'transactions', labelKey: 'items.transactions', icon: ArrowLeftRight },
     ],
   },
   {
     sectionKey: 'sections.analysis',
     items: [
-      { to: '/analytics', labelKey: 'items.analytics', icon: BarChart3, end: false },
+      { to: 'analytics', labelKey: 'items.analytics', icon: BarChart3, end: false },
     ],
   },
   {
     sectionKey: 'sections.taxonomies',
     items: [
-      { to: '/allocation', labelKey: 'items.assetAllocation', icon: Layers },
-      { to: '/taxonomies/data-series', labelKey: 'items.dataSeries', icon: GitBranch },
+      { to: 'allocation', labelKey: 'items.assetAllocation', icon: Layers },
+      { to: 'taxonomies/data-series', labelKey: 'items.dataSeries', icon: GitBranch },
     ],
   },
   {
     sectionKey: 'sections.system',
-    items: [{ to: '/settings', labelKey: 'items.settings', icon: Settings }],
+    items: [{ to: 'settings/data', labelKey: 'items.settings', icon: Settings }],
   },
 ];
 
-/** Mobile bottom nav — consultation pages only */
-const MOBILE_NAV: NavItem[] = [
-  { to: '/', labelKey: 'items.dashboard', icon: LayoutDashboard },
-  { to: '/investments', labelKey: 'items.investments', icon: TrendingUp },
-  { to: '/transactions', labelKey: 'items.transactions', icon: ArrowLeftRight },
-  { to: '/analytics', labelKey: 'items.analytics', icon: BarChart3 },
+/** Mobile bottom nav — consultation pages only. Suffixes; prefixed at render. */
+const MOBILE_NAV_SUFFIXES: NavItem[] = [
+  { to: '', labelKey: 'items.dashboard', icon: LayoutDashboard, end: true },
+  { to: 'investments', labelKey: 'items.investments', icon: TrendingUp },
+  { to: 'transactions', labelKey: 'items.transactions', icon: ArrowLeftRight },
+  { to: 'analytics', labelKey: 'items.analytics', icon: BarChart3 },
 ];
+
+function scopePath(portfolioId: string, suffix: string): string {
+  return suffix ? `/p/${portfolioId}/${suffix}` : `/p/${portfolioId}`;
+}
+
+function scopeItems(portfolioId: string, items: NavItem[]): NavItem[] {
+  return items.map(i => ({ ...i, to: scopePath(portfolioId, i.to) }));
+}
+
+function scopeSections(portfolioId: string, sections: NavSection[]): NavSection[] {
+  return sections.map(s => ({ ...s, items: scopeItems(portfolioId, s.items) }));
+}
 
 function QuovibeLogo() {
   return (
@@ -175,6 +191,8 @@ export function DesktopSidebar() {
   const { t: tr } = useTranslation('reports');
   const qc = useQueryClient();
   const api = useScopedApi();
+  const portfolio = usePortfolio();
+  const NAV = scopeSections(portfolio.id, NAV_SUFFIXES);
   const reorderMutation = useReorderTaxonomy();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -208,7 +226,7 @@ export function DesktopSidebar() {
               <ul className="space-y-0.5">
                 {section.items.map((item) => (
                   <li key={item.to}>
-                    {item.to === '/allocation' ? (
+                    {item.to.endsWith('/allocation') ? (
                       <ExpandableNavItem
                         labelKey={item.labelKey}
                         icon={item.icon}
@@ -298,10 +316,14 @@ export function MobileNav() {
   const { t } = useTranslation('navigation');
   const [moreOpen, setMoreOpen] = useState(false);
   const location = useLocation();
+  const portfolio = usePortfolio();
+  const MOBILE_NAV = scopeItems(portfolio.id, MOBILE_NAV_SUFFIXES);
+  const NAV = scopeSections(portfolio.id, NAV_SUFFIXES);
 
+  const portfolioRoot = `/p/${portfolio.id}`;
   const mobileNavPaths = MOBILE_NAV.map((i) => i.to);
   const isMoreActive = !mobileNavPaths.some(
-    (p) => (p === '/' ? location.pathname === '/' : location.pathname.startsWith(p))
+    (p) => (p === portfolioRoot ? location.pathname === portfolioRoot : location.pathname.startsWith(p))
   );
 
   return (
@@ -314,7 +336,7 @@ export function MobileNav() {
             <NavLink
               key={item.to}
               to={to}
-              end={item.to === '/'}
+              end={item.to === portfolioRoot}
               className="relative flex flex-col items-center gap-0.5 px-3 py-1.5 min-w-0"
             >
               {({ isActive }) => {
@@ -391,6 +413,8 @@ export function MobileNav() {
 export function CollapsedSidebar() {
   const { t } = useTranslation('navigation');
   const location = useLocation();
+  const portfolio = usePortfolio();
+  const NAV = scopeSections(portfolio.id, NAV_SUFFIXES);
 
   const allItems = NAV.flatMap((section) => section.items);
 
@@ -462,6 +486,8 @@ export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
   const { t } = useTranslation('navigation');
   const { theme, setTheme } = useTheme();
   const { mutate: updateSettings } = useUpdateSettings();
+  const portfolio = usePortfolio();
+  const NAV = scopeSections(portfolio.id, NAV_SUFFIXES);
 
   function handleTheme(next: 'light' | 'dark' | 'system') {
     setTheme(next);

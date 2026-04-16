@@ -208,7 +208,7 @@ export default function AccountsHub() {
                       return (
                         <button
                           key={unit.portfolio.id}
-                          onClick={() => navigate(`/accounts/${unit.portfolio.id}`)}
+                          onClick={() => navigate(`/p/${api.portfolioId}/accounts/${unit.portfolio.id}`)}
                           className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
                         >
                           <div className="flex-1 min-w-0">
@@ -244,7 +244,7 @@ export default function AccountsHub() {
                     {standaloneDeposits.map(d => (
                       <button
                         key={d.id}
-                        onClick={() => navigate(`/accounts/${d.id}`)}
+                        onClick={() => navigate(`/p/${api.portfolioId}/accounts/${d.id}`)}
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
                       >
                         <div className="flex-1 min-w-0">

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useExecuteCsvTrades, useCreateCsvConfig } from '@/api/use-csv-import';
+import { usePortfolio } from '@/context/PortfolioContext';
 import type { WizardState } from '@/pages/CsvImportPage';
 import type { TradeExecuteResult } from '@quovibe/shared';
 
@@ -20,6 +21,7 @@ interface Props {
 export function CsvPreviewStep({ state, onBack }: Props) {
   const { t } = useTranslation('csv-import');
   const navigate = useNavigate();
+  const portfolio = usePortfolio();
   const executeMutation = useExecuteCsvTrades();
   const createConfig = useCreateCsvConfig();
 
@@ -92,7 +94,7 @@ export function CsvPreviewStep({ state, onBack }: Props) {
             )}
           </AlertDescription>
         </Alert>
-        <Button onClick={() => navigate('/transactions')}>
+        <Button onClick={() => navigate(`/p/${portfolio.id}/transactions`)}>
           {t('nav.viewTransactions', 'View Transactions')}
         </Button>
       </div>

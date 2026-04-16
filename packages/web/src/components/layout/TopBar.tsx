@@ -18,6 +18,7 @@ import { useReportingPeriod } from '@/api/use-performance';
 import { useFirstTransactionDate } from '@/api/use-transactions';
 import { useReportingPeriods } from '@/api/use-reporting-periods';
 import { usePortfolio, useUpdateSettings } from '@/api/use-portfolio';
+import { usePortfolio as usePortfolioContext } from '@/context/PortfolioContext';
 import { usePrivacy } from '@/context/privacy-context';
 import { useTheme } from '@/hooks/use-theme';
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
@@ -126,6 +127,7 @@ function PeriodSelector() {
   const { data: firstDateData } = useFirstTransactionDate();
   const { data: periodsData } = useReportingPeriods();
   const { data: portfolioData } = usePortfolio();
+  const currentPortfolio = usePortfolioContext();
   const { mutate: updateSettings } = useUpdateSettings();
 
 
@@ -376,7 +378,7 @@ function PeriodSelector() {
               {/* Manage periods */}
               <button
                 className="w-full text-left px-2.5 py-1.5 rounded-md text-sm hover:bg-muted flex items-center gap-1.5"
-                onClick={() => { navigate('/settings?tab=portfolio'); setOverflowOpen(false); }}
+                onClick={() => { navigate(`/p/${currentPortfolio.id}/settings/data?tab=periods`); setOverflowOpen(false); }}
               >
                 <Settings className="h-3.5 w-3.5" />
                 {t('managePeriods')}

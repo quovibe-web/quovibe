@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { usePortfolio } from '@/context/PortfolioContext';
 import {
   DndContext,
   closestCenter,
@@ -260,6 +261,7 @@ export default function Watchlists() {
   useDocumentTitle('Watchlists');
   const { t } = useTranslation('watchlists');
   const navigate = useNavigate();
+  const portfolio = usePortfolio();
   const { data: watchlists, isLoading } = useWatchlists();
   const { mutate: createWatchlist } = useCreateWatchlist();
   const { mutate: updateWatchlist } = useUpdateWatchlist();
@@ -486,7 +488,7 @@ export default function Watchlists() {
                 <tr
                   key={sec.id}
                   className="border-b border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => navigate(`/investments/${sec.id}`)}
+                  onClick={() => navigate(`/p/${portfolio.id}/investments/${sec.id}`)}
                 >
                   {/* Name */}
                   <td className="py-3 px-4">
@@ -554,7 +556,7 @@ export default function Watchlists() {
                         }}>
                           {t('actions.editSecurity')}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => navigate(`/investments/${sec.id}`)}>
+                        <DropdownMenuItem onSelect={() => navigate(`/p/${portfolio.id}/investments/${sec.id}`)}>
                           {t('actions.viewDetails')}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />

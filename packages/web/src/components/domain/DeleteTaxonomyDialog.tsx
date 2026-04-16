@@ -11,6 +11,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { useDeleteTaxonomy } from '@/api/use-taxonomy-mutations';
+import { usePortfolio } from '@/context/PortfolioContext';
 
 interface Props {
   open: boolean;
@@ -22,13 +23,14 @@ interface Props {
 export function DeleteTaxonomyDialog({ open, onOpenChange, taxonomyId, taxonomyName }: Props) {
   const { t } = useTranslation('reports');
   const navigate = useNavigate();
+  const portfolio = usePortfolio();
   const deleteMutation = useDeleteTaxonomy();
 
   async function handleDelete() {
     try {
       await deleteMutation.mutateAsync(taxonomyId);
       onOpenChange(false);
-      navigate('/allocation');
+      navigate(`/p/${portfolio.id}/allocation`);
     } catch {
       toast.error(t('taxonomyManagement.deleteError'));
     }

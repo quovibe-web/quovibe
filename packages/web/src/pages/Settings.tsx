@@ -23,6 +23,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { apiFetch } from '@/api/fetch';
 import { usePortfolio, useUpdateSettings } from '@/api/use-portfolio';
+import { usePortfolio as usePortfolioContext } from '@/context/PortfolioContext';
 import {
   useReportingPeriods,
   useDeleteReportingPeriod,
@@ -103,6 +104,7 @@ export default function Settings() {
   const { t: tRaw } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const currentPortfolio = usePortfolioContext();
   const { data: portfolio, isLoading } = usePortfolio();
   const { mutate: updateSettings } = useUpdateSettings();
   const qc = useQueryClient();
@@ -658,7 +660,7 @@ export default function Settings() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate('/import/csv')}
+                  onClick={() => navigate(`/p/${currentPortfolio.id}/import/csv`)}
                 >
                   {t('csvImport.button')}
                 </Button>
