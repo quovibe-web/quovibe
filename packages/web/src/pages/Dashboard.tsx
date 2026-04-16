@@ -55,7 +55,7 @@ import { useDashboardConfig, useSaveDashboard } from '@/api/use-dashboard-config
 import { useDashboards } from '@/api/use-dashboards';
 import { useTransactions } from '@/api/use-transactions';
 import { DashboardEmptyState } from '@/components/domain/DashboardEmptyState';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { nanoid } from 'nanoid';
 import { getWidgetDef, CHART_WIDGET_TYPES } from '@/lib/widget-registry';
 import { DASHBOARD_TEMPLATES, applyTemplate, type DashboardTemplate } from '@/lib/dashboard-templates';
