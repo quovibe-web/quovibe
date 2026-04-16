@@ -1,18 +1,25 @@
 import { Router, type RequestHandler, type Router as RouterType } from 'express';
 import multer from 'multer';
 import fs from 'fs';
-import os from 'os';
+import path from 'path';
 import { runImport, isImportInProgress, ImportError } from '../services/import.service';
 import { updateAppState, getSettings } from '../services/settings.service';
 import { createPortfolio, PortfolioManagerError } from '../services/portfolio-manager';
+import { DATA_DIR, IMPORT_MAX_MB } from '../config';
+import { ensureDir } from '../lib/atomic-fs';
 
-// Multer: save uploads to OS temp dir with a unique filename
+// Multer: save uploads to data/tmp (inside DATA_DIR) so boot-recovery's
+// sweepStaleTmp reaps orphans after a mid-flight crash. Matches the posture
+// of routes/portfolios.ts and ADR-015 §3.15.
+const uploadDir = path.join(DATA_DIR, 'tmp');
+ensureDir(uploadDir);
+
 const upload = multer({
   storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, os.tmpdir()),
+    destination: (_req, _file, cb) => cb(null, uploadDir),
     filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
   }),
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  limits: { fileSize: IMPORT_MAX_MB * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (!file.originalname.toLowerCase().endsWith('.xml')) {
       cb(new Error('FILE_EXTENSION'));
