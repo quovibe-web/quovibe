@@ -106,6 +106,10 @@ import nlDashboard from './locales/nl/dashboard.json';
 import nlInvestments from './locales/nl/investments.json';
 import nlCsvImport from './locales/nl/csv-import.json';
 import nlWatchlists from './locales/nl/watchlists.json';
+import nlWelcome from './locales/nl/welcome.json';
+import nlSwitcher from './locales/nl/switcher.json';
+import nlPortfolioSettings from './locales/nl/portfolioSettings.json';
+import nlUserSettings from './locales/nl/userSettings.json';
 // PL
 import plCommon from './locales/pl/common.json';
 import plNavigation from './locales/pl/navigation.json';
@@ -145,7 +149,7 @@ i18n
       de: { common: deCommon, navigation: deNavigation, securities: deSecurities, transactions: deTransactions, accounts: deAccounts, performance: dePerformance, reports: deReports, settings: deSettings, errors: deErrors, dashboard: deDashboard, investments: deInvestments, 'csv-import': deCsvImport, watchlists: deWatchlists, welcome: deWelcome, switcher: deSwitcher, portfolioSettings: dePortfolioSettings, userSettings: deUserSettings },
       fr: { common: frCommon, navigation: frNavigation, securities: frSecurities, transactions: frTransactions, accounts: frAccounts, performance: frPerformance, reports: frReports, settings: frSettings, errors: frErrors, dashboard: frDashboard, investments: frInvestments, 'csv-import': frCsvImport, watchlists: frWatchlists, welcome: frWelcome, switcher: frSwitcher, portfolioSettings: frPortfolioSettings, userSettings: frUserSettings },
       es: { common: esCommon, navigation: esNavigation, securities: esSecurities, transactions: esTransactions, accounts: esAccounts, performance: esPerformance, reports: esReports, settings: esSettings, errors: esErrors, dashboard: esDashboard, investments: esInvestments, 'csv-import': esCsvImport, watchlists: esWatchlists, welcome: esWelcome, switcher: esSwitcher, portfolioSettings: esPortfolioSettings, userSettings: esUserSettings },
-      nl: { common: nlCommon, navigation: nlNavigation, securities: nlSecurities, transactions: nlTransactions, accounts: nlAccounts, performance: nlPerformance, reports: nlReports, settings: nlSettings, errors: nlErrors, dashboard: nlDashboard, investments: nlInvestments, 'csv-import': nlCsvImport, watchlists: nlWatchlists },
+      nl: { common: nlCommon, navigation: nlNavigation, securities: nlSecurities, transactions: nlTransactions, accounts: nlAccounts, performance: nlPerformance, reports: nlReports, settings: nlSettings, errors: nlErrors, dashboard: nlDashboard, investments: nlInvestments, 'csv-import': nlCsvImport, watchlists: nlWatchlists, welcome: nlWelcome, switcher: nlSwitcher, portfolioSettings: nlPortfolioSettings, userSettings: nlUserSettings },
       pl: { common: plCommon, navigation: plNavigation, securities: plSecurities, transactions: plTransactions, accounts: plAccounts, performance: plPerformance, reports: plReports, settings: plSettings, errors: plErrors, dashboard: plDashboard, investments: plInvestments, 'csv-import': plCsvImport, watchlists: plWatchlists },
       pt: { common: ptCommon, navigation: ptNavigation, securities: ptSecurities, transactions: ptTransactions, accounts: ptAccounts, performance: ptPerformance, reports: ptReports, settings: ptSettings, errors: ptErrors, dashboard: ptDashboard, investments: ptInvestments, 'csv-import': ptCsvImport, watchlists: ptWatchlists },
     },
