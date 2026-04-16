@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiFetch } from './fetch';
+import { useScopedApi } from './use-scoped-api';
 
 interface FxRateResponse {
   from: string;
@@ -9,11 +9,12 @@ interface FxRateResponse {
 }
 
 export function useFxRate(from: string | null, to: string | null, date: string | null) {
+  const api = useScopedApi();
   const enabled = !!(from && to && date && from !== to);
   return useQuery({
-    queryKey: ['fx-rate', from, to, date],
+    queryKey: ['portfolios', api.portfolioId, 'fx-rate', from, to, date],
     queryFn: () =>
-      apiFetch<FxRateResponse>(
+      api.fetch<FxRateResponse>(
         `/api/prices/exchange-rates?from=${from}&to=${to}&date=${date}`,
       ),
     enabled,
