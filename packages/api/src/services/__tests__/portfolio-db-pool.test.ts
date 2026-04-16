@@ -1,10 +1,10 @@
 // packages/api/src/services/__tests__/portfolio-db-pool.test.ts
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import fs from 'fs';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import path from 'path';
-import { mkdtempSync, rmSync } from 'fs';
+import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import Database from 'better-sqlite3';
+import type { PortfolioEntry } from '@quovibe/shared';
 import { applyBootstrap } from '../../db/apply-bootstrap';
 
 // Override DATA_DIR via env BEFORE importing the pool/config.
@@ -12,14 +12,13 @@ const tmp = mkdtempSync(path.join(tmpdir(), 'qv-pool-'));
 process.env.QUOVIBE_DATA_DIR = tmp;
 process.env.PORTFOLIO_POOL_MAX = '3';
 
-const {
-  setResolveEntry,
-  acquirePortfolioDb,
-  releasePortfolioDb,
-  evictPortfolioDb,
-  closeAllPooledHandles,
-  _poolStateForTests,
-} = await import('../portfolio-db-pool');
+// Late-bound bindings: populated by beforeAll after env is set.
+let setResolveEntry: (fn: (id: string) => PortfolioEntry | null) => void;
+let acquirePortfolioDb: (id: string) => { sqlite: Database.Database };
+let releasePortfolioDb: (id: string) => void;
+let evictPortfolioDb: (id: string) => void;
+let closeAllPooledHandles: () => void;
+let _poolStateForTests: () => { size: number; entries: Array<{ id: string; refCount: number }> };
 
 function makePortfolioFile(id: string): void {
   const p = path.join(tmp, `portfolio-${id}.db`);
@@ -38,6 +37,16 @@ const IDS = [
 ];
 
 describe('portfolio-db-pool', () => {
+  beforeAll(async () => {
+    const mod = await import('../portfolio-db-pool');
+    setResolveEntry = mod.setResolveEntry;
+    acquirePortfolioDb = mod.acquirePortfolioDb;
+    releasePortfolioDb = mod.releasePortfolioDb;
+    evictPortfolioDb = mod.evictPortfolioDb;
+    closeAllPooledHandles = mod.closeAllPooledHandles;
+    _poolStateForTests = mod._poolStateForTests;
+  });
+
   beforeEach(() => {
     for (const id of IDS) makePortfolioFile(id);
     setResolveEntry((id: string) => IDS.includes(id)
