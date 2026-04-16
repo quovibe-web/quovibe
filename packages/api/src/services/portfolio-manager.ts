@@ -14,8 +14,7 @@ import {
   findDemoEntry,
 } from './portfolio-registry';
 import { evictPortfolioDb, acquirePortfolioDb, releasePortfolioDb } from './portfolio-db-pool';
-// Wired in Phase 3d. Stub for now — SSE broadcast is not load-bearing for tests.
-const broadcast = (_event: string, _data: unknown) => { /* noop */ };
+import { broadcast } from '../routes/events';
 import { getSettings, updateSettings } from './settings.service';
 import type { PortfolioEntry } from '@quovibe/shared';
 
