@@ -176,8 +176,16 @@ const preferencesSchema = z.object({
   chartStyle: z.object({}).passthrough().default({}),   // reserved; empty in v1
 }).default({});
 
+/**
+ * Strict RFC 4122 v4, lowercase. Single source of truth for portfolio-id shape
+ * validation; re-exported by `packages/api/src/config.ts` so the sidecar
+ * validator and the path resolver never drift.
+ */
+export const UUID_V4_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
 export const portfolioEntrySchema = z.object({
-  id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
+  id: z.string().regex(UUID_V4_RE),
   name: z.string().min(1),
   kind: z.enum(['real', 'demo']),
   source: z.enum(['fresh', 'demo', 'import-pp-xml', 'import-quovibe-db']),

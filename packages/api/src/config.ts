@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { config } from 'dotenv';
+import { UUID_V4_RE } from '@quovibe/shared';
 config({ quiet: true });
 
 /**
@@ -33,14 +34,12 @@ export const DEMO_SOURCE_PATH =
   process.env.QUOVIBE_DEMO_SOURCE ?? path.join(DATA_DIR, 'demo.db');
 
 /**
- * Strict RFC 4122 v4, lowercase. crypto.randomUUID() is the sole source of
- * portfolio ids, so narrower is better: rejects v1/v2/v3/v5, uppercase, and
- * shape-only patterns (e.g. 36 dashes) that wider regexes would accept.
- *
- * SINGLE SOURCE OF TRUTH — every portfolio-id validation site imports this.
+ * Re-export so `import { UUID_V4_RE } from '../config'` keeps working across
+ * the API surface. The canonical definition lives in `@quovibe/shared` so the
+ * sidecar Zod validator (`portfolioEntrySchema`) and `resolvePortfolioPath`
+ * share one regex; narrowing on one side never desyncs from the other.
  */
-export const UUID_V4_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+export { UUID_V4_RE };
 
 const PORTFOLIO_DB_PREFIX = 'portfolio-';
 const PORTFOLIO_DB_SUFFIX = '.db';
