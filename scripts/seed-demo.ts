@@ -1,19 +1,26 @@
 /**
  * seed-demo.ts — Generate a screenshot-ready demo database.
- * Usage: npx tsx scripts/seed-demo.ts
- * Output: data/demo.db + data/demo.settings.json (also copied to portfolio.db + quovibe.settings.json)
+ *
+ * Usage:   npx tsx scripts/seed-demo.ts
+ * Output:  data/demo.db
+ *
+ * Under ADR-015 this file is a bootstrap ARTIFACT, not a live portfolio. The
+ * Docker build copies it to `/app/assets/demo.db`; the API clones it to
+ * `data/portfolio-demo.db` the first time a user selects "Try demo" from the
+ * Welcome page. Schema is applied via `applyBootstrap` so the demo DB uses the
+ * exact same DDL as every other portfolio (single source of truth).
  */
 import Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
 import { format, isWeekend, eachDayOfInterval } from 'date-fns';
 import * as fs from 'fs';
 import * as path from 'path';
+import { applyBootstrap } from '../packages/api/src/db/apply-bootstrap';
 
 const ROOT = path.resolve(__dirname, '..');
 const DB_OUT = path.join(ROOT, 'data/demo.db');
-const SETTINGS_OUT = path.join(ROOT, 'data/demo.settings.json');
 
-// Remove existing
+// Remove existing (plus WAL sidecars in case of a prior crashed run)
 if (fs.existsSync(DB_OUT)) fs.unlinkSync(DB_OUT);
 if (fs.existsSync(DB_OUT + '-shm')) fs.unlinkSync(DB_OUT + '-shm');
 if (fs.existsSync(DB_OUT + '-wal')) fs.unlinkSync(DB_OUT + '-wal');
@@ -54,219 +61,75 @@ function nextOrder(): number { return orderCounter++; }
 const now = ts();
 
 // ---------------------------------------------------------------------------
-// 1. DDL
+// 1. DDL — applied from bootstrap.sql (single source of truth, ADR-015 §3.5)
 // ---------------------------------------------------------------------------
-db.exec(`
-CREATE TABLE account(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  uuid VARCHAR(36) NOT NULL UNIQUE,
-  type VARCHAR(10) NOT NULL,
-  name VARCHAR(128),
-  referenceAccount VARCHAR(36) REFERENCES account(uuid),
-  currency VARCHAR(16),
-  note TEXT,
-  isRetired INT NOT NULL DEFAULT 0,
-  updatedAt VARCHAR(64) NOT NULL,
-  _xmlid INT NOT NULL,
-  _order INT NOT NULL
-);
-CREATE TABLE account_attr(
-  account VARCHAR(36) NOT NULL REFERENCES account(uuid),
-  attr_uuid VARCHAR(36) NOT NULL,
-  type VARCHAR(32) NOT NULL,
-  value TEXT,
-  seq INT NOT NULL DEFAULT 0
-);
-CREATE TABLE attribute_type(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  id VARCHAR(64) NOT NULL,
-  name VARCHAR(64) NOT NULL,
-  columnLabel VARCHAR(64) NOT NULL,
-  source VARCHAR(128),
-  target VARCHAR(128) NOT NULL,
-  type VARCHAR(128) NOT NULL,
-  converterClass VARCHAR(128) NOT NULL,
-  props_json TEXT
-);
-CREATE TABLE bookmark(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  label VARCHAR(64) NOT NULL,
-  pattern VARCHAR(256) NOT NULL
-);
-CREATE TABLE config_entry(
-  config_set INT NOT NULL REFERENCES config_set(_id),
-  uuid VARCHAR(255),
-  name VARCHAR(255),
-  data TEXT
-);
-CREATE TABLE config_set(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  name VARCHAR(64) NOT NULL
-);
-CREATE TABLE dashboard(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  id VARCHAR(64) NOT NULL,
-  name VARCHAR(64) NOT NULL,
-  config_json TEXT NOT NULL,
-  columns_json TEXT NOT NULL
-);
-CREATE TABLE latest_price(
-  security VARCHAR(36) NOT NULL REFERENCES security(uuid),
-  tstamp VARCHAR(32) NOT NULL,
-  value BIGINT NOT NULL,
-  open BIGINT,
-  high BIGINT,
-  low BIGINT,
-  volume BIGINT
-);
-CREATE TABLE price(
-  security VARCHAR(36) NOT NULL REFERENCES security(uuid),
-  tstamp VARCHAR(32) NOT NULL,
-  value BIGINT NOT NULL,
-  open BIGINT,
-  high BIGINT,
-  low BIGINT,
-  volume BIGINT
-);
-CREATE TABLE property(
-  name VARCHAR(64) NOT NULL,
-  special INT NOT NULL DEFAULT 0,
-  value TEXT NOT NULL
-);
-CREATE TABLE security(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  uuid VARCHAR(36) NOT NULL UNIQUE,
-  onlineId VARCHAR(64),
-  name VARCHAR(255),
-  currency VARCHAR(16),
-  targetCurrency VARCHAR(16),
-  note TEXT,
-  isin VARCHAR(16),
-  tickerSymbol VARCHAR(32),
-  calendar VARCHAR(32),
-  wkn VARCHAR(32),
-  feedTickerSymbol VARCHAR(32),
-  feed VARCHAR(32),
-  feedURL VARCHAR(512),
-  latestFeed VARCHAR(32),
-  latestFeedURL VARCHAR(512),
-  isRetired INT NOT NULL DEFAULT 0,
-  updatedAt VARCHAR(64) NOT NULL
-);
-CREATE TABLE security_attr(
-  security VARCHAR(36) NOT NULL REFERENCES security(uuid),
-  attr_uuid VARCHAR(36) NOT NULL,
-  type VARCHAR(32) NOT NULL,
-  value TEXT,
-  seq INT NOT NULL DEFAULT 0
-);
-CREATE TABLE security_event(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  security VARCHAR(36) NOT NULL REFERENCES security(uuid),
-  date VARCHAR(36) NOT NULL,
-  type VARCHAR(32) NOT NULL,
-  details TEXT
-);
-CREATE TABLE security_prop(
-  security VARCHAR(36) NOT NULL REFERENCES security(uuid),
-  type VARCHAR(32) NOT NULL,
-  name VARCHAR(36) NOT NULL,
-  value TEXT,
-  seq INT NOT NULL DEFAULT 0
-);
-CREATE TABLE taxonomy(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  uuid VARCHAR(36) NOT NULL UNIQUE,
-  name VARCHAR(100) NOT NULL,
-  root VARCHAR(36) NOT NULL
-);
-CREATE TABLE taxonomy_assignment(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  taxonomy VARCHAR(36) NOT NULL REFERENCES taxonomy(uuid),
-  category VARCHAR(36) NOT NULL REFERENCES taxonomy_category(uuid),
-  item_type VARCHAR(32) NOT NULL,
-  item VARCHAR(36) NOT NULL,
-  weight INT NOT NULL DEFAULT 10000,
-  rank INT NOT NULL DEFAULT 0
-);
-CREATE TABLE taxonomy_assignment_data(
-  assignment INT NOT NULL REFERENCES taxonomy_assignment(_id),
-  name VARCHAR(64) NOT NULL,
-  type VARCHAR(64) NOT NULL,
-  value VARCHAR(256) NOT NULL
-);
-CREATE TABLE taxonomy_category(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  uuid VARCHAR(36) NOT NULL UNIQUE,
-  taxonomy VARCHAR(36) NOT NULL REFERENCES taxonomy(uuid),
-  parent VARCHAR(36) REFERENCES taxonomy_category(uuid),
-  name VARCHAR(100) NOT NULL,
-  color VARCHAR(100) NOT NULL,
-  weight INT NOT NULL,
-  rank INT NOT NULL
-);
-CREATE TABLE taxonomy_data(
-  taxonomy VARCHAR(36) NOT NULL REFERENCES taxonomy(uuid),
-  category VARCHAR(36) REFERENCES taxonomy_category(uuid),
-  name VARCHAR(64) NOT NULL,
-  type VARCHAR(64) NOT NULL DEFAULT '',
-  value VARCHAR(256) NOT NULL
-);
-CREATE TABLE watchlist(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  name VARCHAR(64) NOT NULL,
-  _order INT NOT NULL
-);
-CREATE TABLE watchlist_security(
-  list INT NOT NULL REFERENCES watchlist(_id),
-  security VARCHAR(36) NOT NULL REFERENCES security(uuid)
-);
-CREATE TABLE xact(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  uuid VARCHAR(36) NOT NULL UNIQUE,
-  acctype VARCHAR(10) NOT NULL,
-  account VARCHAR(36) NOT NULL REFERENCES account(uuid),
-  date VARCHAR(32) NOT NULL,
-  currency VARCHAR(16) NOT NULL,
-  amount BIGINT NOT NULL,
-  security VARCHAR(36) REFERENCES security(uuid),
-  shares BIGINT NOT NULL,
-  note TEXT,
-  source VARCHAR(255),
-  updatedAt VARCHAR(64) NOT NULL,
-  type VARCHAR(20) NOT NULL,
-  fees BIGINT NOT NULL DEFAULT 0,
-  taxes BIGINT NOT NULL DEFAULT 0,
-  _xmlid INT NOT NULL,
-  _order INT NOT NULL
-);
-CREATE TABLE xact_cross_entry(
-  type VARCHAR(32) NOT NULL,
-  from_acc VARCHAR(36) REFERENCES account(uuid),
-  from_xact VARCHAR(36) REFERENCES xact(uuid),
-  to_acc VARCHAR(36) NOT NULL REFERENCES account(uuid),
-  to_xact VARCHAR(36) NOT NULL REFERENCES xact(uuid)
-);
-CREATE TABLE xact_unit(
-  xact VARCHAR(36) NOT NULL REFERENCES xact(uuid),
-  type VARCHAR(16) NOT NULL,
-  amount BIGINT NOT NULL,
-  currency VARCHAR(16) NOT NULL,
-  forex_amount BIGINT,
-  forex_currency VARCHAR(16),
-  exchangeRate VARCHAR(16)
-);
-CREATE TABLE csv_import_config(
-  id VARCHAR(36) NOT NULL PRIMARY KEY,
-  name VARCHAR(128) NOT NULL,
-  type VARCHAR(16) NOT NULL,
-  config TEXT NOT NULL,
-  createdAt VARCHAR(64) NOT NULL,
-  updatedAt VARCHAR(64) NOT NULL
-);
-`);
+applyBootstrap(db);
+console.log('[DDL] bootstrap.sql applied');
 
-console.log('[DDL] Tables created');
+// ---------------------------------------------------------------------------
+// 1b. Portfolio metadata (vf_portfolio_meta) — required so the API's sidecar
+//     rebuild (§3.14) can auto-register the demo file when cloned into
+//     data/portfolio-demo.db on a fresh install.
+// ---------------------------------------------------------------------------
+const seedMeta = db.prepare('INSERT OR REPLACE INTO vf_portfolio_meta (key, value) VALUES (?, ?)');
+seedMeta.run('name', 'Demo Portfolio');
+seedMeta.run('createdAt', now);
+seedMeta.run('source', 'demo');
+seedMeta.run('schemaVersion', '1');
+console.log('[Meta] vf_portfolio_meta seeded');
+
+// ---------------------------------------------------------------------------
+// 1c. Default dashboard (vf_dashboard) — mirrors seedDefaultDashboard so a
+//     freshly cloned demo DB has a dashboard on first open.
+// ---------------------------------------------------------------------------
+const DEFAULT_DASHBOARD_ID = randomUUID();
+const RISK_DASHBOARD_ID = randomUUID();
+
+const insertDashboard = db.prepare(
+  `INSERT INTO vf_dashboard (id, name, position, widgets_json, schema_version, columns, createdAt, updatedAt)
+   VALUES (?, ?, ?, ?, 1, ?, ?, ?)`,
+);
+
+insertDashboard.run(
+  DEFAULT_DASHBOARD_ID,
+  'Overview',
+  0,
+  JSON.stringify([
+    { id: 'w1', type: 'market-value',         title: null, span: 1, config: {} },
+    { id: 'w2', type: 'ttwror',               title: null, span: 1, config: {} },
+    { id: 'w3', type: 'irr',                  title: null, span: 1, config: {} },
+    { id: 'w4', type: 'delta',                title: null, span: 1, config: {} },
+    { id: 'w5', type: 'absolute-performance', title: null, span: 1, config: {} },
+    { id: 'w6', type: 'invested-capital',     title: null, span: 1, config: {} },
+    { id: 'w7', type: 'perf-chart',           title: null, span: 3, config: {} },
+    { id: 'w8', type: 'movers',               title: null, span: 2, config: {} },
+    { id: 'w9', type: 'top-holdings',         title: null, span: 1, config: {} },
+    { id: 'w10', type: 'watchlist',           title: null, span: 1, config: { options: { watchlistId: 1 } } },
+  ]),
+  3,
+  now,
+  now,
+);
+
+insertDashboard.run(
+  RISK_DASHBOARD_ID,
+  'Risk',
+  1,
+  JSON.stringify([
+    { id: 'r1', type: 'max-drawdown',      title: null, span: 1, config: {} },
+    { id: 'r2', type: 'current-drawdown',  title: null, span: 1, config: {} },
+    { id: 'r3', type: 'volatility',        title: null, span: 1, config: {} },
+    { id: 'r4', type: 'sharpe-ratio',      title: null, span: 1, config: { options: { riskFreeRate: 0 } } },
+    { id: 'r5', type: 'all-time-high',     title: null, span: 1, config: {} },
+    { id: 'r6', type: 'distance-from-ath', title: null, span: 1, config: {} },
+    { id: 'r7', type: 'drawdown-chart',    title: null, span: 3, config: {} },
+  ]),
+  3,
+  now,
+  now,
+);
+
+console.log('[Dashboards] 2 dashboards seeded (Overview + Risk)');
 
 // ---------------------------------------------------------------------------
 // 2. Accounts
@@ -365,8 +228,6 @@ const ALL_SECURITIES: SecurityDef[] = [
   NOVO, TSM, GOOGL, AMZN, BTCE, ZETH
 ];
 
-const HELD_SECURITIES = ALL_SECURITIES.filter(s => s.portfolioId !== null);
-
 const insertSecurity = db.prepare(`
   INSERT INTO security(uuid, onlineId, name, currency, targetCurrency, note, isin, tickerSymbol, calendar, wkn,
     feedTickerSymbol, feed, feedURL, latestFeed, latestFeedURL, isRetired, updatedAt)
@@ -398,13 +259,12 @@ const numDays = allTradingDays.length;
 // Map<secUUID, Map<dateStr, priceEUR>>
 const priceHistory = new Map<string, Map<string, number>>();
 
+// OHLC columns were removed from bootstrap.sql (ppxml2db schema parity).
 const insertPrice = db.prepare(`
-  INSERT INTO price(security, tstamp, value, open, high, low, volume)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO price(security, tstamp, value) VALUES (?, ?, ?)
 `);
 const insertLatestPrice = db.prepare(`
-  INSERT INTO latest_price(security, tstamp, value, open, high, low, volume)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO latest_price(security, tstamp, value) VALUES (?, ?, ?)
 `);
 
 db.transaction(() => {
@@ -424,13 +284,7 @@ db.transaction(() => {
       const dateStr = fmtDate(day);
       secPrices.set(dateStr, price);
 
-      // open: ±0.5% from close; high/low: +/- 1-2% from close
-      const open = Math.round((price * (1 + (seededRandom() - 0.5) * 0.01)) * 100) / 100;
-      const high = Math.round((price * (1 + seededRandom() * 0.02)) * 100) / 100;
-      const low = Math.round((price * (1 - seededRandom() * 0.02)) * 100) / 100;
-      const volume = Math.round(100000 + seededRandom() * 5000000);
-
-      insertPrice.run(sec.uuid, dateStr, price8(price), price8(open), price8(high), price8(low), volume);
+      insertPrice.run(sec.uuid, dateStr, price8(price));
     }
 
     priceHistory.set(sec.uuid, secPrices);
@@ -438,11 +292,7 @@ db.transaction(() => {
     // Latest price = last trading day
     const lastDay = fmtDate(allTradingDays[allTradingDays.length - 1]);
     const lastPrice = secPrices.get(lastDay)!;
-    const lastOpen = Math.round((lastPrice * 0.995) * 100) / 100;
-    const lastHigh = Math.round((lastPrice * 1.01) * 100) / 100;
-    const lastLow = Math.round((lastPrice * 0.99) * 100) / 100;
-    insertLatestPrice.run(sec.uuid, lastDay, price8(lastPrice), price8(lastOpen), price8(lastHigh), price8(lastLow),
-      Math.round(200000 + seededRandom() * 3000000));
+    insertLatestPrice.run(sec.uuid, lastDay, price8(lastPrice));
   }
 })();
 
@@ -861,69 +711,12 @@ db.transaction(() => {
 console.log('[Watchlists] 2 watchlists created');
 
 // ---------------------------------------------------------------------------
-// 12. Settings Sidecar
-// ---------------------------------------------------------------------------
-const dashOverviewId = randomUUID();
-const dashRiskId = randomUUID();
-
-const settings = {
-  app: { lastImport: null },
-  preferences: {
-    language: 'en',
-    theme: 'system',
-    privacyMode: false,
-    costMethod: 'MOVING_AVERAGE',
-  },
-  reportingPeriods: [],
-  dashboards: [
-    {
-      id: dashOverviewId,
-      name: 'Overview',
-      widgets: [
-        { id: 'w1', type: 'market-value', title: null, span: 1, config: {} },
-        { id: 'w2', type: 'ttwror', title: null, span: 1, config: {} },
-        { id: 'w3', type: 'irr', title: null, span: 1, config: {} },
-        { id: 'w4', type: 'delta', title: null, span: 1, config: {} },
-        { id: 'w5', type: 'absolute-performance', title: null, span: 1, config: {} },
-        { id: 'w6', type: 'invested-capital', title: null, span: 1, config: {} },
-        { id: 'w7', type: 'perf-chart', title: null, span: 3, config: {} },
-        { id: 'w8', type: 'movers', title: null, span: 2, config: {} },
-        { id: 'w9', type: 'top-holdings', title: null, span: 1, config: {} },
-        { id: 'w10', type: 'watchlist', title: null, span: 1, config: { options: { watchlistId: 1 } } },
-      ],
-      metricsStripIds: [],
-    },
-    {
-      id: dashRiskId,
-      name: 'Risk',
-      widgets: [
-        { id: 'r1', type: 'max-drawdown', title: null, span: 1, config: {} },
-        { id: 'r2', type: 'current-drawdown', title: null, span: 1, config: {} },
-        { id: 'r3', type: 'volatility', title: null, span: 1, config: {} },
-        { id: 'r4', type: 'sharpe-ratio', title: null, span: 1, config: { options: { riskFreeRate: 0 } } },
-        { id: 'r5', type: 'all-time-high', title: null, span: 1, config: {} },
-        { id: 'r6', type: 'distance-from-ath', title: null, span: 1, config: {} },
-        { id: 'r7', type: 'drawdown-chart', title: null, span: 3, config: {} },
-      ],
-      metricsStripIds: [],
-    },
-  ],
-  activeDashboard: dashOverviewId,
-  investmentsView: { columns: [] },
-  chartConfig: { version: 2, series: [] },
-  tableLayouts: {},
-};
-
-fs.writeFileSync(SETTINGS_OUT, JSON.stringify(settings, null, 2), 'utf-8');
-console.log(`[Settings] Written to ${SETTINGS_OUT}`);
-
-// ---------------------------------------------------------------------------
-// 13. Summary
+// 12. Summary
 // ---------------------------------------------------------------------------
 const tables = [
   'account', 'security', 'price', 'latest_price', 'xact', 'xact_cross_entry',
   'xact_unit', 'property', 'taxonomy', 'taxonomy_category', 'taxonomy_assignment',
-  'watchlist', 'watchlist_security',
+  'watchlist', 'watchlist_security', 'vf_portfolio_meta', 'vf_dashboard',
 ];
 
 console.log('\n--- Row counts ---');
@@ -933,7 +726,7 @@ for (const t of tables) {
 }
 
 // ---------------------------------------------------------------------------
-// 14. Logos — fetched from Clearbit and stored as base64 data URIs
+// 13. Logos — fetched from Clearbit / Google favicon and stored as base64
 // ---------------------------------------------------------------------------
 const SEC_LOGOS: { id: string; domain: string }[] = [
   { id: VWCE.uuid,    domain: 'vanguard.com' },
@@ -998,7 +791,7 @@ async function getLogoBase64(domain: string): Promise<string | null> {
 }
 
 void (async () => {
-  console.log('\n[Logos] Fetching logos from Clearbit...');
+  console.log('\n[Logos] Fetching logos...');
   let logosOk = 0;
   let logosFail = 0;
 
@@ -1009,7 +802,7 @@ void (async () => {
       logosOk++;
     } else {
       logosFail++;
-      console.warn(`  ⚠ No logo for security ${id} (${domain})`);
+      console.warn(`  No logo for security ${id} (${domain})`);
     }
   }
 
@@ -1020,46 +813,12 @@ void (async () => {
       logosOk++;
     } else {
       logosFail++;
-      console.warn(`  ⚠ No logo for account ${id} (${domain})`);
+      console.warn(`  No logo for account ${id} (${domain})`);
     }
   }
 
-  console.log(`[Logos] ${logosOk} logos stored, ${logosFail} failed`);
+  console.log(`[Logos] ${logosOk} stored, ${logosFail} failed`);
 
   db.close();
-  console.log(`\nDone! Database written to ${DB_OUT}`);
-
-  // ---------------------------------------------------------------------------
-  // Apply to live paths (portfolio.db + quovibe.settings.json)
-  // Must run with the dev server STOPPED — otherwise the SHM file is locked
-  // and copying the main DB while the old SHM remains causes SQLITE_CORRUPT.
-  // ---------------------------------------------------------------------------
-  const LIVE_DB = path.join(ROOT, 'data/portfolio.db');
-  const LIVE_SETTINGS = path.join(ROOT, 'data/quovibe.settings.json');
-  const LIVE_SHM = LIVE_DB + '-shm';
-
-  // Detect if the dev server has the DB open: SHM file exists and is non-empty
-  let shmLocked = false;
-  if (fs.existsSync(LIVE_SHM)) {
-    try {
-      fs.unlinkSync(LIVE_SHM);
-    } catch {
-      shmLocked = true;
-    }
-  }
-
-  if (shmLocked) {
-    console.warn('\n⚠  Dev server is running — portfolio.db-shm is locked.');
-    console.warn('   Stop the dev server first, then run this script again,');
-    console.warn('   OR copy manually after stopping:');
-    console.warn(`     copy "${DB_OUT.replace(/\//g, '\\')}" "${LIVE_DB.replace(/\//g, '\\')}"`);
-    console.warn(`     copy "${SETTINGS_OUT.replace(/\//g, '\\')}" "${LIVE_SETTINGS.replace(/\//g, '\\')}"`);
-    console.warn('   demo.db has been generated successfully — only the live copy was skipped.');
-  } else {
-    try { fs.unlinkSync(LIVE_DB + '-wal'); } catch { /* ok */ }
-    try { fs.unlinkSync(LIVE_DB); } catch { /* ok */ }
-    fs.copyFileSync(DB_OUT, LIVE_DB);
-    fs.copyFileSync(SETTINGS_OUT, LIVE_SETTINGS);
-    console.log(`[Apply] Copied to ${LIVE_DB} + ${LIVE_SETTINGS}`);
-  }
+  console.log(`\n[seed-demo] wrote ${DB_OUT}`);
 })();

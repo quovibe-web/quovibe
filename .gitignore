@@ -16,9 +16,9 @@ build/
 .env.local
 .env.*.local
 
-# Database — all runtime DBs and WAL artifacts, except schema.db (schema-only bootstrap template)
-data/
-!data/schema.db
+# Database — all runtime DBs and WAL artifacts, except demo.db (ADR-015 §3.17 bootstrap artifact)
+data/*
+!data/demo.db
 
 # Sidecar settings (generated at runtime, not versioned)
 quovibe.settings.json
