@@ -4,7 +4,7 @@
     "importPP": {
       "title": "Importa da Portfolio Performance",
       "body": "Porta un esportazione PP esistente (XML con attributi ID).",
-      "cta": "Scegli un file…"
+      "cta": "Importa XML"
     },
     "demo": {
       "title": "Prova la demo",

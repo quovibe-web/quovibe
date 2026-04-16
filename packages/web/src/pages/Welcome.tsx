@@ -11,7 +11,8 @@ export default function Welcome() {
   const navigate = useNavigate();
   const create = useCreatePortfolio();
   const [name, setName] = useState('');
-  const [file, setFile] = useState<File | null>(null);
+  const [ppFile, setPpFile] = useState<File | null>(null);
+  const [dbFile, setDbFile] = useState<File | null>(null);
 
   const handleDemo = (): void => {
     create.mutate({ source: 'demo' }, {
@@ -26,21 +27,41 @@ export default function Welcome() {
       onError: (err) => toast.error(t('errors.createFailed', { msg: (err as Error).message })),
     });
   };
-  const handleImportDb = (): void => {
-    if (!file) return;
-    create.mutate({ source: 'import-quovibe-db', file }, {
+  const handleImportPP = (): void => {
+    if (!ppFile) return;
+    create.mutate({ source: 'import-pp-xml', file: ppFile }, {
       onSuccess: (r: { entry: PortfolioRegistryEntry }) => navigate(`/p/${r.entry.id}/dashboard`),
       onError: (err) => toast.error(t('errors.importFailed', { msg: (err as Error).message })),
     });
   };
-  const handleImportPP = (): void => { navigate('/import'); };
+  const handleImportDb = (): void => {
+    if (!dbFile) return;
+    create.mutate({ source: 'import-quovibe-db', file: dbFile }, {
+      onSuccess: (r: { entry: PortfolioRegistryEntry }) => navigate(`/p/${r.entry.id}/dashboard`),
+      onError: (err) => toast.error(t('errors.importFailed', { msg: (err as Error).message })),
+    });
+  };
 
   return (
     <main className="mx-auto grid max-w-5xl gap-6 p-8 md:grid-cols-3">
       <h1 className="col-span-full text-2xl font-semibold">{t('title')}</h1>
 
       <Card title={t('cards.importPP.title')} body={t('cards.importPP.body')}
-            cta={t('cards.importPP.cta')} onClick={handleImportPP} />
+            cta={t('cards.importPP.cta')}
+            onClick={handleImportPP}
+            disabled={!ppFile || create.isPending}>
+        <input
+          type="file"
+          accept=".xml"
+          className="mt-2 w-full text-sm"
+          onChange={(e) => setPpFile(e.target.files?.[0] ?? null)}
+        />
+        {ppFile && (
+          <p className="text-xs text-muted-foreground truncate" title={ppFile.name}>
+            {ppFile.name}
+          </p>
+        )}
+      </Card>
 
       <Card title={t('cards.demo.title')} body={t('cards.demo.body')}
             cta={t('cards.demo.cta')} onClick={handleDemo} disabled={create.isPending} />
@@ -59,9 +80,9 @@ export default function Welcome() {
         <summary className="cursor-pointer">{t('advanced.label')}</summary>
         <div className="mt-2 flex items-center gap-2">
           <input type="file" accept=".db"
-                 onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                 onChange={(e) => setDbFile(e.target.files?.[0] ?? null)} />
           <button className="rounded bg-primary px-3 py-1 text-primary-foreground disabled:opacity-50"
-                  onClick={handleImportDb} disabled={!file || create.isPending}>
+                  onClick={handleImportDb} disabled={!dbFile || create.isPending}>
             {t('advanced.importDbCta')}
           </button>
         </div>
