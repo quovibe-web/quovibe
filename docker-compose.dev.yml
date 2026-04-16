@@ -14,6 +14,5 @@ services:
       - /app/packages/web/node_modules
       - ./data:/app/data
     environment:
-      - DB_PATH=/app/data/portfolio.db
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=1

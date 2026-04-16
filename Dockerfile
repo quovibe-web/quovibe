@@ -37,11 +37,13 @@ COPY --from=build /app/packages/api/node_modules       ./packages/api/node_modul
 COPY --from=build /app/packages/shared/node_modules    ./packages/shared/node_modules
 COPY --from=build /app/packages/engine/node_modules    ./packages/engine/node_modules
 
-# XML import: Python scripts + bootstrap DB + entrypoint
-COPY data/schema.db                ./bootstrap/schema.db
+# XML import: Python scripts shipped with the API
 COPY packages/api/vendor           ./packages/api/vendor
-COPY docker-entrypoint.sh         .
-RUN chmod +x docker-entrypoint.sh
+
+# ADR-015 §3.17: ship demo.db at /app/assets/ (NOT /app/data/ — the volume
+# mount would hide it). The API clones it to /app/data/portfolio-demo.db the
+# first time a user selects "Try demo" from the Welcome page.
+COPY data/demo.db                  /app/assets/demo.db
 
 # Run as non-root user
 RUN addgroup -S quovibe && adduser -S quovibe -G quovibe
@@ -50,6 +52,11 @@ USER quovibe
 
 EXPOSE 3000
 ENV NODE_ENV=production
-ENV DB_PATH=/app/data/portfolio.db
-ENV SCHEMA_PATH=/app/bootstrap/schema.db
-CMD ["sh", "/app/docker-entrypoint.sh"]
+ENV QUOVIBE_DATA_DIR=/app/data
+ENV QUOVIBE_DEMO_SOURCE=/app/assets/demo.db
+
+# Persistent runtime volume: sidecar (quovibe.settings.json) + per-portfolio
+# .db files + rotated .bak.* backups live here.
+VOLUME ["/app/data"]
+
+CMD ["node", "packages/api/index.js"]
