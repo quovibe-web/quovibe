@@ -95,7 +95,7 @@ quovibe/
 │   │   ├── src/
 │   │   │   ├── index.ts            # Entry point + reloadApp (drain guard, atomic swap)
 │   │   │   ├── create-app.ts       # Express app factory (all route mounts)
-│   │   │   ├── config.ts           # DB_PATH, env vars
+│   │   │   ├── config.ts           # QUOVIBE_DATA_DIR, QUOVIBE_DEMO_SOURCE, env vars
 │   │   │   ├── db/
 │   │   │   │   ├── client.ts       # SQLite connection (better-sqlite3) + backupDb
 │   │   │   │   ├── open-db.ts      # Open + verify + apply extensions
