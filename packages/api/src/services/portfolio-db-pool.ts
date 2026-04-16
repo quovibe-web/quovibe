@@ -10,12 +10,14 @@ interface PooledHandle {
   lastReleased: number;
 }
 
+// quovibe:allow-module-state — the portfolio pool itself IS the sanctioned per-portfolio scope (ADR-016).
 const pool = new Map<string, PooledHandle>();
 
 /**
  * Resolves a portfolio id to a sidecar entry via the registry module.
  * Imported lazily to avoid a cycle between pool and registry.
  */
+// quovibe:allow-module-state — wired once at startup by portfolio-registry; no portfolio data held.
 let resolveEntry: ((id: string) => PortfolioEntry | null) | null = null;
 export function setResolveEntry(fn: (id: string) => PortfolioEntry | null): void {
   resolveEntry = fn;
@@ -26,6 +28,7 @@ export function setResolveEntry(fn: (id: string) => PortfolioEntry | null): void
  * Used by auto-fetch wiring (ADR-015 §3.8a). Errors are caught and logged.
  */
 type OpenedHook = (id: string, sqlite: BetterSqlite3.Database) => void;
+// quovibe:allow-module-state — wired once at startup by auto-fetch; no portfolio data held.
 let onOpened: OpenedHook | null = null;
 export function setOnOpened(fn: OpenedHook): void { onOpened = fn; }
 

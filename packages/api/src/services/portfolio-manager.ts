@@ -46,6 +46,7 @@ export class PortfolioManagerError extends Error {
 // generate a fresh UUID before touching the filesystem, so they have no
 // contention and must NOT be serialized — otherwise 3 parallel fresh creates
 // would run strictly sequentially for no gain.
+// quovibe:allow-module-state — process-wide demo-create concurrency lock; holds no portfolio data (ADR-016).
 let demoCreateLock: Promise<CreatePortfolioResult> | null = null;
 
 /**

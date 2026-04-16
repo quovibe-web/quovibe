@@ -1,6 +1,6 @@
 import { Router, type Router as RouterType, type RequestHandler } from 'express';
 import { paymentBreakdownRequestSchema, paymentsQuerySchema } from '@quovibe/shared';
-import { getCachedStatement } from '../services/statement-cache';
+import { getStatementOfAssets } from '../services/performance.service';
 import { getSqlite } from '../helpers/request';
 import { DATE_REGEX } from '../middleware/reporting-period';
 import {
@@ -24,8 +24,7 @@ export const reportsRouter: RouterType = Router();
 const statementOfAssetsHandler: RequestHandler = (req, res) => {
   const sqlite = getSqlite(req);
   const date = resolveDate(req.query.date, todayStr());
-  const result = getCachedStatement(sqlite, date);
-  res.json(result);
+  res.json(getStatementOfAssets(sqlite, date));
 };
 
 // GET /api/reports/holdings?date=YYYY-MM-DD&taxonomy=<uuid>

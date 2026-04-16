@@ -4,6 +4,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useChartTheme, toLightweightTheme } from '@/hooks/use-chart-theme';
 
 /** Map chart instances to their ResizeObserver for cleanup — avoids mutating the library object */
+// quovibe:allow-module-state — DOM observer registry keyed by chart instance; portfolio-agnostic DOM cleanup (ADR-016).
 const chartResizeObservers = new WeakMap<IChartApi, ResizeObserver>();
 
 interface UseLightweightChartOptions {

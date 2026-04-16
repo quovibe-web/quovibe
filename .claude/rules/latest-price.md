@@ -1,4 +1,4 @@
-globs: packages/api/src/services/performance.*,packages/api/src/services/statement-cache.*,packages/api/src/routes/securities.*
+globs: packages/api/src/services/performance.*,packages/api/src/services/reports.service.*,packages/api/src/services/rebalancing.service.*,packages/api/src/routes/securities.*
 ---
 # Market Value and latest_price Rules (CRITICAL)
 

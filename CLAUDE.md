@@ -90,6 +90,7 @@ cashflows, pricing, performance, or data structures:
 - Explicit types everywhere, never `any`
 - DB schema, unit conventions, and double-entry details: see `.claude/rules/db-schema.md` and `.claude/rules/double-entry.md`
 - **No module-scope DB handles** (ADR-015). Under multi-portfolio routing, every request carries its own `req.portfolioSqlite`. Preparing statements at module top-level would bind them to whichever handle loaded the module first and silently query the wrong portfolio. Always prepare inside the function that receives `sqlite`.
+- **No module-scope mutable state holding portfolio data** (ADR-016). Portfolio-scoped state flows only through function parameters, `req`, or `PortfolioCache<T>` (`packages/api/src/helpers/portfolio-cache.ts`). Enforced by the `quovibe/no-portfolio-scope-module-state` ESLint rule on both `packages/api/src/**` and `packages/web/src/**`, plus the `cross-portfolio-isolation.test.ts` regression harness.
 
 ## Quality Checks
 

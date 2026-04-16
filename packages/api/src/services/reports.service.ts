@@ -1,7 +1,8 @@
 import Decimal from 'decimal.js';
 import type Database from 'better-sqlite3';
 import { convertAmountFromDb } from './unit-conversion';
-import { getCachedStatement, getCachedReferenceData } from './statement-cache';
+import { getStatementOfAssets } from './performance.service';
+import { getReferenceData } from './reference-data';
 
 // ─── Holdings ───────────────────────────────────────────────
 
@@ -23,7 +24,7 @@ interface HoldingsResult {
 }
 
 export function getHoldingsFlat(sqlite: Database.Database, date: string): HoldingsResult {
-  const statement = getCachedStatement(sqlite, date);
+  const statement = getStatementOfAssets(sqlite, date);
   const totalMV = new Decimal(statement.totals.marketValue);
 
   const items = statement.securities.map((s) => ({
@@ -43,7 +44,7 @@ export function getHoldingsByTaxonomy(
   date: string,
   taxonomyId: string,
 ): HoldingsResult {
-  const statement = getCachedStatement(sqlite, date);
+  const statement = getStatementOfAssets(sqlite, date);
 
   // Get root category UUID for this taxonomy
   const taxonomyRow = sqlite
@@ -80,7 +81,7 @@ export function getHoldingsByTaxonomy(
   for (const a of statement.depositAccounts) mvByItemId.set(a.accountId, new Decimal(a.balance));
 
   // Resolve names + retired status + logos
-  const refData = getCachedReferenceData(sqlite);
+  const refData = getReferenceData(sqlite);
   const secNameMap = new Map(refData.securities.map((s) => [s.uuid, s.name]));
   const retiredSecIds = new Set(refData.securities.filter((s) => s.isRetired === 1).map((s) => s.uuid));
   const acctNameMap = new Map(refData.accounts.map((a) => [a.uuid, a.name]));

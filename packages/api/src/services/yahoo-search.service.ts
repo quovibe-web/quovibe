@@ -41,6 +41,7 @@ interface CacheEntry<T> {
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const CACHE_MAX_SIZE = 200;
+// quovibe:allow-module-state — Yahoo symbol-search cache keyed by user query; portfolio-agnostic (ADR-016).
 const searchCache = new Map<string, CacheEntry<SearchResult[]>>();
 
 function getCached(key: string): SearchResult[] | null {

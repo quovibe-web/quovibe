@@ -141,8 +141,8 @@ quovibe/
 │   │   │   │   ├── rebalancing.service.ts   # Portfolio rebalancing logic
 │   │   │   │   ├── reports.service.ts       # Report generation logic
 │   │   │   │   ├── security-search-import.service.ts  # Import prices into DB (from search preview)
+│   │   │   │   ├── reference-data.ts        # Pure per-portfolio securities/accounts/logos read (ADR-016)
 │   │   │   │   ├── settings.service.ts      # Sidecar settings load/save + chart-config
-│   │   │   │   ├── statement-cache.ts       # Statement of Assets caching
 │   │   │   │   ├── taxonomy.service.ts      # Taxonomy/category/assignment CRUD logic
 │   │   │   │   ├── taxonomy-performance.service.ts  # Taxonomy slice performance
 │   │   │   │   ├── transaction.service.ts   # CRUD logic with double-entry

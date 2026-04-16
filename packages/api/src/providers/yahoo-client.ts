@@ -16,6 +16,7 @@ interface YahooInstance {
   [key: string]: unknown;
 }
 
+// quovibe:allow-module-state — HTTP client singleton for Yahoo Finance; portfolio-agnostic (ADR-016).
 let cached: YahooInstance | null = null;
 
 export function getYahoo(): YahooInstance {

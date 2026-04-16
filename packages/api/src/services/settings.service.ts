@@ -23,6 +23,7 @@ import {
 
 const sidecarPath = SIDECAR_PATH;
 
+// quovibe:allow-module-state — user-level sidecar settings cache; contains no portfolio-scoped data (ADR-016).
 let cached: QuovibeSettings = { ...DEFAULT_SETTINGS };
 
 /**

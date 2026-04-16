@@ -8,7 +8,13 @@ import { CostMethod } from '@quovibe/shared';
 
 // Module-level cache: remembers the last active period so that navigating
 // to a page without search params doesn't briefly flash YTD defaults.
+// Per-tab by browser semantics (each tab = distinct JS realm); holds only
+// date strings, no portfolio-scoped data. Verified with Playwright: two
+// tabs on different portfolios, Tab 0 setting period to 2020, Tab 1
+// defaulted to YTD — no cross-tab leak.
+// quovibe:allow-module-state — per-tab UX stickiness; date strings only, not portfolio data (ADR-016).
 let _cachedStart: string | null = null;
+// quovibe:allow-module-state — per-tab UX stickiness; date strings only, not portfolio data (ADR-016).
 let _cachedEnd: string | null = null;
 
 export function useReportingPeriod() {

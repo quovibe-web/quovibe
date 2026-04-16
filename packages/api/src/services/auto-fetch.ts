@@ -4,6 +4,7 @@ import { setOnOpened } from './portfolio-db-pool';
 import { getSettings } from './settings.service';
 import { fetchAllPrices } from './prices.service';
 
+// quovibe:allow-module-state — one-shot-per-portfolio auto-fetch dedup; keyed by portfolio id, no data held (ADR-016).
 const fetchedInProcess = new Set<string>();
 const STALE_MS = 12 * 60 * 60 * 1000;        // 12 hours
 

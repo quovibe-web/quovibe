@@ -9,6 +9,7 @@ export const pricesRouter: RouterType = Router();
 
 // In-process mutex keyed by portfolio id; replaces the old global PriceScheduler
 // lock. Concurrent fetch-all requests for the same portfolio return 409.
+// quovibe:allow-module-state — fetch-all mutex keyed by portfolio id; no data held (ADR-016).
 const fetchInFlight = new Set<string>();
 
 const fetchAll: RequestHandler = async (req, res) => {
