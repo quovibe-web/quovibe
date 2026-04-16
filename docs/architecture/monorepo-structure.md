@@ -150,9 +150,6 @@ quovibe/
 │   │   │   │   └── yahoo-search.service.ts  # Yahoo securities search
 │   │   │   ├── data/
 │   │   │   │   └── taxonomy-templates.ts    # 7 pre-built templates (asset classes, GICS, regions...)
-│   │   │   ├── workers/
-│   │   │   │   ├── price-scheduler.ts       # Background price fetch (node-cron)
-│   │   │   │   └── price-worker.ts          # Worker thread for price fetching
 │   │   │   └── middleware/
 │   │   │       ├── error-handler.ts
 │   │   │       └── reporting-period.ts      # Parse period from query params

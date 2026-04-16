@@ -49,15 +49,17 @@ price map unless a historical close exists for an intermediate date — but at t
 
 See `.claude/rules/api.md` → "Market Value and latest_price" for the full rule.
 
-## Background Price Job
+## Price Fetching (manual)
 
-- Library: node-cron
-- Schedule: configurable via `PRICE_CRON_SCHEDULE` (default: `"0 18 * * 1-5"`)
 - Concurrency: max 5 parallel fetches (`PRICE_FETCH_MAX_CONCURRENT`)
-- Execution: NOT on the main Express thread — uses `worker_threads`
-- `POST /api/prices/fetch-all` is for manual trigger only
-
-> Source: `packages/api/src/workers/price-scheduler.ts`, `price-worker.ts`
+- Rate limiting: `PRICE_FETCH_INTERVAL_MS` between calls
+- Manual trigger only: `POST /api/prices/fetch-all` and
+  `POST /api/securities/:id/refresh-prices`
+- ADR-015: the background `node-cron` scheduler and `worker_threads`-based
+  worker pool were removed. Under the per-portfolio model, each portfolio
+  owns its own DB and the previous single-threaded, single-DB, server-wide
+  cron schedule no longer makes sense. Scheduled fetching will return in a
+  future ADR as a per-portfolio preference.
 
 ## Taxonomy Write Layer (`taxonomy.service.ts`)
 

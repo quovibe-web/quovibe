@@ -43,7 +43,7 @@ packages/e2e/
 packages/web/e2e/
 tests/
 
-# Database files (schema.db is copied explicitly in Dockerfile)
+# Database files (demo.db is copied explicitly in Dockerfile per ADR-015 §3.17)
 data/*.db
 data/*.db-shm
 data/*.db-wal
@@ -51,7 +51,7 @@ data/*.bak.*
 data/quovibe.settings.json
 *.sqlite
 *.sqlite3
-!data/schema.db
+!data/demo.db
 
 # Markdown (except README at root)
 *.md
