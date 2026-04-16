@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import type { ColumnDef } from '@tanstack/react-table';
 import { parseISO, isAfter, isBefore, startOfDay } from 'date-fns';
 import { TrendingUp, ListX, ArrowLeft } from 'lucide-react';
@@ -80,6 +81,7 @@ function PerfMetric({ label, value, type, currency, isPrivate, converged, notCon
 }
 
 export default function SecurityDetail() {
+  useDocumentTitle('Security');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation('securities');

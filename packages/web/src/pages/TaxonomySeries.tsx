@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
   AreaSeries, LineSeries,
   type ISeriesApi, type SeriesType,
@@ -60,6 +61,7 @@ function MetricTile({ label, children }: MetricTileProps) {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function TaxonomySeries() {
+  useDocumentTitle('Taxonomy Series');
   const { t } = useTranslation('reports');
   const { t: tNav } = useTranslation('navigation');
   const { data: taxonomies, isLoading: taxonomiesLoading } = useTaxonomies();

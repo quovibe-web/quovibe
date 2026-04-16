@@ -54,8 +54,10 @@ import {
 import { formatPercentage } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { StatementSecurityEntry, SecurityPerfResponse, HoldingsItem } from '@/api/types';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export default function Investments() {
+  useDocumentTitle('Investments');
   const { t } = useTranslation('investments');
   const { t: tCommon } = useTranslation('common');
   const { t: tSecurities } = useTranslation('securities');

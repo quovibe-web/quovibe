@@ -1,5 +1,6 @@
 import { useState, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
   DndContext,
   closestCenter,
@@ -323,6 +324,7 @@ function SortableTab({
 // ---------------------------------------------------------------------------
 
 export default function Dashboard() {
+  useDocumentTitle('Dashboard');
   const { t } = useTranslation('dashboard');
   const { data, isLoading } = useDashboardConfig();
   const { mutate: save } = useSaveDashboard();

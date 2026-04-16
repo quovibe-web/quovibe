@@ -24,8 +24,10 @@ import { cn } from '@/lib/utils';
 import { usePrivacy } from '@/context/privacy-context';
 import { formatPercentage, formatCurrency } from '@/lib/formatters';
 import { useBaseCurrency } from '@/hooks/use-base-currency';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export default function AccountsHub() {
+  useDocumentTitle('Accounts');
   const { t } = useTranslation('accounts');
 
   // 1. State

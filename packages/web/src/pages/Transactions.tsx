@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ListX, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { dateColumnMeta, textColumnMeta, currencyColumnMeta, sharesColumnMeta } from '@/lib/column-factories';
@@ -272,6 +273,7 @@ const PAGE_SIZE = 25;
 
 
 export default function Transactions() {
+  useDocumentTitle('Transactions');
   const { t } = useTranslation('transactions');
   const { t: tCommon } = useTranslation('common');
   const [searchParams, setSearchParams] = useSearchParams();

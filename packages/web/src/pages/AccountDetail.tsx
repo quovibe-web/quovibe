@@ -50,8 +50,10 @@ import { Label } from '@/components/ui/label';
 import { TransactionForm, type TransactionFormValues } from '@/components/domain/TransactionForm';
 import { useCreateTransaction } from '@/api/use-transactions';
 import { preparePayload } from '@/lib/transaction-payload';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export default function AccountDetail() {
+  useDocumentTitle('Account');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation('accounts');

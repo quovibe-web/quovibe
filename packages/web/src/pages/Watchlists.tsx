@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
   DndContext,
   closestCenter,
@@ -256,6 +257,7 @@ function SortableTab({
 // ---------------------------------------------------------------------------
 
 export default function Watchlists() {
+  useDocumentTitle('Watchlists');
   const { t } = useTranslation('watchlists');
   const navigate = useNavigate();
   const { data: watchlists, isLoading } = useWatchlists();

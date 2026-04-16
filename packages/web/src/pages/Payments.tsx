@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
   BarChart,
   Bar,
@@ -162,6 +163,7 @@ function PaymentBarChart({
 }
 
 export default function Payments() {
+  useDocumentTitle('Income');
   const { t } = useTranslation('reports');
   const [groupBy, setGroupBy] = useState<'month' | 'quarter' | 'year'>('month');
   const [amountMode, setAmountMode] = useState<AmountMode>('gross');

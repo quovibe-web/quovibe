@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { differenceInDays, parseISO } from 'date-fns';
 import { Settings } from 'lucide-react';
 import {
@@ -43,6 +44,7 @@ function toLwcLineStyle(style: LineStyle): LwcLineStyle {
 }
 
 export default function PerformanceChart() {
+  useDocumentTitle('Chart');
   const { t } = useTranslation('performance');
   const { periodStart, periodEnd } = useReportingPeriod();
   const { data: chart, isLoading, isFetching } = usePerformanceChart({ periodStart, periodEnd });

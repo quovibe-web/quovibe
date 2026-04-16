@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { FadeIn } from '@/components/shared/FadeIn';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -1322,6 +1323,7 @@ function TaxonomySection({
 }
 
 export default function AssetAllocation() {
+  useDocumentTitle('Allocation');
   const { t } = useTranslation('reports');
   const [searchParams, setSearchParams] = useSearchParams();
   const today = new Date().toISOString().slice(0, 10);

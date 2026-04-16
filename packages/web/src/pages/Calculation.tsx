@@ -7,8 +7,10 @@ import { CalculationBreakdownCard } from '@/components/domain/CalculationBreakdo
 import { FadeIn } from '@/components/shared/FadeIn';
 import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { useAnalyticsContext } from '@/context/analytics-context';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export default function Calculation() {
+  useDocumentTitle('Calculation');
   const { t } = useTranslation('performance');
   const [preTax, setPreTax] = useState(true);
   const [costMethod, setCostMethod] = useState<CostMethod>(CostMethod.MOVING_AVERAGE);

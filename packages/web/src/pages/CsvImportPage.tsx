@@ -1,6 +1,7 @@
 // packages/web/src/pages/CsvImportPage.tsx
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { CsvUploadStep } from '@/components/domain/csv-import/CsvUploadStep';
 import { CsvColumnMapStep } from '@/components/domain/csv-import/CsvColumnMapStep';
 import { CsvSecurityMatchStep } from '@/components/domain/csv-import/CsvSecurityMatchStep';
@@ -43,6 +44,7 @@ const initialState: WizardState = {
 };
 
 export default function CsvImportPage() {
+  useDocumentTitle('CSV Import');
   const { t } = useTranslation('csv-import');
   const [step, setStep] = useState(0);
   const [state, setState] = useState<WizardState>(initialState);
