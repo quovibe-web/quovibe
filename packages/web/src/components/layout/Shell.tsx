@@ -1,24 +1,16 @@
-import { Outlet, useNavigate } from 'react-router-dom';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { Outlet } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { DesktopSidebar, CollapsedSidebar, MobileNav, SidebarDrawer } from './Sidebar';
 import { TopBar } from './TopBar';
-import { usePortfolio } from '@/api/use-portfolio';
 import { CommandPalette } from '@/components/domain/CommandPalette';
 
-export function Shell() {
-  const { data: portfolio, isSuccess, error } = usePortfolio();
-  const navigate = useNavigate();
+interface ShellProps {
+  children?: ReactNode;
+}
+
+export function Shell({ children }: ShellProps = {}) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
-
-  const shouldRedirect = (isSuccess && portfolio?.empty) ||
-    !!(error && (error as Error).message === 'SETUP_REQUIRED');
-
-  useEffect(() => {
-    if (shouldRedirect) {
-      navigate('/import', { replace: true });
-    }
-  }, [shouldRedirect, navigate]);
 
   // Ctrl+B toggles sidebar drawer; Ctrl+K / Cmd+K toggles command palette
   useEffect(() => {
@@ -45,10 +37,6 @@ export function Shell() {
     }
   }, []);
 
-  if (shouldRedirect) {
-    return null;
-  }
-
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <DesktopSidebar />
@@ -60,7 +48,7 @@ export function Shell() {
           onScroll={handleScroll}
           className="flex-1 overflow-y-auto scroll-smooth [scrollbar-gutter:stable] px-4 py-5 pb-24 md:px-6 md:pb-6 lg:px-8 lg:py-6"
         >
-          <Outlet />
+          {children ?? <Outlet />}
         </main>
       </div>
       <MobileNav />
