@@ -129,31 +129,67 @@ export async function runImport(xmlPath: string): Promise<ImportResult> {
     // Step 4: Run ppxml2db conversion
     // ppxml2db.py requires explicit output db path: ppxml2db.py <xml_file> <db>
     const ppxml2dbPath = path.join(VENDOR_DIR, 'ppxml2db.py');
-    // Resolve python3 path: follow symlinks to the real binary to avoid execFile ENOENT
-    // on symlinks (observed in Alpine/Docker environments with Node.js v22)
-    // Resolve python3 to its real path — execFile on Node.js v22 / Alpine fails on symlinks.
-    // realpathSync throws if the path doesn't exist, so we catch and try the next candidate.
+
+    // Python resolution is platform-specific.
+    //
+    // Windows: the canonical launcher is `py.exe` (shipped with every official CPython
+    //   installer, always in PATH). `py -3` picks any installed Python 3.x even when
+    //   `python.exe` / `python3.exe` are NOT in PATH (common on modern installs because
+    //   MS Store stubs take precedence). If `py` is missing we fall back to the older
+    //   `python` / `python3` candidates.
+    //
+    // POSIX: follow symlinks to the real binary to avoid execFile ENOENT on symlinks
+    //   (observed in Alpine/Docker on Node.js v22). realpathSync throws if the path
+    //   doesn't exist, so we catch and try the next candidate.
     const isWindows = process.platform === 'win32';
-    const python3Candidates = isWindows
-      ? ['python', 'python3']
-      : ['/usr/bin/python3', '/usr/local/bin/python3', 'python3'];
-    let python3 = isWindows ? 'python' : 'python3';
-    for (const candidate of python3Candidates) {
-      if (!candidate.includes('/')) { python3 = candidate; break; }
-      try {
-        python3 = fs.realpathSync(candidate); // resolves symlinks; throws if not found
-        break;
-      } catch { /* not found, try next */ }
+    let pythonCmd: string;
+    let pythonPrefixArgs: string[];
+    if (isWindows) {
+      const winCandidates: Array<{ cmd: string; args: string[] }> = [
+        { cmd: 'py',      args: ['-3'] },
+        { cmd: 'python',  args: [] },
+        { cmd: 'python3', args: [] },
+      ];
+      const picked = winCandidates[0];      // py is standard; fallback attempts happen at runtime if it fails
+      pythonCmd = picked.cmd;
+      pythonPrefixArgs = picked.args;
+    } else {
+      const posixCandidates = ['/usr/bin/python3', '/usr/local/bin/python3', 'python3'];
+      pythonCmd = 'python3';
+      for (const candidate of posixCandidates) {
+        if (!candidate.includes('/')) { pythonCmd = candidate; break; }
+        try {
+          pythonCmd = fs.realpathSync(candidate);
+          break;
+        } catch { /* not found, try next */ }
+      }
+      pythonPrefixArgs = [];
     }
+
     // ⚠️ LOAD-BEARING ORDERING INVARIANT — see docs/superpowers/specs/2026-04-15-db-bootstrap-architecture-design.md §3.4:
     // ppxml2db.py MUST run before applyBootstrap against an empty file. Vendor DDL lacks
     // `IF NOT EXISTS`, so bootstrap-first would cause "table already exists" on vendor CREATE.
-    try {
-      await execFileAsync(python3, [ppxml2dbPath, tempXmlPath, tempDbPath], {
+    const runPython = async (cmd: string, prefixArgs: string[]): Promise<void> => {
+      await execFileAsync(cmd, [...prefixArgs, ppxml2dbPath, tempXmlPath, tempDbPath], {
         timeout: 110_000, // under the 120s route timeout
         env: { ...process.env },
         cwd: VENDOR_DIR, // so ppxml2db can import dbhelper and version modules
       });
+    };
+    try {
+      try {
+        await runPython(pythonCmd, pythonPrefixArgs);
+      } catch (primaryErr) {
+        // Windows fallback: if `py` isn't installed, try `python` / `python3` directly
+        // before giving up. ENOENT is the only primaryErr shape we retry on.
+        const code = (primaryErr as NodeJS.ErrnoException).code;
+        if (!isWindows || code !== 'ENOENT') throw primaryErr;
+        try {
+          await runPython('python', []);
+        } catch {
+          await runPython('python3', []);
+        }
+      }
     } catch (err: unknown) {
       const details = err instanceof Error ? err.message : String(err);
       throw new ImportError('CONVERSION_FAILED', 'Errore durante la conversione ppxml2db', details);
