@@ -2,6 +2,7 @@ import { addDays } from 'date-fns';
 import { normalizeInstrumentType, type InstrumentType } from '@quovibe/shared';
 import type { SearchResult } from '@quovibe/shared';
 import { safeDecimal, toYMD } from '../providers/utils';
+import { getYahoo } from '../providers/yahoo-client';
 
 // ─── Internal Yahoo types ────────────────────────────────────────────────────
 
@@ -72,11 +73,22 @@ export function getSearchCacheSize(): number {
 
 // ─── Yahoo Finance wrapper ───────────────────────────────────────────────────
 
-function getYf() {
-   
-  const mod = require('yahoo-finance2');
-  const YahooFinance = mod.default ?? mod;
-  return new YahooFinance();
+interface YahooFinanceClient {
+  search: (q: string) => Promise<{ quotes?: YahooQuote[] }>;
+  chart: (t: string, opts: unknown) => Promise<{
+    meta?: { currency?: string | null };
+    quotes?: Array<{
+      date: Date;
+      close: number | null;
+      high: number | null;
+      low: number | null;
+      volume: number | null;
+    }>;
+  }>;
+}
+
+function getYf(): YahooFinanceClient {
+  return getYahoo() as unknown as YahooFinanceClient;
 }
 
 function mapQuoteToSearchResult(q: YahooQuote): SearchResult {
@@ -122,9 +134,10 @@ export async function fetchPreviewPrices(ticker: string, startDate?: string): Pr
     });
 
     const currency: string = chartResult.meta?.currency ?? '';
+    type ChartQuote = NonNullable<typeof chartResult.quotes>[number];
     const prices: PreviewPrice[] = (chartResult.quotes ?? [])
-      .filter((r: { close: number | null }) => r.close != null)
-      .map((r: { date: Date; close: number; high: number | null; low: number | null; volume: number | null }) => ({
+      .filter((r): r is ChartQuote & { close: number } => r.close != null)
+      .map((r) => ({
         date: toYMD(r.date),
         close: safeDecimal(r.close).toString(),
         ...(r.high != null ? { high: safeDecimal(r.high).toString() } : {}),
