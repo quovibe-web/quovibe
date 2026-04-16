@@ -10,9 +10,8 @@
  */
 
 import fs from 'fs';
-import path from 'path';
 import type BetterSqlite3 from 'better-sqlite3';
-import { DB_PATH } from '../config';
+import { SIDECAR_PATH } from '../config';
 import {
   quovibeSettingsSchema,
   DEFAULT_SETTINGS,
@@ -22,8 +21,7 @@ import {
   DEFAULT_CHART_CONFIG,
 } from '@quovibe/shared';
 
-const SIDECAR_FILENAME = 'quovibe.settings.json';
-const sidecarPath = path.join(path.dirname(DB_PATH), SIDECAR_FILENAME);
+const sidecarPath = SIDECAR_PATH;
 
 let cached: QuovibeSettings = { ...DEFAULT_SETTINGS };
 
@@ -66,6 +64,10 @@ export function loadSettings(): void {
       delete parsed.app.autoFetchPricesOnStartup;
     }
 
+    // Drop legacy sidecar-hosted dashboard fields (spec §3.12): dashboards moved to per-portfolio vf_dashboard.
+    if (parsed.dashboards !== undefined) delete parsed.dashboards;
+    if (parsed.activeDashboard !== undefined) delete parsed.activeDashboard;
+
     // Migrate chartConfig v1 → v2 if needed
     if (parsed.chartConfig && !parsed.chartConfig.version) {
       parsed.chartConfig = migrateChartConfigV1toV2(parsed.chartConfig);
@@ -97,8 +99,6 @@ export function updateSettings(partial: {
   app?: Partial<QuovibeSettings['app']>;
   preferences?: Partial<QuovibePreferences>;
   reportingPeriods?: QuovibeSettings['reportingPeriods'];
-  dashboards?: QuovibeSettings['dashboards'];
-  activeDashboard?: string | null;
   investmentsView?: Partial<QuovibeSettings['investmentsView']>;
   allocationView?: Partial<QuovibeSettings['allocationView']>;
   chartConfig?: Partial<QuovibeSettings['chartConfig']>;
@@ -110,10 +110,6 @@ export function updateSettings(partial: {
     app: { ...cached.app, ...partial.app },
     preferences: { ...cached.preferences, ...partial.preferences },
     reportingPeriods: partial.reportingPeriods ?? cached.reportingPeriods,
-    dashboards: partial.dashboards ?? cached.dashboards,
-    activeDashboard: partial.activeDashboard !== undefined
-      ? partial.activeDashboard
-      : cached.activeDashboard,
     portfolios: partial.portfolios ?? cached.portfolios,
     investmentsView: { ...cached.investmentsView, ...partial.investmentsView,
       columns: partial.investmentsView?.columns ?? cached.investmentsView?.columns ?? [],

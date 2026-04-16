@@ -192,8 +192,6 @@ export const quovibeSettingsSchema = z.object({
   app: appSchema,
   preferences: preferencesSchema,
   reportingPeriods: z.array(reportingPeriodDefSchema).default([]),
-  dashboards: z.array(dashboardSchema).default([]),
-  activeDashboard: z.string().nullable().default(null),
   portfolios: z.array(portfolioEntrySchema).default([]),
   investmentsView: investmentsViewSchema,
   allocationView: allocationViewSchema,
@@ -230,10 +228,3 @@ export const updateSettingsSchema = z.object({
 });
 
 export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
-
-export const putDashboardSchema = z.object({
-  dashboards: z.array(dashboardSchema),
-  activeDashboard: z.string().nullable(),
-});
-
-export type PutDashboardInput = z.infer<typeof putDashboardSchema>;

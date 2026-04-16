@@ -251,57 +251,6 @@ describe('reportingPeriods round-trip', () => {
   });
 });
 
-describe('dashboards round-trip', () => {
-  test('stores and retrieves dashboards array and activeDashboard', async () => {
-    const { loadSettings, updateSettings, getSettings } = await importService();
-    loadSettings();
-
-    const dashboards = [
-      {
-        id: 'd1',
-        name: 'Main',
-        widgets: [{ id: 'w1', type: 'ttwror', title: null, span: 1 as const, config: {} }],
-        columns: 'auto' as const,
-      },
-    ];
-
-    updateSettings({ dashboards, activeDashboard: 'd1' });
-
-    const settings = getSettings();
-    expect(settings.dashboards).toHaveLength(1);
-    expect(settings.dashboards[0].name).toBe('Main');
-    expect(settings.activeDashboard).toBe('d1');
-  });
-
-  test('allows setting activeDashboard to null', async () => {
-    const { loadSettings, updateSettings, getSettings } = await importService();
-    loadSettings();
-
-    updateSettings({ activeDashboard: 'd1' });
-    expect(getSettings().activeDashboard).toBe('d1');
-
-    updateSettings({ activeDashboard: null });
-    expect(getSettings().activeDashboard).toBeNull();
-  });
-
-  test('preserves dashboards when updating preferences', async () => {
-    const { loadSettings, updateSettings, getSettings } = await importService();
-    loadSettings();
-
-    updateSettings({
-      dashboards: [{ id: 'd1', name: 'Test', widgets: [], columns: 'auto' as const }],
-      activeDashboard: 'd1',
-    });
-
-    updateSettings({ preferences: { language: 'fr' } });
-
-    const settings = getSettings();
-    expect(settings.dashboards).toHaveLength(1);
-    expect(settings.activeDashboard).toBe('d1');
-    expect(settings.preferences.language).toBe('fr');
-  });
-});
-
 describe('tableLayouts round-trip', () => {
   test('stores and retrieves tableLayouts for a tableId', async () => {
     const { loadSettings, updateSettings, getSettings } = await importService();
