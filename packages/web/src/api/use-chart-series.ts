@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useQueries, keepPreviousData } from '@tanstack/react-query';
 import { useChartConfig } from './use-chart-config';
 import { useReportingPeriod } from './use-performance';
-import { apiFetch } from './fetch';
+import { useScopedApi } from './use-scoped-api';
 import type {
   DataSeriesConfig,
   BenchmarkSeriesResponse,
@@ -31,30 +31,32 @@ export interface ResolvedSeries {
 }
 
 function buildQueryKey(
+  pid: string,
   series: DataSeriesConfig,
   periodStart: string,
   periodEnd: string,
 ): readonly unknown[] {
   switch (series.type) {
     case 'portfolio':
-      return ['chart-series', 'portfolio', periodStart, periodEnd];
+      return ['portfolios', pid, 'chart-series', 'portfolio', periodStart, periodEnd];
     case 'security':
-      return ['chart-series', 'security', series.securityId, periodStart, periodEnd];
+      return ['portfolios', pid, 'chart-series', 'security', series.securityId, periodStart, periodEnd];
     case 'benchmark':
-      return ['chart-series', 'benchmark', series.securityId, periodStart, periodEnd];
+      return ['portfolios', pid, 'chart-series', 'benchmark', series.securityId, periodStart, periodEnd];
     case 'account':
-      return ['chart-series', 'account', series.accountId, periodStart, periodEnd];
+      return ['portfolios', pid, 'chart-series', 'account', series.accountId, periodStart, periodEnd];
   }
 }
 
 async function fetchSeriesData(
+  scopedFetch: <T>(url: string, init?: RequestInit) => Promise<T>,
   series: DataSeriesConfig,
   periodStart: string,
   periodEnd: string,
 ): Promise<SeriesDataPoint[]> {
   switch (series.type) {
     case 'portfolio': {
-      const data = await apiFetch<ChartPointResponse[]>(
+      const data = await scopedFetch<ChartPointResponse[]>(
         `/api/performance/chart?periodStart=${periodStart}&periodEnd=${periodEnd}`,
       );
       return data.map((p) => ({
@@ -63,7 +65,7 @@ async function fetchSeriesData(
       }));
     }
     case 'security': {
-      const data = await apiFetch<SecuritySeriesResponse>(
+      const data = await scopedFetch<SecuritySeriesResponse>(
         `/api/performance/security-series?securityId=${series.securityId}&periodStart=${periodStart}&periodEnd=${periodEnd}`,
       );
       return data.series.map((p) => ({
@@ -72,7 +74,7 @@ async function fetchSeriesData(
       }));
     }
     case 'benchmark': {
-      const data = await apiFetch<BenchmarkSeriesResponse>(
+      const data = await scopedFetch<BenchmarkSeriesResponse>(
         `/api/performance/benchmark-series?securityIds=${series.securityId}&periodStart=${periodStart}&periodEnd=${periodEnd}`,
       );
       const bm = data.benchmarks[0];
@@ -89,6 +91,7 @@ async function fetchSeriesData(
 }
 
 export function useChartSeries() {
+  const api = useScopedApi();
   const { data: config } = useChartConfig();
   const { periodStart, periodEnd } = useReportingPeriod();
 
@@ -96,8 +99,8 @@ export function useChartSeries() {
 
   const queries = useQueries({
     queries: seriesList.map((s) => ({
-      queryKey: buildQueryKey(s, periodStart, periodEnd),
-      queryFn: () => fetchSeriesData(s, periodStart, periodEnd),
+      queryKey: buildQueryKey(api.portfolioId, s, periodStart, periodEnd),
+      queryFn: () => fetchSeriesData(api.fetch, s, periodStart, periodEnd),
       enabled: s.visible,
       placeholderData: keepPreviousData,
       staleTime: 5 * 60 * 1000,

@@ -1,6 +1,6 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { apiFetch } from './fetch';
+import { useScopedApi } from './use-scoped-api';
 import { format, startOfYear } from 'date-fns';
 import type { ChartPointResponse, SecurityPerfResponse, ReturnsHeatmapResponse } from './types';
 import type { CalculationBreakdownResponse, DataSeriesValue } from '@quovibe/shared';
@@ -46,17 +46,17 @@ export function useReportingPeriod() {
 }
 
 export const performanceKeys = {
-  calculation: (start: string, end: string, preTax?: boolean, costMethod?: CostMethod,
+  calculation: (pid: string, start: string, end: string, preTax?: boolean, costMethod?: CostMethod,
                 filter?: string, withReference?: boolean, taxonomyId?: string, categoryId?: string) =>
-    ['performance', 'calculation', start, end, preTax, costMethod, filter, withReference, taxonomyId, categoryId] as const,
-  securities: (start: string, end: string) =>
-    ['performance', 'securities', start, end] as const,
-  chart: (start: string, end: string, filter?: string, withReference?: boolean, taxonomyId?: string, categoryId?: string) =>
-    ['performance', 'chart', start, end, filter, withReference, taxonomyId, categoryId] as const,
-  returns: (start?: string, end?: string, filter?: string, withReference?: boolean, taxonomyId?: string, categoryId?: string) =>
-    ['performance', 'returns', start, end, filter, withReference, taxonomyId, categoryId] as const,
-  resolveSeries: (value: DataSeriesValue | null) =>
-    ['performance', 'resolve-series', value] as const,
+    ['portfolios', pid, 'performance', 'calculation', start, end, preTax, costMethod, filter, withReference, taxonomyId, categoryId] as const,
+  securities: (pid: string, start: string, end: string) =>
+    ['portfolios', pid, 'performance', 'securities', start, end] as const,
+  chart: (pid: string, start: string, end: string, filter?: string, withReference?: boolean, taxonomyId?: string, categoryId?: string) =>
+    ['portfolios', pid, 'performance', 'chart', start, end, filter, withReference, taxonomyId, categoryId] as const,
+  returns: (pid: string, start?: string, end?: string, filter?: string, withReference?: boolean, taxonomyId?: string, categoryId?: string) =>
+    ['portfolios', pid, 'performance', 'returns', start, end, filter, withReference, taxonomyId, categoryId] as const,
+  resolveSeries: (pid: string, value: DataSeriesValue | null) =>
+    ['portfolios', pid, 'performance', 'resolve-series', value] as const,
 };
 
 export function useCalculation(
@@ -69,12 +69,13 @@ export function useCalculation(
   taxonomyId?: string,
   categoryId?: string,
 ) {
+  const api = useScopedApi();
   const { periodStart: urlStart, periodEnd: urlEnd } = useReportingPeriod();
   const periodStart = periodStartOverride ?? urlStart;
   const periodEnd = periodEndOverride ?? urlEnd;
 
   return useQuery({
-    queryKey: performanceKeys.calculation(periodStart, periodEnd, preTax, costMethod, filter, withReference, taxonomyId, categoryId),
+    queryKey: performanceKeys.calculation(api.portfolioId, periodStart, periodEnd, preTax, costMethod, filter, withReference, taxonomyId, categoryId),
     queryFn: () => {
       const params = new URLSearchParams({
         periodStart,
@@ -86,8 +87,8 @@ export function useCalculation(
       if (withReference !== undefined) params.set('withReference', String(withReference));
       if (taxonomyId) params.set('taxonomyId', taxonomyId);
       if (categoryId) params.set('categoryId', categoryId);
-      return apiFetch<CalculationBreakdownResponse>(
-        `/api/performance/calculation?${params.toString()}`
+      return api.fetch<CalculationBreakdownResponse>(
+        `/api/performance/calculation?${params.toString()}`,
       );
     },
     placeholderData: keepPreviousData,
@@ -99,14 +100,15 @@ export function usePerformanceSecurities(options?: {
   periodStart?: string;
   periodEnd?: string;
 }) {
+  const api = useScopedApi();
   const { periodStart: urlStart, periodEnd: urlEnd } = useReportingPeriod();
   const periodStart = options?.periodStart ?? urlStart;
   const periodEnd = options?.periodEnd ?? urlEnd;
   return useQuery({
-    queryKey: performanceKeys.securities(periodStart, periodEnd),
+    queryKey: performanceKeys.securities(api.portfolioId, periodStart, periodEnd),
     queryFn: () =>
-      apiFetch<SecurityPerfResponse[]>(
-        `/api/performance/securities?periodStart=${periodStart}&periodEnd=${periodEnd}&preTax=false`
+      api.fetch<SecurityPerfResponse[]>(
+        `/api/performance/securities?periodStart=${periodStart}&periodEnd=${periodEnd}&preTax=false`,
       ),
     placeholderData: keepPreviousData,
     enabled: options?.enabled ?? true,
@@ -117,14 +119,15 @@ export function usePerformanceChart(options?: {
   periodStart?: string;
   periodEnd?: string;
 }) {
+  const api = useScopedApi();
   const { periodStart: urlStart, periodEnd: urlEnd } = useReportingPeriod();
   const periodStart = options?.periodStart ?? urlStart;
   const periodEnd = options?.periodEnd ?? urlEnd;
   return useQuery({
-    queryKey: performanceKeys.chart(periodStart, periodEnd),
+    queryKey: performanceKeys.chart(api.portfolioId, periodStart, periodEnd),
     queryFn: () =>
-      apiFetch<ChartPointResponse[]>(
-        `/api/performance/chart?periodStart=${periodStart}&periodEnd=${periodEnd}`
+      api.fetch<ChartPointResponse[]>(
+        `/api/performance/chart?periodStart=${periodStart}&periodEnd=${periodEnd}`,
       ),
     placeholderData: keepPreviousData,
   });
@@ -138,12 +141,13 @@ export function useWidgetPerformanceChart(
   taxonomyId?: string,
   categoryId?: string,
 ) {
+  const api = useScopedApi();
   const { periodStart: urlStart, periodEnd: urlEnd } = useReportingPeriod();
   const periodStart = periodStartOverride ?? urlStart;
   const periodEnd = periodEndOverride ?? urlEnd;
 
   return useQuery({
-    queryKey: performanceKeys.chart(periodStart, periodEnd, filter, withReference, taxonomyId, categoryId),
+    queryKey: performanceKeys.chart(api.portfolioId, periodStart, periodEnd, filter, withReference, taxonomyId, categoryId),
     queryFn: () => {
       const params = new URLSearchParams({
         periodStart,
@@ -154,8 +158,8 @@ export function useWidgetPerformanceChart(
       if (withReference !== undefined) params.set('withReference', String(withReference));
       if (taxonomyId) params.set('taxonomyId', taxonomyId);
       if (categoryId) params.set('categoryId', categoryId);
-      return apiFetch<ChartPointResponse[]>(
-        `/api/performance/chart?${params.toString()}`
+      return api.fetch<ChartPointResponse[]>(
+        `/api/performance/chart?${params.toString()}`,
       );
     },
     placeholderData: keepPreviousData,
@@ -170,8 +174,9 @@ export function useReturnsHeatmap(
   taxonomyId?: string,
   categoryId?: string,
 ) {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: performanceKeys.returns(periodStartOverride, periodEndOverride, filter, withReference, taxonomyId, categoryId),
+    queryKey: performanceKeys.returns(api.portfolioId, periodStartOverride, periodEndOverride, filter, withReference, taxonomyId, categoryId),
     queryFn: () => {
       const params = new URLSearchParams();
       if (periodStartOverride) params.set('periodStart', periodStartOverride);
@@ -181,7 +186,7 @@ export function useReturnsHeatmap(
       if (taxonomyId) params.set('taxonomyId', taxonomyId);
       if (categoryId) params.set('categoryId', categoryId);
       const qs = params.toString();
-      return apiFetch<ReturnsHeatmapResponse>(`/api/performance/returns${qs ? `?${qs}` : ''}`);
+      return api.fetch<ReturnsHeatmapResponse>(`/api/performance/returns${qs ? `?${qs}` : ''}`);
     },
   });
 }
@@ -192,10 +197,11 @@ interface ResolveSeriesResponse {
 }
 
 export function useResolveSeriesLabel(value: DataSeriesValue | null) {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: performanceKeys.resolveSeries(value),
+    queryKey: performanceKeys.resolveSeries(api.portfolioId, value),
     queryFn: () =>
-      apiFetch<ResolveSeriesResponse>('/api/performance/resolve-series', {
+      api.fetch<ResolveSeriesResponse>('/api/performance/resolve-series', {
         method: 'POST',
         body: JSON.stringify(value),
       }),
