@@ -1,4 +1,5 @@
 // packages/api/src/services/portfolio-db-pool.ts
+import type BetterSqlite3 from 'better-sqlite3';
 import { openDatabase, type OpenDatabaseResult } from '../db/open-db';
 import { PORTFOLIO_POOL_MAX, resolvePortfolioPath } from '../config';
 import type { PortfolioEntry } from '@quovibe/shared';
@@ -19,6 +20,14 @@ let resolveEntry: ((id: string) => PortfolioEntry | null) | null = null;
 export function setResolveEntry(fn: (id: string) => PortfolioEntry | null): void {
   resolveEntry = fn;
 }
+
+/**
+ * Post-open hook fired exactly once after the pool opens a handle on cache miss.
+ * Used by auto-fetch wiring (ADR-015 §3.8a). Errors are caught and logged.
+ */
+type OpenedHook = (id: string, sqlite: BetterSqlite3.Database) => void;
+let onOpened: OpenedHook | null = null;
+export function setOnOpened(fn: OpenedHook): void { onOpened = fn; }
 
 function evictIdleOverCap(): void {
   if (pool.size <= PORTFOLIO_POOL_MAX) return;
@@ -46,6 +55,7 @@ function evictIdleOverCap(): void {
  */
 export function acquirePortfolioDb(id: string): OpenDatabaseResult {
   let entry = pool.get(id);
+  let freshlyOpened = false;
   if (!entry) {
     if (!resolveEntry) throw new Error('portfolio-db-pool: resolveEntry not wired');
     const sidecarEntry = resolveEntry(id);
@@ -58,9 +68,15 @@ export function acquirePortfolioDb(id: string): OpenDatabaseResult {
     const handle = openDatabase(filePath);
     entry = { handle, refCount: 0, lastReleased: Date.now() };
     pool.set(id, entry);
+    freshlyOpened = true;
   }
   entry.refCount++;
   evictIdleOverCap();
+  if (freshlyOpened) {
+    try { onOpened?.(id, entry.handle.sqlite); } catch (err) {
+      console.warn('[quovibe] onOpened hook failed', { id, err: (err as Error).message });
+    }
+  }
   return entry.handle;
 }
 
