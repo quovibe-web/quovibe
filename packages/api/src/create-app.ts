@@ -20,6 +20,7 @@ import { attributeTypesRouter } from './routes/attribute-types';
 import { taxonomyWriteRouter } from './routes/taxonomy-write';
 import { settingsRouter } from './routes/settings';
 import { dashboardRouter } from './routes/dashboard';
+import { chartConfigRouter } from './routes/chart-config';
 import { csvImportRouter } from './routes/csv-import';
 import { watchlistsRouter } from './routes/watchlists';
 import { logoRouter } from './routes/logo';
@@ -72,6 +73,7 @@ export function createApp(): Express {
   app.use('/api/p/:portfolioId/calendars', calendarsRouter);
   app.use('/api/p/:portfolioId/attribute-types', attributeTypesRouter);
   app.use('/api/p/:portfolioId/dashboards', dashboardRouter);
+  app.use('/api/p/:portfolioId/chart-config', chartConfigRouter);
   app.use('/api/p/:portfolioId/csv-import', csvImportRouter);
   app.use('/api/p/:portfolioId/watchlists', watchlistsRouter);
 
