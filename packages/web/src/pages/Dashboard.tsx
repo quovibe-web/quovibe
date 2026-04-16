@@ -52,6 +52,10 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useDashboardConfig, useSaveDashboard } from '@/api/use-dashboard-config';
+import { useDashboards } from '@/api/use-dashboards';
+import { useTransactions } from '@/api/use-transactions';
+import { DashboardEmptyState } from '@/components/domain/DashboardEmptyState';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { nanoid } from 'nanoid';
 import { getWidgetDef, CHART_WIDGET_TYPES } from '@/lib/widget-registry';
 import { DASHBOARD_TEMPLATES, applyTemplate, type DashboardTemplate } from '@/lib/dashboard-templates';
@@ -326,6 +330,9 @@ function SortableTab({
 export default function Dashboard() {
   useDocumentTitle('Dashboard');
   const { t } = useTranslation('dashboard');
+  const { portfolioId, dashboardId } = useParams<{ portfolioId: string; dashboardId?: string }>();
+  const dashboardsList = useDashboards();
+  const tx = useTransactions(undefined, 1, 1);
   const { data, isLoading } = useDashboardConfig();
   const { mutate: save } = useSaveDashboard();
 
@@ -554,6 +561,25 @@ export default function Dashboard() {
         </SortableContext>
       </DndContext>
     );
+  }
+
+  // ADR-015: empty-state when the portfolio has zero transactions
+  // (useDashboards + useTransactions both load via useScopedApi)
+  const txCount = tx.data?.total ?? 0;
+  const showEmptyState =
+    !dashboardsList.isLoading && !tx.isLoading && txCount === 0;
+  if (showEmptyState) return <DashboardEmptyState />;
+
+  // Redirect /p/:pid/dashboard → /p/:pid/dashboard/:firstByPositionId when the
+  // REST collection has real dashboards. We only redirect when the route is
+  // missing a :dashboardId segment; /dashboard/:id continues through normally.
+  if (!dashboardId && dashboardsList.data && dashboardsList.data.length > 0) {
+    const first = [...dashboardsList.data].sort(
+      (a, b) => a.position - b.position,
+    )[0];
+    if (first && portfolioId) {
+      return <Navigate to={`/p/${portfolioId}/dashboard/${first.id}`} replace />;
+    }
   }
 
   return (
