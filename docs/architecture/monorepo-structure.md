@@ -170,7 +170,7 @@ quovibe/
 │       │   │   ├── use-chart-config.ts         # Chart config sidecar (benchmarks)
 │       │   │   ├── use-chart-series.ts         # Unified multi-series data (portfolio, security, benchmark)
 │       │   │   ├── use-csv-import.ts           # CSV import mutations + config hooks
-│       │   │   ├── use-dashboard-config.ts
+│       │   │   ├── use-dashboards.ts            # Per-portfolio dashboard REST collection (ADR-015)
 │       │   │   ├── use-import.ts
 │       │   │   ├── use-init-portfolio.ts
 │       │   │   ├── use-investments-view.ts     # Column visibility sidecar
