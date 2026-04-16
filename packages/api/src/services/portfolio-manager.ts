@@ -251,3 +251,40 @@ export function touchPortfolio(id: string): void {
   if (!entry) throw new PortfolioManagerError('PORTFOLIO_NOT_FOUND');
   upsertPortfolioEntry({ ...entry, lastOpenedAt: new Date().toISOString() });
 }
+
+// --- export ----------------------------------------------------------------
+
+export async function exportPortfolio(id: string): Promise<{ filePath: string; downloadName: string }> {
+  const entry = getPortfolioEntry(id);
+  if (!entry) throw new PortfolioManagerError('PORTFOLIO_NOT_FOUND');
+
+  const { sqlite } = acquirePortfolioDb(id);
+  const tmpDir = path.join(DATA_DIR, 'tmp');
+  ensureDir(tmpDir);
+  const tmpFile = path.join(tmpDir, `export-${crypto.randomUUID()}.db`);
+
+  try {
+    sqlite.pragma('wal_checkpoint(TRUNCATE)');
+    // better-sqlite3's backup() is Promise-returning and cooperative with concurrent readers.
+    // See https://github.com/WiseLibs/better-sqlite3/blob/master/docs/api.md#backupdestination-options---promise
+    await (sqlite as unknown as { backup(dest: string): Promise<unknown> }).backup(tmpFile);
+  } finally {
+    releasePortfolioDb(id);
+  }
+
+  const downloadName = sanitizeDownloadName(entry.name) + '-' + todayIso() + '.db';
+  return { filePath: tmpFile, downloadName };
+}
+
+function sanitizeDownloadName(name: string): string {
+  const cleaned = name
+    .replace(/[^a-zA-Z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 60);
+  return cleaned || 'portfolio';
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
