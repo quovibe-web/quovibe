@@ -163,7 +163,7 @@ const appSchema = z.object({
   autoFetchPricesOnFirstOpen: z.boolean().default(false),
 }).default({});
 
-const preferencesSchema = z.object({
+export const preferencesSchema = z.object({
   language: z.string().default('en'),
   theme: z.enum(['light', 'dark', 'system']).default('system'),
   sharesPrecision: z.number().int().min(1).max(8).default(1),

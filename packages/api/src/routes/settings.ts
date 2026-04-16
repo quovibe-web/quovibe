@@ -1,9 +1,28 @@
 import { z } from 'zod';
 import { Router, type RequestHandler, type Router as RouterType } from 'express';
-import { reportingPeriodDefSchema, resolveReportingPeriod, investmentsViewSchema, allocationViewSchema, chartConfigV2Schema, tableIdSchema, tableLayoutEntrySchema } from '@quovibe/shared';
+import { reportingPeriodDefSchema, resolveReportingPeriod, investmentsViewSchema, allocationViewSchema, chartConfigV2Schema, tableIdSchema, tableLayoutEntrySchema, preferencesSchema } from '@quovibe/shared';
 import { getSettings, updateSettings } from '../services/settings.service';
 
 export const settingsRouter: RouterType = Router();
+
+// GET /api/settings — full sidecar payload for the user-level settings page.
+// Read-only; Zod validation not needed.
+settingsRouter.get('/', (_req, res) => {
+  const s = getSettings();
+  res.json({ preferences: s.preferences, app: s.app });
+});
+
+// PUT /api/settings/preferences — partial merge into the sidecar's preferences section.
+const putPreferencesSchema = preferencesSchema.removeDefault().partial();
+settingsRouter.put('/preferences', (req, res) => {
+  const parsed = putPreferencesSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'INVALID_PREFERENCES', details: parsed.error.format() });
+    return;
+  }
+  const updated = updateSettings({ preferences: parsed.data });
+  res.json(updated.preferences);
+});
 
 /** GET /api/settings/reporting-periods */
 const getReportingPeriods: RequestHandler = (_req, res) => {
