@@ -9,6 +9,11 @@ import Database from 'better-sqlite3';
 const tmp = mkdtempSync(path.join(tmpdir(), 'qv-mpc-'));
 process.env.QUOVIBE_DATA_DIR = tmp;
 process.env.QUOVIBE_DEMO_SOURCE = path.join(tmp, 'demo-src.db');
+// Force pool eviction under load: with 2 real portfolios and cap=1, every
+// interleaved request against the "other" portfolio must acquire + release
+// through a cold-miss open. Stresses acquire/release refcount correctness
+// in a way the default cap=5 cannot.
+process.env.PORTFOLIO_POOL_MAX = '1';
 
 let applyBootstrap: typeof import('../db/apply-bootstrap').applyBootstrap;
 let createApp: typeof import('../create-app').createApp;

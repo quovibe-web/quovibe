@@ -84,11 +84,17 @@ describe('welcome flow end-to-end', () => {
     r = await request(app).delete(`/api/portfolios/${realId}`);
     expect(r.status).toBe(204);
 
-    // 7. After deletion, registry reflects it
+    // 7. After deletion, registry reflects it — `realId` was the default, so
+    // `defaultPortfolioId` must be reassigned (removePortfolioEntry falls back
+    // to the most-recently-opened real; with only demo remaining, it becomes
+    // null and `initialized` drops to false).
     r = await request(app).get('/api/portfolios');
     const ids = r.body.portfolios.map((p: { id: string }) => p.id);
     expect(ids).not.toContain(realId);
     expect(ids).toContain(demoId);
+    expect(r.body.defaultPortfolioId).not.toBe(realId);
+    expect(r.body.defaultPortfolioId).toBeNull();
+    expect(r.body.initialized).toBe(false);
   });
 
   it('export/import produces a real portfolio with a new UUID', async () => {

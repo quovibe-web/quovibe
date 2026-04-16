@@ -22,10 +22,16 @@ let validateQuovibeDbFile: typeof import('../services/import-validation').valida
 
 function seedTransactions(sqlite: Database.Database, n: number): void {
   // Minimal columns required by the CHECKed/NOT-NULL ppxml2db schema.
+  // Two accounts: one cash (Group B deposits) + one portfolio (Group A BUY double-entry).
   sqlite.prepare(
-    `INSERT INTO account (_id, uuid, name, currency, type, updatedAt, _xmlid, _order)
-     VALUES (1, 'a-1', 'A', 'EUR', 'account', '2026-01-01T00:00:00Z', 0, 0)`,
+    `INSERT INTO account (_id, uuid, name, currency, type, referenceAccount, updatedAt, _xmlid, _order)
+     VALUES (1, 'a-1', 'Cash', 'EUR', 'account', NULL, '2026-01-01T00:00:00Z', 0, 0)`,
   ).run();
+  sqlite.prepare(
+    `INSERT INTO account (_id, uuid, name, currency, type, referenceAccount, updatedAt, _xmlid, _order)
+     VALUES (2, 'a-2', 'Broker', 'EUR', 'portfolio', 'a-1', '2026-01-01T00:00:00Z', 1, 1)`,
+  ).run();
+
   const stmt = sqlite.prepare(
     `INSERT INTO xact (uuid, account, type, date, amount, shares, note, currency,
                        acctype, updatedAt, _xmlid, _order, fees, taxes)
@@ -43,14 +49,77 @@ function seedTransactions(sqlite: Database.Database, n: number): void {
   }
 }
 
+/**
+ * Seed a BUY double-entry + cross-entry + the supporting security/price/latest_price
+ * rows. Exercises the full ADR-015 §3.3 transaction shape:
+ *   - 1 security row
+ *   - 1 price + 1 latest_price row
+ *   - 2 xact rows (portfolio-side shares>0, cash-side shares=0)
+ *   - 1 xact_cross_entry linking them (from_xact=portfolio, to_xact=cash).
+ * Without this, `exportPortfolio` could silently drop cross-entry rows and the
+ * test wouldn't notice (cross-entry is the single biggest complexity source per
+ * `.claude/rules/double-entry.md`).
+ */
+function seedBuyWithCrossEntry(sqlite: Database.Database, baseOrder: number): void {
+  sqlite.prepare(
+    `INSERT INTO security (_id, uuid, name, currency, isin, isRetired, updatedAt)
+     VALUES (1, 's-1', 'Acme Corp', 'EUR', 'US0000000001', 0, '2026-01-01T00:00:00Z')`,
+  ).run();
+  sqlite.prepare(
+    `INSERT INTO price (security, tstamp, value) VALUES ('s-1', '2026-01-15', ?)`,
+  ).run(10000 * 1e8);   // price 100.00 in ppxml2db scaled units
+  sqlite.prepare(
+    `INSERT INTO latest_price (security, tstamp, value) VALUES ('s-1', '2026-01-20', ?)`,
+  ).run(10250 * 1e8);
+
+  // Portfolio-side BUY (shares > 0)
+  sqlite.prepare(
+    `INSERT INTO xact (uuid, account, type, date, amount, shares, security, currency,
+                       acctype, updatedAt, _xmlid, _order, fees, taxes)
+     VALUES ('buy-p', 'a-2', 'BUY', '2026-01-15', ?, ?, 's-1', 'EUR',
+             'portfolio', '2026-01-15T00:00:00Z', ?, ?, 0, 0)`,
+  ).run(500000, 10 * 1e8, baseOrder, baseOrder);
+  // Cash-side counter-entry (shares = 0, same security per D4 fix)
+  sqlite.prepare(
+    `INSERT INTO xact (uuid, account, type, date, amount, shares, security, currency,
+                       acctype, updatedAt, _xmlid, _order, fees, taxes)
+     VALUES ('buy-c', 'a-1', 'BUY', '2026-01-15', ?, 0, 's-1', 'EUR',
+             'account', '2026-01-15T00:00:00Z', ?, ?, 0, 0)`,
+  ).run(500000, baseOrder + 1, baseOrder + 1);
+  sqlite.prepare(
+    `INSERT INTO xact_cross_entry (from_xact, from_acc, to_xact, to_acc, type)
+     VALUES ('buy-p', 'a-2', 'buy-c', 'a-1', 'buysell')`,
+  ).run();
+}
+
 function summarize(id: string): Record<string, number> {
   const { sqlite } = acquirePortfolioDb(id);
   try {
-    const accounts = (sqlite.prepare('SELECT COUNT(*) as n FROM account').get() as { n: number }).n;
-    const xacts = (sqlite.prepare('SELECT COUNT(*) as n FROM xact').get() as { n: number }).n;
-    const dashboards = (sqlite.prepare('SELECT COUNT(*) as n FROM vf_dashboard').get() as { n: number }).n;
-    const chartCfg = (sqlite.prepare('SELECT COUNT(*) as n FROM vf_chart_config').get() as { n: number }).n;
-    return { accounts, xacts, dashboards, chartCfg };
+    const c = (sql: string): number =>
+      (sqlite.prepare(sql).get() as { n: number }).n;
+    return {
+      accounts:        c('SELECT COUNT(*) as n FROM account'),
+      xacts:           c('SELECT COUNT(*) as n FROM xact'),
+      crossEntries:    c('SELECT COUNT(*) as n FROM xact_cross_entry'),
+      securities:      c('SELECT COUNT(*) as n FROM security'),
+      prices:          c('SELECT COUNT(*) as n FROM price'),
+      latestPrices:    c('SELECT COUNT(*) as n FROM latest_price'),
+      portfolioMeta:   c('SELECT COUNT(*) as n FROM vf_portfolio_meta'),
+      dashboards:      c('SELECT COUNT(*) as n FROM vf_dashboard'),
+      chartCfg:        c('SELECT COUNT(*) as n FROM vf_chart_config'),
+    };
+  } finally {
+    releasePortfolioDb(id);
+  }
+}
+
+/** Read vf_portfolio_meta as a map — proves key/value round-trip (not just count). */
+function readMeta(id: string): Record<string, string> {
+  const { sqlite } = acquirePortfolioDb(id);
+  try {
+    const rows = sqlite.prepare('SELECT key, value FROM vf_portfolio_meta').all() as
+      Array<{ key: string; value: string }>;
+    return Object.fromEntries(rows.map(r => [r.key, r.value]));
   } finally {
     releasePortfolioDb(id);
   }
@@ -82,6 +151,8 @@ describe('Gate 4: portfolio .db roundtrip', () => {
     const { sqlite } = acquirePortfolioDb(first.id);
     try {
       seedTransactions(sqlite, 50);
+      // Group A BUY double-entry + cross-entry + security/price/latest_price
+      seedBuyWithCrossEntry(sqlite, 50);
       // Seed an extra dashboard + chart-config entry
       sqlite.prepare(
         `INSERT INTO vf_dashboard (id, name, position, widgets_json, schema_version, columns, createdAt, updatedAt)
@@ -108,5 +179,9 @@ describe('Gate 4: portfolio .db roundtrip', () => {
     const a = summarize(first.id);
     const b = summarize(second.id);
     expect(b).toEqual(a);
+
+    // vf_portfolio_meta drives rebuildRegistryFromDbs — a count match alone
+    // wouldn't prove the key/value payload survived. Compare the full map.
+    expect(readMeta(second.id)).toEqual(readMeta(first.id));
   });
 });
