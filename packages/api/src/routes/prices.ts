@@ -1,36 +1,30 @@
 import { Router, type Router as RouterType, type RequestHandler } from 'express';
 import { fetchExchangeRatesSchema } from '@quovibe/shared';
-import type { PriceScheduler } from '../workers/price-scheduler';
 import { getRate } from '../services/fx.service';
 import { fetchAllExchangeRates } from '../services/fx-fetcher.service';
-import { getSqlite } from '../helpers/request';
-
-function getScheduler(
-  req: { app: { locals: Record<string, unknown> } },
-): PriceScheduler | undefined {
-  return req.app.locals.priceScheduler as PriceScheduler | undefined;
-}
+import { fetchAllPrices } from '../services/prices.service';
+import { getSqlite, getPortfolioId } from '../helpers/request';
 
 export const pricesRouter: RouterType = Router();
 
+// In-process mutex keyed by portfolio id; replaces the old global PriceScheduler
+// lock. Concurrent fetch-all requests for the same portfolio return 409.
+const fetchInFlight = new Set<string>();
+
 const fetchAll: RequestHandler = async (req, res) => {
-  const scheduler = getScheduler(req);
-  if (!scheduler) {
-    res.status(503).json({ error: 'Price scheduler not available' });
+  const id = getPortfolioId(req);
+  if (fetchInFlight.has(id)) {
+    res.status(409).json({ error: 'FETCH_IN_PROGRESS' });
     return;
   }
-
-  const status = scheduler.getStatus();
-  if (status.status === 'running') {
-    res.status(409).json({ error: 'Price fetch already in progress' });
-    return;
-  }
-
+  fetchInFlight.add(id);
   try {
-    const result = await scheduler.triggerNow();
+    const result = await fetchAllPrices(getSqlite(req));
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
+  } finally {
+    fetchInFlight.delete(id);
   }
 };
 
