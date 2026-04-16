@@ -61,6 +61,14 @@ export function rebuildRegistryFromDbs(): PortfolioEntry[] {
   if (!fs.existsSync(DATA_DIR)) return [];
   const entries: PortfolioEntry[] = [];
   for (const f of fs.readdirSync(DATA_DIR)) {
+    // ADR-015: a bare `portfolio.db` is a pre-migration single-portfolio database.
+    // The new layout uses `portfolio-{uuid}.db`; legacy files cannot be registered
+    // because they have no id to key the sidecar entry against. Skip with a loud
+    // warning so operators know to export + re-import via /welcome.
+    if (f === 'portfolio.db') {
+      console.warn('[quovibe] ignoring legacy portfolio.db (pre-ADR-015). Export to PP XML and re-import via /welcome. See docs/release-notes/2026-04-15-adr-015.md.');
+      continue;
+    }
     let id: string | null = null;
     let kind: 'real' | 'demo' | null = null;
     if (f === 'portfolio-demo.db') { id = 'demo-needs-id'; kind = 'demo'; }
