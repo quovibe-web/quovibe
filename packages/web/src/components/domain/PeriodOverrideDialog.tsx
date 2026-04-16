@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useWidgetConfig } from '@/context/widget-config-context';
-import { useDashboardConfig, useSaveDashboard } from '@/api/use-dashboard-config';
+import { useDashboard, useUpdateDashboard, type DashboardItem } from '@/api/use-dashboards';
 import { useReportingPeriods } from '@/api/use-reporting-periods';
 import { useFirstTransactionDate } from '@/api/use-transactions';
 import { useReportingPeriod } from '@/api/use-performance';
@@ -40,8 +40,8 @@ export function PeriodOverrideDialog({
   const { t: tSettings } = useTranslation('settings');
   const { periodOverride, setPeriodOverride } = useWidgetConfig();
   const { periodStart: globalStart, periodEnd: globalEnd } = useReportingPeriod();
-  const { data: dashConfig } = useDashboardConfig();
-  const saveDashboard = useSaveDashboard();
+  const { data: dashboard } = useDashboard(dashboardId);
+  const updateDashboard = useUpdateDashboard();
   const { data: periodsData } = useReportingPeriods();
   const { data: firstDateData } = useFirstTransactionDate();
 
@@ -119,21 +119,13 @@ export function PeriodOverrideDialog({
   }
 
   function persistOverride(override: unknown) {
-    if (!dashConfig) return;
-    const updatedDashboards = dashConfig.dashboards.map((dash) => {
-      if (dash.id !== dashboardId) return dash;
-      return {
-        ...dash,
-        widgets: dash.widgets.map((w) => {
-          if (w.id !== widgetId) return w;
-          return { ...w, config: { ...w.config, periodOverride: override } };
-        }),
-      };
+    if (!dashboard) return;
+    const widgets = (dashboard.widgets as DashboardItem['widgets']).map((raw) => {
+      const w = raw as { id: string; config?: Record<string, unknown> };
+      if (w.id !== widgetId) return raw;
+      return { ...w, config: { ...(w.config ?? {}), periodOverride: override } };
     });
-    saveDashboard.mutate({
-      dashboards: updatedDashboards,
-      activeDashboard: dashConfig.activeDashboard,
-    });
+    updateDashboard.mutate({ id: dashboardId, input: { widgets } });
   }
 
   function handleCancel() {
