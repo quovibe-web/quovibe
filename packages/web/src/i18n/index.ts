@@ -19,6 +19,7 @@ import enWatchlists from './locales/en/watchlists.json';
 import enWelcome from './locales/en/welcome.json';
 import enSwitcher from './locales/en/switcher.json';
 import enPortfolioSettings from './locales/en/portfolioSettings.json';
+import enUserSettings from './locales/en/userSettings.json';
 // IT
 import itCommon from './locales/it/common.json';
 import itNavigation from './locales/it/navigation.json';
@@ -123,7 +124,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { common: enCommon, navigation: enNavigation, securities: enSecurities, transactions: enTransactions, accounts: enAccounts, performance: enPerformance, reports: enReports, settings: enSettings, errors: enErrors, dashboard: enDashboard, investments: enInvestments, 'csv-import': enCsvImport, watchlists: enWatchlists, welcome: enWelcome, switcher: enSwitcher, portfolioSettings: enPortfolioSettings },
+      en: { common: enCommon, navigation: enNavigation, securities: enSecurities, transactions: enTransactions, accounts: enAccounts, performance: enPerformance, reports: enReports, settings: enSettings, errors: enErrors, dashboard: enDashboard, investments: enInvestments, 'csv-import': enCsvImport, watchlists: enWatchlists, welcome: enWelcome, switcher: enSwitcher, portfolioSettings: enPortfolioSettings, userSettings: enUserSettings },
       it: { common: itCommon, navigation: itNavigation, securities: itSecurities, transactions: itTransactions, accounts: itAccounts, performance: itPerformance, reports: itReports, settings: itSettings, errors: itErrors, dashboard: itDashboard, investments: itInvestments, 'csv-import': itCsvImport, watchlists: itWatchlists },
       de: { common: deCommon, navigation: deNavigation, securities: deSecurities, transactions: deTransactions, accounts: deAccounts, performance: dePerformance, reports: deReports, settings: deSettings, errors: deErrors, dashboard: deDashboard, investments: deInvestments, 'csv-import': deCsvImport, watchlists: deWatchlists },
       fr: { common: frCommon, navigation: frNavigation, securities: frSecurities, transactions: frTransactions, accounts: frAccounts, performance: frPerformance, reports: frReports, settings: frSettings, errors: frErrors, dashboard: frDashboard, investments: frInvestments, 'csv-import': frCsvImport, watchlists: frWatchlists },
@@ -134,7 +135,7 @@ i18n
     },
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'navigation', 'securities', 'transactions', 'accounts', 'performance', 'reports', 'settings', 'errors', 'dashboard', 'investments', 'csv-import', 'watchlists', 'welcome', 'switcher', 'portfolioSettings'],
+    ns: ['common', 'navigation', 'securities', 'transactions', 'accounts', 'performance', 'reports', 'settings', 'errors', 'dashboard', 'investments', 'csv-import', 'watchlists', 'welcome', 'switcher', 'portfolioSettings', 'userSettings'],
     detection: {
       order: ['localStorage', 'navigator'],
       lookupLocalStorage: 'quovibe-language',
