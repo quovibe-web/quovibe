@@ -78,10 +78,39 @@ Key decisions, each verifiable in the shipped code:
 - **Frontend:** `packages/web/src/router.tsx`, `packages/web/src/layouts/PortfolioLayout.tsx`, `packages/web/src/context/PortfolioContext.tsx`, `packages/web/src/pages/Welcome.tsx`, `packages/web/src/pages/PortfolioSettings.tsx`, `packages/web/src/pages/UserSettings.tsx`, `packages/web/src/components/layout/PortfolioSwitcher.tsx`, `packages/web/src/api/use-scoped-api.ts`, `packages/web/src/api/use-portfolios.ts`, `packages/web/src/api/use-events.ts`.
 - **Config:** `packages/api/src/config.ts` (`DATA_DIR`, `SIDECAR_PATH`, `UUID_V4_RE`, `isPortfolioFilename`, `resolvePortfolioPath`, `IMPORT_MAX_MB`, `DEMO_SOURCE_PATH`, `PORTFOLIO_POOL_MAX`).
 - **Shared schema:** `packages/shared/src/schemas/settings.schema.ts` (`quovibeSettingsSchema`, `preferencesSchema`, `portfolioEntrySchema`, `UUID_V4_RE`).
-- **CI gates:** `packages/api/scripts/check-bootstrap-fresh.sh` + `packages/api/scripts/regen-bootstrap.sh` + `packages/api/scripts/normalize-bootstrap.mjs` (Gate 1); `packages/api/src/db/__tests__/bootstrap-parity.test.ts` (Gate 2); `packages/api/src/db/__tests__/bootstrap-idempotent.test.ts` (Gate 3); `packages/api/src/__tests__/portfolio-roundtrip.test.ts` (Gate 4).
+- **CI gates:** `packages/api/scripts/check-bootstrap-fresh.sh` + `packages/api/scripts/regen-bootstrap.sh` + `packages/api/scripts/normalize-bootstrap.mjs` (Gate 1); `packages/api/src/db/__tests__/bootstrap-parity.test.ts` (Gate 2); `packages/api/src/db/__tests__/bootstrap-idempotent.test.ts` (Gate 3); `packages/api/src/__tests__/roundtrip.test.ts` (Gate 4).
 - **Deletions:** `packages/api/src/db/extensions.ts`, `packages/api/src/db/client.ts`, `packages/api/src/workers/price-scheduler.ts`, `packages/api/src/workers/price-worker.ts`, `packages/api/src/workers/` (directory), `data/schema.db`.
 - **Retired env vars:** `SCHEMA_PATH`, `PRICE_CRON_SCHEDULE`, `DB_PATH` (module-level constant).
 - **New env vars:** `QUOVIBE_DATA_DIR` (default `data/`), `QUOVIBE_DEMO_SOURCE` (default `/app/assets/demo.db`), `PORTFOLIO_POOL_MAX` (default 5), `IMPORT_MAX_MB` (default 50).
+
+## Accepted deviations from the original plan
+
+These three decisions shipped but differ from the plan text. Recorded here so git
+archaeology isn't required to understand the "why".
+
+- **`UUID_V4_RE` canonical home is `@quovibe/shared`, not `config.ts`.** The plan declared the
+  regex in `packages/api/src/config.ts`. `portfolioEntrySchema` needs it at Zod-validation
+  time from the shared package, which cannot import from `@quovibe/api`. Moving the
+  declaration into `packages/shared/src/schemas/settings.schema.ts` and re-exporting from
+  `config.ts` keeps the single-source-of-truth invariant while crossing the package
+  boundary cleanly.
+- **CSV duplicate-DDL cleanup landed with Phase 3 review, not Phase 6.** `ensureCsvConfigTable`
+  and its inline `CREATE TABLE` were removed when the Phase 3 code review flagged them as a
+  DDL-single-source violation. Phase 6's plan-scheduled CSV rename task was therefore a
+  no-op audit. End state matches the plan.
+- **`JSX.Element` return annotations dropped across new frontend components.** The plan's
+  snippets annotated new components with `: JSX.Element`. React 19's types no longer provide
+  the global `JSX` namespace, so the annotations were stripped from `PortfolioLayout`,
+  `RootRedirect`, `Welcome`, `PortfolioSwitcher`, `DemoBadge`, the dialogs, and the stubs.
+  Inferred return types still work.
+
+## Accepted technical debt
+
+- **Playwright multi-tab E2E spec is not committed.** The spec file
+  `packages/web/e2e/multi-tab.spec.ts` exists on disk but sits under a
+  `.gitignore`'d path. Policy reconciliation and the matching `testDir` rewire are
+  deferred to a follow-up ADR. Gates 1–4 plus the six supertest-based integration
+  suites already cover the same invariants at the HTTP + service layer.
 
 ## References
 
