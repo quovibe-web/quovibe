@@ -75,8 +75,7 @@ function writeLatestQuote(
   try {
     const dbClose = convertPriceToDb({ close: quote.price });
     sqlite
-      .prepare(`INSERT INTO latest_price (security, tstamp, value) VALUES (?, ?, ?)
-        ON CONFLICT(security) DO UPDATE SET tstamp = excluded.tstamp, value = excluded.value`)
+      .prepare(`INSERT OR REPLACE INTO latest_price (security, tstamp, value) VALUES (?, ?, ?)`)
       .run(securityId, quote.date, dbClose.close);
     console.log(`[prices] Latest quote for ${securityName}: ${quote.price} @ ${quote.date}`);
     return true;
@@ -107,8 +106,7 @@ function savePricesToDb(
   `);
 
   const insertLatest = sqlite.prepare(`
-    INSERT INTO latest_price (security, tstamp, value) VALUES (?, ?, ?)
-      ON CONFLICT(security) DO UPDATE SET tstamp = excluded.tstamp, value = excluded.value
+    INSERT OR REPLACE INTO latest_price (security, tstamp, value) VALUES (?, ?, ?)
   `);
 
   const deletePrice = sqlite.prepare(`DELETE FROM price WHERE security = ?`);
