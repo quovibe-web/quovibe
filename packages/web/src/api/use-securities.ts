@@ -1,28 +1,36 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { apiFetch } from './fetch';
+import { useScopedApi } from './use-scoped-api';
 import type { SecurityListItem, SecurityDetailResponse, TestFetchResponse, FetchAllResult, SearchResult, PreviewPricesResponse, PreviewPrice } from './types';
 import { taxonomyKeys } from './use-taxonomies';
 
 export const securitiesKeys = {
-  all: (includeRetired = false) => ['securities', { includeRetired }] as const,
-  detail: (id: string) => ['securities', id] as const,
+  all: (pid: string, includeRetired = false) =>
+    ['portfolios', pid, 'securities', { includeRetired }] as const,
+  detail: (pid: string, id: string) =>
+    ['portfolios', pid, 'securities', id] as const,
+  search: (pid: string, query: string) =>
+    ['portfolios', pid, 'securities', 'search', query] as const,
+  preview: (pid: string, ticker: string | null, startDate?: string) =>
+    ['portfolios', pid, 'securities', 'preview', ticker, startDate] as const,
 };
 
 export function useSecurities(includeRetired = false) {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: securitiesKeys.all(includeRetired),
+    queryKey: securitiesKeys.all(api.portfolioId, includeRetired),
     queryFn: () =>
-      apiFetch<{ data: SecurityListItem[] }>(
-        `/api/securities${includeRetired ? '?includeRetired=true' : ''}`
-      ).then(r => r.data),
+      api.fetch<{ data: SecurityListItem[] }>(
+        `/api/securities${includeRetired ? '?includeRetired=true' : ''}`,
+      ).then((r) => r.data),
     placeholderData: keepPreviousData,
   });
 }
 
 export function useSecurityDetail(id: string) {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: securitiesKeys.detail(id),
-    queryFn: () => apiFetch<SecurityDetailResponse>(`/api/securities/${id}`),
+    queryKey: securitiesKeys.detail(api.portfolioId, id),
+    queryFn: () => api.fetch<SecurityDetailResponse>(`/api/securities/${id}`),
     enabled: !!id,
     placeholderData: keepPreviousData,
     refetchInterval: 60_000,
@@ -30,6 +38,7 @@ export function useSecurityDetail(id: string) {
 }
 
 export function useUpdateFeedConfig(id: string) {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: {
@@ -40,16 +49,17 @@ export function useUpdateFeedConfig(id: string) {
       dateFormat?: string;
       factor?: number;
     }) =>
-      apiFetch<{ ok: boolean }>(`/api/securities/${id}/feed-config`, {
+      api.fetch<{ ok: boolean }>(`/api/securities/${id}/feed-config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: securitiesKeys.detail(id) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: securitiesKeys.detail(api.portfolioId, id) }),
   });
 }
 
 export function useTestFetchPrices(id: string) {
+  const api = useScopedApi();
   return useMutation({
     mutationFn: (body?: {
       feed?: string;
@@ -59,7 +69,7 @@ export function useTestFetchPrices(id: string) {
       dateFormat?: string;
       factor?: number;
     }) =>
-      apiFetch<TestFetchResponse>(`/api/securities/${id}/prices/test-fetch`, {
+      api.fetch<TestFetchResponse>(`/api/securities/${id}/prices/test-fetch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body ?? {}),
@@ -68,104 +78,102 @@ export function useTestFetchPrices(id: string) {
 }
 
 export function useFetchAllPrices() {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      apiFetch<FetchAllResult>('/api/prices/fetch-all', { method: 'POST' }),
+      api.fetch<FetchAllResult>('/api/prices/fetch-all', { method: 'POST' }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['securities'] });
-      qc.invalidateQueries({ queryKey: ['performance'] });
-      qc.invalidateQueries({ queryKey: ['reports'] });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId] });
     },
   });
 }
 
 export function useFetchPrices(id: string) {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (mode: 'merge' | 'replace' = 'merge') =>
-      apiFetch<{ securityId: string; fetched: number; error?: string }>(
+      api.fetch<{ securityId: string; fetched: number; error?: string }>(
         `/api/securities/${id}/prices/fetch?mode=${mode}`,
         { method: 'PUT' },
       ),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: securitiesKeys.detail(id) });
-      qc.invalidateQueries({ queryKey: ['securities'] });
-      qc.invalidateQueries({ queryKey: ['performance'] });
-      qc.invalidateQueries({ queryKey: ['reports'] });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId] });
     },
   });
 }
 
 export function useCreateSecurity() {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: Record<string, unknown>) =>
-      apiFetch<{ id: string }>('/api/securities', {
+      api.fetch<{ id: string }>('/api/securities', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['securities'] });
-      qc.invalidateQueries({ queryKey: ['reports'] });
-      qc.invalidateQueries({ queryKey: ['performance'] });
-      qc.invalidateQueries({ queryKey: ['holdings'] });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId] });
     },
   });
 }
 
 export function useUpdateSecurity(id: string) {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: Record<string, unknown>) =>
-      apiFetch<Record<string, unknown>>(`/api/securities/${id}`, {
+      api.fetch<Record<string, unknown>>(`/api/securities/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: securitiesKeys.detail(id) });
-      qc.invalidateQueries({ queryKey: ['securities'] });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'securities'] });
     },
   });
 }
 
 export function useUpdateAttributes(id: string) {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (attributes: Array<{ typeId: string; value: string }>) =>
-      apiFetch<{ ok: boolean }>(`/api/securities/${id}/attributes`, {
+      api.fetch<{ ok: boolean }>(`/api/securities/${id}/attributes`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attributes }),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: securitiesKeys.detail(id) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: securitiesKeys.detail(api.portfolioId, id) }),
   });
 }
 
 export function useUpdateTaxonomy(id: string) {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (assignments: Array<{ categoryId: string; taxonomyId: string; weight: number | null }>) =>
-      apiFetch<{ ok: boolean }>(`/api/securities/${id}/taxonomy`, {
+      api.fetch<{ ok: boolean }>(`/api/securities/${id}/taxonomy`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ assignments }),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: securitiesKeys.detail(id) });
-      qc.invalidateQueries({ queryKey: taxonomyKeys.all });
-      qc.invalidateQueries({ queryKey: ['rebalancing'] });
-      qc.invalidateQueries({ queryKey: ['reports', 'assetAllocation'] });
+      qc.invalidateQueries({ queryKey: securitiesKeys.detail(api.portfolioId, id) });
+      qc.invalidateQueries({ queryKey: taxonomyKeys.all(api.portfolioId) });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'rebalancing'] });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'reports'] });
     },
   });
 }
 
 export function useSecuritySearch(query: string) {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: ['securities', 'search', query] as const,
-    queryFn: () => apiFetch<SearchResult[]>(`/api/securities/search?q=${encodeURIComponent(query)}`),
+    queryKey: securitiesKeys.search(api.portfolioId, query),
+    queryFn: () => api.fetch<SearchResult[]>(`/api/securities/search?q=${encodeURIComponent(query)}`),
     enabled: query.trim().length >= 2,
     staleTime: 5 * 60 * 1000, // 5 minutes — search results don't change fast
     placeholderData: keepPreviousData,
@@ -173,10 +181,11 @@ export function useSecuritySearch(query: string) {
 }
 
 export function usePreviewPrices(ticker: string | null, startDate?: string) {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: ['securities', 'preview', ticker, startDate] as const,
+    queryKey: securitiesKeys.preview(api.portfolioId, ticker, startDate),
     queryFn: () =>
-      apiFetch<PreviewPricesResponse>('/api/securities/preview-prices', {
+      api.fetch<PreviewPricesResponse>('/api/securities/preview-prices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticker, startDate }),
@@ -189,15 +198,16 @@ export function usePreviewPrices(ticker: string | null, startDate?: string) {
 
 
 export function useImportPrices(securityId: string) {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (prices: PreviewPrice[]) =>
-      apiFetch<{ ok: boolean; count: number }>(`/api/securities/${securityId}/prices/import`, {
+      api.fetch<{ ok: boolean; count: number }>(`/api/securities/${securityId}/prices/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prices }),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: securitiesKeys.detail(securityId) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: securitiesKeys.detail(api.portfolioId, securityId) }),
   });
 }
 
@@ -208,10 +218,12 @@ export class SecurityHasTransactionsError extends Error {
 }
 
 export function useDeleteSecurity() {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/securities/${id}`, { method: 'DELETE' });
+      const url = api.scopedUrl(`/api/securities/${id}`);
+      const res = await fetch(url, { method: 'DELETE' });
       if (res.status === 409) {
         const body = await res.json().catch(() => ({ count: 0 }));
         throw new SecurityHasTransactionsError(body.count ?? 0);
@@ -222,6 +234,6 @@ export function useDeleteSecurity() {
       }
       return res.json() as Promise<{ ok: boolean }>;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['securities'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'securities'] }),
   });
 }

@@ -1,15 +1,16 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { apiFetch } from './fetch';
+import { useScopedApi } from './use-scoped-api';
 import type { PortfolioResponse } from './types';
 
 export const portfolioKeys = {
-  all: ['portfolio'] as const,
+  all: (pid: string) => ['portfolios', pid, 'portfolio'] as const,
 };
 
 export function usePortfolio() {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: portfolioKeys.all,
-    queryFn: () => apiFetch<PortfolioResponse>('/api/portfolio'),
+    queryKey: portfolioKeys.all(api.portfolioId),
+    queryFn: () => api.fetch<PortfolioResponse>('/api/portfolio'),
     placeholderData: keepPreviousData,
   });
 }
@@ -34,13 +35,14 @@ interface UpdateSettingsData {
 }
 
 export function useUpdateSettings() {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: UpdateSettingsData) =>
-      apiFetch('/api/portfolio/settings', {
+      api.fetch('/api/portfolio/settings', {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: portfolioKeys.all }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: portfolioKeys.all(api.portfolioId) }),
   });
 }
