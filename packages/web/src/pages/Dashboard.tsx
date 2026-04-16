@@ -51,11 +51,16 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { useDashboardConfig, useSaveDashboard } from '@/api/use-dashboard-config';
-import { useDashboards } from '@/api/use-dashboards';
+import {
+  useDashboards,
+  useCreateDashboard,
+  useUpdateDashboard,
+  useDeleteDashboard,
+  type DashboardItem,
+} from '@/api/use-dashboards';
 import { useTransactions } from '@/api/use-transactions';
 import { DashboardEmptyState } from '@/components/domain/DashboardEmptyState';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { nanoid } from 'nanoid';
 import { getWidgetDef, CHART_WIDGET_TYPES } from '@/lib/widget-registry';
 import { DASHBOARD_TEMPLATES, applyTemplate, type DashboardTemplate } from '@/lib/dashboard-templates';
@@ -331,10 +336,12 @@ export default function Dashboard() {
   useDocumentTitle('Dashboard');
   const { t } = useTranslation('dashboard');
   const { portfolioId, dashboardId } = useParams<{ portfolioId: string; dashboardId?: string }>();
+  const navigate = useNavigate();
   const dashboardsList = useDashboards();
   const tx = useTransactions(undefined, 1, 1);
-  const { data, isLoading } = useDashboardConfig();
-  const { mutate: save } = useSaveDashboard();
+  const createDash = useCreateDashboard();
+  const updateDash = useUpdateDashboard();
+  const deleteDash = useDeleteDashboard();
 
   // Prefetch data for DataSeriesDialog (populate cache at mount)
   useAccounts(false);
@@ -353,72 +360,113 @@ export default function Dashboard() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
-  const dashboards = data?.dashboards ?? [];
-  const activeDashboard = data?.activeDashboard ?? null;
-  const activeDash = dashboards.find((d) => d.id === activeDashboard) ?? dashboards[0] ?? null;
+  const isLoading = dashboardsList.isLoading;
+  // Sorted (by position) list — source of truth comes from REST collection.
+  const dashboards: Dashboard[] = (dashboardsList.data ?? [])
+    .slice()
+    .sort((a, b) => a.position - b.position)
+    .map((it) => ({
+      id: it.id,
+      name: it.name,
+      widgets: it.widgets,
+      columns: it.columns,
+      // metricsStripIds is stored inside DashboardItem via the JSON settings
+      // shape — not part of the REST item yet. Preserve via cast so downstream
+      // reads keep working identically to the shim.
+      ...((it as unknown as { metricsStripIds?: string[] }).metricsStripIds
+        ? { metricsStripIds: (it as unknown as { metricsStripIds?: string[] }).metricsStripIds }
+        : {}),
+    }) as Dashboard);
+  // Active dashboard is driven by the URL :dashboardId param (Phase 5b.3).
+  // Fallback to first-by-position when unset so initial render works during
+  // the redirect window.
+  const activeDash = (dashboardId && dashboards.find((d) => d.id === dashboardId))
+    || dashboards[0]
+    || null;
 
-  // ---- Helpers to save mutated dashboards ----
+  // ---- Helpers: map REST item → shared Dashboard shape ----
 
-  function saveDashboards(next: Dashboard[], nextActiveId?: string) {
-    save({
-      dashboards: next,
-      activeDashboard: nextActiveId ?? activeDashboard,
+  function findRestItem(id: string): DashboardItem | undefined {
+    return dashboardsList.data?.find((it) => it.id === id);
+  }
+
+  // Patch a single dashboard's widgets list (the most common mutation path).
+  function patchActiveWidgets(updater: (widgets: Dashboard['widgets']) => Dashboard['widgets']) {
+    if (!activeDash) return;
+    updateDash.mutate({
+      id: activeDash.id,
+      input: { widgets: updater(activeDash.widgets) },
     });
   }
 
-  function updateActiveDashboard(updater: (d: Dashboard) => Dashboard) {
-    if (!activeDash) return;
-    const next = dashboards.map((d) => (d.id === activeDash.id ? updater(d) : d));
-    saveDashboards(next);
-  }
-
   function updateMetricsStripIds(ids: string[]) {
-    updateActiveDashboard((d) => ({ ...d, metricsStripIds: ids }));
+    if (!activeDash) return;
+    updateDash.mutate({
+      id: activeDash.id,
+      input: { metricsStripIds: ids } as unknown as Partial<DashboardItem>,
+    });
   }
 
   // ---- Tab actions ----
 
   function switchTab(id: string) {
-    save({ dashboards, activeDashboard: id });
+    if (!portfolioId) return;
+    navigate(`/p/${portfolioId}/dashboard/${id}`);
   }
 
   function createDashboard() {
     const name = newDashName.trim();
     if (!name) return;
-    const id = crypto.randomUUID();
     const template = selectedTemplate
       ? DASHBOARD_TEMPLATES.find((t) => t.id === selectedTemplate)
       : null;
     const widgets = template ? applyTemplate(template) : [];
-    const newDash: Dashboard = { id, name, widgets };
-    saveDashboards([...dashboards, newDash], id);
+    createDash.mutate(
+      { name, widgets, columns: 3 },
+      {
+        onSuccess: (created) => {
+          if (portfolioId) navigate(`/p/${portfolioId}/dashboard/${created.id}`);
+        },
+      },
+    );
     setNewDashOpen(false);
     setNewDashName('');
     setSelectedTemplate(null);
   }
 
   function duplicateDashboard(src: Dashboard) {
-    const id = crypto.randomUUID();
-    const dup: Dashboard = {
-      id,
-      name: `${src.name} (copy)`,
-      widgets: src.widgets.map((w) => ({ ...w, id: crypto.randomUUID() })),
-    };
-    saveDashboards([...dashboards, dup], id);
+    createDash.mutate(
+      {
+        name: `${src.name} (copy)`,
+        widgets: src.widgets.map((w) => ({ ...w, id: crypto.randomUUID() })),
+        columns: typeof src.columns === 'number' ? src.columns : 3,
+      },
+      {
+        onSuccess: (created) => {
+          if (portfolioId) navigate(`/p/${portfolioId}/dashboard/${created.id}`);
+        },
+      },
+    );
   }
 
   function deleteDashboard(id: string) {
     if (dashboards.length <= 1) return;
-    const next = dashboards.filter((d) => d.id !== id);
-    const nextActive = activeDashboard === id ? next[0].id : activeDashboard;
-    saveDashboards(next, nextActive);
+    const nextActiveId = activeDash?.id === id
+      ? dashboards.find((d) => d.id !== id)?.id
+      : activeDash?.id;
+    deleteDash.mutate(id, {
+      onSuccess: () => {
+        if (nextActiveId && portfolioId) {
+          navigate(`/p/${portfolioId}/dashboard/${nextActiveId}`);
+        }
+      },
+    });
   }
 
   function commitRename(id: string) {
     const trimmed = renameValue.trim();
     if (trimmed) {
-      const next = dashboards.map((d) => (d.id === id ? { ...d, name: trimmed } : d));
-      saveDashboards(next);
+      updateDash.mutate({ id, input: { name: trimmed } });
     }
     setRenamingTabId(null);
   }
@@ -430,84 +478,84 @@ export default function Dashboard() {
     const newIdx = dashboards.findIndex((d) => d.id === over.id);
     if (oldIdx === -1 || newIdx === -1) return;
     const reordered = arrayMove(dashboards, oldIdx, newIdx);
-    saveDashboards(reordered);
+    // Persist new positions — one PATCH per dashboard whose position changed.
+    for (let i = 0; i < reordered.length; i++) { // native-ok (array index)
+      const original = findRestItem(reordered[i].id);
+      if (!original || original.position === i) continue;
+      updateDash.mutate({
+        id: reordered[i].id,
+        input: { position: i },
+      });
+    }
   }
 
   // ---- Widget actions ----
 
   function deleteWidget(widgetId: string) {
-    updateActiveDashboard((d) => ({
-      ...d,
-      widgets: d.widgets.filter((w) => w.id !== widgetId),
-    }));
+    patchActiveWidgets((widgets) => widgets.filter((w) => w.id !== widgetId));
   }
 
   function changeWidgetTitle(widgetId: string, title: string) {
-    updateActiveDashboard((d) => ({
-      ...d,
-      widgets: d.widgets.map((w) => (w.id === widgetId ? { ...w, title } : w)),
-    }));
+    patchActiveWidgets((widgets) =>
+      widgets.map((w) => (w.id === widgetId ? { ...w, title } : w)),
+    );
   }
 
   function changeWidgetSpan(widgetId: string, span: 1 | 2 | 3) {
-    updateActiveDashboard((d) => ({
-      ...d,
-      widgets: d.widgets.map((w) => (w.id === widgetId ? { ...w, span } : w)),
-    }));
+    patchActiveWidgets((widgets) =>
+      widgets.map((w) => (w.id === widgetId ? { ...w, span } : w)),
+    );
   }
 
   function changeColumns(value: 'auto' | 2 | 3 | 4 | 5) {
-    updateActiveDashboard((d) => ({ ...d, columns: value }));
+    if (!activeDash) return;
+    updateDash.mutate({
+      id: activeDash.id,
+      input: { columns: value } as unknown as Partial<DashboardItem>,
+    });
   }
 
   function resetAllWidgetPeriods() {
-    updateActiveDashboard((d) => ({
-      ...d,
-      widgets: d.widgets.map((w) => ({
+    patchActiveWidgets((widgets) =>
+      widgets.map((w) => ({
         ...w,
         config: { ...w.config, periodOverride: null },
       })),
-    }));
+    );
   }
 
   function applyTemplateToCurrent(template: DashboardTemplate) {
-    updateActiveDashboard((d) => ({
-      ...d,
-      widgets: applyTemplate(template),
-    }));
+    patchActiveWidgets(() => applyTemplate(template));
   }
 
   function addWidget(type: string) {
     const def = getWidgetDef(type);
     if (!def) return;
-    updateActiveDashboard((d) => ({
-      ...d,
-      widgets: [
-        ...d.widgets,
-        {
-          id: nanoid(),
-          type,
-          title: null,
-          span: def.defaultSpan,
-          config: structuredClone(def.defaultConfig),
-        },
-      ],
-    }));
+    patchActiveWidgets((widgets) => [
+      ...widgets,
+      {
+        id: nanoid(),
+        type,
+        title: null,
+        span: def.defaultSpan,
+        config: structuredClone(def.defaultConfig),
+      },
+    ]);
     setCatalogOpen(false);
   }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    updateActiveDashboard((d) => {
-      const oldIdx = d.widgets.findIndex((w) => w.id === active.id);
-      const newIdx = d.widgets.findIndex((w) => w.id === over.id);
-      if (oldIdx === -1 || newIdx === -1) return d;
+    patchActiveWidgets((widgets) => {
+      const oldIdx = widgets.findIndex((w) => w.id === active.id);
+      const newIdx = widgets.findIndex((w) => w.id === over.id);
+      if (oldIdx === -1 || newIdx === -1) return widgets;
       // Only allow reorder within the same zone
-      const activeIsChart = CHART_WIDGET_TYPES.has(d.widgets[oldIdx].type);
-      const overIsChart = CHART_WIDGET_TYPES.has(d.widgets[newIdx].type);
-      if (activeIsChart !== overIsChart) return d;
-      return { ...d, widgets: arrayMove(d.widgets, oldIdx, newIdx) };
+      const activeIsChart = CHART_WIDGET_TYPES.has(widgets[oldIdx].type);
+      const overIsChart = CHART_WIDGET_TYPES.has(widgets[newIdx].type);
+      if (activeIsChart !== overIsChart) return widgets;
+      return arrayMove(widgets, oldIdx, newIdx);
     });
   }
 
@@ -584,7 +632,7 @@ export default function Dashboard() {
 
   return (
     <div className="qv-page space-y-6">
-      {(isLoading || !data || !activeDash) ? (
+      {(isLoading || !activeDash) ? (
         <div className="space-y-6">
           <Skeleton className="h-8 w-48" />
           <div
