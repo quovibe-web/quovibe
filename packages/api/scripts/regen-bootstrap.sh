@@ -56,18 +56,11 @@ cat > "$BOOTSTRAP" <<'HEADER'
 -- quovibe bootstrap DDL
 --
 -- Applied on every openDatabase() call. Idempotent.
--- Used as the schema source for tests and demo generation.
--- Applied AFTER ppxml2db.py during import-pp-xml (see ADR-015 §3.4) so
---   the vendor DDL runs on an empty DB without "table already exists" errors.
---
--- ⚠️ LOAD-BEARING ORDERING INVARIANT ⚠️
---   The import-pp-xml pipeline is ORDER-SENSITIVE: ppxml2db.py must run
---   FIRST against an empty file, THEN this script runs against the populated
---   file. Running this script first would pre-create ppxml2db's tables, and
---   ppxml2db.py's own CREATE TABLE statements (which LACK "IF NOT EXISTS")
---   would then fail with "table already exists".
---   If vendored ppxml2db is ever upgraded from a new upstream, re-verify
---   this invariant manually — see the spec §3.4 for the test command.
+-- Used as the schema source for tests, demo generation, AND the import-pp-xml
+--   pipeline: this script is the functional equivalent of upstream
+--   `ppxml2db_init.py`, so we run it against the empty temp DB BEFORE spawning
+--   `ppxml2db.py`. The converter only INSERTs — skipping this step makes the
+--   first INSERT crash with `no such table: price`.
 --
 -- Deviations from raw ppxml2db_init.py output:
 --   - IF NOT EXISTS added to every CREATE TABLE / CREATE INDEX.

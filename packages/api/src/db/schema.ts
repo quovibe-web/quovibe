@@ -99,6 +99,12 @@ export const latestPrices = sqliteTable('latest_price', {
     .primaryKey(),
   date: text('tstamp').notNull(),
   value: integer('value').notNull(),
+  // OHLC columns populated by ppxml2db.py from the PP-XML `<latest>` elements.
+  // Nullable — older exports and non-equity tickers (ETFs, indices) commonly
+  // omit them.
+  high: integer('high'),
+  low: integer('low'),
+  volume: integer('volume'),
 });
 
 // ─── TRANSACTIONS (sistema a doppia entrata) ──────

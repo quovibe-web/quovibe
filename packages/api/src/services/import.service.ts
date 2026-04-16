@@ -168,15 +168,13 @@ export async function runImport(xmlPath: string): Promise<ImportResult> {
 
     // ⚠️ LOAD-BEARING ORDERING INVARIANT: bootstrap FIRST, then ppxml2db.py.
     //
-    // The upstream Portfolio Performance `ppxml2db` toolkit ships TWO scripts:
-    // `ppxml2db_init.py` creates the schema from vendor/*.sql; `ppxml2db.py`
-    // then INSERTs into the pre-existing tables. We don't run the init script
-    // because bootstrap.sql is our own single DDL truth (ADR-015 §3.3) and
-    // carries the same 24 ppxml2db tables PLUS our 5 `vf_*` tables. Running
-    // bootstrap against the empty temp DB is functionally equivalent to
-    // ppxml2db_init.py for the core tables.
+    // ppxml2db.py only INSERTs; the sibling ppxml2db_init.py script is what
+    // creates the schema from vendor/*.sql. We skip the init script because
+    // bootstrap.sql is our own single DDL truth (ADR-015 §3.3) and carries the
+    // same 24 core tables PLUS our 5 `vf_*` tables. Running bootstrap against
+    // the empty temp DB is functionally equivalent to the init script.
     //
-    // Every CREATE TABLE in bootstrap.sql uses IF NOT EXISTS, so running it
+    // Every DDL statement in bootstrap.sql uses IF NOT EXISTS so running it
     // first is idempotent. Skipping this step makes the first ppxml2db.py
     // INSERT fail with `sqlite3.OperationalError: no such table: price`.
     const emptyDb = new Database(tempDbPath);

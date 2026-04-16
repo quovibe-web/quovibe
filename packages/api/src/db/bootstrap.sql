@@ -2,18 +2,11 @@
 -- quovibe bootstrap DDL
 --
 -- Applied on every openDatabase() call. Idempotent.
--- Used as the schema source for tests and demo generation.
--- Applied AFTER ppxml2db.py during import-pp-xml (see ADR-015 §3.4) so
---   the vendor DDL runs on an empty DB without "table already exists" errors.
---
--- ⚠️ LOAD-BEARING ORDERING INVARIANT ⚠️
---   The import-pp-xml pipeline is ORDER-SENSITIVE: ppxml2db.py must run
---   FIRST against an empty file, THEN this script runs against the populated
---   file. Running this script first would pre-create ppxml2db's tables, and
---   ppxml2db.py's own CREATE TABLE statements (which LACK "IF NOT EXISTS")
---   would then fail with "table already exists".
---   If vendored ppxml2db is ever upgraded from a new upstream, re-verify
---   this invariant manually — see the spec §3.4 for the test command.
+-- Used as the schema source for tests, demo generation, AND the import-pp-xml
+--   pipeline: this script is the functional equivalent of upstream
+--   `ppxml2db_init.py`, so we run it against the empty temp DB BEFORE spawning
+--   `ppxml2db.py`. The converter only INSERTs — skipping this step makes the
+--   first INSERT crash with `no such table: price`.
 --
 -- Deviations from raw ppxml2db_init.py output:
 --   - IF NOT EXISTS added to every CREATE TABLE / CREATE INDEX.
@@ -22,7 +15,7 @@
 --     additions (SQLite 3.35+; better-sqlite3 12.8 is well past that).
 -- ═══════════════════════════════════════════════════════════════════════
 
--- §1 ppxml2db tables (24, verbatim from ppxml2db_init.py with IF NOT EXISTS added)
+-- §1+§2 ppxml2db tables and indexes (verbatim from ppxml2db_init.py + IF NOT EXISTS)
 CREATE TABLE IF NOT EXISTS account(
 _id INTEGER NOT NULL PRIMARY KEY,
 uuid VARCHAR(36) NOT NULL UNIQUE,
@@ -36,6 +29,7 @@ updatedAt VARCHAR(64) NOT NULL,
 _xmlid INT NOT NULL,
 _order INT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS account__uuid ON account(uuid);
 CREATE TABLE IF NOT EXISTS account_attr(
 account VARCHAR(36) NOT NULL REFERENCES account(uuid),
 attr_uuid VARCHAR(36) NOT NULL,
@@ -64,6 +58,8 @@ latestFeedURL VARCHAR(512),
 isRetired INT NOT NULL DEFAULT 0,
 updatedAt VARCHAR(64) NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS security__uuid ON security(uuid);
+CREATE INDEX IF NOT EXISTS security__tickerSymbol ON security(tickerSymbol);
 CREATE TABLE IF NOT EXISTS security_attr(
 security VARCHAR(36) NOT NULL REFERENCES security(uuid),
 attr_uuid VARCHAR(36) NOT NULL,
@@ -71,6 +67,8 @@ type VARCHAR(32) NOT NULL,
 value TEXT,
 seq INT NOT NULL DEFAULT 0
 );
+CREATE INDEX IF NOT EXISTS security_attr__security ON security_attr(security);
+CREATE UNIQUE INDEX IF NOT EXISTS security_attr__security_attr_uuid ON security_attr(security, attr_uuid);
 CREATE TABLE IF NOT EXISTS security_event(
 _id INTEGER NOT NULL PRIMARY KEY,
 security VARCHAR(36) NOT NULL REFERENCES security(uuid),
@@ -85,16 +83,21 @@ name VARCHAR(36) NOT NULL,
 value TEXT,
 seq INT NOT NULL DEFAULT 0
 );
+CREATE INDEX IF NOT EXISTS security_prop__security ON security_prop(security);
 CREATE TABLE IF NOT EXISTS latest_price(
 security VARCHAR(36) NOT NULL PRIMARY KEY REFERENCES security(uuid),
 tstamp VARCHAR(32) NOT NULL,
-value BIGINT NOT NULL
+value BIGINT NOT NULL,
+high BIGINT,
+low BIGINT,
+volume BIGINT
 );
 CREATE TABLE IF NOT EXISTS price(
 security VARCHAR(36) NOT NULL REFERENCES security(uuid),
 tstamp VARCHAR(32) NOT NULL,
 value BIGINT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS price__security_tstamp ON price(security, tstamp);
 CREATE TABLE IF NOT EXISTS watchlist(
 _id INTEGER NOT NULL PRIMARY KEY,
 name VARCHAR(64) NOT NULL,
@@ -104,6 +107,7 @@ CREATE TABLE IF NOT EXISTS watchlist_security(
 list INT NOT NULL REFERENCES watchlist(_id),
 security VARCHAR(36) NOT NULL REFERENCES security(uuid)
 );
+CREATE INDEX IF NOT EXISTS watchlist_security__list ON watchlist_security(list);
 CREATE TABLE IF NOT EXISTS xact(
 _id INTEGER NOT NULL PRIMARY KEY,
 uuid VARCHAR(36) NOT NULL UNIQUE,
@@ -123,6 +127,8 @@ taxes BIGINT NOT NULL DEFAULT 0,
 _xmlid INT NOT NULL,
 _order INT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS xact__uuid ON xact(uuid);
+CREATE INDEX IF NOT EXISTS xact__account ON xact(account);
 CREATE TABLE IF NOT EXISTS xact_unit(
 xact VARCHAR(36) NOT NULL REFERENCES xact(uuid),
 type VARCHAR(16) NOT NULL,
@@ -137,6 +143,7 @@ forex_currency VARCHAR(16),
 -- to add more guards).
 exchangeRate VARCHAR(16)
 );
+CREATE INDEX IF NOT EXISTS xact_unit__xact ON xact_unit(xact);
 CREATE TABLE IF NOT EXISTS xact_cross_entry(
 type VARCHAR(32) NOT NULL,
 from_acc VARCHAR(36) REFERENCES account(uuid),
@@ -144,12 +151,15 @@ from_xact VARCHAR(36) REFERENCES xact(uuid),
 to_acc VARCHAR(36) NOT NULL REFERENCES account(uuid),
 to_xact VARCHAR(36) NOT NULL REFERENCES xact(uuid)
 );
+CREATE INDEX IF NOT EXISTS xact_cross_entry__from_xact ON xact_cross_entry(from_xact);
+CREATE INDEX IF NOT EXISTS xact_cross_entry__to_xact ON xact_cross_entry(to_xact);
 CREATE TABLE IF NOT EXISTS taxonomy(
 _id INTEGER NOT NULL PRIMARY KEY,
 uuid VARCHAR(36) NOT NULL UNIQUE,
 name VARCHAR(100) NOT NULL,
 root VARCHAR(36) NOT NULL -- REFERENCES taxonomy_category(uuid), -- commented out to avoid circular dependency
 );
+CREATE UNIQUE INDEX IF NOT EXISTS taxonomy__uuid ON taxonomy(uuid);
 CREATE TABLE IF NOT EXISTS taxonomy_category(
 _id INTEGER NOT NULL PRIMARY KEY,
 uuid VARCHAR(36) NOT NULL UNIQUE,
@@ -160,6 +170,7 @@ color VARCHAR(100) NOT NULL,
 weight INT NOT NULL,
 rank INT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS taxonomy_category__uuid ON taxonomy_category(uuid);
 CREATE TABLE IF NOT EXISTS taxonomy_data(
 taxonomy VARCHAR(36) NOT NULL REFERENCES taxonomy(uuid),
 -- Can be NULL for taxonomy-level data
@@ -168,6 +179,8 @@ name VARCHAR(64) NOT NULL,
 type VARCHAR(64) NOT NULL DEFAULT '',
 value VARCHAR(256) NOT NULL
 );
+CREATE INDEX IF NOT EXISTS taxonomy_data__taxonomy ON taxonomy_data(taxonomy);
+CREATE INDEX IF NOT EXISTS taxonomy_data__category ON taxonomy_data(category);
 CREATE TABLE IF NOT EXISTS taxonomy_assignment(
 _id INTEGER NOT NULL PRIMARY KEY,
 -- redundant from DB normal form point of view, but helpful for actual
@@ -181,6 +194,7 @@ item VARCHAR(36) NOT NULL,
 weight INT NOT NULL DEFAULT 10000,
 rank INT NOT NULL DEFAULT 0
 );
+CREATE INDEX IF NOT EXISTS taxonomy_assignment__item_type_item ON taxonomy_assignment(item_type, item);
 CREATE TABLE IF NOT EXISTS taxonomy_assignment_data(
 assignment INT NOT NULL REFERENCES taxonomy_assignment(_id),
 name VARCHAR(64) NOT NULL,
@@ -199,6 +213,7 @@ name VARCHAR(64) NOT NULL,
 special INT NOT NULL DEFAULT 0,
 value TEXT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS property__name ON property(name);
 CREATE TABLE IF NOT EXISTS bookmark(
 _id INTEGER NOT NULL PRIMARY KEY,
 label VARCHAR(64) NOT NULL,
@@ -225,27 +240,6 @@ uuid VARCHAR(255), -- not really a uuid, more like id
 name VARCHAR(255),
 data TEXT
 );
-
--- §2 ppxml2db indexes (with IF NOT EXISTS added)
-CREATE UNIQUE INDEX IF NOT EXISTS account__uuid ON account(uuid);
-CREATE UNIQUE INDEX IF NOT EXISTS security__uuid ON security(uuid);
-CREATE INDEX IF NOT EXISTS security__tickerSymbol ON security(tickerSymbol);
-CREATE INDEX IF NOT EXISTS security_attr__security ON security_attr(security);
-CREATE UNIQUE INDEX IF NOT EXISTS security_attr__security_attr_uuid ON security_attr(security, attr_uuid);
-CREATE INDEX IF NOT EXISTS security_prop__security ON security_prop(security);
-CREATE UNIQUE INDEX IF NOT EXISTS price__security_tstamp ON price(security, tstamp);
-CREATE INDEX IF NOT EXISTS watchlist_security__list ON watchlist_security(list);
-CREATE UNIQUE INDEX IF NOT EXISTS xact__uuid ON xact(uuid);
-CREATE INDEX IF NOT EXISTS xact__account ON xact(account);
-CREATE INDEX IF NOT EXISTS xact_unit__xact ON xact_unit(xact);
-CREATE INDEX IF NOT EXISTS xact_cross_entry__from_xact ON xact_cross_entry(from_xact);
-CREATE INDEX IF NOT EXISTS xact_cross_entry__to_xact ON xact_cross_entry(to_xact);
-CREATE UNIQUE INDEX IF NOT EXISTS taxonomy__uuid ON taxonomy(uuid);
-CREATE UNIQUE INDEX IF NOT EXISTS taxonomy_category__uuid ON taxonomy_category(uuid);
-CREATE INDEX IF NOT EXISTS taxonomy_data__taxonomy ON taxonomy_data(taxonomy);
-CREATE INDEX IF NOT EXISTS taxonomy_data__category ON taxonomy_data(category);
-CREATE INDEX IF NOT EXISTS taxonomy_assignment__item_type_item ON taxonomy_assignment(item_type, item);
-CREATE UNIQUE INDEX IF NOT EXISTS property__name ON property(name);
 
 -- ═══ QUOVIBE SECTION BEGIN ═══
 -- Everything above this marker is derived from ppxml2db_init.py (see Gate 1).
