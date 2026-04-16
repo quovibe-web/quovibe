@@ -8,7 +8,6 @@ import * as cheerio from 'cheerio';
 import { v4 as uuidv4 } from 'uuid'; // uuid is already in packages/api/package.json
 import { verifySchema } from '../db/verify';
 import { applyBootstrap } from '../db/apply-bootstrap';
-import { DB_PATH } from '../config';
 
 const execFileAsync = promisify(execFile);
 

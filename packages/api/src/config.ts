@@ -82,10 +82,3 @@ export function resolvePortfolioPath(entry: { id: string; kind: 'real' | 'demo' 
   return resolved;
 }
 
-/**
- * @deprecated Retired in ADR-015 Phase 3c. Points at a fixed, legacy filename that
- * is never touched by the new code paths. Do not add new consumers.
- */
-export const DB_PATH = path.join(DATA_DIR, 'portfolio.db');
-/** @deprecated — see DB_PATH. */
-export const SCHEMA_PATH = process.env.SCHEMA_PATH ?? path.join(DATA_DIR, 'schema.db');
