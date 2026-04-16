@@ -85,6 +85,25 @@ describe('portfolio-manager', () => {
       const files = fs.readdirSync(tmp).filter(f => f.startsWith('portfolio-demo.db'));
       expect(files.length).toBe(1);
     });
+
+    it('3 parallel fresh creates produce 3 distinct files and 3 distinct ids', async () => {
+      const all = Promise.all([
+        createPortfolio({ source: 'fresh', name: 'X-0' }),
+        createPortfolio({ source: 'fresh', name: 'X-1' }),
+        createPortfolio({ source: 'fresh', name: 'X-2' }),
+      ]);
+      // Prove the mutations don't hang (they shouldn't serialize on any lock).
+      const timeout = new Promise<never>((_resolve, reject) =>
+        setTimeout(() => reject(new Error('parallel fresh creates timed out')), 2000),
+      );
+      const results = await Promise.race([all, timeout]);
+      const ids = results.map(r => r.entry.id);
+      expect(new Set(ids).size).toBe(3);
+
+      const freshFiles = fs.readdirSync(tmp)
+        .filter(f => f.startsWith('portfolio-') && f.endsWith('.db') && f !== 'portfolio-demo.db');
+      expect(freshFiles.length).toBe(3);
+    });
   });
 
   describe('rename', () => {

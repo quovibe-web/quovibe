@@ -41,23 +41,31 @@ export class PortfolioManagerError extends Error {
 
 // --- in-process serialization for create ------------------------------------
 
-const createLocks = new Map<string, Promise<CreatePortfolioResult>>();
+// Demo-only singleton lock (§3.4d): concurrent "Try Demo" clicks collapse to
+// one id. Non-demo sources (fresh / import-pp-xml / import-quovibe-db) each
+// generate a fresh UUID before touching the filesystem, so they have no
+// contention and must NOT be serialized — otherwise 3 parallel fresh creates
+// would run strictly sequentially for no gain.
+let demoCreateLock: Promise<CreatePortfolioResult> | null = null;
 
 /**
  * Create a portfolio. Demo creation is serialized via a singleton lock so
- * concurrent "Try Demo" clicks return the same id (§3.4d).
+ * concurrent "Try Demo" clicks return the same id (§3.4d). All other sources
+ * run concurrently.
  */
 export async function createPortfolio(input: CreatePortfolioInput): Promise<CreatePortfolioResult> {
-  const lockKey = input.source === 'demo' ? 'demo-singleton' : 'create';
-  const prev = createLocks.get(lockKey) ?? Promise.resolve(null as unknown as CreatePortfolioResult);
+  if (input.source !== 'demo') {
+    return createPortfolioImpl(input);
+  }
+  const prev = demoCreateLock ?? Promise.resolve(null as unknown as CreatePortfolioResult);
   const next = prev
     .catch(() => null)
     .then(() => createPortfolioImpl(input));
-  createLocks.set(lockKey, next);
+  demoCreateLock = next;
   try {
     return await next;
   } finally {
-    if (createLocks.get(lockKey) === next) createLocks.delete(lockKey);
+    if (demoCreateLock === next) demoCreateLock = null;
   }
 }
 
