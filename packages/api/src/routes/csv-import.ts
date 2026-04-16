@@ -1,7 +1,6 @@
 // packages/api/src/routes/csv-import.ts
 import { Router, type RequestHandler, type Router as RouterType } from 'express';
 import multer from 'multer';
-import type BetterSqlite3 from 'better-sqlite3';
 import {
   saveTempFile, parseCsv, previewTradeImport,
   executeTradeImport, executePriceImport,
@@ -11,6 +10,7 @@ import {
   listCsvConfigs, createCsvConfig, updateCsvConfig, deleteCsvConfig,
 } from '../services/csv/csv-config.service';
 import { csvImportConfigSchema } from '@quovibe/shared';
+import { getSqlite } from '../helpers/request';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -23,10 +23,6 @@ const upload = multer({
     cb(null, true);
   },
 });
-
-function getSqlite(req: Parameters<RequestHandler>[0]): BetterSqlite3.Database {
-  return req.app.locals.sqlite as BetterSqlite3.Database;
-}
 
 export const csvImportRouter: RouterType = Router();
 
