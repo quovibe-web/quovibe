@@ -2,6 +2,7 @@
 // Phase 3c stub — thin CRUD over vf_dashboard. Phase 4 extends with widget migrations.
 import type BetterSqlite3 from 'better-sqlite3';
 import crypto from 'crypto';
+import { CURRENT_VERSION, upgradeWidgets } from './widget-migrations';
 
 export interface DashboardItem {
   id: string;
@@ -15,13 +16,18 @@ export interface DashboardItem {
 }
 
 function rowToItem(row: Record<string, unknown>): DashboardItem {
+  const sv = row.schema_version as number;
+  let widgets = JSON.parse(row.widgets_json as string);
+  if (sv < CURRENT_VERSION) widgets = upgradeWidgets(widgets, sv);
+  else if (sv > CURRENT_VERSION) widgets = widgets.map((w: { type: string }) =>
+    ({ ...w, type: 'unsupported-widget', __originalType: w.type }));
   return {
     id: row.id as string,
     name: row.name as string,
-    widgets: JSON.parse(row.widgets_json as string),
+    widgets,
     columns: row.columns as number,
     position: row.position as number,
-    schemaVersion: row.schema_version as number,
+    schemaVersion: sv,
     createdAt: row.createdAt as string,
     updatedAt: row.updatedAt as string,
   };
@@ -49,8 +55,8 @@ export function createDashboard(
   sqlite.prepare(
     `INSERT INTO vf_dashboard
        (id, name, position, widgets_json, schema_version, columns, createdAt, updatedAt)
-     VALUES (?, ?, ?, ?, 1, ?, ?, ?)`,
-  ).run(id, input.name, position, JSON.stringify(input.widgets), input.columns, now, now);
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(id, input.name, position, JSON.stringify(input.widgets), CURRENT_VERSION, input.columns, now, now);
   return getDashboard(sqlite, id)!;
 }
 
@@ -64,11 +70,12 @@ export function updateDashboard(
   const now = new Date().toISOString();
   sqlite.prepare(
     `UPDATE vf_dashboard SET
-       name = ?, widgets_json = ?, columns = ?, position = ?, updatedAt = ?
+       name = ?, widgets_json = ?, schema_version = ?, columns = ?, position = ?, updatedAt = ?
      WHERE id = ?`,
   ).run(
     input.name ?? existing.name,
     JSON.stringify(input.widgets ?? existing.widgets),
+    CURRENT_VERSION,                    // persist at current shape
     input.columns ?? existing.columns,
     input.position ?? existing.position,
     now,
