@@ -50,7 +50,16 @@ export function useCreatePortfolio() {
         if (body.name) fd.append('name', body.name);
         const r = await fetch('/api/import/xml', { method: 'POST', body: fd });
         const raw = await r.json().catch(() => ({ error: 'UNKNOWN' }));
-        if (!r.ok) throw new Error(raw.error ?? `HTTP ${r.status}`);
+        if (!r.ok) {
+          // Surface the backend's `details` (e.g. Python stack from ppxml2db) in
+          // the thrown message so the toast shows something actionable instead of
+          // just "CONVERSION_FAILED".
+          const code = raw.error ?? `HTTP ${r.status}`;
+          const details = typeof raw.details === 'string' && raw.details.length
+            ? raw.details.slice(0, 500)
+            : '';
+          throw new Error(details ? `${code}: ${details}` : code);
+        }
         // POST /api/import/xml returns a flat shape `{ status, id, name, accounts, securities }`.
         // Normalize to the same `{ entry }` envelope the other branches return so callers can
         // read `r.entry.id` uniformly.
