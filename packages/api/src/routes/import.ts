@@ -2,11 +2,9 @@ import { Router, type RequestHandler, type Router as RouterType } from 'express'
 import multer from 'multer';
 import fs from 'fs';
 import os from 'os';
-import Database from 'better-sqlite3';
 import { runImport, isImportInProgress, ImportError } from '../services/import.service';
 import { updateAppState, getSettings } from '../services/settings.service';
-import { fetchAllExchangeRates } from '../services/fx-fetcher.service';
-import { DB_PATH } from '../config';
+import { createPortfolio, PortfolioManagerError } from '../services/portfolio-manager';
 
 // Multer: save uploads to OS temp dir with a unique filename
 const upload = multer({
@@ -26,7 +24,7 @@ const upload = multer({
 
 export const importRouter: RouterType = Router();
 
-// POST /api/import/xml
+// POST /api/import/xml — create a NEW portfolio from the uploaded XML
 const uploadXml: RequestHandler = async (req, res) => {
   // Check lock before even processing the file
   if (isImportInProgress()) {
@@ -44,38 +42,34 @@ const uploadXml: RequestHandler = async (req, res) => {
   fs.renameSync(req.file.path, xmlPath);
 
   try {
-    // Service only produces the new DB file — does NOT touch live connection
+    // Produces a populated temp DB file; no live handle touched.
     const result = await runImport(xmlPath);
 
-    // reloadApp handles: drain → backup → close → swap → reopen
-    const reload = req.app.locals.reloadApp as ((tempDbPath?: string) => Promise<void>) | undefined;
-    if (reload) {
-      await reload(result.tempDbPath);
-    }
+    // Derive a display name: use the provided body.name, else the XML filename stripped.
+    const bodyName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+    const fallback = req.file.originalname.replace(/\.xml$/i, '').slice(0, 100);
+    const name = bodyName || fallback || 'Imported Portfolio';
 
-    // Write lastImport to sidecar (AFTER reload completes — sidecar survives DB swap)
-    updateAppState({ lastImport: new Date().toISOString() });
+    const created = await createPortfolio({
+      source: 'import-pp-xml',
+      name,
+      ppxmlTempDbPath: result.tempDbPath,
+    });
 
-    // Fire-and-forget: fetch FX rates so multi-currency portfolios work immediately.
-    // Opens its own DB connection (old handle is closed after reload).
-    try {
-      const fxDb = new Database(DB_PATH);
-      fetchAllExchangeRates(fxDb)
-        .then(summary => {
-          console.log(`[quovibe] Auto-fetched ${summary.totalFetched} FX rates after import`);
-          fxDb.close();
-        })
-        .catch(err => {
-          console.warn('[quovibe] FX auto-fetch after import failed:', (err as Error).message);
-          try { fxDb.close(); } catch { /* ok */ }
-        });
-    } catch { /* DB open failed — non-fatal, user can fetch manually */ }
-
-    // Clean up temp DB after swap
+    // portfolio-manager atomic-copies the temp DB into place; clean up the original.
     try { fs.unlinkSync(result.tempDbPath); } catch { /* ok */ }
 
-    console.log('[quovibe] Import completed. App Reloaded (hot reload).');
-    res.json({ status: 'success', accounts: result.accounts, securities: result.securities, reloaded: true });
+    // Record the last-import timestamp on the user-level sidecar.
+    updateAppState({ lastImport: new Date().toISOString() });
+
+    console.log(`[quovibe] Import completed. New portfolio created: ${created.entry.id}`);
+    res.status(201).json({
+      status: 'success',
+      id: created.entry.id,
+      name: created.entry.name,
+      accounts: result.accounts,
+      securities: result.securities,
+    });
   } catch (err) {
     if (err instanceof ImportError) {
       if (err.code === 'CONVERSION_FAILED') {
@@ -85,14 +79,11 @@ const uploadXml: RequestHandler = async (req, res) => {
       }
       return;
     }
-    // Unexpected error — attempt recovery
-    console.error('[quovibe] Import error:', err);
-    try {
-      const reload = req.app.locals.reloadApp as (() => Promise<void>) | undefined;
-      if (reload) await reload();
-    } catch (reloadErr) {
-      console.error('[quovibe] Recovery reload failed:', reloadErr);
+    if (err instanceof PortfolioManagerError) {
+      res.status(400).json({ error: err.code });
+      return;
     }
+    console.error('[quovibe] Import error:', err);
     const details = process.env.NODE_ENV === 'production'
       ? 'Errore interno del server'
       : String(err);
@@ -100,24 +91,10 @@ const uploadXml: RequestHandler = async (req, res) => {
   }
 };
 
-// GET /api/import/status
+// GET /api/import/status — thin wrapper around the in-process mutex + last-import time
 const getStatus: RequestHandler = (_req, res) => {
-  let empty = true;
-
-  try {
-    const db = new Database(DB_PATH, { readonly: true });
-    try {
-      const row = db.prepare('SELECT COUNT(*) as cnt FROM account').get() as { cnt: number };
-      empty = row.cnt === 0;
-    } finally {
-      db.close();
-    }
-  } catch {
-    // DB might be mid-restart; return safe defaults
-  }
-
   const lastImport = getSettings().app.lastImport;
-  res.json({ ready: true, empty, lastImport });
+  res.json({ ready: true, inProgress: isImportInProgress(), lastImport });
 };
 
 // Apply 120s timeout to the upload route, with multer error handling
