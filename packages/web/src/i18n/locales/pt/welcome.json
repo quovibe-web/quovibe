@@ -1,0 +1,30 @@
+{
+  "title": "Welcome to quovibe",
+  "cards": {
+    "importPP": {
+      "title": "Import from Portfolio Performance",
+      "body": "Bring in an existing PP export (XML with ID attributes).",
+      "cta": "Choose a file…"
+    },
+    "demo": {
+      "title": "Try the demo",
+      "body": "Explore the app with a realistic sample portfolio you can edit freely.",
+      "cta": "Open demo"
+    },
+    "fresh": {
+      "title": "Start fresh",
+      "body": "Create a brand-new empty portfolio and add transactions as you go.",
+      "cta": "Create portfolio",
+      "namePlaceholder": "Portfolio name"
+    }
+  },
+  "advanced": {
+    "label": "Advanced: import from a quovibe .db export",
+    "importDbCta": "Import .db"
+  },
+  "errors": {
+    "demoFailed": "Could not open the demo: {{msg}}",
+    "createFailed": "Could not create the portfolio: {{msg}}",
+    "importFailed": "Import failed: {{msg}}"
+  }
+}

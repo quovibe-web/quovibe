@@ -142,6 +142,10 @@ import ptDashboard from './locales/pt/dashboard.json';
 import ptInvestments from './locales/pt/investments.json';
 import ptCsvImport from './locales/pt/csv-import.json';
 import ptWatchlists from './locales/pt/watchlists.json';
+import ptWelcome from './locales/pt/welcome.json';
+import ptSwitcher from './locales/pt/switcher.json';
+import ptPortfolioSettings from './locales/pt/portfolioSettings.json';
+import ptUserSettings from './locales/pt/userSettings.json';
 
 i18n
   .use(LanguageDetector)
@@ -155,7 +159,7 @@ i18n
       es: { common: esCommon, navigation: esNavigation, securities: esSecurities, transactions: esTransactions, accounts: esAccounts, performance: esPerformance, reports: esReports, settings: esSettings, errors: esErrors, dashboard: esDashboard, investments: esInvestments, 'csv-import': esCsvImport, watchlists: esWatchlists, welcome: esWelcome, switcher: esSwitcher, portfolioSettings: esPortfolioSettings, userSettings: esUserSettings },
       nl: { common: nlCommon, navigation: nlNavigation, securities: nlSecurities, transactions: nlTransactions, accounts: nlAccounts, performance: nlPerformance, reports: nlReports, settings: nlSettings, errors: nlErrors, dashboard: nlDashboard, investments: nlInvestments, 'csv-import': nlCsvImport, watchlists: nlWatchlists, welcome: nlWelcome, switcher: nlSwitcher, portfolioSettings: nlPortfolioSettings, userSettings: nlUserSettings },
       pl: { common: plCommon, navigation: plNavigation, securities: plSecurities, transactions: plTransactions, accounts: plAccounts, performance: plPerformance, reports: plReports, settings: plSettings, errors: plErrors, dashboard: plDashboard, investments: plInvestments, 'csv-import': plCsvImport, watchlists: plWatchlists, welcome: plWelcome, switcher: plSwitcher, portfolioSettings: plPortfolioSettings, userSettings: plUserSettings },
-      pt: { common: ptCommon, navigation: ptNavigation, securities: ptSecurities, transactions: ptTransactions, accounts: ptAccounts, performance: ptPerformance, reports: ptReports, settings: ptSettings, errors: ptErrors, dashboard: ptDashboard, investments: ptInvestments, 'csv-import': ptCsvImport, watchlists: ptWatchlists },
+      pt: { common: ptCommon, navigation: ptNavigation, securities: ptSecurities, transactions: ptTransactions, accounts: ptAccounts, performance: ptPerformance, reports: ptReports, settings: ptSettings, errors: ptErrors, dashboard: ptDashboard, investments: ptInvestments, 'csv-import': ptCsvImport, watchlists: ptWatchlists, welcome: ptWelcome, switcher: ptSwitcher, portfolioSettings: ptPortfolioSettings, userSettings: ptUserSettings },
     },
     fallbackLng: 'en',
     defaultNS: 'common',
