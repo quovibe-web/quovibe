@@ -59,7 +59,11 @@ cashflows, pricing, performance, or data structures:
 - packages/engine — pure financial logic (zero I/O dependencies)
 - packages/api — Express 5 REST API + Drizzle ORM
 - packages/web — React SPA
-- data/ — portfolio.db (SQLite from ppxml2db)
+- data/ — `portfolio-{uuid}.db` (one self-contained SQLite per portfolio, ADR-015) + `quovibe.settings.json` sidecar
+
+## Schema source of truth (ADR-015)
+
+**Schema source of truth: `packages/api/src/db/bootstrap.sql`.** Drizzle's `schema.ts` is the ORM view, parity-checked by CI. No other schema sources are accepted. Tests use `createTestDb()` (or equivalent) that calls `applyBootstrap(db)`; inline `CREATE TABLE` in test files is forbidden (enforced by governance check G12).
 
 ## Commands
 
@@ -85,6 +89,7 @@ cashflows, pricing, performance, or data structures:
 - The engine (packages/engine) does not access the DB — it receives data and returns results
 - Explicit types everywhere, never `any`
 - DB schema, unit conventions, and double-entry details: see `.claude/rules/db-schema.md` and `.claude/rules/double-entry.md`
+- **No module-scope DB handles** (ADR-015). Under multi-portfolio routing, every request carries its own `req.portfolioSqlite`. Preparing statements at module top-level would bind them to whichever handle loaded the module first and silently query the wrong portfolio. Always prepare inside the function that receives `sqlite`.
 
 ## Quality Checks
 
@@ -95,7 +100,9 @@ cashflows, pricing, performance, or data structures:
 | `pnpm lint` | Lint all packages (max 50 warnings) |
 | `pnpm lint:engine` | ESLint zero tolerance: no I/O imports in the engine |
 | `pnpm check:governance` | 14 governance checks (doc alignment, upstream ban, service rules, no direct DB writes in routes) |
-| `pnpm check:arch` | 9 architecture checks (dependency boundaries, import rules) |
+| `pnpm check:arch` | 9 architecture checks (dependency boundaries, import rules; A10 retired in ADR-015) |
+| `pnpm check:bootstrap` | Gate 1 — `bootstrap.sql` freshness vs ppxml2db output (normalized diff) |
+| `pnpm regen-bootstrap` | Regenerate `bootstrap.sql` §1+§2 from `ppxml2db_init.py` |
 | `pnpm check:all` | test + lint:engine + governance + architecture |
 | `pnpm preflight` | Pre-session gate: build → test → lint → governance → arch |
 | `pnpm postflight` | Post-session gate: same checks + changelog draft |
@@ -106,7 +113,7 @@ cashflows, pricing, performance, or data structures:
 The project uses a 3-tier governance system to prevent drift between documentation and code:
 
 1. **Claude Code rules** (`.claude/rules/*.md`) — 12 rule files scoped by glob pattern, loaded automatically by context. See `docs/architecture/README.md` for the full inventory.
-2. **Automated scripts** — `scripts/check-governance.ts` (14 checks: doc↔filesystem alignment, upstream reference ban, service-layer rules, no direct DB writes in routes) and `scripts/check-architecture.ts` (10 checks: dependency whitelists, import boundary enforcement, Zod schema usage). Run via `pnpm check:governance` and `pnpm check:arch`.
+2. **Automated scripts** — `scripts/check-governance.ts` (14 checks: doc↔filesystem alignment, upstream reference ban, service-layer rules, no direct DB writes in routes) and `scripts/check-architecture.ts` (9 checks: dependency whitelists, import boundary enforcement, Zod schema usage — A10 vendor-SQL parity retired in ADR-015 now that `bootstrap.sql` is the single schema source). Run via `pnpm check:governance` and `pnpm check:arch`. Schema freshness vs ppxml2db is a separate gate: `pnpm check:bootstrap`.
 3. **Session lifecycle** — `scripts/preflight.sh` must pass before starting work; `scripts/postflight.sh` must pass before closing a session. Both run the full check suite.
 
 ESLint provides an additional enforcement layer for engine I/O isolation (ADR-003): `no-restricted-imports` is set to **error** for all `packages/engine/src/**` files.
