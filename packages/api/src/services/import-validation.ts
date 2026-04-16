@@ -43,7 +43,8 @@ export function validateQuovibeDbFile(filePath: string): { name: string } {
     // Check 2: integrity
     // Some non-SQLite files slip past the Database constructor (better-sqlite3
     // opens lazily), and only surface as SQLITE_NOTADB on the first query.
-    // Map that SqliteError to INVALID_SQLITE so callers see the correct code.
+    // Severely corrupted files (e.g. mid-page truncation) throw SQLITE_CORRUPT
+    // before integrity_check can produce a row — map those to CORRUPTED_FILE.
     let rows: { integrity_check: string }[];
     try {
       rows = db.prepare('PRAGMA integrity_check').all() as { integrity_check: string }[];
@@ -51,6 +52,9 @@ export function validateQuovibeDbFile(filePath: string): { name: string } {
       const e = err as Error & { code?: string };
       if (e.code === 'SQLITE_NOTADB') {
         throw new ImportValidationError('INVALID_SQLITE', e.message);
+      }
+      if (e.code === 'SQLITE_CORRUPT' || e.code === 'SQLITE_IOERR_SHORT_READ') {
+        throw new ImportValidationError('CORRUPTED_FILE', e.message);
       }
       throw err;
     }
