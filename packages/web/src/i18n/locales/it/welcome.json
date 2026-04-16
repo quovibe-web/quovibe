@@ -1,0 +1,30 @@
+{
+  "title": "Benvenuto su quovibe",
+  "cards": {
+    "importPP": {
+      "title": "Importa da Portfolio Performance",
+      "body": "Porta un esportazione PP esistente (XML con attributi ID).",
+      "cta": "Scegli un file…"
+    },
+    "demo": {
+      "title": "Prova la demo",
+      "body": "Esplora l'app con un portafoglio di esempio realistico che puoi modificare liberamente.",
+      "cta": "Apri demo"
+    },
+    "fresh": {
+      "title": "Inizia da zero",
+      "body": "Crea un nuovo portafoglio vuoto e aggiungi transazioni man mano.",
+      "cta": "Crea portafoglio",
+      "namePlaceholder": "Nome del portafoglio"
+    }
+  },
+  "advanced": {
+    "label": "Avanzate: importa da un export .db di quovibe",
+    "importDbCta": "Importa .db"
+  },
+  "errors": {
+    "demoFailed": "Impossibile aprire la demo: {{msg}}",
+    "createFailed": "Impossibile creare il portafoglio: {{msg}}",
+    "importFailed": "Importazione fallita: {{msg}}"
+  }
+}

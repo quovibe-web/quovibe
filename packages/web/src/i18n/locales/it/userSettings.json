@@ -1,0 +1,10 @@
+{
+  "preferences": {
+    "title": "Preferenze"
+  },
+  "updates": {
+    "title": "Aggiornamenti",
+    "autoFetchLabel": "Aggiorna i prezzi automaticamente alla prima apertura di ogni portafoglio",
+    "autoFetchHint": "Disattivato di default per evitare di consumare la quota API di Yahoo / AlphaVantage ad ogni riavvio del container. Attivalo se desideri prezzi aggiornati ogni volta che apri un portafoglio in un nuovo processo."
+  }
+}

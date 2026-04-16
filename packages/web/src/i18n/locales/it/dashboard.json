@@ -1,4 +1,12 @@
 {
+  "empty": {
+    "title": "Benvenuto nel tuo nuovo portafoglio.",
+    "importHeader": "Importa transazioni",
+    "importCsv": "Importa da CSV",
+    "addManually": "Aggiungi conto / transazione manualmente",
+    "wantToSee": "Vuoi prima vedere l'app in azione?",
+    "tryDemo": "Prova invece la demo"
+  },
   "title": "Dashboard",
   "hero": {
     "portfolioValue": "Valore del Portafoglio",
