@@ -65,8 +65,9 @@ cat > "$BOOTSTRAP" <<'HEADER'
 -- Deviations from raw ppxml2db_init.py output:
 --   - IF NOT EXISTS added to every CREATE TABLE / CREATE INDEX.
 --     Purpose: allow idempotent re-runs on already-populated DBs.
---   - ALTER TABLE ADD COLUMN IF NOT EXISTS is allowed for future column
---     additions (SQLite 3.35+; better-sqlite3 12.8 is well past that).
+--   - Conditional column additions to vendor tables live in apply-bootstrap.ts
+--     (SQLite does not support `ALTER TABLE ADD COLUMN IF NOT EXISTS` — the
+--     check happens at the TS layer via PRAGMA table_info).
 -- ═══════════════════════════════════════════════════════════════════════
 
 -- §1+§2 ppxml2db tables and indexes (verbatim from ppxml2db_init.py + IF NOT EXISTS)

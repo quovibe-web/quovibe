@@ -11,8 +11,9 @@
 -- Deviations from raw ppxml2db_init.py output:
 --   - IF NOT EXISTS added to every CREATE TABLE / CREATE INDEX.
 --     Purpose: allow idempotent re-runs on already-populated DBs.
---   - ALTER TABLE ADD COLUMN IF NOT EXISTS is allowed for future column
---     additions (SQLite 3.35+; better-sqlite3 12.8 is well past that).
+--   - Conditional column additions to vendor tables live in apply-bootstrap.ts
+--     (SQLite does not support `ALTER TABLE ADD COLUMN IF NOT EXISTS` — the
+--     check happens at the TS layer via PRAGMA table_info).
 -- ═══════════════════════════════════════════════════════════════════════
 
 -- §1+§2 ppxml2db tables and indexes (verbatim from ppxml2db_init.py + IF NOT EXISTS)
@@ -87,10 +88,7 @@ CREATE INDEX IF NOT EXISTS security_prop__security ON security_prop(security);
 CREATE TABLE IF NOT EXISTS latest_price(
 security VARCHAR(36) NOT NULL PRIMARY KEY REFERENCES security(uuid),
 tstamp VARCHAR(32) NOT NULL,
-value BIGINT NOT NULL,
-high BIGINT,
-low BIGINT,
-volume BIGINT
+value BIGINT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS price(
 security VARCHAR(36) NOT NULL REFERENCES security(uuid),
