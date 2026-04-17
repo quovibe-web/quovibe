@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createChart, type IChartApi, type DeepPartial, type ChartOptions } from 'lightweight-charts';
 import { useTheme } from '@/hooks/use-theme';
 import { useChartTheme, toLightweightTheme } from '@/hooks/use-chart-theme';
@@ -28,6 +29,10 @@ export function useLightweightChart(
   const [ready, setReady] = useState(0);
   const { resolvedTheme } = useTheme();
   const chartTheme = useChartTheme();
+  const { i18n } = useTranslation();
+  const locale = i18n.language;
+  const localeRef = useRef(locale);
+  localeRef.current = locale;
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
@@ -50,6 +55,11 @@ export function useLightweightChart(
         height: container.clientHeight,
         ...themeOptions,
         ...optionsRef.current,
+        localization: {
+          locale: localeRef.current,
+          ...themeOptions.localization,
+          ...optionsRef.current?.localization,
+        },
       });
       chartRef.current = chart;
 
@@ -111,6 +121,12 @@ export function useLightweightChart(
     const themeOptions = toLightweightTheme(chartTheme);
     chartRef.current.applyOptions(themeOptions);
   }, [resolvedTheme, chartTheme]);
+
+  // Apply locale changes — without this, lightweight-charts falls back to navigator.language.
+  useEffect(() => {
+    if (!chartRef.current) return;
+    chartRef.current.applyOptions({ localization: { locale } });
+  }, [locale]);
 
   return { containerRef, chartRef, ready };
 }
