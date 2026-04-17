@@ -1,5 +1,5 @@
 import { useCalculation, useReportingPeriod } from '@/api/use-performance';
-import { apiFetch } from '@/api/fetch';
+import { useScopedApi } from '@/api/use-scoped-api';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { usePrivacy } from '@/context/privacy-context';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
@@ -14,10 +14,11 @@ interface ChartPoint {
 }
 
 function useHeroSparkline(periodStart: string, periodEnd: string) {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: ['hero-sparkline', periodStart, periodEnd],
+    queryKey: ['hero-sparkline', api.portfolioId, periodStart, periodEnd],
     queryFn: async () => {
-      const data = await apiFetch<ChartPoint[]>(
+      const data = await api.fetch<ChartPoint[]>(
         `/api/performance/chart?periodStart=${periodStart}&periodEnd=${periodEnd}`,
       );
       return data.map((p) => parseFloat(p.marketValue));

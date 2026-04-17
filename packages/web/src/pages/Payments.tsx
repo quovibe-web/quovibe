@@ -22,7 +22,7 @@ import {
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { usePayments, reportsKeys } from '@/api/use-reports';
 import { useReportingPeriod } from '@/api/use-performance';
-import { apiFetch } from '@/api/fetch';
+import { useScopedApi } from '@/api/use-scoped-api';
 import { PaymentBreakdownTooltip } from '@/components/domain/PaymentBreakdownTooltip';
 import type { PaymentBreakdownResponse } from '@quovibe/shared';
 import { formatDate } from '@/lib/formatters';
@@ -62,6 +62,8 @@ function PaymentBarChart({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
   const { periodStart, periodEnd } = useReportingPeriod();
+  const api = useScopedApi();
+  const { portfolioId, fetch: scopedFetch } = api;
 
   const chartData = groups.map((g) => ({
     bucket: g.bucket,
@@ -73,9 +75,9 @@ function PaymentBarChart({
     if (!bucket) return;
     // Prefetch immediately — fetch starts 250ms before debounce fires
     queryClient.prefetchQuery({
-      queryKey: reportsKeys.paymentsBreakdown(bucket, type, groupBy, periodStart, periodEnd),
+      queryKey: reportsKeys.paymentsBreakdown(portfolioId, bucket, type, groupBy, periodStart, periodEnd),
       queryFn: () =>
-        apiFetch<PaymentBreakdownResponse>(
+        scopedFetch<PaymentBreakdownResponse>(
           `/api/reports/payments/breakdown?bucket=${encodeURIComponent(bucket)}&type=${type}&groupBy=${groupBy}&periodStart=${periodStart}&periodEnd=${periodEnd}`,
         ),
       staleTime: 5 * 60 * 1000,
@@ -84,7 +86,7 @@ function PaymentBarChart({
     debounceRef.current = setTimeout(() => {
       setActiveBucket(bucket);
     }, 250);
-  }, [queryClient, periodStart, periodEnd, type, groupBy]);
+  }, [queryClient, periodStart, periodEnd, type, groupBy, portfolioId]);
 
   const handleMouseLeave = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);

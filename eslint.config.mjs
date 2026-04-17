@@ -2,6 +2,7 @@ import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import noPortfolioScopeModuleState from './eslint-rules/no-portfolio-scope-module-state.mjs';
+import noUnscopedPortfolioApi from './eslint-rules/no-unscoped-portfolio-api.mjs';
 
 export default [
   {
@@ -13,7 +14,7 @@ export default [
     plugins: {
       '@typescript-eslint': tsPlugin,
       'react-hooks': reactHooksPlugin,
-      quovibe: { rules: { 'no-portfolio-scope-module-state': noPortfolioScopeModuleState } },
+      quovibe: { rules: { 'no-portfolio-scope-module-state': noPortfolioScopeModuleState, 'no-unscoped-portfolio-api': noUnscopedPortfolioApi } },
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
@@ -36,6 +37,7 @@ export default [
     ],
     rules: {
       'quovibe/no-portfolio-scope-module-state': 'error',
+      'quovibe/no-unscoped-portfolio-api': 'error',
     },
   },
   {
