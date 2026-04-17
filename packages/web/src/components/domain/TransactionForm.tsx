@@ -123,14 +123,10 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
   const filteredAccounts = useMemo(() => {
     if (PORTFOLIO_ONLY_TYPES.has(type)) return accounts.filter(a => a.type === 'portfolio');
     if (CASH_ONLY_TYPES.has(type)) return accounts.filter(a => a.type === 'account');
-    return accounts;
-  }, [accounts, type]);
-
-  // Cross-account dropdown: SECURITY_TRANSFER → portfolio, TRANSFER_BETWEEN_ACCOUNTS / BUY / SELL → deposit
-  const filteredCrossAccounts = useMemo(() => {
-    if (type === TransactionType.SECURITY_TRANSFER) return accounts.filter(a => a.type === 'portfolio');
+    // BUG-04: TRANSFER_BETWEEN_ACCOUNTS source must be a deposit (cash) account,
+    // not a portfolio — the server rejects the portfolio case, but restricting
+    // the dropdown keeps the UI honest with the backend invariant.
     if (type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS) return accounts.filter(a => a.type === 'account');
-    if (BUY_SELL_TYPES.has(type)) return accounts.filter(a => a.type === 'account');
     return accounts;
   }, [accounts, type]);
 
@@ -163,6 +159,24 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
     setFields((prev) => ({ ...prev, [key]: value }));
   }
 
+  // Cross-account dropdown: SECURITY_TRANSFER → portfolio, TRANSFER_BETWEEN_ACCOUNTS / BUY / SELL → deposit.
+  // BUG-01: for transfer types, exclude the already-selected source so the user cannot pick the same
+  // account on both sides (server also rejects this via the Zod schema).
+  const filteredCrossAccounts = useMemo(() => {
+    let base: typeof accounts;
+    if (type === TransactionType.SECURITY_TRANSFER) base = accounts.filter(a => a.type === 'portfolio');
+    else if (type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS) base = accounts.filter(a => a.type === 'account');
+    else if (BUY_SELL_TYPES.has(type)) base = accounts.filter(a => a.type === 'account');
+    else base = accounts;
+    if (
+      (type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS || type === TransactionType.SECURITY_TRANSFER) &&
+      fields.accountId
+    ) {
+      return base.filter(a => a.id !== fields.accountId);
+    }
+    return base;
+  }, [accounts, type, fields.accountId]);
+
   // Auto-populate crossAccountId from the portfolio's referenceAccount on BUY/SELL
   useEffect(() => {
     if (!BUY_SELL_TYPES.has(type)) return;
@@ -172,6 +186,16 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
       set('crossAccountId', portfolio.referenceAccountId);
     }
   }, [fields.accountId, fields.crossAccountId, accounts, type]);
+
+  // BUG-01 UX: if the user picks a source that matches the already-selected cross,
+  // clear the now-stale cross so the dropdown doesn't silently keep a value that
+  // has been filtered out of its options.
+  useEffect(() => {
+    if (type !== TransactionType.TRANSFER_BETWEEN_ACCOUNTS && type !== TransactionType.SECURITY_TRANSFER) return;
+    if (fields.accountId && fields.accountId === fields.crossAccountId) {
+      set('crossAccountId', '');
+    }
+  }, [fields.accountId, fields.crossAccountId, type]);
 
   // Detect cross-currency: compare security currency vs cash account currency
   const selectedSecurity = securities.find(s => s.id === fields.securityId);

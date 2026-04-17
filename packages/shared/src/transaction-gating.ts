@@ -35,6 +35,24 @@ const ALLOWED: Record<AccountType, Set<TransactionType>> = {
   [AccountType.DEPOSIT]: new Set(DEPOSIT_TYPES),
 };
 
+// Types for which the API service layer auto-routes a portfolio (securities)
+// `accountId` to its linked deposit (`referenceAccount`). The route-handler 422
+// guard and the service's `resolveAccountTarget` must stay aligned on this set:
+// a transaction whose `accountId` is a portfolio is only acceptable when the
+// type is in this set — anything else (e.g. TRANSFER_BETWEEN_ACCOUNTS) would
+// pin the portfolio as the cash holder, which is a data-integrity hole.
+export const CASH_ONLY_ROUTED_TYPES: ReadonlySet<TransactionType> = new Set([
+  TransactionType.DEPOSIT,
+  TransactionType.REMOVAL,
+  TransactionType.DIVIDEND,
+  TransactionType.INTEREST,
+  TransactionType.INTEREST_CHARGE,
+  TransactionType.FEES,
+  TransactionType.FEES_REFUND,
+  TransactionType.TAXES,
+  TransactionType.TAX_REFUND,
+]);
+
 /**
  * Returns the list of transaction types available for the given account type.
  *

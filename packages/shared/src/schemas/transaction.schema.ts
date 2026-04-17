@@ -14,6 +14,11 @@ const CASH_TYPES = new Set<TransactionType>([
   TransactionType.TAXES, TransactionType.TAX_REFUND,
 ]);
 
+const CROSS_ACCOUNT_DISTINCT_TYPES = new Set<TransactionType>([
+  TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+  TransactionType.SECURITY_TRANSFER,
+]);
+
 export const createTransactionSchema = z.object({
   type: z.nativeEnum(TransactionType),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/, 'Date must be YYYY-MM-DD or YYYY-MM-DDTHH:mm'),
@@ -43,6 +48,22 @@ export const createTransactionSchema = z.object({
       code: z.ZodIssueCode.custom,
       message: 'amount must be greater than 0 for this transaction type',
       path: ['amount'],
+    });
+  }
+  // BUG-01: transfer types must specify two distinct accounts. When
+  // crossAccountId is missing the service layer already raises a clearer
+  // "crossAccountId is required" error, so only assert distinctness when both
+  // are present.
+  if (
+    CROSS_ACCOUNT_DISTINCT_TYPES.has(data.type) &&
+    data.accountId &&
+    data.crossAccountId &&
+    data.accountId === data.crossAccountId
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Source and destination accounts must differ',
+      path: ['crossAccountId'],
     });
   }
 });

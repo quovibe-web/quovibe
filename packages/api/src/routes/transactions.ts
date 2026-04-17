@@ -1,6 +1,6 @@
 import { Router, type Router as RouterType } from 'express';
 import type { RequestHandler } from 'express';
-import { createTransactionSchema, AccountType, isTransactionTypeAllowed } from '@quovibe/shared';
+import { createTransactionSchema, AccountType, isTransactionTypeAllowed, CASH_ONLY_ROUTED_TYPES, TransactionType } from '@quovibe/shared';
 import * as transactionService from '../services/transaction.service';
 import { getDb, getSqlite } from '../helpers/request';
 import { convertTransactionFromDb, convertAmountFromDb } from '../services/unit-conversion';
@@ -79,6 +79,59 @@ function typeFilterCondition(enumType: string): { sql: string; params: unknown[]
     default:
       return { sql: 'x.type = ?', params: [enumType] };
   }
+}
+
+// Type-allowed guard shared by POST and PUT handlers.
+//
+// BUG-04 (Pass 1): previously, any `accountId` pointing to a portfolio bypassed
+// this 422 guard — the bypass existed so that cash-only types (DEPOSIT,
+// DIVIDEND, …) post against a portfolio would be auto-routed to its linked
+// deposit (`referenceAccount`) by `resolveAccountTarget` in the service. But
+// TRANSFER_BETWEEN_ACCOUNTS is not cash-only: with the blanket bypass, a
+// portfolio source slipped through and persisted as the transfer's cash
+// holder. Narrow the bypass to only the types the service actually routes
+// (`CASH_ONLY_ROUTED_TYPES`), and symmetrically validate `crossAccountId` so
+// a portfolio destination is rejected too.
+//
+// Returns an error message on rejection, or `null` when the input is allowed.
+function enforceAccountTypeGuards(
+  sqlite: ReturnType<typeof getSqlite>,
+  input: ReturnType<typeof createTransactionSchema.parse>,
+): string | null {
+  if (input.accountId) {
+    const acct = sqlite
+      .prepare('SELECT type FROM account WHERE uuid = ?')
+      .get(input.accountId) as { type: string } | undefined;
+    if (acct) {
+      const accountType = mapDbAccountType(acct.type);
+      const isPortfolioRouting =
+        acct.type === 'portfolio' && CASH_ONLY_ROUTED_TYPES.has(input.type);
+      if (!isPortfolioRouting && !isTransactionTypeAllowed(accountType, input.type)) {
+        return 'Transaction type not allowed for this account type';
+      }
+    }
+  }
+
+  // Symmetric check: for transfer types the destination must also be a valid
+  // holder of the transaction — a TRANSFER_BETWEEN_ACCOUNTS into a portfolio
+  // is just as broken as one out of a portfolio.
+  if (
+    input.crossAccountId &&
+    (input.type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS ||
+      input.type === TransactionType.SECURITY_TRANSFER)
+  ) {
+    const crossAcct = sqlite
+      .prepare('SELECT type FROM account WHERE uuid = ?')
+      .get(input.crossAccountId) as { type: string } | undefined;
+    if (crossAcct) {
+      const crossAccountType = mapDbAccountType(crossAcct.type);
+      if (!isTransactionTypeAllowed(crossAccountType, input.type)) {
+        return 'Transaction type not allowed for destination account type';
+      }
+    }
+  }
+
+  return null;
 }
 
 export const transactionsRouter: RouterType = Router();
@@ -255,22 +308,10 @@ const createTransaction: RequestHandler = (req, res) => {
   const sqlite = getSqlite(req);
   const db = getDb(req);
 
-  // 422 guard: reject if transaction type is not allowed for this account type.
-  // Exception: cash-only types (DEPOSIT, DIVIDEND, etc.) submitted to a portfolio account
-  // are routed to the linked deposit account by resolveAccountTarget — allow them through.
-  if (input.accountId) {
-    const acct = sqlite
-      .prepare('SELECT type, referenceAccount FROM account WHERE uuid = ?')
-      .get(input.accountId) as { type: string; referenceAccount: string | null } | undefined;
-    if (acct) {
-      const accountType = mapDbAccountType(acct.type);
-      // Portfolio accounts bypass the 422 guard: cash-only types route to deposit via resolveAccountTarget
-      const isPortfolioRouting = acct.type === 'portfolio';
-      if (!isPortfolioRouting && !isTransactionTypeAllowed(accountType, input.type)) {
-        res.status(422).json({ error: 'Transaction type not allowed for this account type' });
-        return;
-      }
-    }
+  const guardResult = enforceAccountTypeGuards(sqlite, input);
+  if (guardResult) {
+    res.status(422).json({ error: guardResult });
+    return;
   }
 
   const id = transactionService.createTransaction(db, sqlite, input);
@@ -304,21 +345,10 @@ const updateTransaction: RequestHandler = (req, res) => {
     return;
   }
 
-  // 422 guard: reject if transaction type is not allowed for this account type.
-  // Exception: cash-only types submitted to a portfolio account are routed to the linked
-  // deposit account by resolveAccountTarget — allow them through (same as create handler).
-  if (input.accountId) {
-    const acct = sqlite
-      .prepare('SELECT type, referenceAccount FROM account WHERE uuid = ?')
-      .get(input.accountId) as { type: string; referenceAccount: string | null } | undefined;
-    if (acct) {
-      const accountType = mapDbAccountType(acct.type);
-      const isPortfolioRouting = acct.type === 'portfolio';
-      if (!isPortfolioRouting && !isTransactionTypeAllowed(accountType, input.type)) {
-        res.status(422).json({ error: 'Transaction type not allowed for this account type' });
-        return;
-      }
-    }
+  const guardResult = enforceAccountTypeGuards(sqlite, input);
+  if (guardResult) {
+    res.status(422).json({ error: guardResult });
+    return;
   }
 
   transactionService.updateTransaction(db, sqlite, id, input);

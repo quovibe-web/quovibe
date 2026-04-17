@@ -24,6 +24,25 @@ When a transaction is created against a portfolio, the service layer routes it a
 | C — shares only | DELIVERY_INBOUND, DELIVERY_OUTBOUND | **1 row**: account=portfolio |
 | D — transfer | SECURITY_TRANSFER, TRANSFER_BETWEEN_ACCOUNTS | use crossAccountId |
 
+### Transfer invariants (BUG-01 / BUG-04)
+
+Group D transfers have two structural invariants the write path must enforce:
+
+1. `accountId !== crossAccountId` — a transfer to itself is nonsense. Enforced in
+   `createTransactionSchema.superRefine` (shared), so it rejects at the Zod boundary
+   with 400 before the service ever runs.
+2. Both accounts must be holders of the transferred asset class:
+   - `TRANSFER_BETWEEN_ACCOUNTS` → both sides must be DEPOSIT (`type = 'account'`).
+   - `SECURITY_TRANSFER` → both sides must be SECURITIES (`type = 'portfolio'`).
+   Enforced in `enforceAccountTypeGuards` in `routes/transactions.ts`, which applies
+   `isTransactionTypeAllowed` symmetrically to `accountId` and `crossAccountId`. 422
+   on violation.
+
+The `isPortfolioRouting` bypass in that guard only applies to types in
+`CASH_ONLY_ROUTED_TYPES` (shared) — the types the service actually auto-routes to
+`referenceAccount`. A transfer from a portfolio does NOT route to its reference
+account; it is simply invalid and must be rejected.
+
 ## Double-entry BUY/SELL
 
 For BUY and SELL, `createTransaction` / `updateTransaction` must create **2 xact rows**:
