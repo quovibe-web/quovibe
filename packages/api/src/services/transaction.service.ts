@@ -97,6 +97,16 @@ const DUAL_ENTRY_TYPES = new Set<TransactionType>([
 
 const BUY_SELL_TYPES = new Set<TransactionType>([TransactionType.BUY, TransactionType.SELL]);
 
+// BUG-50: short-window natural-key dedupe for POST /transactions.
+// Catches in-flight races (5-parallel POST, double-click, multi-tab resubmit,
+// browser-back resubmit) without blocking legitimate duplicates entered more
+// than DEDUPE_WINDOW_MS apart. The window is intentionally small — the goal is
+// to absorb network/UI races, not to prevent a user from entering two real
+// identical deposits minutes apart. CSV import has its own direct-insert path
+// in csv-import.service.ts and is intentionally not affected — broker
+// statements legitimately ingest identical rows.
+export const DEDUPE_WINDOW_MS = 2000;
+
 interface CrossEntry {
   fromAcc: string;
   toAcc: string | null;
@@ -418,6 +428,37 @@ export function createTransaction(
     const fromShares = sharesDb ?? 0;
     const feesDb = Math.round(parseFloat(new Decimal(totalFees).times(100).toPrecision(15)));
     const taxesDb = Math.round(parseFloat(new Decimal(totalTaxes).times(100).toPrecision(15)));
+
+    // BUG-50: natural-key dedupe. If an identical row was persisted within the
+    // last DEDUPE_WINDOW_MS, short-circuit and return its uuid instead of
+    // inserting a second copy. SQLite `IS` is NULL-safe, so a null security
+    // matches another null-security row. Dual-entry side effects (cash-side
+    // row, cross_entry, units) are skipped because the earlier create already
+    // produced them; the caller reads back the existing source row and sees a
+    // byte-identical 201 response.
+    const windowCutoff = new Date(Date.now() - DEDUPE_WINDOW_MS).toISOString();
+    const dupe = sqlite
+      .prepare(
+        `SELECT uuid FROM xact
+         WHERE account = ?
+           AND date = ?
+           AND type = ?
+           AND amount = ?
+           AND shares = ?
+           AND security IS ?
+           AND updatedAt >= ?
+         LIMIT 1`,
+      )
+      .get(
+        resolved.effectiveAccountId ?? null,
+        input.date,
+        toDbType(input.type),
+        fromAmount,
+        fromShares,
+        input.securityId ?? null,
+        windowCutoff,
+      ) as { uuid: string } | undefined;
+    if (dupe) return dupe.uuid;
 
     sqlite
       .prepare(
