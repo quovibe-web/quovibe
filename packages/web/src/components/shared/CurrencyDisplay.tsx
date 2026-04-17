@@ -2,6 +2,7 @@ import NumberFlow from '@number-flow/react';
 import { usePrivacy } from '@/context/privacy-context';
 import { useDisplayPreferences } from '@/hooks/use-display-preferences';
 import { useBaseCurrency } from '@/hooks/use-base-currency';
+import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import i18n from '@/i18n';
 
@@ -46,32 +47,39 @@ export function CurrencyDisplay({
   }
 
   const currencyCode = currency || baseCurrency;
+  // Plain-text form — carries the value for screen readers, find-in-page, copy-paste,
+  // and textContent. NumberFlow's shadow DOM is invisible to all four.
+  const plainText = formatCurrency(value, currencyCode, { showCurrencyCode });
 
   if (showCurrencyCode) {
     return (
-      <span className={cn('tabular-nums', colorClass, className)}>
-        <NumberFlow
-          className="muted-fraction"
-          value={value}
-          animated={animated}
-          locales={i18n.language}
-          format={{
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          }}
-        />
-        {' '}{currencyCode}
+      <span className={cn('tabular-nums', colorClass, className)} aria-label={plainText}>
+        <span aria-hidden="true">
+          <NumberFlow
+            className="muted-fraction"
+            value={value}
+            animated={animated}
+            locales={i18n.language}
+            format={{
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }}
+          />
+          {' '}{currencyCode}
+        </span>
+        <span className="sr-only">{plainText}</span>
       </span>
     );
   }
 
   return (
-    <span className={cn('tabular-nums', colorClass, className)}>
+    <span className={cn('tabular-nums', colorClass, className)} aria-label={plainText}>
       <NumberFlow
         className="muted-fraction"
         value={value}
         animated={animated}
         locales={i18n.language}
+        aria-hidden="true"
         format={{
           style: 'currency',
           currency: currencyCode,
@@ -79,6 +87,7 @@ export function CurrencyDisplay({
           maximumFractionDigits: 2,
         }}
       />
+      <span className="sr-only">{plainText}</span>
     </span>
   );
 }
