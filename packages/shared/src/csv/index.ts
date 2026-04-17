@@ -7,3 +7,5 @@ export {
   normalizeTransactionType,
   detectDelimiter,
 } from './csv-normalizer';
+export { sniffLikelyTradeCsv } from './csv-sniff';
+export type { SniffResult, SniffReason, SniffOptions } from './csv-sniff';

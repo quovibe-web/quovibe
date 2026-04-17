@@ -12,17 +12,38 @@ import {
 import { csvImportConfigSchema } from '@quovibe/shared';
 import { getSqlite } from '../helpers/request';
 
+const UPLOAD_MAX_BYTES = 100 * 1024 * 1024; // native-ok — 100 MB
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+  limits: { fileSize: UPLOAD_MAX_BYTES },
   fileFilter: (_req, file, cb) => {
     if (!file.originalname.toLowerCase().endsWith('.csv')) {
-      cb(new Error('FILE_EXTENSION'));
+      cb(new CsvImportError('INVALID_FILE_FORMAT', 'File must have a .csv extension'));
       return;
     }
     cb(null, true);
   },
 });
+
+// Wrap multer so its failures (extension reject, oversize) land as structured
+// 400 responses via handleError rather than falling through to the global
+// error-handler's 500 branch (BUG-46).
+const uploadSingle = (field: string): RequestHandler =>
+  (req, res, next) => {
+    upload.single(field)(req, res, (err) => {
+      if (!err) { next(); return; }
+      if (err instanceof CsvImportError) { handleError(res, err); return; }
+      if (err instanceof multer.MulterError) {
+        const mapped = err.code === 'LIMIT_FILE_SIZE'
+          ? new CsvImportError('FILE_TOO_LARGE', `Upload exceeds ${UPLOAD_MAX_BYTES} bytes`)
+          : new CsvImportError('INVALID_FILE_FORMAT', err.message);
+        handleError(res, mapped);
+        return;
+      }
+      handleError(res, new CsvImportError('INVALID_FILE_FORMAT', String((err as Error).message ?? err)));
+    });
+  };
 
 export const csvImportRouter: RouterType = Router();
 
@@ -93,7 +114,7 @@ const executeTrades: RequestHandler = async (req, res) => {
   }
 };
 
-csvImportRouter.post('/trades/parse', upload.single('file'), parseTrades);
+csvImportRouter.post('/trades/parse', uploadSingle('file'), parseTrades);
 csvImportRouter.post('/trades/preview', previewTrades);
 csvImportRouter.post('/trades/execute', executeTrades);
 
@@ -121,7 +142,7 @@ const executePrices: RequestHandler = async (req, res) => {
   }
 };
 
-csvImportRouter.post('/prices/parse', upload.single('file'), parsePrices);
+csvImportRouter.post('/prices/parse', uploadSingle('file'), parsePrices);
 csvImportRouter.post('/prices/execute', executePrices);
 
 // ─── Error handler ────────────────────────────────

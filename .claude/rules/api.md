@@ -13,6 +13,7 @@ globs: packages/api/**
 - For transaction and account routing rules see `.claude/rules/double-entry.md`.
 - For market value and latest_price injection rules see `.claude/rules/latest-price.md`.
 - For DB schema conventions see `.claude/rules/db-schema.md`.
+- For CSV upload boundary conventions (error codes, multer wrapping, Step-1 sniff) see `.claude/rules/csv-import.md`.
 
 ## Portfolio-scoped state (ADR-016)
 
