@@ -5,8 +5,7 @@ import { getValueColorStyle } from '@/lib/colors';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import NumberFlow from '@number-flow/react';
-import i18n from '@/i18n';
+import { AccessibleNumberFlow } from '@/components/shared/AccessibleNumberFlow';
 
 export default function WidgetDelta() {
   const { data, isLoading, isError, error } = useWidgetCalculation();
@@ -44,7 +43,7 @@ export default function WidgetDelta() {
         className="text-sm tabular-nums"
         style={getValueColorStyle(deltaPct, isPrivate)}
       >
-        {isPrivate ? '••••••' : <NumberFlow className="muted-fraction" value={deltaPct} locales={i18n.language} format={{ style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }} />}
+        {isPrivate ? '••••••' : <AccessibleNumberFlow className="muted-fraction" value={deltaPct} format={{ style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }} />}
       </span>
       <span className="text-xs text-muted-foreground pt-5">{periodLabel}</span>
     </div>

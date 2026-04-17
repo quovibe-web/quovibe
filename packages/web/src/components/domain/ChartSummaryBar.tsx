@@ -1,10 +1,9 @@
-import NumberFlow from '@number-flow/react';
 import { usePrivacy } from '@/context/privacy-context';
+import { AccessibleNumberFlow } from '@/components/shared/AccessibleNumberFlow';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-import i18n from '@/i18n';
 
 interface ChartSummaryBarProps {
   totalReturn: number;
@@ -34,10 +33,9 @@ export function ChartSummaryBar({
       {/* Total return */}
       <span className={cn('font-semibold', isPositive ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
         {isPrivate ? '••••••' : (
-          <NumberFlow
+          <AccessibleNumberFlow
             className="muted-fraction"
             value={totalReturn}
-            locales={i18n.language}
             format={{ style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'always' }}
           />
         )}

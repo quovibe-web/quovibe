@@ -3,8 +3,7 @@ import { useWidgetKpiMeta } from '@/hooks/use-widget-kpi-meta';
 import { usePrivacy } from '@/context/privacy-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import NumberFlow from '@number-flow/react';
-import i18n from '@/i18n';
+import { AccessibleNumberFlow } from '@/components/shared/AccessibleNumberFlow';
 
 export default function WidgetVolatility() {
   const { data, isLoading, isError, error } = useWidgetCalculation();
@@ -34,10 +33,9 @@ export default function WidgetVolatility() {
     <div className="grid grid-rows-[1fr_auto] flex-1 items-center justify-items-center pb-2">
       <span className="text-2xl font-semibold tabular-nums">
         {isPrivate ? '••••••' : (
-          <NumberFlow
+          <AccessibleNumberFlow
             className="muted-fraction"
             value={vol}
-            locales={i18n.language}
             format={{ style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }}
           />
         )}

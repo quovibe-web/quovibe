@@ -53,6 +53,10 @@ export function formatPercentage(value: number, decimals = 2): string {
   }).format(value);
 }
 
+export function formatNumber(value: number, options: Intl.NumberFormatOptions): string {
+  return new Intl.NumberFormat(i18n.language, options).format(value);
+}
+
 // quovibe:allow-module-state — Intl.DateTimeFormat cache keyed by locale; portfolio-agnostic (ADR-016).
 const dtfCache = new Map<string, Intl.DateTimeFormat>();
 function getCachedDTF(locale: string, withTime: boolean): Intl.DateTimeFormat {

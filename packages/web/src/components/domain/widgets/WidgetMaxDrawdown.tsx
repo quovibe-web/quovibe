@@ -4,8 +4,7 @@ import { usePrivacy } from '@/context/privacy-context';
 import { getColor } from '@/lib/colors';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import NumberFlow from '@number-flow/react';
-import i18n from '@/i18n';
+import { AccessibleNumberFlow } from '@/components/shared/AccessibleNumberFlow';
 
 export default function WidgetMaxDrawdown() {
   const { data, isLoading, isError, error } = useWidgetCalculation();
@@ -39,10 +38,9 @@ export default function WidgetMaxDrawdown() {
         style={{ color: isPrivate || mdd === 0 ? undefined : getColor('danger') }}
       >
         {isPrivate ? '••••••' : (
-          <NumberFlow
+          <AccessibleNumberFlow
             className="muted-fraction"
             value={displayVal}
-            locales={i18n.language}
             format={{ style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }}
           />
         )}
