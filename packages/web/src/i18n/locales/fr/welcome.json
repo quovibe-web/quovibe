@@ -1,30 +1,78 @@
 {
-  "title": "Welcome to quovibe",
-  "cards": {
-    "importPP": {
-      "title": "Import from Portfolio Performance",
-      "body": "Bring in an existing PP export (XML with ID attributes).",
-      "cta": "Import XML"
-    },
-    "demo": {
-      "title": "Try the demo",
-      "body": "Explore the app with a realistic sample portfolio you can edit freely.",
-      "cta": "Open demo"
-    },
-    "fresh": {
-      "title": "Start fresh",
-      "body": "Create a brand-new empty portfolio and add transactions as you go.",
-      "cta": "Create portfolio",
-      "namePlaceholder": "Portfolio name"
+  "topbar": {
+    "status": "Session locale",
+    "versionPrefix": "v"
+  },
+  "hero": {
+    "eyebrow": "Bienvenue",
+    "headlinePre": "Votre portefeuille, en ",
+    "headlineEmphasis": "point de mire",
+    "headlineSuffix": ".",
+    "lede": "Suivez positions, rendements et flux de trésorerie avec la rigueur des outils institutionnels — entièrement hors ligne, entièrement à vous.",
+    "metrics": {
+      "offline": "Local · Hors ligne",
+      "methods": "TTWROR · TRI · FIFO",
+      "ppCompatible": "Compatible Portfolio Performance"
     }
   },
-  "advanced": {
-    "label": "Advanced: import from a quovibe .db export",
-    "importDbCta": "Import .db"
+  "cards": {
+    "fresh": {
+      "title": "Partir de zéro",
+      "body": "Créer un portefeuille vide flambant neuf et ajouter des transactions au fil du temps.",
+      "cta": "Créer le portefeuille",
+      "badge": "Recommandé",
+      "namePlaceholder": "Nom du portefeuille"
+    },
+    "demo": {
+      "title": "Essayer la démo",
+      "body": "Explorer l'application avec un portefeuille d'exemple réaliste que vous pouvez modifier librement.",
+      "cta": "Ouvrir la démo",
+      "badge": "Données d'exemple"
+    },
+    "import": {
+      "title": "Importer des données",
+      "body": "Importer depuis Portfolio Performance ou restaurer une sauvegarde quovibe.",
+      "cta": "Choisir une source",
+      "badge": "PP XML · .db"
+    }
+  },
+  "footer": {
+    "copyright": "© {{year}} quovibe",
+    "docs": "Documentation",
+    "shortcutsLabel": "Raccourcis",
+    "shortcutsKey": "⌘K"
   },
   "errors": {
-    "demoFailed": "Could not open the demo: {{msg}}",
-    "createFailed": "Could not create the portfolio: {{msg}}",
-    "importFailed": "Import failed: {{msg}}"
+    "demoFailed": "Impossible d'ouvrir la démo : {{msg}}",
+    "createFailed": "Impossible de créer le portefeuille : {{msg}}"
+  },
+  "hub": {
+    "title": "Importer des données",
+    "subtitle": "Importer des données depuis une source externe. Un nouveau portefeuille sera créé pour vous.",
+    "backToWelcome": "Retour à l'accueil",
+    "fileChangeHint": "cliquer pour changer",
+    "sources": {
+      "ppXml": {
+        "title": "Portfolio Performance (XML)",
+        "body": "Un export XML de l'application de bureau Portfolio Performance. Vérifiez que les attributs ID sont inclus.",
+        "pickFile": "Déposez le fichier XML ici ou cliquez pour parcourir",
+        "submit": "Importer et continuer",
+        "nameOptional": "Nom du portefeuille (optionnel — par défaut : nom du fichier)"
+      },
+      "quovibeDb": {
+        "title": "Restaurer depuis une sauvegarde quovibe",
+        "body": "Importer un fichier .db précédemment exporté depuis quovibe. Utile pour changer de machine ou restaurer depuis une sauvegarde.",
+        "pickFile": "Déposez le fichier .db ici ou cliquez pour parcourir",
+        "submit": "Restaurer et continuer"
+      },
+      "csvHint": {
+        "title": "Import CSV",
+        "body": "L'import CSV nécessite un portefeuille existant. Partez de zéro puis ouvrez Paramètres → Importer CSV depuis votre nouveau portefeuille."
+      }
+    },
+    "errors": {
+      "fileRequired": "Sélectionnez d'abord un fichier.",
+      "importFailed": "Échec de l'import : {{msg}}"
+    }
   }
 }

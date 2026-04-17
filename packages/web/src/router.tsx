@@ -22,6 +22,7 @@ import TaxonomySeries from '@/pages/TaxonomySeries';
 import CsvImportPage from '@/pages/CsvImportPage';
 import Analytics from '@/pages/Analytics';
 import Welcome from '@/pages/Welcome';
+import ImportHub from '@/pages/ImportHub';
 
 function RedirectSecurityDetail() {
   const { id, portfolioId } = useParams();
@@ -39,6 +40,7 @@ function RedirectPerfSecurities() {
 export const router = createBrowserRouter([
   { path: '/', element: <RootRedirect />, errorElement: <ErrorFallback /> },
   { path: '/welcome', element: <Welcome />, errorElement: <ErrorFallback /> },
+  { path: '/import', element: <ImportHub />, errorElement: <ErrorFallback /> },
   { path: '/settings', element: <UserSettings />, errorElement: <ErrorFallback /> },
   {
     path: '/p/:portfolioId',

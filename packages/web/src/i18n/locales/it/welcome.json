@@ -1,30 +1,78 @@
 {
-  "title": "Benvenuto su quovibe",
+  "topbar": {
+    "status": "Sessione locale",
+    "versionPrefix": "v"
+  },
+  "hero": {
+    "eyebrow": "Benvenuto",
+    "headlinePre": "Il tuo portafoglio, a ",
+    "headlineEmphasis": "fuoco",
+    "headlineSuffix": ".",
+    "lede": "Traccia posizioni, rendimenti e flussi di cassa con il rigore degli strumenti istituzionali — completamente offline, completamente tuo.",
+    "metrics": {
+      "offline": "Locale · Offline",
+      "methods": "TTWROR · TIR · FIFO",
+      "ppCompatible": "Compatibile con Portfolio Performance"
+    }
+  },
   "cards": {
-    "importPP": {
-      "title": "Importa da Portfolio Performance",
-      "body": "Porta un esportazione PP esistente (XML con attributi ID).",
-      "cta": "Importa XML"
-    },
-    "demo": {
-      "title": "Prova la demo",
-      "body": "Esplora l'app con un portafoglio di esempio realistico che puoi modificare liberamente.",
-      "cta": "Apri demo"
-    },
     "fresh": {
       "title": "Inizia da zero",
       "body": "Crea un nuovo portafoglio vuoto e aggiungi transazioni man mano.",
       "cta": "Crea portafoglio",
+      "badge": "Consigliato",
       "namePlaceholder": "Nome del portafoglio"
+    },
+    "demo": {
+      "title": "Prova la demo",
+      "body": "Esplora l'app con un portafoglio di esempio realistico che puoi modificare liberamente.",
+      "cta": "Apri demo",
+      "badge": "Dati di esempio"
+    },
+    "import": {
+      "title": "Importa dati esistenti",
+      "body": "Importa da Portfolio Performance o ripristina un backup di quovibe.",
+      "cta": "Scegli una sorgente",
+      "badge": "PP XML · .db"
     }
   },
-  "advanced": {
-    "label": "Avanzate: importa da un export .db di quovibe",
-    "importDbCta": "Importa .db"
+  "footer": {
+    "copyright": "© {{year}} quovibe",
+    "docs": "Documentazione",
+    "shortcutsLabel": "Scorciatoie",
+    "shortcutsKey": "⌘K"
   },
   "errors": {
     "demoFailed": "Impossibile aprire la demo: {{msg}}",
-    "createFailed": "Impossibile creare il portafoglio: {{msg}}",
-    "importFailed": "Importazione fallita: {{msg}}"
+    "createFailed": "Impossibile creare il portafoglio: {{msg}}"
+  },
+  "hub": {
+    "title": "Importa dati esistenti",
+    "subtitle": "Importa dati da una sorgente esterna. Verrà creato un nuovo portafoglio.",
+    "backToWelcome": "Torna al benvenuto",
+    "fileChangeHint": "clicca per cambiare",
+    "sources": {
+      "ppXml": {
+        "title": "Portfolio Performance (XML)",
+        "body": "Un export XML dall'app desktop Portfolio Performance. Assicurati che gli attributi ID siano inclusi.",
+        "pickFile": "Trascina qui il file XML o clicca per sfogliare",
+        "submit": "Importa e continua",
+        "nameOptional": "Nome del portafoglio (opzionale — default: nome del file)"
+      },
+      "quovibeDb": {
+        "title": "Ripristina da backup quovibe",
+        "body": "Importa un file .db esportato precedentemente da quovibe. Utile per migrare macchina o ripristinare da backup.",
+        "pickFile": "Trascina qui il file .db o clicca per sfogliare",
+        "submit": "Ripristina e continua"
+      },
+      "csvHint": {
+        "title": "Importa CSV",
+        "body": "L'importazione CSV richiede un portafoglio esistente. Inizia da zero e poi apri Impostazioni → Importa CSV dal nuovo portafoglio."
+      }
+    },
+    "errors": {
+      "fileRequired": "Seleziona prima un file.",
+      "importFailed": "Importazione fallita: {{msg}}"
+    }
   }
 }

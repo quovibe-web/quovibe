@@ -1,30 +1,78 @@
 {
-  "title": "Welcome to quovibe",
-  "cards": {
-    "importPP": {
-      "title": "Import from Portfolio Performance",
-      "body": "Bring in an existing PP export (XML with ID attributes).",
-      "cta": "Import XML"
-    },
-    "demo": {
-      "title": "Try the demo",
-      "body": "Explore the app with a realistic sample portfolio you can edit freely.",
-      "cta": "Open demo"
-    },
-    "fresh": {
-      "title": "Start fresh",
-      "body": "Create a brand-new empty portfolio and add transactions as you go.",
-      "cta": "Create portfolio",
-      "namePlaceholder": "Portfolio name"
+  "topbar": {
+    "status": "Lokale sessie",
+    "versionPrefix": "v"
+  },
+  "hero": {
+    "eyebrow": "Welkom",
+    "headlinePre": "Jouw portefeuille, in ",
+    "headlineEmphasis": "focus",
+    "headlineSuffix": ".",
+    "lede": "Volg posities, rendementen en cashflows met de precisie van institutionele tools — volledig offline, volledig van jou.",
+    "metrics": {
+      "offline": "Lokaal · Offline",
+      "methods": "TTWROR · IRR · FIFO",
+      "ppCompatible": "Portfolio Performance-compatibel"
     }
   },
-  "advanced": {
-    "label": "Advanced: import from a quovibe .db export",
-    "importDbCta": "Import .db"
+  "cards": {
+    "fresh": {
+      "title": "Opnieuw beginnen",
+      "body": "Een gloednieuwe lege portefeuille aanmaken en gaandeweg transacties toevoegen.",
+      "cta": "Portefeuille aanmaken",
+      "badge": "Aanbevolen",
+      "namePlaceholder": "Portefeuillenaam"
+    },
+    "demo": {
+      "title": "Probeer de demo",
+      "body": "Verken de app met een realistische voorbeeldportefeuille die je vrij kunt bewerken.",
+      "cta": "Demo openen",
+      "badge": "Voorbeeldgegevens"
+    },
+    "import": {
+      "title": "Bestaande data importeren",
+      "body": "Importeer vanuit Portfolio Performance of herstel een quovibe-back-up.",
+      "cta": "Kies een bron",
+      "badge": "PP XML · .db"
+    }
+  },
+  "footer": {
+    "copyright": "© {{year}} quovibe",
+    "docs": "Documentatie",
+    "shortcutsLabel": "Sneltoetsen",
+    "shortcutsKey": "⌘K"
   },
   "errors": {
-    "demoFailed": "Could not open the demo: {{msg}}",
-    "createFailed": "Could not create the portfolio: {{msg}}",
-    "importFailed": "Import failed: {{msg}}"
+    "demoFailed": "Kon de demo niet openen: {{msg}}",
+    "createFailed": "Kon de portefeuille niet aanmaken: {{msg}}"
+  },
+  "hub": {
+    "title": "Bestaande data importeren",
+    "subtitle": "Importeer data uit een externe bron. Er wordt een nieuwe portefeuille voor je aangemaakt.",
+    "backToWelcome": "Terug naar welkom",
+    "fileChangeHint": "klik om te wijzigen",
+    "sources": {
+      "ppXml": {
+        "title": "Portfolio Performance (XML)",
+        "body": "Een XML-export uit de Portfolio Performance-desktop-app. Zorg dat de ID-attributen zijn opgenomen.",
+        "pickFile": "Sleep het XML-bestand hierheen of klik om te bladeren",
+        "submit": "Importeren en doorgaan",
+        "nameOptional": "Portefeuillenaam (optioneel — standaard: bestandsnaam)"
+      },
+      "quovibeDb": {
+        "title": "Herstel uit quovibe-back-up",
+        "body": "Importeer een eerder uit quovibe geëxporteerd .db-bestand. Handig bij machinewissel of bij herstel uit een back-up.",
+        "pickFile": "Sleep het .db-bestand hierheen of klik om te bladeren",
+        "submit": "Herstellen en doorgaan"
+      },
+      "csvHint": {
+        "title": "CSV-import",
+        "body": "CSV-import vereist een bestaande portefeuille. Begin opnieuw en open daarna Instellingen → CSV importeren vanuit je nieuwe portefeuille."
+      }
+    },
+    "errors": {
+      "fileRequired": "Kies eerst een bestand.",
+      "importFailed": "Import mislukt: {{msg}}"
+    }
   }
 }

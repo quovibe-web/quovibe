@@ -56,7 +56,7 @@ export function useCreatePortfolio() {
           // just "CONVERSION_FAILED".
           const code = raw.error ?? `HTTP ${r.status}`;
           const details = typeof raw.details === 'string' && raw.details.length
-            ? raw.details.slice(0, 500)
+            ? raw.details.slice(0, 2000)
             : '';
           throw new Error(details ? `${code}: ${details}` : code);
         }
@@ -86,7 +86,9 @@ export function useCreatePortfolio() {
         { method: 'POST', body: JSON.stringify({ source: body.source, ...(body.name && { name: body.name }) }) },
       );
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: portfoliosKeys.list() }); },
+    onSuccess: async () => {
+      await qc.refetchQueries({ queryKey: portfoliosKeys.list() });
+    },
   });
 }
 
