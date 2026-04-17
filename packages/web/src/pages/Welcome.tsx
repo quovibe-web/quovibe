@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Sparkles, PlayCircle, Download } from 'lucide-react';
+import { Sparkles, PlayCircle, Download, ArrowRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { SubmitButton } from '@/components/shared/SubmitButton';
 import { useCreatePortfolio } from '@/api/use-portfolios';
 import { WelcomeBackground } from '@/components/welcome/WelcomeBackground';
 import { WelcomeTopBar } from '@/components/welcome/WelcomeTopBar';
@@ -73,31 +74,79 @@ export default function Welcome() {
                 className="qv-stagger-fade"
                 style={{ animationDelay: STAGGER_DELAYS.card1 }}
               >
-                <ActionCard
-                  accent="primary"
-                  icon={Sparkles}
-                  title={t('cards.fresh.title')}
-                  description={t('cards.fresh.body')}
-                  cta={t('cards.fresh.cta')}
-                  badge={t('cards.fresh.badge')}
-                  disabled={create.isPending}
-                  onClick={handleFresh}
+                {/* Fresh card — bespoke markup so the Input + SubmitButton are valid interactive children */}
+                <div
+                  className="qv-card-interactive group relative flex w-full items-start gap-4 overflow-hidden rounded-xl border bg-card px-5 py-5 text-left"
                 >
-                  <Input
-                    ref={inputRef}
-                    placeholder={t('cards.fresh.namePlaceholder')}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleFresh();
-                      }
-                    }}
-                    className="mt-1"
+                  {/* Accent bar */}
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-0 left-0 w-1 origin-center scale-y-[0.3] transition-transform duration-300 ease-out group-hover:scale-y-100 group-focus-within:scale-y-100"
+                    style={{ background: 'var(--color-primary)' }}
                   />
-                </ActionCard>
+                  {/* Icon */}
+                  <span
+                    aria-hidden
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg"
+                    style={{
+                      background: 'color-mix(in srgb, var(--color-primary) 14%, transparent)',
+                      color: 'var(--color-primary)',
+                    }}
+                  >
+                    <Sparkles size={20} strokeWidth={1.75} />
+                  </span>
+                  {/* Content */}
+                  <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-lg leading-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                        {t('cards.fresh.title')}
+                      </span>
+                      <span
+                        className="rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider"
+                        style={{
+                          color: 'var(--color-primary)',
+                          background: 'color-mix(in srgb, var(--color-primary) 12%, transparent)',
+                        }}
+                      >
+                        {t('cards.fresh.badge')}
+                      </span>
+                    </span>
+                    <span className="text-sm text-muted-foreground leading-snug">{t('cards.fresh.body')}</span>
+                    <span className="mt-1 block">
+                      <Input
+                        ref={inputRef}
+                        placeholder={t('cards.fresh.namePlaceholder')}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleFresh();
+                          }
+                        }}
+                        className="mt-1"
+                      />
+                    </span>
+                    <SubmitButton
+                      mutation={create}
+                      onClick={handleFresh}
+                      className="mt-2 inline-flex items-center gap-1.5 self-start text-sm font-medium"
+                      variant="ghost"
+                      size="sm"
+                      style={{ color: 'var(--color-primary)' }}
+                    >
+                      {t('cards.fresh.cta')}
+                    </SubmitButton>
+                  </span>
+                  {/* Arrow */}
+                  <span
+                    aria-hidden
+                    className="flex h-9 w-9 shrink-0 items-center justify-center self-center rounded-full border transition-all duration-200 group-hover:translate-x-0.5 group-hover:border-transparent"
+                    style={{ borderColor: 'color-mix(in srgb, var(--color-primary) 40%, transparent)' }}
+                  >
+                    <ArrowRight size={16} className="transition-colors" style={{ color: 'var(--color-primary)' }} />
+                  </span>
+                </div>
               </div>
               <div
                 className="qv-stagger-fade"

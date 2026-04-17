@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { TransactionType } from '@/lib/enums';
 import { Button } from '@/components/ui/button';
+import { SubmitButton } from '@/components/shared/SubmitButton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -599,9 +600,9 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
       )}
 
       {!hideSubmitButton && (
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? t('common:saving') : t('common:save')}
-        </Button>
+        <SubmitButton type="submit" mutation={{ isPending: !!isSubmitting }}>
+          {t('common:save')}
+        </SubmitButton>
       )}
 
       {/* Add Instrument Dialog — opened from security selector */}

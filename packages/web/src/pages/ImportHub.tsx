@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ArrowLeft, FileCode2, DatabaseBackup, FileSpreadsheet, Loader2, ChevronRight, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SubmitButton } from '@/components/shared/SubmitButton';
 import { Input } from '@/components/ui/input';
 import { ImportDropzone } from '@/components/ImportDropzone';
 import { useCreatePortfolio, type PortfolioRegistryEntry } from '@/api/use-portfolios';
@@ -101,19 +102,16 @@ export default function ImportHub() {
               value={ppName}
               onChange={(e) => setPpName(e.target.value)}
             />
-            <Button
+            <SubmitButton
+              mutation={create}
               onClick={handleImportPP}
-              disabled={!ppFile || create.isPending}
+              disabled={!ppFile}
               size="lg"
               className="self-start font-semibold shadow-md transition-all hover:brightness-110 hover:shadow-xl active:scale-[0.98]"
             >
-              {create.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              ) : (
-                <Upload className="h-4 w-4" aria-hidden />
-              )}
+              <Upload className="h-4 w-4" aria-hidden />
               {t('hub.sources.ppXml.submit')}
-            </Button>
+            </SubmitButton>
           </div>
         </SourceCard>
 
