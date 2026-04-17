@@ -100,6 +100,7 @@ export function useRenamePortfolio() {
         method: 'PATCH', body: JSON.stringify({ name }),
       }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: portfoliosKeys.list() }); },
+    meta: { suppressGlobalErrorToast: true },
   });
 }
 
@@ -108,6 +109,7 @@ export function useDeletePortfolio() {
   return useMutation({
     mutationFn: (id: string) => apiFetch<void>(`/api/portfolios/${id}`, { method: 'DELETE' }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: portfoliosKeys.list() }); },
+    meta: { suppressGlobalErrorToast: true },
   });
 }
 

@@ -19,5 +19,8 @@
     "description": "Er is een onverwachte fout opgetreden. Probeer de pagina opnieuw te laden.",
     "reload": "Pagina herladen",
     "goHome": "Naar het dashboard"
+  },
+  "mutation": {
+    "genericFailure": "Er ging iets mis. Probeer het opnieuw."
   }
 }

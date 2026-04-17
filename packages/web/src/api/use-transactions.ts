@@ -80,6 +80,7 @@ export function useUpdateTransaction() {
         body: JSON.stringify(data),
       }),
     onSuccess: () => invalidateAll(qc, api.portfolioId),
+    meta: { suppressGlobalErrorToast: true },
   });
 }
 

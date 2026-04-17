@@ -19,5 +19,8 @@
     "description": "Une erreur inattendue s'est produite. Veuillez recharger la page.",
     "reload": "Recharger la page",
     "goHome": "Aller au tableau de bord"
+  },
+  "mutation": {
+    "genericFailure": "Une erreur s'est produite. Veuillez réessayer."
   }
 }

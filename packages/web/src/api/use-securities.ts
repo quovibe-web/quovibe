@@ -235,5 +235,6 @@ export function useDeleteSecurity() {
       return res.json() as Promise<{ ok: boolean }>;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'securities'] }),
+    meta: { suppressGlobalErrorToast: true },
   });
 }

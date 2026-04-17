@@ -19,5 +19,8 @@
     "description": "An unexpected error occurred. Please try reloading the page.",
     "reload": "Reload page",
     "goHome": "Go to dashboard"
+  },
+  "mutation": {
+    "genericFailure": "Something went wrong. Please try again."
   }
 }

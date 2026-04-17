@@ -19,5 +19,8 @@
     "description": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie załadować stronę.",
     "reload": "Odśwież stronę",
     "goHome": "Przejdź do pulpitu nawigacyjnego"
+  },
+  "mutation": {
+    "genericFailure": "Coś poszło nie tak. Spróbuj ponownie."
   }
 }

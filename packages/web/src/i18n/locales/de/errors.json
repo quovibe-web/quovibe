@@ -19,5 +19,8 @@
     "description": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie, die Seite neu zu laden.",
     "reload": "Seite neu laden",
     "goHome": "Zum Dashboard"
+  },
+  "mutation": {
+    "genericFailure": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut."
   }
 }

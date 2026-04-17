@@ -19,5 +19,8 @@
     "description": "Si è verificato un errore imprevisto. Prova a ricaricare la pagina.",
     "reload": "Ricarica la pagina",
     "goHome": "Vai alla dashboard"
+  },
+  "mutation": {
+    "genericFailure": "Qualcosa è andato storto. Riprova."
   }
 }

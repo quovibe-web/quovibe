@@ -19,5 +19,8 @@
     "description": "Ocorreu um erro inesperado. Por favor, tente recarregar a página.",
     "reload": "Recarregar página",
     "goHome": "Ir para o painel"
+  },
+  "mutation": {
+    "genericFailure": "Algo correu mal. Por favor, tente novamente."
   }
 }
