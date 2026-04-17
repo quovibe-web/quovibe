@@ -132,3 +132,7 @@ trans_sample/
 !docs/screenshots/quowatch.png
 *.mp4
 *.zip
+
+# Local scratch artifacts (Portfolio Performance export + stray Playwright snapshots)
+/PP.xml
+/p2-*.yml
