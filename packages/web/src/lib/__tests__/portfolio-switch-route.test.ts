@@ -47,6 +47,13 @@ describe('portfolioSectionPath', () => {
     expect(portfolioSectionPath('/p/A/securities/SEC_ID')).toBe('/dashboard');
   });
 
+  it('returns /dashboard for user-scope paths without a /p/<id>/ prefix', () => {
+    expect(portfolioSectionPath('/settings')).toBe('/dashboard');
+    expect(portfolioSectionPath('/welcome')).toBe('/dashboard');
+    expect(portfolioSectionPath('/import')).toBe('/dashboard');
+    expect(portfolioSectionPath('/')).toBe('/dashboard');
+  });
+
   it('tolerates UUID-shaped portfolio IDs', () => {
     const uuid = '550e8400-e29b-41d4-a716-446655440000';
     expect(portfolioSectionPath(`/p/${uuid}/investments/X`)).toBe('/investments');

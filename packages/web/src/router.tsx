@@ -1,8 +1,10 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { PortfolioLayout } from '@/layouts/PortfolioLayout';
+import { UserSettingsLayout } from '@/layouts/UserSettingsLayout';
 import { ErrorFallback } from '@/components/shared/ErrorFallback';
 import { RootRedirect } from '@/components/shared/RootRedirect';
+import { appendSearch } from '@/lib/router-helpers';
 
 const AccountsHub = lazy(() => import('./pages/AccountsHub'));
 const Watchlists = lazy(() => import('./pages/Watchlists'));
@@ -24,9 +26,21 @@ import Analytics from '@/pages/Analytics';
 import Welcome from '@/pages/Welcome';
 import ImportHub from '@/pages/ImportHub';
 
+/**
+ * URL-alias redirect that preserves `location.search`. Use this instead of
+ * plain Navigate for every alias (an in-app URL that rewrites to another
+ * in-app URL). Error redirects (invalid state → /welcome) keep plain Navigate.
+ * See `.claude/rules/frontend.md` → "Routing / Redirects".
+ */
+function RedirectWithSearch({ to }: { to: string }) {
+  const { search } = useLocation();
+  return <Navigate to={appendSearch(to, search)} replace />;
+}
+
 function RedirectSecurityDetail() {
   const { id, portfolioId } = useParams();
-  return <Navigate to={`/p/${portfolioId}/investments/${id}`} replace />;
+  const { search } = useLocation();
+  return <Navigate to={`/p/${portfolioId}/investments/${id}${search}`} replace />;
 }
 
 function RedirectPerfSecurities() {
@@ -41,13 +55,18 @@ export const router = createBrowserRouter([
   { path: '/', element: <RootRedirect />, errorElement: <ErrorFallback /> },
   { path: '/welcome', element: <Welcome />, errorElement: <ErrorFallback /> },
   { path: '/import', element: <ImportHub />, errorElement: <ErrorFallback /> },
-  { path: '/settings', element: <UserSettings />, errorElement: <ErrorFallback /> },
+  {
+    path: '/settings',
+    element: <UserSettingsLayout />,
+    errorElement: <ErrorFallback />,
+    children: [{ index: true, element: <UserSettings /> }],
+  },
   {
     path: '/p/:portfolioId',
     element: <PortfolioLayout />,
     errorElement: <ErrorFallback />,
     children: [
-      { index: true, element: <Navigate to="dashboard" replace /> },
+      { index: true, element: <RedirectWithSearch to="dashboard" /> },
       { path: 'dashboard', element: <Dashboard /> },                     // redirects to :dashboardId → Task 5b.3
       { path: 'dashboard/:dashboardId', element: <Dashboard /> },
       { path: 'watchlists', element: <Suspense fallback={<div />}><Watchlists /></Suspense> },
@@ -62,7 +81,7 @@ export const router = createBrowserRouter([
         path: 'analytics',
         element: <Analytics />,
         children: [
-          { index: true, element: <Navigate to="calculation" replace /> },
+          { index: true, element: <RedirectWithSearch to="calculation" /> },
           { path: 'calculation', element: <Calculation /> },
           { path: 'chart', element: <PerformanceChart /> },
           { path: 'income', element: <Payments /> },
@@ -74,18 +93,18 @@ export const router = createBrowserRouter([
       { path: 'import/csv', element: <CsvImportPage /> },
       { path: 'settings/data', element: <PortfolioSettings /> },
       // Legacy aliases retained under portfolio scope
-      { path: 'performance', element: <Navigate to="../analytics/calculation" replace /> },
-      { path: 'performance/calculation', element: <Navigate to="../analytics/calculation" replace /> },
-      { path: 'performance/chart', element: <Navigate to="../analytics/chart" replace /> },
-      { path: 'performance/taxonomy-series', element: <Navigate to="../taxonomies/data-series" replace /> },
-      { path: 'reports/payments', element: <Navigate to="../analytics/income" replace /> },
-      { path: 'reports/statement', element: <Navigate to="../investments" replace /> },
-      { path: 'reports/holdings', element: <Navigate to="../investments" replace /> },
-      { path: 'reports/asset-allocation', element: <Navigate to="../allocation" replace /> },
-      { path: 'reports/dividends', element: <Navigate to="../analytics/income" replace /> },
-      { path: 'securities', element: <Navigate to="../investments" replace /> },
-      { path: 'analytics/data-series', element: <Navigate to="../taxonomies/data-series" replace /> },
-      { path: 'settings', element: <Navigate to="data" replace /> },      // legacy: /settings used to be portfolio-level; now data
+      { path: 'performance', element: <RedirectWithSearch to="../analytics/calculation" /> },
+      { path: 'performance/calculation', element: <RedirectWithSearch to="../analytics/calculation" /> },
+      { path: 'performance/chart', element: <RedirectWithSearch to="../analytics/chart" /> },
+      { path: 'performance/taxonomy-series', element: <RedirectWithSearch to="../taxonomies/data-series" /> },
+      { path: 'reports/payments', element: <RedirectWithSearch to="../analytics/income" /> },
+      { path: 'reports/statement', element: <RedirectWithSearch to="../investments" /> },
+      { path: 'reports/holdings', element: <RedirectWithSearch to="../investments" /> },
+      { path: 'reports/asset-allocation', element: <RedirectWithSearch to="../allocation" /> },
+      { path: 'reports/dividends', element: <RedirectWithSearch to="../analytics/income" /> },
+      { path: 'securities', element: <RedirectWithSearch to="../investments" /> },
+      { path: 'analytics/data-series', element: <RedirectWithSearch to="../taxonomies/data-series" /> },
+      { path: 'settings', element: <RedirectWithSearch to="data" /> },      // legacy: /settings used to be portfolio-level; now data
     ],
   },
 ]);

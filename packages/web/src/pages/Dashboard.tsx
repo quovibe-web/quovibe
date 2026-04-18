@@ -60,7 +60,7 @@ import {
 } from '@/api/use-dashboards';
 import { useTransactions } from '@/api/use-transactions';
 import { DashboardEmptyState } from '@/components/domain/DashboardEmptyState';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { nanoid } from 'nanoid';
 import { getWidgetDef, CHART_WIDGET_TYPES } from '@/lib/widget-registry';
 import { DASHBOARD_TEMPLATES, applyTemplate, type DashboardTemplate } from '@/lib/dashboard-templates';
@@ -337,6 +337,7 @@ export default function Dashboard() {
   const { t } = useTranslation('dashboard');
   const { portfolioId, dashboardId } = useParams<{ portfolioId: string; dashboardId?: string }>();
   const navigate = useNavigate();
+  const { search } = useLocation();
   const dashboardsList = useDashboards();
   const tx = useTransactions(undefined, 1, 1);
   const createDash = useCreateDashboard();
@@ -626,7 +627,7 @@ export default function Dashboard() {
       (a, b) => a.position - b.position,
     )[0];
     if (first && portfolioId) {
-      return <Navigate to={`/p/${portfolioId}/dashboard/${first.id}`} replace />;
+      return <Navigate to={`/p/${portfolioId}/dashboard/${first.id}${search}`} replace />;
     }
   }
 

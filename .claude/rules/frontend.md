@@ -62,6 +62,27 @@ src/
 - `/import` is standalone (no sidebar).
 - Programmatic navigation: `useNavigate()`. Params: `useParams()`. Query: `useSearchParams()`.
 
+## Routing / Redirects
+
+- Every in-app URL alias — a `<Navigate>` that rewrites one live path to another —
+  MUST preserve `location.search`. The app has user-facing bookmarks carrying
+  `?periodStart=…&periodEnd=…`, and stripping those silently replaces the user's
+  saved reporting period with the default current-year (BUG-08).
+- The canonical helper for static targets is `RedirectWithSearch` in
+  `packages/web/src/router.tsx`, which wraps `<Navigate replace />` with
+  `appendSearch(to, useLocation().search)` from `@/lib/router-helpers`.
+  Use it for every new alias with a fixed target.
+- For dynamic-target aliases (targets built from route params), call
+  `useLocation()` directly in the component body and interpolate `${search}`
+  into the template literal. Examples: `RedirectSecurityDetail` in
+  `router.tsx`, the auto-pick redirect in `Dashboard.tsx`, the default-
+  portfolio redirect in `RootRedirect.tsx`.
+- Error-path redirects (invalid state → `/welcome`, unauthorized → login,
+  etc.) keep plain `<Navigate>` — forwarding a stale query into an error
+  page is misleading, not helpful. Mark these branches with a short inline
+  comment (`// error-path redirect: don't preserve search`) so future
+  contributors don't "fix" them by adding `${search}`.
+
 ## Components
 - Use `cn()` (from `src/lib/utils.ts`) to compose conditional Tailwind classes.
 - Use `<DataTable>` for data tables — do not create raw tables.

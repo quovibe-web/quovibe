@@ -12,11 +12,13 @@ export function PortfolioLayout() {
   useEventStream();
 
   if (!portfolioId || !UUID_V4_RE.test(portfolioId)) {
+    // error-path redirect: don't preserve search
     return <Navigate to="/welcome" replace />;
   }
   if (registry.isLoading) return <Suspense fallback={null}><div /></Suspense>;
 
   const entry = registry.data?.portfolios.find((p) => p.id === portfolioId);
+  // error-path redirect: don't preserve search
   if (!entry) return <Navigate to="/welcome" replace />;
 
   return (

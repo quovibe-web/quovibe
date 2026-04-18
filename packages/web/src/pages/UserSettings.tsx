@@ -155,7 +155,7 @@ export default function UserSettings() {
         <h1 className="text-lg font-semibold text-foreground tracking-tight">
           {tUser('preferences.title')}
         </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{t('subtitle')}</p>
+        <p className="text-sm text-muted-foreground mt-0.5">{tUser('preferences.subtitle')}</p>
       </div>
 
       {/* ── LANGUAGE & APPEARANCE ── */}

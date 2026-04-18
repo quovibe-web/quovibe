@@ -1,10 +1,11 @@
 {
   "preferences": {
-    "title": "Preferences"
+    "title": "Preferências",
+    "subtitle": "Preferências pessoais"
   },
   "updates": {
-    "title": "Updates",
-    "autoFetchLabel": "Update prices automatically on first open per portfolio",
-    "autoFetchHint": "Off by default to avoid consuming Yahoo / AlphaVantage API quota on container restarts. Turn on if you want fresh prices whenever you first open a portfolio in a new process."
+    "title": "Atualizações",
+    "autoFetchLabel": "Atualizar cotações automaticamente na primeira abertura de cada carteira",
+    "autoFetchHint": "Desativado por padrão para evitar consumir a cota da API Yahoo / AlphaVantage em reinicializações do contêiner. Ative se quiser cotações atualizadas sempre que abrir uma carteira em um novo processo."
   }
 }

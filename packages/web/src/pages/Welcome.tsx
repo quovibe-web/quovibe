@@ -16,6 +16,7 @@ import { WelcomeHero } from '@/components/welcome/WelcomeHero';
 import { WelcomeFooter } from '@/components/welcome/WelcomeFooter';
 import { ActionCard } from '@/components/welcome/ActionCard';
 import { formatDate } from '@/lib/formatters';
+import { sortByRecency } from '@/lib/portfolio-recency';
 
 const STAGGER_DELAYS = {
   recent: '0ms',
@@ -26,18 +27,6 @@ const STAGGER_DELAYS = {
 } as const;
 
 const RECENT_LIMIT = 5;
-
-function sortByRecency(a: PortfolioRegistryEntry, b: PortfolioRegistryEntry): number {
-  // lastOpenedAt DESC NULLS LAST, tiebreak on createdAt DESC.
-  const aKey = a.lastOpenedAt ?? '';
-  const bKey = b.lastOpenedAt ?? '';
-  if (aKey !== bKey) {
-    if (!aKey) return 1;
-    if (!bKey) return -1;
-    return bKey.localeCompare(aKey);
-  }
-  return b.createdAt.localeCompare(a.createdAt);
-}
 
 export default function Welcome() {
   const { t } = useTranslation('welcome');

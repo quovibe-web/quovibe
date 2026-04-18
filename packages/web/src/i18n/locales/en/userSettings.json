@@ -1,6 +1,7 @@
 {
   "preferences": {
-    "title": "Preferences"
+    "title": "Preferences",
+    "subtitle": "Personal preferences"
   },
   "updates": {
     "title": "Updates",

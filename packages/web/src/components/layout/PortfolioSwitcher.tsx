@@ -1,6 +1,8 @@
 // packages/web/src/components/layout/PortfolioSwitcher.tsx
+import { useContext } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { PortfolioContext } from '@/context/PortfolioContext';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -22,12 +24,20 @@ export function PortfolioSwitcher() {
   const createDemo = useCreatePortfolio();
   const touch = useTouchPortfolio();
 
+  const contextPortfolio = useContext(PortfolioContext);
+
   if (!registry.data) return null;
   const portfolios = registry.data.portfolios;
   const realPortfolios = portfolios.filter((p) => p.kind === 'real');
   const demoExists = portfolios.some((p) => p.kind === 'demo');
-  const currentKind = portfolios.find((p) => p.id === portfolioId)?.kind ?? null;
-  const currentName = portfolios.find((p) => p.id === portfolioId)?.name ?? t('noPortfolio');
+  const currentKind =
+    portfolios.find((p) => p.id === portfolioId)?.kind
+    ?? contextPortfolio?.kind
+    ?? null;
+  const currentName =
+    portfolios.find((p) => p.id === portfolioId)?.name
+    ?? (contextPortfolio ? contextPortfolio.name : null)
+    ?? t('noPortfolio');
 
   const pick = (id: string): void => {
     touch.mutate(id);
