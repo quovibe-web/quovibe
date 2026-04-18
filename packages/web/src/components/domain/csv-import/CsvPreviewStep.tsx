@@ -18,6 +18,18 @@ interface Props {
   onBack: () => void;
 }
 
+// Maps server-side CsvImportError codes (thrown by apiFetch as Error.message)
+// to i18n keys. Keep the code-list aligned with .claude/rules/csv-import.md.
+function mapExecuteError(message: string): string {
+  switch (message) {
+    case 'INVALID_PORTFOLIO': return 'errors.invalidPortfolio';
+    case 'NO_REFERENCE_ACCOUNT': return 'errors.noReferenceAccount';
+    case 'TEMP_FILE_EXPIRED': return 'errors.tempExpired';
+    case 'IMPORT_IN_PROGRESS': return 'errors.importInProgress';
+    default: return 'errors.importFailed';
+  }
+}
+
 export function CsvPreviewStep({ state, onBack }: Props) {
   const { t } = useTranslation('csv-import');
   const navigate = useNavigate();
@@ -31,7 +43,25 @@ export function CsvPreviewStep({ state, onBack }: Props) {
   const [configName, setConfigName] = useState('');
   const [result, setResult] = useState<TradeExecuteResult | null>(null);
 
-  if (!preview) return null;
+  // Defence-in-depth: if we somehow reach Step 4 without a preview (e.g. state
+  // corruption or future routing change), show a readable fallback instead of
+  // the silent blank that masked BUG-52. Under the normal flow,
+  // CsvSecurityMatchStep now disables Next when the preview mutation fails,
+  // so this branch should be unreachable via the UI.
+  if (!preview) {
+    return (
+      <div className="space-y-6">
+        <Alert variant="destructive" role="alert">
+          <AlertDescription className="flex items-start justify-between gap-4">
+            <span>{t('errors.previewFailed')}</span>
+            <Button size="sm" variant="outline" onClick={onBack}>
+              {t('nav.back')}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   const validRows = preview.rows.filter((r) => !r.error);
   const selectedCount = validRows.filter((r) => !excludedRows.has(r.rowNumber)).length;
@@ -212,6 +242,15 @@ export function CsvPreviewStep({ state, onBack }: Props) {
           />
         )}
       </div>
+
+      {/* Execute-mutation error (surfaced inline in addition to the global toast) */}
+      {executeMutation.isError && (
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>
+            {t(mapExecuteError(executeMutation.error?.message ?? ''))}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Navigation */}
       <div className="flex justify-between">

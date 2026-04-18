@@ -52,6 +52,7 @@
   "columns.field.note": "Nota",
   "columns.field.isin": "ISIN",
   "columns.field.ticker": "Ticker",
+  "columns.field.crossAccount": "Conta de contrapartida",
 
   "securities.title": "Associar ativos",
   "securities.description": "Associar ativos do CSV aos existentes ou criar novos",
@@ -111,10 +112,15 @@
   "errors.importInProgress": "Outra importação está em andamento. Por favor, aguarde.",
   "errors.noFile": "Nenhum arquivo selecionado",
   "errors.invalidFile": "Formato de arquivo inválido. Por favor, envie um arquivo CSV.",
+  "errors.invalidPortfolio": "Este portfólio não está pronto para receber importações. Configure a conta de ativos e a conta de caixa antes de tentar novamente.",
+  "errors.noReferenceAccount": "Este portfólio não tem uma conta de caixa vinculada. Adicione uma antes de importar.",
+  "errors.previewFailed": "A visualização falhou. Volte e verifique o mapeamento de colunas, ou tente novamente.",
+  "errors.importFailed": "A importação falhou. Volte e verifique seus dados, ou tente novamente.",
 
   "nav.back": "Voltar",
   "nav.next": "Próximo",
   "nav.cancel": "Cancelar",
   "nav.viewTransactions": "Ver transações",
-  "nav.close": "Fechar"
+  "nav.close": "Fechar",
+  "nav.retry": "Tentar novamente"
 }

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { usePreviewCsvTrades } from '@/api/use-csv-import';
 import { useSecurities } from '@/api/use-securities';
 import { usePortfolio } from '@/context/PortfolioContext';
@@ -17,6 +18,18 @@ interface Props {
   onNext: () => void;
 }
 
+// Maps server-side CsvImportError codes (thrown by apiFetch as Error.message)
+// to i18n keys. Keep the code-list aligned with .claude/rules/csv-import.md.
+function mapPreviewError(message: string): string {
+  switch (message) {
+    case 'INVALID_PORTFOLIO': return 'errors.invalidPortfolio';
+    case 'NO_REFERENCE_ACCOUNT': return 'errors.noReferenceAccount';
+    case 'TEMP_FILE_EXPIRED': return 'errors.tempExpired';
+    case 'IMPORT_IN_PROGRESS': return 'errors.importInProgress';
+    default: return 'errors.previewFailed';
+  }
+}
+
 export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props) {
   const { t } = useTranslation('csv-import');
   const previewMutation = usePreviewCsvTrades();
@@ -24,8 +37,7 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
   const portfolio = usePortfolio();
   const [localMapping, setLocalMapping] = useState<Record<string, string>>(state.securityMapping);
 
-  // Call preview on mount
-  useEffect(() => {
+  function runPreview() {
     if (!state.parseResult) return;
     previewMutation.mutate(
       {
@@ -50,9 +62,16 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
         },
       },
     );
+  }
+
+  // Call preview on mount
+  useEffect(() => {
+    runPreview();
   }, []);
 
   const unmatchedSecurities = state.previewResult?.unmatchedSecurities ?? [];
+  const hasError = previewMutation.isError;
+  const errorKey = hasError ? mapPreviewError(previewMutation.error?.message ?? '') : null;
 
   const handleNext = () => {
     onUpdate({
@@ -75,6 +94,17 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
 
   return (
     <div className="space-y-6">
+      {hasError && errorKey && (
+        <Alert variant="destructive" role="alert">
+          <AlertDescription className="flex items-start justify-between gap-4">
+            <span>{t(errorKey)}</span>
+            <Button size="sm" variant="outline" onClick={runPreview}>
+              {t('nav.retry')}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>{t('securities.title')}</CardTitle>
@@ -82,7 +112,7 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4">{t('securities.description')}</p>
 
-          {unmatchedSecurities.length === 0 ? (
+          {hasError ? null : unmatchedSecurities.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t('securities.none')}</p>
           ) : (
             <div className="space-y-3">
@@ -143,7 +173,12 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
         <Button variant="outline" onClick={onBack}>
           {t('nav.back')}
         </Button>
-        <Button onClick={handleNext}>{t('nav.next')}</Button>
+        <Button
+          onClick={handleNext}
+          disabled={hasError || !state.previewResult}
+        >
+          {t('nav.next')}
+        </Button>
       </div>
     </div>
   );

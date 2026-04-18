@@ -52,6 +52,7 @@
   "columns.field.note": "Notitie",
   "columns.field.isin": "ISIN",
   "columns.field.ticker": "Ticker",
+  "columns.field.crossAccount": "Tegenrekening",
 
   "securities.title": "Effecten koppelen",
   "securities.description": "CSV-effecten koppelen aan bestaande of nieuwe maken",
@@ -111,10 +112,15 @@
   "errors.importInProgress": "Een andere import is momenteel bezig. Een ogenblik geduld.",
   "errors.noFile": "Geen bestand geselecteerd",
   "errors.invalidFile": "Ongeldig bestandsformaat. Upload een CSV-bestand.",
+  "errors.invalidPortfolio": "Deze portefeuille is niet klaar om imports te ontvangen. Stel eerst de effectenrekening en geldrekening in voordat u het opnieuw probeert.",
+  "errors.noReferenceAccount": "Deze portefeuille heeft geen gekoppelde geldrekening. Voeg er een toe voordat u gaat importeren.",
+  "errors.previewFailed": "Voorbeeld mislukt. Ga terug en controleer de kolomtoewijzing, of probeer het opnieuw.",
+  "errors.importFailed": "Import mislukt. Ga terug en controleer uw gegevens, of probeer het opnieuw.",
 
   "nav.back": "Terug",
   "nav.next": "Volgende",
   "nav.cancel": "Annuleren",
   "nav.viewTransactions": "Transacties bekijken",
-  "nav.close": "Sluiten"
+  "nav.close": "Sluiten",
+  "nav.retry": "Opnieuw proberen"
 }

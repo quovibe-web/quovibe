@@ -52,6 +52,7 @@
   "columns.field.note": "Notatka",
   "columns.field.isin": "ISIN",
   "columns.field.ticker": "Ticker",
+  "columns.field.crossAccount": "Konto przeciwne",
 
   "securities.title": "Dopasuj papiery wartościowe",
   "securities.description": "Dopasuj papiery wartościowe z CSV do istniejących lub utwórz nowe",
@@ -111,10 +112,15 @@
   "errors.importInProgress": "Inny import jest w toku. Proszę czekać.",
   "errors.noFile": "Nie wybrano pliku",
   "errors.invalidFile": "Nieprawidłowy format pliku. Prześlij plik CSV.",
+  "errors.invalidPortfolio": "Ten portfel nie jest gotowy do odbioru importów. Skonfiguruj konto papierów wartościowych i konto gotówkowe przed ponowną próbą.",
+  "errors.noReferenceAccount": "Ten portfel nie ma powiązanego konta gotówkowego. Dodaj je przed importowaniem.",
+  "errors.previewFailed": "Podgląd nie powiódł się. Wróć i sprawdź mapowanie kolumn lub spróbuj ponownie.",
+  "errors.importFailed": "Import nie powiódł się. Wróć i sprawdź swoje dane lub spróbuj ponownie.",
 
   "nav.back": "Wstecz",
   "nav.next": "Dalej",
   "nav.cancel": "Anuluj",
   "nav.viewTransactions": "Zobacz transakcje",
-  "nav.close": "Zamknij"
+  "nav.close": "Zamknij",
+  "nav.retry": "Spróbuj ponownie"
 }

@@ -52,6 +52,7 @@
   "columns.field.note": "Notiz",
   "columns.field.isin": "ISIN",
   "columns.field.ticker": "Ticker",
+  "columns.field.crossAccount": "Gegenkonto",
 
   "securities.title": "Wertpapiere abgleichen",
   "securities.description": "CSV-Wertpapiere mit vorhandenen abgleichen oder neu erstellen",
@@ -111,10 +112,15 @@
   "errors.importInProgress": "Ein anderer Import läuft gerade. Bitte warten.",
   "errors.noFile": "Keine Datei ausgewählt",
   "errors.invalidFile": "Ungültiges Dateiformat. Bitte eine CSV-Datei hochladen.",
+  "errors.invalidPortfolio": "Dieses Portfolio ist nicht bereit, Importe zu empfangen. Bitte richten Sie das Wertpapierkonto und das Verrechnungskonto ein, bevor Sie es erneut versuchen.",
+  "errors.noReferenceAccount": "Dieses Portfolio hat kein verknüpftes Verrechnungskonto. Bitte legen Sie eines an, bevor Sie importieren.",
+  "errors.previewFailed": "Vorschau fehlgeschlagen. Bitte gehen Sie zurück und überprüfen Sie die Spaltenzuordnung oder versuchen Sie es erneut.",
+  "errors.importFailed": "Import fehlgeschlagen. Bitte gehen Sie zurück und überprüfen Sie Ihre Daten oder versuchen Sie es erneut.",
 
   "nav.back": "Zurück",
   "nav.next": "Weiter",
   "nav.cancel": "Abbrechen",
   "nav.viewTransactions": "Transaktionen anzeigen",
-  "nav.close": "Schließen"
+  "nav.close": "Schließen",
+  "nav.retry": "Erneut versuchen"
 }
