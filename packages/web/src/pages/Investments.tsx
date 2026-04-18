@@ -365,13 +365,17 @@ export default function Investments() {
     fetchAll.mutate();
   };
 
+  // Empty-portfolio state: hide controls and summary; only EmptyState owns the page (BUG-44).
+  // Scope: only when not filtering to an account and the underlying securities list is truly empty.
+  const isEmptyPortfolio = !accountFilterId && !secLoading && securities.length === 0;
+
   return (
     <div className="qv-page space-y-6">
       {/* Page Header */}
       <PageHeader
         title={t('title')}
         subtitle={t('subtitle')}
-        actions={<>
+        actions={isEmptyPortfolio ? undefined : <>
           {/* Chart mode toggle */}
           <SegmentedControl
             segments={chartModes}
@@ -387,7 +391,7 @@ export default function Investments() {
       />
 
       {/* Fetch prices status */}
-      {fetchAll.isSuccess && fetchAll.data && (
+      {!isEmptyPortfolio && fetchAll.isSuccess && fetchAll.data && (
         <div className="text-sm text-muted-foreground">
           {fetchAll.data.totalFetched} {tSecurities('updateResults.pricesUpdated')}
           {fetchAll.data.totalErrors > 0 && (
@@ -408,7 +412,7 @@ export default function Investments() {
       )}
 
       {/* Summary strip — global or per-account */}
-      {((!accountFilterId && !summaryLoading && statement) || (accountFilterId && filterHoldings)) && (
+      {!isEmptyPortfolio && ((!accountFilterId && !summaryLoading && statement) || (accountFilterId && filterHoldings)) && (
         <SummaryStrip
           columns={4}
           items={[
@@ -424,10 +428,12 @@ export default function Investments() {
             },
             {
               label: t('summary.holdings'),
+              // Card describes the portfolio (or the filtered account) — never the search query (BUG-24).
+              // Excludes zero-share / closed positions to align with the pie-chart legend (BUG-25).
               value: <span className="text-2xl font-semibold tabular-nums">
                 {accountFilterId
-                  ? filterHoldings!.holdings.length
-                  : filteredSecurities.filter(s => !s.isRetired).length}
+                  ? filterHoldings!.holdings.filter(h => parseFloat(h.shares) > 0).length
+                  : accountFiltered.filter(s => !s.isRetired && parseFloat(s.shares ?? '0') > 0).length}
               </span>,
             },
             {
@@ -469,7 +475,7 @@ export default function Investments() {
       )}
 
       {/* Allocation chart — global or per-account */}
-      {chartMode !== 'off' && chartItems.length > 0 && (!accountFilterId ? !summaryLoading : !!filterHoldings) && (
+      {!isEmptyPortfolio && chartMode !== 'off' && chartItems.length > 0 && (!accountFilterId ? !summaryLoading : !!filterHoldings) && (
         <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '180ms' }}>
           <CardContent className="pt-6">
             <TaxonomyChart
@@ -496,16 +502,18 @@ export default function Investments() {
       )}
 
       {/* Toolbar: search + show retired */}
-      <TableToolbar
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder={t('search.placeholder')}
-      >
-        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-          <Checkbox checked={showRetired} onCheckedChange={(v) => setShowRetired(v === true)} />
-          {t('showRetired')}
-        </label>
-      </TableToolbar>
+      {!isEmptyPortfolio && (
+        <TableToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={t('search.placeholder')}
+        >
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+            <Checkbox checked={showRetired} onCheckedChange={(v) => setShowRetired(v === true)} />
+            {t('showRetired')}
+          </label>
+        </TableToolbar>
+      )}
 
       {/* Securities table or empty state */}
       {filteredSecurities.length === 0 && !tableLoading ? (
