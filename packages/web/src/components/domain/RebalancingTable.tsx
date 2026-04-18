@@ -6,6 +6,7 @@ import {
   getExpandedRowModel,
   flexRender,
   type ColumnDef,
+  type ExpandedState,
 } from '@tanstack/react-table';
 import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,10 @@ interface TreeRow {
   targetValue?: string;
   deltaValue?: string;
   deltaPercent?: string;
+  // True when this row's own sibling group or any ancestor's sibling group
+  // doesn't sum to 100% — computed targets below become meaningless, so the
+  // cells that derive from targets render muted em-dashes instead.
+  allocationsInvalid?: boolean;
   // Security fields
   weight?: number;
   rebalancingIncluded?: boolean;
@@ -87,6 +92,29 @@ function buildRebalancingTree(categories: RebalancingCategory[]): TreeRow[] {
     });
   }
 
+  // Memoized walk: a category is "invalid" when its own sibling group or any
+  // ancestor's sibling group doesn't sum to 100%.
+  const invalidCache = new Map<string, boolean>();
+  function isInvalid(catId: string): boolean {
+    const cached = invalidCache.get(catId);
+    if (cached !== undefined) return cached;
+    const cat = catMap.get(catId);
+    if (!cat) return false;
+    const self = cat.allocationSumOk === false;
+    const ancestor = cat.parentId ? isInvalid(cat.parentId) : false;
+    const result = self || ancestor;
+    invalidCache.set(catId, result);
+    return result;
+  }
+  for (const cat of catMap.values()) {
+    cat.allocationsInvalid = isInvalid(cat.id);
+    if (cat.subRows) {
+      for (const child of cat.subRows) {
+        if (child.type === 'security') child.allocationsInvalid = cat.allocationsInvalid;
+      }
+    }
+  }
+
   // Nest categories: children under parents
   const roots: TreeRow[] = [];
   for (const row of catMap.values()) {
@@ -104,6 +132,8 @@ function buildRebalancingTree(categories: RebalancingCategory[]): TreeRow[] {
 
   return roots;
 }
+
+const INVALID_PLACEHOLDER = <span className="text-sm text-muted-foreground">—</span>;
 
 
 interface RebalancingTableProps {
@@ -127,7 +157,7 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
     return buildRebalancingTree(filtered);
   }, [categories, hideRetired, hideZeroValue]);
 
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState<ExpandedState>({});
 
   const handleAllocationBlur = useCallback((categoryId: string, value: string) => {
     const num = parseFloat(value);
@@ -217,6 +247,7 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
       header: t('rebalancing.columns.targetValue'),
       cell: ({ row }) => {
         if (row.original.type !== 'category') return null;
+        if (row.original.allocationsInvalid) return INVALID_PLACEHOLDER;
         return <CurrencyDisplay value={parseFloat(row.original.targetValue ?? '0')} className="text-sm text-muted-foreground" />;
       },
     },
@@ -225,6 +256,7 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
       header: t('rebalancing.columns.deltaValue'),
       cell: ({ row }) => {
         if (row.original.type !== 'category') return null;
+        if (row.original.allocationsInvalid) return INVALID_PLACEHOLDER;
         const delta = parseFloat(row.original.deltaValue ?? '0');
         return (
           <CurrencyDisplay value={delta} className="text-sm" colorize />
@@ -236,6 +268,7 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
       header: t('rebalancing.columns.deltaPercent'),
       cell: ({ row }) => {
         if (row.original.type !== 'category') return null;
+        if (row.original.allocationsInvalid) return INVALID_PLACEHOLDER;
         const dp = parseFloat(row.original.deltaPercent ?? '0');
         return (
           <span className={cn(
@@ -252,6 +285,7 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
       header: t('rebalancing.columns.rebalanceAmount'),
       cell: ({ row }) => {
         if (row.original.type !== 'security') return null;
+        if (row.original.allocationsInvalid) return INVALID_PLACEHOLDER;
         const amt = parseFloat(row.original.rebalanceAmount ?? '0');
         return (
           <CurrencyDisplay value={amt} className="text-sm" colorize />
@@ -263,6 +297,7 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
       header: t('rebalancing.columns.rebalanceShares'),
       cell: ({ row }) => {
         if (row.original.type !== 'security') return null;
+        if (row.original.allocationsInvalid) return INVALID_PLACEHOLDER;
         const shares = parseFloat(row.original.rebalanceShares ?? '0');
         return (
           <span className={cn(
