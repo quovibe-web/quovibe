@@ -42,7 +42,15 @@ const listWatchlists: RequestHandler = (req, res) => {
            (SELECT sa.value FROM security_attr sa WHERE sa.security = s.uuid AND sa.value LIKE 'data:image%' LIMIT 1) AS logoUrl,
            lp.value      AS latestPriceRaw,
            lp.tstamp     AS latestPriceDate,
-           (SELECT p.value FROM price p WHERE p.security = s.uuid ORDER BY p.tstamp DESC LIMIT 1) AS previousCloseRaw
+           -- BUG-40: previousClose is the last historical close STRICTLY before
+           -- latest_price.tstamp. Without the date guard we'd return today's
+           -- intraday snapshot (yf.chart() writes price[today] on the first
+           -- daily fetch — see .claude/rules/latest-price.md), which equals
+           -- latest_price.value and makes every "Change" read +0.00%.
+           (SELECT p.value FROM price p
+              WHERE p.security = s.uuid
+                AND (lp.tstamp IS NULL OR p.tstamp < lp.tstamp)
+              ORDER BY p.tstamp DESC LIMIT 1) AS previousCloseRaw
          FROM watchlist_security ws
          JOIN security s ON s.uuid = ws.security
          LEFT JOIN latest_price lp ON lp.security = s.uuid
