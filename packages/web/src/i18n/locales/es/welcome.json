@@ -44,7 +44,8 @@
   },
   "errors": {
     "demoFailed": "No se pudo abrir la demo: {{msg}}",
-    "createFailed": "No se pudo crear la cartera: {{msg}}"
+    "createFailed": "No se pudo crear la cartera: {{msg}}",
+    "duplicateName": "Ya existe una cartera con este nombre."
   },
   "hub": {
     "title": "Importar datos existentes",
@@ -72,7 +73,10 @@
     },
     "errors": {
       "fileRequired": "Selecciona primero un archivo.",
-      "importFailed": "Falló la importación: {{msg}}"
+      "importFailed": "Falló la importación: {{msg}}",
+      "invalidFile": "Exportación XML no válida. Se esperaba un archivo .xml de Portfolio Performance.",
+      "tooLarge": "El archivo supera el tamaño máximo permitido.",
+      "binary": "El archivo parece binario o está dañado. Se esperaba una exportación XML en texto plano."
     }
   }
 }

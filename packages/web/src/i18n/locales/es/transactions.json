@@ -102,6 +102,10 @@
     "sourceDestMustDiffer": "El origen y el destino deben ser diferentes",
     "sharesMustBePositive": "Las participaciones deben ser mayores que 0",
     "amountMustBePositive": "El importe debe ser mayor que 0",
+    "priceMustBePositive": "El precio debe ser mayor que 0",
+    "feesMustBeNonNegative": "Las comisiones deben ser 0 o mayores",
+    "taxesMustBeNonNegative": "Los impuestos deben ser 0 o mayores",
+    "fxRateMustBePositive": "El tipo de cambio debe ser mayor que 0",
     "nameRequired": "El nombre es obligatorio",
     "noteRequired": "La nota es obligatoria.",
     "ratioRequired": "El ratio de división es obligatorio (ej. 2:1).",
@@ -133,6 +137,7 @@
   },
   "transactionType": "Tipo de transacción",
   "newTransaction": "Nueva transacción",
+  "newTransactionDescription": "Crear una compra, venta, depósito, transferencia u otra operación.",
   "subtitle": "Browse and manage all portfolio transactions",
   "noLinkedDeposit": "Esta cuenta de valores no tiene una cuenta de efectivo asociada.",
   "empty": {

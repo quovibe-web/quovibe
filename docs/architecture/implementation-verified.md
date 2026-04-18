@@ -67,6 +67,7 @@ must be added here to pass the automated check.
 
 | Method | Tables written | Audit status |
 |--------|---------------|--------------|
+| `createAccount` | account | Verified — moved from route handler to enforce service-layer rule (BUG-06) |
 | `updateAccountFields` | account | Verified — moved from route handler to enforce service-layer rule |
 | `deleteAccountById` | account_attr, taxonomy_assignment_data, taxonomy_assignment, account | Verified — moved from route handler |
 

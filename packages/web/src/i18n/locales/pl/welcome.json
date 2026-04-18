@@ -44,7 +44,8 @@
   },
   "errors": {
     "demoFailed": "Nie udało się otworzyć dema: {{msg}}",
-    "createFailed": "Nie udało się utworzyć portfela: {{msg}}"
+    "createFailed": "Nie udało się utworzyć portfela: {{msg}}",
+    "duplicateName": "Portfel o tej nazwie już istnieje."
   },
   "hub": {
     "title": "Zaimportuj istniejące dane",
@@ -72,7 +73,10 @@
     },
     "errors": {
       "fileRequired": "Najpierw wybierz plik.",
-      "importFailed": "Import nie powiódł się: {{msg}}"
+      "importFailed": "Import nie powiódł się: {{msg}}",
+      "invalidFile": "Nieprawidłowy eksport XML. Wymagany plik .xml z Portfolio Performance.",
+      "tooLarge": "Plik przekracza dozwolony rozmiar przesyłki.",
+      "binary": "Plik wygląda na binarny lub uszkodzony. Wymagany eksport XML w postaci zwykłego tekstu."
     }
   }
 }

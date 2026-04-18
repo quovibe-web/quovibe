@@ -81,7 +81,8 @@
   "toasts": {
     "depositCreated": "Compte espèces créé",
     "securitiesCreated": "Compte-titres créé",
-    "errorCreating": "Erreur lors de la création du compte"
+    "errorCreating": "Erreur lors de la création du compte",
+    "duplicateName": "Un compte portant ce nom existe déjà dans ce portefeuille."
   },
   "clickToChangeLogo": "Cliquer pour changer le logo",
   "hub": {

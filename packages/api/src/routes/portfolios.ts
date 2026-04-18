@@ -91,7 +91,10 @@ const postCreate: RequestHandler = async (req, res) => {
     res.status(400).json({ error: 'IMPORT_REQUIRES_FILE' });
   } catch (err) {
     if (err instanceof PortfolioManagerError) {
-      res.status(400).json({ error: err.code });
+      // BUG-05: case-insensitive name collision surfaces as 409 Conflict so
+      // the client can distinguish it from generic 400 INVALID_INPUT.
+      const http = err.code === 'DUPLICATE_NAME' ? 409 : 400;
+      res.status(http).json({ error: err.code });
       return;
     }
     if (err instanceof Error && 'code' in err && (err as { code?: string }).code === 'LIMIT_FILE_SIZE') {
@@ -126,6 +129,7 @@ const patch: RequestHandler = (req, res) => {
     if (err instanceof PortfolioManagerError) {
       const http = err.code === 'DEMO_PORTFOLIO_IMMUTABLE_METADATA' ? 403
                  : err.code === 'PORTFOLIO_NOT_FOUND' ? 404
+                 : err.code === 'DUPLICATE_NAME' ? 409
                  : 400;
       res.status(http).json({ error: err.code });
       return;

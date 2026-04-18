@@ -4,12 +4,38 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ArrowLeft, FileCode2, DatabaseBackup, FileSpreadsheet, Loader2, ChevronRight, Upload } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/shared/SubmitButton';
 import { Input } from '@/components/ui/input';
 import { ImportDropzone } from '@/components/ImportDropzone';
 import { useCreatePortfolio, type PortfolioRegistryEntry } from '@/api/use-portfolios';
 import { cn } from '@/lib/utils';
+import { sniffLikelyXml } from '@quovibe/shared';
+
+// 4 KB is enough to catch binary content in magic-byte regions without
+// blocking on large uploads. Mirrors CsvUploadStep's BINARY_SNIFF_BYTES.
+const XML_SNIFF_BYTES = 4096; // native-ok
+
+type PpUploadError = 'invalidFile' | 'tooLarge' | 'binary' | null;
+
+async function validateXmlClientSide(file: File): Promise<PpUploadError> {
+  if (!file.name.toLowerCase().endsWith('.xml')) return 'invalidFile';
+  const slice = file.slice(0, XML_SNIFF_BYTES);
+  const text = await slice.text();
+  const sniff = sniffLikelyXml(text);
+  if (sniff.ok) return null;
+  return sniff.reason === 'NOT_TEXT' ? 'binary' : 'invalidFile';
+}
+
+// use-portfolios.ts:61 throws `new Error(`${code}: ${details}`)` for XML
+// import failures, so we match by prefix rather than equality.
+function mapServerError(message: string): PpUploadError {
+  if (message.startsWith('FILE_TOO_LARGE')) return 'tooLarge';
+  if (message.startsWith('INVALID_FILE_FORMAT')) return 'invalidFile';
+  if (message.startsWith('NO_FILE')) return 'invalidFile';
+  return null;
+}
 
 type SourceId = 'pp-xml' | 'quovibe-db';
 
@@ -21,22 +47,42 @@ export default function ImportHub() {
   const [openSource, setOpenSource] = useState<SourceId | null>(null);
   const [ppFile, setPpFile] = useState<File | null>(null);
   const [ppName, setPpName] = useState('');
+  const [ppUploadError, setPpUploadError] = useState<PpUploadError>(null);
   const [dbFile, setDbFile] = useState<File | null>(null);
 
   useEffect(() => { document.title = `${t('hub.title')} · quovibe`; }, [t]);
+
+  const handlePpFile = async (f: File): Promise<void> => {
+    setPpUploadError(null);
+    const rejected = await validateXmlClientSide(f);
+    if (rejected) {
+      setPpFile(null);
+      setPpUploadError(rejected);
+      return;
+    }
+    setPpFile(f);
+  };
 
   const handleImportPP = (): void => {
     if (!ppFile) {
       toast.error(t('hub.errors.fileRequired'));
       return;
     }
+    setPpUploadError(null);
     create.mutate(
       { source: 'import-pp-xml', file: ppFile, name: ppName.trim() || undefined },
       {
         onSuccess: (r: { entry: PortfolioRegistryEntry }) =>
           navigate(`/p/${r.entry.id}/dashboard`),
-        onError: (err) =>
-          toast.error(t('hub.errors.importFailed', { msg: (err as Error).message })),
+        onError: (err) => {
+          const msg = (err as Error).message;
+          const mapped = mapServerError(msg);
+          if (mapped) {
+            setPpUploadError(mapped);
+            return;
+          }
+          toast.error(t('hub.errors.importFailed', { msg }));
+        },
       },
     );
   };
@@ -94,8 +140,13 @@ export default function ImportHub() {
               changeHint={t('hub.fileChangeHint')}
               accentColor="var(--color-chart-3)"
               file={ppFile}
-              onFile={setPpFile}
+              onFile={(f) => { void handlePpFile(f); }}
             />
+            {ppUploadError && (
+              <Alert variant="destructive" role="alert">
+                <AlertDescription>{t(`hub.errors.${ppUploadError}`)}</AlertDescription>
+              </Alert>
+            )}
             <Input
               type="text"
               placeholder={t('hub.sources.ppXml.nameOptional')}
@@ -105,7 +156,7 @@ export default function ImportHub() {
             <SubmitButton
               mutation={create}
               onClick={handleImportPP}
-              disabled={!ppFile}
+              disabled={!ppFile || ppUploadError != null}
               size="lg"
               className="self-start font-semibold shadow-md transition-all hover:brightness-110 hover:shadow-xl active:scale-[0.98]"
             >

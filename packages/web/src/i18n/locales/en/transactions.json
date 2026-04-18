@@ -102,6 +102,10 @@
     "sourceDestMustDiffer": "Source and destination must differ",
     "sharesMustBePositive": "Shares must be greater than 0",
     "amountMustBePositive": "Amount must be greater than 0",
+    "priceMustBePositive": "Price must be greater than 0",
+    "feesMustBeNonNegative": "Fees must be 0 or greater",
+    "taxesMustBeNonNegative": "Taxes must be 0 or greater",
+    "fxRateMustBePositive": "Exchange rate must be greater than 0",
     "nameRequired": "Name is required",
     "noteRequired": "Note is required.",
     "ratioRequired": "Split ratio is required (e.g. 2:1).",
@@ -133,6 +137,7 @@
   },
   "transactionType": "Transaction Type",
   "newTransaction": "New Transaction",
+  "newTransactionDescription": "Create a buy, sell, deposit, transfer, or other transaction.",
   "subtitle": "Browse and manage all portfolio transactions",
   "noLinkedDeposit": "This portfolio account has no linked deposit account.",
   "empty": {

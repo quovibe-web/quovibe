@@ -81,7 +81,8 @@
   "toasts": {
     "depositCreated": "Conta de caixa criada",
     "securitiesCreated": "Conta de títulos criada",
-    "errorCreating": "Erro ao criar a conta"
+    "errorCreating": "Erro ao criar a conta",
+    "duplicateName": "Já existe uma conta com este nome nesta carteira."
   },
   "clickToChangeLogo": "Clique para alterar o logótipo",
   "hub": {

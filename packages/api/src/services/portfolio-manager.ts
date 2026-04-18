@@ -12,6 +12,7 @@ import {
   upsertPortfolioEntry,
   removePortfolioEntry,
   findDemoEntry,
+  listPortfolios,
 } from './portfolio-registry';
 import { evictPortfolioDb, acquirePortfolioDb, releasePortfolioDb } from './portfolio-db-pool';
 import { broadcast } from '../routes/events';
@@ -37,6 +38,22 @@ export class PortfolioManagerError extends Error {
     super(message ?? code);
     this.name = 'PortfolioManagerError';
   }
+}
+
+// BUG-05: case-insensitive duplicate-name guard. The sidecar (listPortfolios) is
+// the canonical list surface — the switcher reads from it — so the check runs
+// there, not against vf_portfolio_meta. Demo entries are excluded because the
+// demo name is a fixed constant ('Demo Portfolio') and demo creation is
+// idempotent (alreadyExisted: true); a user with a real portfolio called
+// "Demo Portfolio" must not collide with the demo, and vice versa. `selfId`
+// lets renamePortfolio skip its own entry.
+function assertUniquePortfolioName(name: string, selfId?: string): void {
+  const target = name.trim().toLowerCase();
+  if (!target) return; // empty name is rejected upstream
+  const clash = listPortfolios().some(
+    p => p.kind === 'real' && p.id !== selfId && p.name.trim().toLowerCase() === target,
+  );
+  if (clash) throw new PortfolioManagerError('DUPLICATE_NAME');
 }
 
 // --- in-process serialization for create ------------------------------------
@@ -95,6 +112,7 @@ async function createPortfolioImpl(input: CreatePortfolioInput): Promise<CreateP
 }
 
 function createFreshImpl(name: string): CreatePortfolioResult {
+  assertUniquePortfolioName(name);
   const id = crypto.randomUUID();
   const entry: PortfolioEntry = {
     id, name, kind: 'real', source: 'fresh',
@@ -133,6 +151,11 @@ function createDemoImpl(): CreatePortfolioResult {
 }
 
 function createImportedPpxmlImpl(name: string, ppxmlTempDbPath: string): CreatePortfolioResult {
+  // BUG-05: the import paths deliberately bypass the duplicate-name guard.
+  // Restoring a backup (quovibe-db) or re-importing a PP XML that matches a
+  // real existing portfolio is a legitimate flow — see roundtrip.test.ts and
+  // welcome-flow.test.ts. The guard only fires where the user types the name
+  // interactively (createFreshImpl + renamePortfolio).
   const id = crypto.randomUUID();
   const entry: PortfolioEntry = {
     id, name, kind: 'real', source: 'import-pp-xml',
@@ -175,6 +198,8 @@ function createImportedQuovibeDbImpl(uploadedDbPath: string): CreatePortfolioRes
   } finally {
     readDb.close();
   }
+  // BUG-05: see createImportedPpxmlImpl — the import paths bypass the
+  // duplicate-name guard so backup/restore roundtrips still work.
   const entry: PortfolioEntry = {
     id, name: sourceName, kind: 'real', source: 'import-quovibe-db',
     createdAt,
@@ -224,6 +249,7 @@ export function renamePortfolio(id: string, newName: string): PortfolioEntry {
   const entry = getPortfolioEntry(id);
   if (!entry) throw new PortfolioManagerError('PORTFOLIO_NOT_FOUND');
   if (entry.kind === 'demo') throw new PortfolioManagerError('DEMO_PORTFOLIO_IMMUTABLE_METADATA');
+  assertUniquePortfolioName(newName, id);
 
   const { sqlite } = acquirePortfolioDb(id);
   try {

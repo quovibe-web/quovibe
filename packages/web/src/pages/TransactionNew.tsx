@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { TransactionType, AccountType, getAvailableTransactionTypes } from '@/lib/enums';
 import {
   Select,
@@ -27,6 +28,7 @@ export default function TransactionNew() {
   const navigate = useNavigate();
   const portfolio = usePortfolio();
   const { t } = useTranslation('transactions');
+  const { t: tCommon } = useTranslation('common');
   const [searchParams] = useSearchParams();
 
   const preAccountId = searchParams.get('accountId') ?? undefined;
@@ -45,7 +47,15 @@ export default function TransactionNew() {
   const { mutate, isPending } = useCreateTransaction();
 
   function handleSubmit(values: TransactionFormValues) {
-    mutate(preparePayload(values), { onSuccess: () => navigate(`/p/${portfolio.id}/transactions`) });
+    mutate(preparePayload(values), {
+      onSuccess: () => {
+        toast.success(tCommon('toasts.transactionCreated'));
+        navigate(`/p/${portfolio.id}/transactions`);
+      },
+      onError: () => {
+        toast.error(tCommon('toasts.errorSaving'));
+      },
+    });
   }
 
   return (

@@ -81,7 +81,8 @@
   "toasts": {
     "depositCreated": "Rachunek gotówkowy utworzony",
     "securitiesCreated": "Rachunek papierów wartościowych utworzony",
-    "errorCreating": "Błąd podczas tworzenia konta"
+    "errorCreating": "Błąd podczas tworzenia konta",
+    "duplicateName": "Konto o tej nazwie już istnieje w tym portfelu."
   },
   "clickToChangeLogo": "Kliknij aby zmienić logo",
   "hub": {

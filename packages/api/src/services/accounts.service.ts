@@ -9,11 +9,86 @@ import { accounts } from '../db/schema';
 
 type DrizzleDb = BetterSQLite3Database<Record<string, unknown>>;
 
+// BUG-06: typed service-layer error. Route handlers map DUPLICATE_NAME to 409.
+export class AccountServiceError extends Error {
+  constructor(public readonly code: string, message?: string) {
+    super(message ?? code);
+    this.name = 'AccountServiceError';
+  }
+}
+
+// BUG-06: case-insensitive duplicate-name guard, scoped to one portfolio DB.
+// ppxml2db's `account` table is already per-portfolio (one DB per portfolio),
+// so uniqueness is enforced within the caller-provided sqlite handle.
+// `selfId` lets the rename path skip its own row.
+function assertUniqueAccountName(
+  sqlite: BetterSqlite3.Database,
+  name: string,
+  selfId?: string,
+): void {
+  const target = name.trim();
+  if (!target) return; // empty name rejected upstream by Zod
+  const row = sqlite
+    .prepare(
+      selfId
+        ? 'SELECT uuid FROM account WHERE LOWER(name) = LOWER(?) AND uuid != ? LIMIT 1'
+        : 'SELECT uuid FROM account WHERE LOWER(name) = LOWER(?) LIMIT 1',
+    )
+    .get(...(selfId ? [target, selfId] : [target])) as { uuid: string } | undefined;
+  if (row) throw new AccountServiceError('DUPLICATE_NAME');
+}
+
+export interface CreateAccountInput {
+  id: string;
+  name: string;
+  dbType: 'portfolio' | 'account';
+  dbCurrency: string | null;
+  referenceAccountId: string | null;
+}
+
+export function createAccount(
+  sqlite: BetterSqlite3.Database,
+  input: CreateAccountInput,
+): void {
+  assertUniqueAccountName(sqlite, input.name);
+  const { maxXmlid } = sqlite
+    .prepare('SELECT COALESCE(MAX(_xmlid), 0) as maxXmlid FROM account')
+    .get() as { maxXmlid: number };
+  const { maxOrder } = sqlite
+    .prepare('SELECT COALESCE(MAX(_order), 0) as maxOrder FROM account')
+    .get() as { maxOrder: number };
+  sqlite
+    .prepare(
+      `INSERT INTO account (uuid, type, name, currency, isRetired, referenceAccount, updatedAt, _xmlid, _order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      input.id,
+      input.dbType,
+      input.name,
+      input.dbCurrency,
+      0,
+      input.referenceAccountId,
+      new Date().toISOString(),
+      maxXmlid + 1,
+      maxOrder + 1,
+    );
+}
+
 export async function updateAccountFields(
   db: DrizzleDb,
   id: string,
   updateSet: Record<string, unknown>,
+  sqlite?: BetterSqlite3.Database,
 ): Promise<void> {
+  // BUG-06: rename path also rejects DUPLICATE_NAME. Only runs when a rename
+  // is part of updateSet — other field-only updates (isRetired, logo, etc.)
+  // are unaffected. `sqlite` is optional for legacy callers that do not
+  // touch `name`; passing `name` without `sqlite` is a programming error.
+  if (typeof updateSet.name === 'string' && updateSet.name) {
+    if (!sqlite) throw new AccountServiceError('NAME_CHECK_REQUIRES_SQLITE');
+    assertUniqueAccountName(sqlite, updateSet.name, id);
+  }
   await db.update(accounts).set(updateSet).where(eq(accounts.id, id));
 }
 

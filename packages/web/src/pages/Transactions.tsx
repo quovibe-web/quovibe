@@ -404,6 +404,9 @@ export default function Transactions() {
         toast.success(tCommon('toasts.transactionCreated'));
         setNewSheetOpen(false);
       },
+      onError: () => {
+        toast.error(tCommon('toasts.errorSaving'));
+      },
     });
   }
 
@@ -614,7 +617,7 @@ export default function Transactions() {
         <SheetContent side="right" className="sm:max-w-lg w-full flex flex-col">
           <SheetHeader>
             <SheetTitle>{t('newTransaction')}</SheetTitle>
-            <SheetDescription>{t('subtitle')}</SheetDescription>
+            <SheetDescription>{t('newTransactionDescription')}</SheetDescription>
           </SheetHeader>
           <div className="px-4 pb-2">
             <Label className="mb-1.5 block">{t('transactionType')}</Label>

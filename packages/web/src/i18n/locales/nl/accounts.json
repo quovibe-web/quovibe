@@ -81,7 +81,8 @@
   "toasts": {
     "depositCreated": "Geldrekening aangemaakt",
     "securitiesCreated": "Effectenrekening aangemaakt",
-    "errorCreating": "Fout bij aanmaken van rekening"
+    "errorCreating": "Fout bij aanmaken van rekening",
+    "duplicateName": "Er bestaat al een rekening met deze naam in deze portefeuille."
   },
   "clickToChangeLogo": "Klik om logo te wijzigen",
   "hub": {

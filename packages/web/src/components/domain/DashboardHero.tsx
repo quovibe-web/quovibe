@@ -1,3 +1,4 @@
+import { Info } from 'lucide-react';
 import { useCalculation, useReportingPeriod } from '@/api/use-performance';
 import { useScopedApi } from '@/api/use-scoped-api';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
@@ -7,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { GainBadge } from '@/components/shared/GainBadge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface ChartPoint {
   date: string;
@@ -101,7 +103,26 @@ export function DashboardHero() {
             <CurrencyDisplay value={balance} className="text-4xl font-normal tracking-tight" />
           )}
         </div>
-        <div className="flex items-baseline gap-3 mt-1.5">
+        <div className="flex items-center gap-1 mt-1.5">
+          <span className="text-[0.6rem] text-muted-foreground uppercase tracking-wider font-medium">
+            {t('widgetTypes.absolute-performance')}
+          </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="text-muted-foreground/40 hover:text-muted-foreground shrink-0"
+                aria-label={t('widgetTypes.absolute-performance')}
+              >
+                <Info className="size-2.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-[220px]">
+              <p className="text-xs">{t('catalog.desc.absolute-performance')}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <div className="flex items-baseline gap-3">
           {isPrivate ? (
             <span className="text-sm text-muted-foreground">••••••</span>
           ) : (

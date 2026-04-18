@@ -81,7 +81,8 @@
   "toasts": {
     "depositCreated": "Cuenta de efectivo creada",
     "securitiesCreated": "Cuenta de valores creada",
-    "errorCreating": "Error al crear la cuenta"
+    "errorCreating": "Error al crear la cuenta",
+    "duplicateName": "Ya existe una cuenta con este nombre en esta cartera."
   },
   "clickToChangeLogo": "Haga clic para cambiar el logo",
   "hub": {

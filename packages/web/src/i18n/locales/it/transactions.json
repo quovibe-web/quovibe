@@ -102,6 +102,10 @@
     "sourceDestMustDiffer": "Origine e destinazione devono essere diversi",
     "sharesMustBePositive": "Le quote devono essere maggiori di 0",
     "amountMustBePositive": "L'importo deve essere maggiore di 0",
+    "priceMustBePositive": "Il prezzo deve essere maggiore di 0",
+    "feesMustBeNonNegative": "Le commissioni devono essere 0 o superiori",
+    "taxesMustBeNonNegative": "Le imposte devono essere 0 o superiori",
+    "fxRateMustBePositive": "Il tasso di cambio deve essere maggiore di 0",
     "nameRequired": "Il nome è obbligatorio",
     "noteRequired": "La nota è obbligatoria.",
     "ratioRequired": "Il rapporto di split è obbligatorio (es. 2:1).",
@@ -133,6 +137,7 @@
   },
   "transactionType": "Tipo di Transazione",
   "newTransaction": "Nuova Transazione",
+  "newTransactionDescription": "Crea un acquisto, vendita, deposito, trasferimento o altra operazione.",
   "subtitle": "Sfoglia e gestisci tutte le transazioni del portafoglio",
   "noLinkedDeposit": "Questo conto titoli non ha un conto deposito collegato.",
   "empty": {

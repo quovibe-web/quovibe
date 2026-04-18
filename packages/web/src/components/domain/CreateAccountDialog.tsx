@@ -133,8 +133,12 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
       }
       setIsDirty(false);
       onOpenChange(false);
-    } catch {
-      setError(t('toasts.errorCreating'));
+    } catch (err) {
+      setError(
+        (err as Error)?.message === 'DUPLICATE_NAME'
+          ? t('toasts.duplicateName')
+          : t('toasts.errorCreating'),
+      );
     }
   }
 

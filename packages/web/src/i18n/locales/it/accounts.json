@@ -81,7 +81,8 @@
   "toasts": {
     "depositCreated": "Conto deposito creato",
     "securitiesCreated": "Conto titoli creato",
-    "errorCreating": "Errore nella creazione del conto"
+    "errorCreating": "Errore nella creazione del conto",
+    "duplicateName": "Esiste già un conto con questo nome in questo portafoglio."
   },
   "clickToChangeLogo": "Clicca per cambiare logo",
   "hub": {

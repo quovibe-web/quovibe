@@ -185,14 +185,16 @@ interface SecurityDef {
   dailyVol: number;
   portfolioId: string | null;
   depositId: string | null;
+  isRetired?: boolean;
 }
 
 function sec(
   name: string, ticker: string, isin: string, feedTicker: string,
   basePrice: number, targetReturn: number, dailyVol: number,
-  portfolioId: string | null, depositId: string | null
+  portfolioId: string | null, depositId: string | null,
+  isRetired = false,
 ): SecurityDef {
-  return { uuid: randomUUID(), name, ticker, isin, feedTicker, basePrice, targetReturn, dailyVol, portfolioId, depositId };
+  return { uuid: randomUUID(), name, ticker, isin, feedTicker, basePrice, targetReturn, dailyVol, portfolioId, depositId, isRetired };
 }
 
 // IB portfolio (8)
@@ -220,7 +222,7 @@ const TSM = sec('Taiwan Semiconductor', 'TSM.DE', 'US8740391003', 'TSM.DE', 140,
 const GOOGL = sec('Alphabet Inc', 'GOOGL.DE', 'US02079K3059', 'GOOGL.DE', 135, 0.15, 0.016, null, null);
 const AMZN = sec('Amazon.com', 'AMZN.DE', 'US0231351067', 'AMZN.DE', 150, 0.20, 0.017, null, null);
 const BTCE = sec('BTCetc Bitcoin ETP', 'BTCE.DE', 'DE000A27Z304', 'BTCE.DE', 55, 0.30, 0.035, null, null);
-const ZETH = sec('CoinShares Ether ETP', 'ZETH.DE', 'GB00BLD4ZL17', 'ZETH.DE', 12, 0.15, 0.040, null, null);
+const ZETH = sec('CoinShares Ether ETP', 'ZETH.DE', 'GB00BLD4ZL17', 'ZETH.DE', 12, 0.15, 0.040, null, null, true);
 
 const ALL_SECURITIES: SecurityDef[] = [
   VWCE, IWDA, SXR8, EIMI, XBLC, AAPL, ASML, SAP_SEC,
@@ -231,12 +233,12 @@ const ALL_SECURITIES: SecurityDef[] = [
 const insertSecurity = db.prepare(`
   INSERT INTO security(uuid, onlineId, name, currency, targetCurrency, note, isin, tickerSymbol, calendar, wkn,
     feedTickerSymbol, feed, feedURL, latestFeed, latestFeedURL, isRetired, updatedAt)
-  VALUES (?, ?, ?, 'EUR', NULL, NULL, ?, ?, NULL, NULL, ?, 'YAHOO', NULL, 'YAHOO', NULL, 0, ?)
+  VALUES (?, ?, ?, 'EUR', NULL, NULL, ?, ?, NULL, NULL, ?, 'YAHOO', NULL, 'YAHOO', NULL, ?, ?)
 `);
 
 db.transaction(() => {
   for (const s of ALL_SECURITIES) {
-    insertSecurity.run(s.uuid, s.feedTicker, s.name, s.isin, s.ticker, s.feedTicker, now);
+    insertSecurity.run(s.uuid, s.feedTicker, s.name, s.isin, s.ticker, s.feedTicker, s.isRetired ? 1 : 0, now);
   }
 })();
 
@@ -622,10 +624,18 @@ console.log('[Transfer] 1 account transfer inserted');
 interface TaxonomyLeaf {
   name: string;
   color: string;
+  // Target allocation in basis points (10000 = 100%). Leaves within a
+  // taxonomy MUST sum to 10000 so the Rebalancing tab renders valid targets.
+  weight: number;
   items: { uuid: string; itemType: 'security' | 'account' }[];
 }
 
 function createTaxonomy(taxName: string, leaves: TaxonomyLeaf[]): void {
+  const weightSum = leaves.reduce((acc, leaf) => acc + leaf.weight, 0);
+  if (weightSum !== 10000) {
+    throw new Error(`[Taxonomies] "${taxName}" leaf weights must sum to 10000 bp (got ${weightSum}).`);
+  }
+
   const taxUuid = randomUUID();
   const rootUuid = randomUUID();
 
@@ -642,7 +652,7 @@ function createTaxonomy(taxName: string, leaves: TaxonomyLeaf[]): void {
     const catUuid = randomUUID();
     rank++;
     db.prepare(`INSERT INTO taxonomy_category(uuid, taxonomy, parent, name, color, weight, rank)
-      VALUES (?, ?, ?, ?, ?, 10000, ?)`).run(catUuid, taxUuid, rootUuid, leaf.name, leaf.color, rank);
+      VALUES (?, ?, ?, ?, ?, ?, ?)`).run(catUuid, taxUuid, rootUuid, leaf.name, leaf.color, leaf.weight, rank);
 
     for (const item of leaf.items) {
       db.prepare(`INSERT INTO taxonomy_assignment(taxonomy, category, item_type, item, weight, rank)
@@ -659,33 +669,33 @@ function accItem(uuid: string): { uuid: string; itemType: 'security' | 'account'
 }
 
 db.transaction(() => {
-  // Asset Class
+  // Asset Class (weights sum to 100%)
   createTaxonomy('Asset Class', [
-    { name: 'Equity ETF', color: '#4285F4', items: [secItem(VWCE), secItem(IWDA), secItem(SXR8), secItem(EIMI), secItem(IQQH), secItem(CJ1)] },
-    { name: 'Single Stock', color: '#EA4335', items: [secItem(AAPL), secItem(ASML), secItem(SAP_SEC), secItem(MSFT), secItem(NVDA), secItem(MC), secItem(ALV), secItem(DTE)] },
-    { name: 'Bond', color: '#FBBC04', items: [secItem(XBLC)] },
-    { name: 'Cash', color: '#34A853', items: [accItem(IB_CASH_ID), accItem(SC_CASH_ID), accItem(CASH_RESERVE_ID)] },
+    { name: 'Equity ETF', color: '#4285F4', weight: 5000, items: [secItem(VWCE), secItem(IWDA), secItem(SXR8), secItem(EIMI), secItem(IQQH), secItem(CJ1)] },
+    { name: 'Single Stock', color: '#EA4335', weight: 2000, items: [secItem(AAPL), secItem(ASML), secItem(SAP_SEC), secItem(MSFT), secItem(NVDA), secItem(MC), secItem(ALV), secItem(DTE)] },
+    { name: 'Bond', color: '#FBBC04', weight: 1500, items: [secItem(XBLC)] },
+    { name: 'Cash', color: '#34A853', weight: 1500, items: [accItem(IB_CASH_ID), accItem(SC_CASH_ID), accItem(CASH_RESERVE_ID)] },
   ]);
 
-  // Region
+  // Region (weights sum to 100%)
   createTaxonomy('Region', [
-    { name: 'Global', color: '#4285F4', items: [secItem(VWCE), secItem(IWDA)] },
-    { name: 'North America', color: '#EA4335', items: [secItem(SXR8), secItem(AAPL), secItem(MSFT), secItem(NVDA)] },
-    { name: 'Europe', color: '#FBBC04', items: [secItem(ASML), secItem(SAP_SEC), secItem(MC), secItem(ALV), secItem(DTE), secItem(XBLC)] },
-    { name: 'Emerging Markets', color: '#34A853', items: [secItem(EIMI)] },
-    { name: 'Japan', color: '#FF6D01', items: [secItem(CJ1)] },
-    { name: 'Thematic', color: '#46BDC6', items: [secItem(IQQH)] },
+    { name: 'Global', color: '#4285F4', weight: 3000, items: [secItem(VWCE), secItem(IWDA)] },
+    { name: 'North America', color: '#EA4335', weight: 3000, items: [secItem(SXR8), secItem(AAPL), secItem(MSFT), secItem(NVDA)] },
+    { name: 'Europe', color: '#FBBC04', weight: 2500, items: [secItem(ASML), secItem(SAP_SEC), secItem(MC), secItem(ALV), secItem(DTE), secItem(XBLC)] },
+    { name: 'Emerging Markets', color: '#34A853', weight: 500, items: [secItem(EIMI)] },
+    { name: 'Japan', color: '#FF6D01', weight: 500, items: [secItem(CJ1)] },
+    { name: 'Thematic', color: '#46BDC6', weight: 500, items: [secItem(IQQH)] },
   ]);
 
-  // Sector
+  // Sector (weights sum to 100%)
   createTaxonomy('Sector', [
-    { name: 'Technology', color: '#4285F4', items: [secItem(AAPL), secItem(ASML), secItem(SAP_SEC), secItem(MSFT), secItem(NVDA)] },
-    { name: 'Broad Market', color: '#EA4335', items: [secItem(VWCE), secItem(IWDA), secItem(SXR8), secItem(EIMI), secItem(CJ1)] },
-    { name: 'Finance & Insurance', color: '#FBBC04', items: [secItem(ALV)] },
-    { name: 'Luxury', color: '#34A853', items: [secItem(MC)] },
-    { name: 'Telecom', color: '#FF6D01', items: [secItem(DTE)] },
-    { name: 'Clean Energy', color: '#46BDC6', items: [secItem(IQQH)] },
-    { name: 'Fixed Income', color: '#9334E6', items: [secItem(XBLC)] },
+    { name: 'Technology', color: '#4285F4', weight: 3000, items: [secItem(AAPL), secItem(ASML), secItem(SAP_SEC), secItem(MSFT), secItem(NVDA)] },
+    { name: 'Broad Market', color: '#EA4335', weight: 2500, items: [secItem(VWCE), secItem(IWDA), secItem(SXR8), secItem(EIMI), secItem(CJ1)] },
+    { name: 'Finance & Insurance', color: '#FBBC04', weight: 1000, items: [secItem(ALV)] },
+    { name: 'Luxury', color: '#34A853', weight: 1000, items: [secItem(MC)] },
+    { name: 'Telecom', color: '#FF6D01', weight: 1000, items: [secItem(DTE)] },
+    { name: 'Clean Energy', color: '#46BDC6', weight: 500, items: [secItem(IQQH)] },
+    { name: 'Fixed Income', color: '#9334E6', weight: 1000, items: [secItem(XBLC)] },
   ]);
 })();
 

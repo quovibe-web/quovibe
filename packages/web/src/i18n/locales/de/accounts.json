@@ -81,7 +81,8 @@
   "toasts": {
     "depositCreated": "Verrechnungskonto erstellt",
     "securitiesCreated": "Depot erstellt",
-    "errorCreating": "Fehler beim Erstellen des Kontos"
+    "errorCreating": "Fehler beim Erstellen des Kontos",
+    "duplicateName": "Ein Konto mit diesem Namen existiert bereits in diesem Portfolio."
   },
   "clickToChangeLogo": "Klicken um Logo zu ändern",
   "hub": {

@@ -4,7 +4,6 @@ import { AccountAvatar } from '@/components/shared/AccountAvatar';
 import { format, parse, isValid } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { TransactionType } from '@/lib/enums';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/shared/SubmitButton';
@@ -12,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -155,8 +156,24 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
     note: initialValues?.note ?? '',
   });
 
+  // Inline validation state: which field is invalid + localized message. Cleared on any edit.
+  type InvalidField =
+    | 'security' | 'accountId' | 'crossAccountId'
+    | 'shares' | 'price' | 'amount' | 'fees' | 'taxes'
+    | 'fxRate' | 'feesFx' | 'taxesFx';
+  const [errorField, setErrorField] = useState<InvalidField | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   function set(key: keyof typeof fields, value: string) {
     setFields((prev) => ({ ...prev, [key]: value }));
+    if (errorField) { setErrorField(null); setErrorMessage(null); }
+  }
+
+  // Reject "-" / "-1.23" / "1e-3 parses < 0" etc. Treat empty string as not-negative.
+  function isNegative(v: string | undefined): boolean {
+    if (!v) return false;
+    const n = parseFloat(v);
+    return !isNaN(n) && n < 0;
   }
 
   // Cross-account dropdown: SECURITY_TRANSFER → portfolio, TRANSFER_BETWEEN_ACCOUNTS / BUY / SELL → deposit.
@@ -237,30 +254,39 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
     set('securityId', id);
   }
 
+  function fail(field: InvalidField, key: string) {
+    setErrorField(field);
+    setErrorMessage(t(key));
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     // Required field validation
-    if (cfg.security === 'required' && !fields.securityId) {
-      toast.error(t('validation.securityRequired'));
-      return;
-    }
-    if (cfg.shares && !fields.shares) {
-      toast.error(t('validation.sharesRequired'));
-      return;
-    }
+    if (cfg.security === 'required' && !fields.securityId) { fail('security', 'validation.securityRequired'); return; }
+    if (cfg.shares && !fields.shares) { fail('shares', 'validation.sharesRequired'); return; }
     if ((cfg.amount || cfg.price) && !fields.amount && !fields.price) {
-      toast.error(t('validation.amountRequired'));
+      fail(cfg.amount ? 'amount' : 'price', 'validation.amountRequired');
       return;
     }
-    if (cfg.accountId && !fields.accountId) {
-      toast.error(t('validation.accountRequired'));
-      return;
+    if (cfg.accountId && !fields.accountId) { fail('accountId', 'validation.accountRequired'); return; }
+    if (cfg.crossAccountId && !fields.crossAccountId) { fail('crossAccountId', 'validation.targetRequired'); return; }
+
+    // BUG-10: reject negative numeric inputs on visible-for-type fields. The server already
+    // rejects these, but without client-side feedback the user saw a silent save failure.
+    if (cfg.shares && isNegative(fields.shares)) { fail('shares', 'validation.sharesMustBePositive'); return; }
+    if (cfg.price && isNegative(fields.price)) { fail('price', 'validation.priceMustBePositive'); return; }
+    if (cfg.amount && isNegative(fields.amount)) { fail('amount', 'validation.amountMustBePositive'); return; }
+    if (cfg.fees && isNegative(fields.fees)) { fail('fees', 'validation.feesMustBeNonNegative'); return; }
+    if (cfg.taxes && isNegative(fields.taxes)) { fail('taxes', 'validation.taxesMustBeNonNegative'); return; }
+    if (isCrossCurrency) {
+      if (isNegative(fields.fxRate)) { fail('fxRate', 'validation.fxRateMustBePositive'); return; }
+      if (isNegative(fields.feesFx)) { fail('feesFx', 'validation.feesMustBeNonNegative'); return; }
+      if (isNegative(fields.taxesFx)) { fail('taxesFx', 'validation.taxesMustBeNonNegative'); return; }
     }
-    if (cfg.crossAccountId && !fields.crossAccountId) {
-      toast.error(t('validation.targetRequired'));
-      return;
-    }
+
+    setErrorField(null);
+    setErrorMessage(null);
 
     const fxFields: Partial<TransactionFormValues> = {};
     if (isCrossCurrency && fields.fxRate) {
@@ -281,7 +307,16 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
   const showFeesAndTaxes = cfg.fees && cfg.taxes;
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-3" noValidate>
+      {/* Inline validation error (BUG-14). Rendered above all fields so it is visible
+          after scroll-to-top; aria-live=polite so screen readers announce on change. */}
+      {errorMessage && (
+        <Alert variant="destructive" aria-live="polite">
+          <AlertCircle />
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Date & Time */}
       <div className="space-y-1">
         <Label>{t('form.dateTime')}</Label>
@@ -358,7 +393,7 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
             }
             set('securityId', v);
           }}>
-            <SelectTrigger>
+            <SelectTrigger aria-invalid={errorField === 'security' || undefined}>
               <SelectValue placeholder={t('form.selectSecurity')} />
             </SelectTrigger>
             <SelectContent>
@@ -394,7 +429,7 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
             onValueChange={(v) => set('accountId', v)}
             disabled={!!preselectedAccountId}
           >
-            <SelectTrigger>
+            <SelectTrigger aria-invalid={errorField === 'accountId' || undefined}>
               <SelectValue placeholder={t('form.selectAccount')} />
             </SelectTrigger>
             <SelectContent>
@@ -418,7 +453,7 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
             {BUY_SELL_TYPES.has(type) ? t('form.cashAccount') : t('form.toAccount')}
           </Label>
           <Select value={fields.crossAccountId} onValueChange={(v) => set('crossAccountId', v)}>
-            <SelectTrigger>
+            <SelectTrigger aria-invalid={errorField === 'crossAccountId' || undefined}>
               <SelectValue placeholder={t('form.selectAccount')} />
             </SelectTrigger>
             <SelectContent>
@@ -443,9 +478,11 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
             <Input
               type="number"
               step="any"
+              min="0"
               value={fields.shares}
               onChange={(e) => set('shares', e.target.value)}
               placeholder="0.00"
+              aria-invalid={errorField === 'shares' || undefined}
             />
           </div>
           <div className="space-y-1">
@@ -453,9 +490,11 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
             <Input
               type="number"
               step="any"
+              min="0"
               value={fields.price}
               onChange={(e) => set('price', e.target.value)}
               placeholder="0.00"
+              aria-invalid={errorField === 'price' || undefined}
             />
           </div>
         </div>
@@ -467,9 +506,11 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
               <Input
                 type="number"
                 step="any"
+                min="0"
                 value={fields.shares}
                 onChange={(e) => set('shares', e.target.value)}
                 placeholder="0.00"
+                aria-invalid={errorField === 'shares' || undefined}
               />
             </div>
           )}
@@ -479,9 +520,11 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
               <Input
                 type="number"
                 step="any"
+                min="0"
                 value={fields.price}
                 onChange={(e) => set('price', e.target.value)}
                 placeholder="0.00"
+                aria-invalid={errorField === 'price' || undefined}
               />
             </div>
           )}
@@ -495,9 +538,11 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
           <Input
             type="number"
             step="any"
+            min="0"
             value={fields.amount}
             onChange={(e) => set('amount', e.target.value)}
             placeholder="0.00"
+            aria-invalid={errorField === 'amount' || undefined}
           />
         </div>
       )}
@@ -512,9 +557,11 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
                 <Input
                   type="number"
                   step="any"
+                  min="0"
                   value={fields.fees}
                   onChange={(e) => set('fees', e.target.value)}
                   placeholder="0.00"
+                  aria-invalid={errorField === 'fees' || undefined}
                 />
               </div>
               <div className="space-y-1">
@@ -522,9 +569,11 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
                 <Input
                   type="number"
                   step="any"
+                  min="0"
                   value={fields.taxes}
                   onChange={(e) => set('taxes', e.target.value)}
                   placeholder="0.00"
+                  aria-invalid={errorField === 'taxes' || undefined}
                 />
               </div>
             </div>
@@ -536,9 +585,11 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
                   <Input
                     type="number"
                     step="any"
+                    min="0"
                     value={fields.fees}
                     onChange={(e) => set('fees', e.target.value)}
                     placeholder="0.00"
+                    aria-invalid={errorField === 'fees' || undefined}
                   />
                 </div>
               )}
@@ -548,9 +599,11 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
                   <Input
                     type="number"
                     step="any"
+                    min="0"
                     value={fields.taxes}
                     onChange={(e) => set('taxes', e.target.value)}
                     placeholder="0.00"
+                    aria-invalid={errorField === 'taxes' || undefined}
                   />
                 </div>
               )}
@@ -574,9 +627,11 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
             <Input
               type="number"
               step="any"
+              min="0"
               value={fields.fxRate ?? ''}
               onChange={(e) => set('fxRate', e.target.value)}
               placeholder={t('form.fxRatePlaceholder')}
+              aria-invalid={errorField === 'fxRate' || undefined}
             />
           </div>
 
@@ -590,22 +645,22 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>{t('form.feesInCcy', { ccy: securityCurrency })}</Label>
-              <Input type="number" step="any" value={fields.feesFx ?? ''} onChange={(e) => set('feesFx', e.target.value)} placeholder="0.00" />
+              <Input type="number" step="any" min="0" value={fields.feesFx ?? ''} onChange={(e) => set('feesFx', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'feesFx' || undefined} />
             </div>
             <div className="space-y-1">
               <Label>{t('form.feesInCcy', { ccy: cashCurrency })}</Label>
-              <Input type="number" step="any" value={fields.fees ?? ''} onChange={(e) => set('fees', e.target.value)} placeholder="0.00" />
+              <Input type="number" step="any" min="0" value={fields.fees ?? ''} onChange={(e) => set('fees', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'fees' || undefined} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>{t('form.taxesInCcy', { ccy: securityCurrency })}</Label>
-              <Input type="number" step="any" value={fields.taxesFx ?? ''} onChange={(e) => set('taxesFx', e.target.value)} placeholder="0.00" />
+              <Input type="number" step="any" min="0" value={fields.taxesFx ?? ''} onChange={(e) => set('taxesFx', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'taxesFx' || undefined} />
             </div>
             <div className="space-y-1">
               <Label>{t('form.taxesInCcy', { ccy: cashCurrency })}</Label>
-              <Input type="number" step="any" value={fields.taxes ?? ''} onChange={(e) => set('taxes', e.target.value)} placeholder="0.00" />
+              <Input type="number" step="any" min="0" value={fields.taxes ?? ''} onChange={(e) => set('taxes', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'taxes' || undefined} />
             </div>
           </div>
         </div>

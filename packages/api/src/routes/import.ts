@@ -14,20 +14,42 @@ import { ensureDir } from '../lib/atomic-fs';
 const uploadDir = path.join(DATA_DIR, 'tmp');
 ensureDir(uploadDir);
 
+const UPLOAD_MAX_BYTES = IMPORT_MAX_MB * 1024 * 1024; // native-ok
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, uploadDir),
     filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
   }),
-  limits: { fileSize: IMPORT_MAX_MB * 1024 * 1024 },
+  limits: { fileSize: UPLOAD_MAX_BYTES },
   fileFilter: (_req, file, cb) => {
     if (!file.originalname.toLowerCase().endsWith('.xml')) {
-      cb(new Error('FILE_EXTENSION'));
+      cb(new ImportError('INVALID_FILE_FORMAT', 'File must have a .xml extension'));
       return;
     }
     cb(null, true);
   },
 });
+
+// Wrap multer so its failures (extension reject, oversize) land as structured
+// 400 responses via handleError rather than falling through to the global
+// error-handler's 500 branch. Mirrors csv-import.ts `uploadSingle` (BUG-46);
+// BUG-09 applies the same posture to the XML surface.
+const uploadSingle = (field: string): RequestHandler =>
+  (req, res, next) => {
+    upload.single(field)(req, res, (err: unknown) => {
+      if (!err) { next(); return; }
+      if (err instanceof ImportError) { handleError(res, err); return; }
+      if (err instanceof multer.MulterError) {
+        const mapped = err.code === 'LIMIT_FILE_SIZE'
+          ? new ImportError('FILE_TOO_LARGE', `Upload exceeds ${UPLOAD_MAX_BYTES} bytes`)
+          : new ImportError('INVALID_FILE_FORMAT', err.message);
+        handleError(res, mapped);
+        return;
+      }
+      handleError(res, new ImportError('INVALID_FILE_FORMAT', String((err as Error).message ?? err)));
+    });
+  };
 
 export const importRouter: RouterType = Router();
 
@@ -40,7 +62,7 @@ const uploadXml: RequestHandler = async (req, res) => {
   }
 
   if (!req.file) {
-    res.status(400).json({ error: 'INVALID_XML', details: 'Nessun file ricevuto' });
+    handleError(res, new ImportError('NO_FILE', 'No file received'));
     return;
   }
 
@@ -78,21 +100,14 @@ const uploadXml: RequestHandler = async (req, res) => {
       securities: result.securities,
     });
   } catch (err) {
-    if (err instanceof ImportError) {
-      if (err.code === 'CONVERSION_FAILED') {
-        res.status(500).json({ error: err.code, details: err.details ?? err.message });
-      } else {
-        res.status(400).json({ error: err.code, details: err.message });
-      }
-      return;
-    }
+    if (err instanceof ImportError) { handleError(res, err); return; }
     if (err instanceof PortfolioManagerError) {
       res.status(400).json({ error: err.code });
       return;
     }
     console.error('[quovibe] Import error:', err);
     const details = process.env.NODE_ENV === 'production'
-      ? 'Errore interno del server'
+      ? 'Internal server error'
       : String(err);
     res.status(500).json({ error: 'CONVERSION_FAILED', details });
   }
@@ -104,26 +119,35 @@ const getStatus: RequestHandler = (_req, res) => {
   res.json({ ready: true, inProgress: isImportInProgress(), lastImport });
 };
 
-// Apply 120s timeout to the upload route, with multer error handling
+// Apply 120s timeout to the upload route. ppxml2db has a 110s internal cap so
+// the outer 120s gives it headroom before Express terminates the request.
 importRouter.post('/xml', (req, res, next) => {
-  req.setTimeout(120_000);
-  res.setTimeout(120_000);
+  req.setTimeout(120_000); // native-ok
+  res.setTimeout(120_000); // native-ok
   next();
-}, (req, res, next) => {
-  upload.single('file')(req, res, (err: unknown) => {
-    if (err && typeof err === 'object' && 'code' in err) {
-      if ((err as { code: string }).code === 'LIMIT_FILE_SIZE') {
-        res.status(400).json({ error: 'FILE_TOO_LARGE' });
-        return;
-      }
-    }
-    if (err instanceof Error && err.message === 'FILE_EXTENSION') {
-      res.status(400).json({ error: 'INVALID_XML', details: 'Estensione file non .xml' });
-      return;
-    }
-    if (err) return next(err);
-    next();
-  });
-}, uploadXml);
+}, uploadSingle('file'), uploadXml);
 
 importRouter.get('/status', getStatus);
+
+// ─── Error handler ────────────────────────────────
+//
+// Mirror of csv-import.ts handleError: only ImportError reaches the wire;
+// anything else becomes 500 CONVERSION_FAILED. Codes map to HTTP status as:
+//   NO_FILE, INVALID_FILE_FORMAT, FILE_TOO_LARGE,
+//   INVALID_XML, INVALID_FORMAT, ENCRYPTED_FORMAT    → 400
+//   IMPORT_IN_PROGRESS                               → 409
+//   CONVERSION_FAILED                                → 500
+function handleError(res: Parameters<RequestHandler>[1], err: unknown): void {
+  if (err instanceof ImportError) {
+    const status = err.code === 'IMPORT_IN_PROGRESS' ? 409
+      : err.code === 'CONVERSION_FAILED' ? 500
+      : 400;
+    const body: { error: string; details?: string } = { error: err.code };
+    if (err.details) body.details = err.details;
+    else if (err.message) body.details = err.message;
+    res.status(status).json(body);
+    return;
+  }
+  console.error('[xml-import]', err);
+  res.status(500).json({ error: 'CONVERSION_FAILED', details: String(err) });
+}

@@ -81,7 +81,8 @@
   "toasts": {
     "depositCreated": "Deposit account created",
     "securitiesCreated": "Securities account created",
-    "errorCreating": "Error creating account"
+    "errorCreating": "Error creating account",
+    "duplicateName": "An account with this name already exists in this portfolio."
   },
   "clickToChangeLogo": "Click to change logo",
   "hub": {

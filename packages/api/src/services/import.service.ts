@@ -21,7 +21,8 @@ const LOCK_FILE = path.join(os.tmpdir(), 'quovibe-import.lock');
 export class ImportError extends Error {
   constructor(
     public readonly code: 'INVALID_XML' | 'INVALID_FORMAT' | 'ENCRYPTED_FORMAT' |
-                           'IMPORT_IN_PROGRESS' | 'CONVERSION_FAILED' | 'FILE_TOO_LARGE',
+                           'IMPORT_IN_PROGRESS' | 'CONVERSION_FAILED' |
+                           'FILE_TOO_LARGE' | 'INVALID_FILE_FORMAT' | 'NO_FILE',
     message: string,
     public readonly details?: string,
   ) {

@@ -50,8 +50,14 @@ export default function Welcome() {
       { source: 'fresh', name: name.trim() },
       {
         onSuccess: (r) => navigate(`/p/${r.entry.id}/dashboard`),
-        onError: (err) =>
-          toast.error(t('errors.createFailed', { msg: (err as Error).message })),
+        onError: (err) => {
+          const msg = (err as Error).message;
+          toast.error(
+            msg === 'DUPLICATE_NAME'
+              ? t('errors.duplicateName')
+              : t('errors.createFailed', { msg }),
+          );
+        },
       },
     );
   };

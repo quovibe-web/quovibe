@@ -44,7 +44,8 @@
   },
   "errors": {
     "demoFailed": "Impossible d'ouvrir la démo : {{msg}}",
-    "createFailed": "Impossible de créer le portefeuille : {{msg}}"
+    "createFailed": "Impossible de créer le portefeuille : {{msg}}",
+    "duplicateName": "Un portefeuille portant ce nom existe déjà."
   },
   "hub": {
     "title": "Importer des données",
@@ -72,7 +73,10 @@
     },
     "errors": {
       "fileRequired": "Sélectionnez d'abord un fichier.",
-      "importFailed": "Échec de l'import : {{msg}}"
+      "importFailed": "Échec de l'import : {{msg}}",
+      "invalidFile": "Export XML non valide. Un fichier .xml exporté depuis Portfolio Performance est attendu.",
+      "tooLarge": "Le fichier dépasse la taille maximale autorisée.",
+      "binary": "Le fichier semble binaire ou corrompu. Un export XML en texte brut est attendu."
     }
   }
 }

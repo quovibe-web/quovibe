@@ -102,6 +102,10 @@
     "sourceDestMustDiffer": "La source et la destination doivent être différentes",
     "sharesMustBePositive": "Les parts doivent être supérieures à 0",
     "amountMustBePositive": "Le montant doit être supérieur à 0",
+    "priceMustBePositive": "Le prix doit être supérieur à 0",
+    "feesMustBeNonNegative": "Les frais doivent être à 0 ou plus",
+    "taxesMustBeNonNegative": "Les impôts doivent être à 0 ou plus",
+    "fxRateMustBePositive": "Le taux de change doit être supérieur à 0",
     "nameRequired": "Le nom est requis",
     "noteRequired": "La note est requise.",
     "ratioRequired": "Le ratio de division est requis (ex. 2:1).",
@@ -133,6 +137,7 @@
   },
   "transactionType": "Type de transaction",
   "newTransaction": "Nouvelle transaction",
+  "newTransactionDescription": "Créer un achat, une vente, un dépôt, un virement ou une autre opération.",
   "subtitle": "Browse and manage all portfolio transactions",
   "noLinkedDeposit": "Ce compte-titres n'a pas de compte espèces associé.",
   "empty": {

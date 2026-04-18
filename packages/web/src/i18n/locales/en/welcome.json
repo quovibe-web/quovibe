@@ -44,7 +44,8 @@
   },
   "errors": {
     "demoFailed": "Could not open the demo: {{msg}}",
-    "createFailed": "Could not create the portfolio: {{msg}}"
+    "createFailed": "Could not create the portfolio: {{msg}}",
+    "duplicateName": "A portfolio with this name already exists."
   },
   "hub": {
     "title": "Import existing data",
@@ -72,7 +73,10 @@
     },
     "errors": {
       "fileRequired": "Pick a file first.",
-      "importFailed": "Import failed: {{msg}}"
+      "importFailed": "Import failed: {{msg}}",
+      "invalidFile": "Not a valid XML export. Expected a .xml file from Portfolio Performance.",
+      "tooLarge": "File exceeds the upload size limit.",
+      "binary": "File appears to be binary or corrupted. Expected a plain-text XML export."
     }
   }
 }

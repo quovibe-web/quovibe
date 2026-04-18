@@ -44,7 +44,8 @@
   },
   "errors": {
     "demoFailed": "Kon de demo niet openen: {{msg}}",
-    "createFailed": "Kon de portefeuille niet aanmaken: {{msg}}"
+    "createFailed": "Kon de portefeuille niet aanmaken: {{msg}}",
+    "duplicateName": "Er bestaat al een portefeuille met deze naam."
   },
   "hub": {
     "title": "Bestaande data importeren",
@@ -72,7 +73,10 @@
     },
     "errors": {
       "fileRequired": "Kies eerst een bestand.",
-      "importFailed": "Import mislukt: {{msg}}"
+      "importFailed": "Import mislukt: {{msg}}",
+      "invalidFile": "Geen geldige XML-export. Een .xml-bestand uit Portfolio Performance wordt verwacht.",
+      "tooLarge": "Het bestand overschrijdt de maximale uploadgrootte.",
+      "binary": "Het bestand lijkt binair of beschadigd te zijn. Een XML-export als platte tekst wordt verwacht."
     }
   }
 }
