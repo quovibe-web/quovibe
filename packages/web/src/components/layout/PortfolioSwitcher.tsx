@@ -1,5 +1,5 @@
 // packages/web/src/components/layout/PortfolioSwitcher.tsx
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   DropdownMenu,
@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { usePortfolioRegistry, useCreatePortfolio, useTouchPortfolio } from '@/api/use-portfolios';
+import { portfolioSectionPath } from '@/lib/portfolio-switch-route';
 import { toast } from 'sonner';
 import { Beaker, ChevronDown, Check, Plus } from 'lucide-react';
 
@@ -16,6 +17,7 @@ export function PortfolioSwitcher() {
   const { t } = useTranslation('switcher');
   const { portfolioId } = useParams<{ portfolioId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const registry = usePortfolioRegistry();
   const createDemo = useCreatePortfolio();
   const touch = useTouchPortfolio();
@@ -29,7 +31,8 @@ export function PortfolioSwitcher() {
 
   const pick = (id: string): void => {
     touch.mutate(id);
-    navigate(`/p/${id}/dashboard`);
+    const section = portfolioSectionPath(location.pathname);
+    navigate(`/p/${id}${section}${location.search}`);
   };
 
   const tryDemo = (): void => {
