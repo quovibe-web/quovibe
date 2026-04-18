@@ -39,8 +39,6 @@
   "columns.mapsTo": "Mapeado para",
   "columns.unmapped": "-- Ignorar --",
   "columns.required": "Obrigatório",
-  "columns.portfolio": "Carteira de destino",
-  "columns.selectPortfolio": "Selecionar uma carteira...",
   "columns.depositHint": "Conta de caixa: {{name}}",
 
   "columns.field.date": "Data",

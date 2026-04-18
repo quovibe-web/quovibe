@@ -39,8 +39,6 @@
   "columns.mapsTo": "Mappa a",
   "columns.unmapped": "-- Ignora --",
   "columns.required": "Obbligatorio",
-  "columns.portfolio": "Portafoglio di Destinazione",
-  "columns.selectPortfolio": "Seleziona un portafoglio...",
   "columns.depositHint": "Conto di liquidità: {{name}}",
 
   "columns.field.date": "Data",

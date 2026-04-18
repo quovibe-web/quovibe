@@ -39,8 +39,6 @@
   "columns.mapsTo": "Correspond à",
   "columns.unmapped": "-- Ignorer --",
   "columns.required": "Obligatoire",
-  "columns.portfolio": "Portefeuille cible",
-  "columns.selectPortfolio": "Sélectionner un portefeuille...",
   "columns.depositHint": "Compte de liquidités : {{name}}",
 
   "columns.field.date": "Date",

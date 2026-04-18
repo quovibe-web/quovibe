@@ -39,8 +39,6 @@
   "columns.mapsTo": "Gekoppeld aan",
   "columns.unmapped": "-- Negeren --",
   "columns.required": "Verplicht",
-  "columns.portfolio": "Doelportefeuille",
-  "columns.selectPortfolio": "Selecteer een portefeuille...",
   "columns.depositHint": "Geldrekening: {{name}}",
 
   "columns.field.date": "Datum",

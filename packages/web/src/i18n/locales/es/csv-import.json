@@ -39,8 +39,6 @@
   "columns.mapsTo": "Se asigna a",
   "columns.unmapped": "-- Ignorar --",
   "columns.required": "Obligatorio",
-  "columns.portfolio": "Cartera destino",
-  "columns.selectPortfolio": "Seleccionar una cartera...",
   "columns.depositHint": "Cuenta de efectivo: {{name}}",
 
   "columns.field.date": "Fecha",

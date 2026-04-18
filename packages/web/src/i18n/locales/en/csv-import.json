@@ -39,8 +39,6 @@
   "columns.mapsTo": "Maps to",
   "columns.unmapped": "-- Ignore --",
   "columns.required": "Required",
-  "columns.portfolio": "Target Portfolio",
-  "columns.selectPortfolio": "Select a portfolio...",
   "columns.depositHint": "Cash account: {{name}}",
 
   "columns.field.date": "Date",

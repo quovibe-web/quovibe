@@ -21,7 +21,6 @@ export interface WizardState {
 
   // Step 2 output
   columnMapping: Record<string, number>;
-  targetPortfolioId: string;
 
   // Step 3 output
   previewResult: TradePreviewResult | null;
@@ -37,7 +36,6 @@ const initialState: WizardState = {
   decimalSeparator: '.',
   thousandSeparator: '',
   columnMapping: {},
-  targetPortfolioId: '',
   previewResult: null,
   securityMapping: {},
   newSecurities: [],

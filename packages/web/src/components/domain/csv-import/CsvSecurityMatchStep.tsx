@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { usePreviewCsvTrades } from '@/api/use-csv-import';
 import { useSecurities } from '@/api/use-securities';
+import { usePortfolio } from '@/context/PortfolioContext';
 import type { WizardState } from '@/pages/CsvImportPage';
 
 interface Props {
@@ -20,6 +21,7 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
   const { t } = useTranslation('csv-import');
   const previewMutation = usePreviewCsvTrades();
   const { data: allSecurities } = useSecurities();
+  const portfolio = usePortfolio();
   const [localMapping, setLocalMapping] = useState<Record<string, string>>(state.securityMapping);
 
   // Call preview on mount
@@ -32,7 +34,7 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
         dateFormat: state.dateFormat,
         decimalSeparator: state.decimalSeparator,
         thousandSeparator: state.thousandSeparator,
-        targetPortfolioId: state.targetPortfolioId,
+        targetPortfolioId: portfolio.id,
       },
       {
         onSuccess: (result) => {

@@ -39,8 +39,6 @@
   "columns.mapsTo": "Zuordnung",
   "columns.unmapped": "-- Ignorieren --",
   "columns.required": "Erforderlich",
-  "columns.portfolio": "Ziel-Portfolio",
-  "columns.selectPortfolio": "Portfolio auswählen...",
   "columns.depositHint": "Verrechnungskonto: {{name}}",
 
   "columns.field.date": "Datum",

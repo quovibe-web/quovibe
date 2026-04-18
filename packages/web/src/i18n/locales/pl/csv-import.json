@@ -39,8 +39,6 @@
   "columns.mapsTo": "Mapuje do",
   "columns.unmapped": "-- Ignoruj --",
   "columns.required": "Wymagane",
-  "columns.portfolio": "Docelowy portfel",
-  "columns.selectPortfolio": "Wybierz portfel...",
   "columns.depositHint": "Konto gotówkowe: {{name}}",
 
   "columns.field.date": "Data",

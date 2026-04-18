@@ -54,7 +54,7 @@ export function CsvPreviewStep({ state, onBack }: Props) {
         decimalSeparator: state.decimalSeparator,
         thousandSeparator: state.thousandSeparator,
       },
-      targetPortfolioId: state.targetPortfolioId,
+      targetPortfolioId: portfolio.id,
       securityMapping: state.securityMapping,
       newSecurities: state.newSecurities,
       excludedRows: Array.from(excludedRows),
