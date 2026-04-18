@@ -238,6 +238,10 @@ function buildColumns(
               size="icon"
               className="h-7 w-7"
               onClick={(e) => e.stopPropagation()}
+              aria-label={t('a11y.rowActions', {
+                type: t('types.' + txTypeKey(row.original.type)),
+                date: formatDate(row.original.date),
+              })}
             >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
@@ -620,9 +624,9 @@ export default function Transactions() {
             <SheetDescription>{t('newTransactionDescription')}</SheetDescription>
           </SheetHeader>
           <div className="px-4 pb-2">
-            <Label className="mb-1.5 block">{t('transactionType')}</Label>
+            <Label htmlFor="new-tx-type" className="mb-1.5 block">{t('transactionType')}</Label>
             <Select value={newTxType} onValueChange={(v) => setNewTxType(v as TransactionType)}>
-              <SelectTrigger>
+              <SelectTrigger id="new-tx-type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

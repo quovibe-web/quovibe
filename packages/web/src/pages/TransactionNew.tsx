@@ -63,9 +63,9 @@ export default function TransactionNew() {
       <h1 className="text-lg font-semibold text-foreground tracking-tight">{t('newTransaction')}</h1>
 
       <div className="space-y-1">
-        <Label>{t('transactionType')}</Label>
+        <Label htmlFor="tx-new-type">{t('transactionType')}</Label>
         <Select value={type} onValueChange={(v) => setType(v as TransactionType)}>
-          <SelectTrigger>
+          <SelectTrigger id="tx-new-type">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

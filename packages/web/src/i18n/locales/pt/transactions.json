@@ -38,6 +38,8 @@
   },
   "form": {
     "dateTime": "Data e hora",
+    "time": "Hora",
+    "openCalendar": "Abrir calendário",
     "datePlaceholder": "dd.MM.aaaa",
     "quantity": "Quantidade",
     "price": "Preço",
@@ -115,6 +117,9 @@
     "edit": "Editar",
     "delete": "Eliminar",
     "new": "Novo"
+  },
+  "a11y": {
+    "rowActions": "Ações para {{type}} de {{date}}"
   },
   "editTitles": {
     "buy": "Editar compra",

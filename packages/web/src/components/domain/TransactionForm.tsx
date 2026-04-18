@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useId } from 'react';
 import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
 import { AccountAvatar } from '@/components/shared/AccountAvatar';
 import { format, parse, isValid } from 'date-fns';
@@ -116,6 +116,9 @@ interface TransactionFormProps {
 export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, preselectedAccountId, hideSubmitButton, formRef }: TransactionFormProps) {
   const { t } = useTranslation('transactions');
   const cfg = FIELD_CONFIG[type];
+  // Per-instance prefix so two mounted TransactionForms (edit + new) never collide on element ids.
+  const uid = useId();
+  const fieldId = (name: string) => `${uid}-${name}`;
   const { data: accounts = [] } = useAccounts();
   const { data: securities = [] } = useSecurities();
   const [addInstrumentOpen, setAddInstrumentOpen] = useState(false);
@@ -319,11 +322,12 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
 
       {/* Date & Time */}
       <div className="space-y-1">
-        <Label>{t('form.dateTime')}</Label>
+        <Label htmlFor={fieldId('date')}>{t('form.dateTime')}</Label>
         <div className="flex gap-2">
           <Popover open={calOpen} onOpenChange={setCalOpen}>
             <div className="relative flex-1">
               <Input
+                id={fieldId('date')}
                 ref={dateInputRef}
                 value={dateText}
                 onChange={(e) => {
@@ -353,6 +357,7 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
                   size="icon"
                   className="absolute right-0 top-0 h-full w-9 rounded-l-none"
                   type="button"
+                  aria-label={t('form.openCalendar')}
                 >
                   <CalendarIcon className="h-4 w-4" />
                 </Button>
@@ -374,10 +379,12 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
             </PopoverContent>
           </Popover>
           <Input
+            id={fieldId('time')}
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
             className="w-28"
+            aria-label={t('form.time')}
           />
         </div>
       </div>
@@ -385,7 +392,7 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
       {/* Security */}
       {cfg.security !== false && (
         <div className="space-y-1">
-          <Label>{t('form.security')} {cfg.security === 'optional' ? t('common:optional') : ''}</Label>
+          <Label htmlFor={fieldId('security')}>{t('form.security')} {cfg.security === 'optional' ? t('common:optional') : ''}</Label>
           <Select value={fields.securityId} onValueChange={(v) => {
             if (v === '__create_new__') {
               setAddInstrumentOpen(true);
@@ -393,7 +400,7 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
             }
             set('securityId', v);
           }}>
-            <SelectTrigger aria-invalid={errorField === 'security' || undefined}>
+            <SelectTrigger id={fieldId('security')} aria-invalid={errorField === 'security' || undefined}>
               <SelectValue placeholder={t('form.selectSecurity')} />
             </SelectTrigger>
             <SelectContent>
@@ -417,7 +424,7 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
       {/* Account */}
       {cfg.accountId && (
         <div className="space-y-1">
-          <Label>
+          <Label htmlFor={fieldId('accountId')}>
             {BUY_SELL_TYPES.has(type)
               ? t('form.securitiesAccount')
               : cfg.crossAccountId
@@ -429,7 +436,7 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
             onValueChange={(v) => set('accountId', v)}
             disabled={!!preselectedAccountId}
           >
-            <SelectTrigger aria-invalid={errorField === 'accountId' || undefined}>
+            <SelectTrigger id={fieldId('accountId')} aria-invalid={errorField === 'accountId' || undefined}>
               <SelectValue placeholder={t('form.selectAccount')} />
             </SelectTrigger>
             <SelectContent>
@@ -449,11 +456,11 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
       {/* Cross Account */}
       {cfg.crossAccountId && (
         <div className="space-y-1">
-          <Label>
+          <Label htmlFor={fieldId('crossAccountId')}>
             {BUY_SELL_TYPES.has(type) ? t('form.cashAccount') : t('form.toAccount')}
           </Label>
           <Select value={fields.crossAccountId} onValueChange={(v) => set('crossAccountId', v)}>
-            <SelectTrigger aria-invalid={errorField === 'crossAccountId' || undefined}>
+            <SelectTrigger id={fieldId('crossAccountId')} aria-invalid={errorField === 'crossAccountId' || undefined}>
               <SelectValue placeholder={t('form.selectAccount')} />
             </SelectTrigger>
             <SelectContent>
@@ -474,8 +481,9 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
       {showSharesAndPrice ? (
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <Label>{t('columns.shares')}</Label>
+            <Label htmlFor={fieldId('shares')}>{t('columns.shares')}</Label>
             <Input
+              id={fieldId('shares')}
               type="number"
               step="any"
               min="0"
@@ -486,8 +494,9 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
             />
           </div>
           <div className="space-y-1">
-            <Label>{t('form.pricePerShare')}</Label>
+            <Label htmlFor={fieldId('price')}>{t('form.pricePerShare')}</Label>
             <Input
+              id={fieldId('price')}
               type="number"
               step="any"
               min="0"
@@ -502,8 +511,9 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
         <>
           {cfg.shares && (
             <div className="space-y-1">
-              <Label>{t('columns.shares')}</Label>
+              <Label htmlFor={fieldId('shares')}>{t('columns.shares')}</Label>
               <Input
+                id={fieldId('shares')}
                 type="number"
                 step="any"
                 min="0"
@@ -516,8 +526,9 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
           )}
           {cfg.price && (
             <div className="space-y-1">
-              <Label>{t('form.pricePerShare')}</Label>
+              <Label htmlFor={fieldId('price')}>{t('form.pricePerShare')}</Label>
               <Input
+                id={fieldId('price')}
                 type="number"
                 step="any"
                 min="0"
@@ -534,8 +545,9 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
       {/* Amount */}
       {cfg.amount && (
         <div className="space-y-1">
-          <Label>{t('form.amount')}</Label>
+          <Label htmlFor={fieldId('amount')}>{t('form.amount')}</Label>
           <Input
+            id={fieldId('amount')}
             type="number"
             step="any"
             min="0"
@@ -553,8 +565,9 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
           {showFeesAndTaxes ? (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label>{t('form.feesOptional')}</Label>
+                <Label htmlFor={fieldId('fees')}>{t('form.feesOptional')}</Label>
                 <Input
+                  id={fieldId('fees')}
                   type="number"
                   step="any"
                   min="0"
@@ -565,8 +578,9 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
                 />
               </div>
               <div className="space-y-1">
-                <Label>{t('form.taxesOptional')}</Label>
+                <Label htmlFor={fieldId('taxes')}>{t('form.taxesOptional')}</Label>
                 <Input
+                  id={fieldId('taxes')}
                   type="number"
                   step="any"
                   min="0"
@@ -581,8 +595,9 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
             <>
               {cfg.fees && (
                 <div className="space-y-1">
-                  <Label>{t('form.feesOptional')}</Label>
+                  <Label htmlFor={fieldId('fees')}>{t('form.feesOptional')}</Label>
                   <Input
+                    id={fieldId('fees')}
                     type="number"
                     step="any"
                     min="0"
@@ -595,8 +610,9 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
               )}
               {cfg.taxes && (
                 <div className="space-y-1">
-                  <Label>{t('form.taxesOptional')}</Label>
+                  <Label htmlFor={fieldId('taxes')}>{t('form.taxesOptional')}</Label>
                   <Input
+                    id={fieldId('taxes')}
                     type="number"
                     step="any"
                     min="0"
@@ -623,8 +639,9 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
           </div>
 
           <div className="space-y-1">
-            <Label>{t('form.exchangeRate')} ({cashCurrency}/{securityCurrency})</Label>
+            <Label htmlFor={fieldId('fxRate')}>{t('form.exchangeRate')} ({cashCurrency}/{securityCurrency})</Label>
             <Input
+              id={fieldId('fxRate')}
               type="number"
               step="any"
               min="0"
@@ -644,23 +661,23 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>{t('form.feesInCcy', { ccy: securityCurrency })}</Label>
-              <Input type="number" step="any" min="0" value={fields.feesFx ?? ''} onChange={(e) => set('feesFx', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'feesFx' || undefined} />
+              <Label htmlFor={fieldId('feesFx')}>{t('form.feesInCcy', { ccy: securityCurrency })}</Label>
+              <Input id={fieldId('feesFx')} type="number" step="any" min="0" value={fields.feesFx ?? ''} onChange={(e) => set('feesFx', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'feesFx' || undefined} />
             </div>
             <div className="space-y-1">
-              <Label>{t('form.feesInCcy', { ccy: cashCurrency })}</Label>
-              <Input type="number" step="any" min="0" value={fields.fees ?? ''} onChange={(e) => set('fees', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'fees' || undefined} />
+              <Label htmlFor={fieldId('fees')}>{t('form.feesInCcy', { ccy: cashCurrency })}</Label>
+              <Input id={fieldId('fees')} type="number" step="any" min="0" value={fields.fees ?? ''} onChange={(e) => set('fees', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'fees' || undefined} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>{t('form.taxesInCcy', { ccy: securityCurrency })}</Label>
-              <Input type="number" step="any" min="0" value={fields.taxesFx ?? ''} onChange={(e) => set('taxesFx', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'taxesFx' || undefined} />
+              <Label htmlFor={fieldId('taxesFx')}>{t('form.taxesInCcy', { ccy: securityCurrency })}</Label>
+              <Input id={fieldId('taxesFx')} type="number" step="any" min="0" value={fields.taxesFx ?? ''} onChange={(e) => set('taxesFx', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'taxesFx' || undefined} />
             </div>
             <div className="space-y-1">
-              <Label>{t('form.taxesInCcy', { ccy: cashCurrency })}</Label>
-              <Input type="number" step="any" min="0" value={fields.taxes ?? ''} onChange={(e) => set('taxes', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'taxes' || undefined} />
+              <Label htmlFor={fieldId('taxes')}>{t('form.taxesInCcy', { ccy: cashCurrency })}</Label>
+              <Input id={fieldId('taxes')} type="number" step="any" min="0" value={fields.taxes ?? ''} onChange={(e) => set('taxes', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'taxes' || undefined} />
             </div>
           </div>
         </div>
@@ -669,8 +686,9 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
       {/* Note */}
       {cfg.note && (
         <div className="space-y-1">
-          <Label>{t('form.noteOptional')}</Label>
+          <Label htmlFor={fieldId('note')}>{t('form.noteOptional')}</Label>
           <Input
+            id={fieldId('note')}
             value={fields.note}
             onChange={(e) => set('note', e.target.value)}
             placeholder={t('form.noteOptionalPlaceholder')}

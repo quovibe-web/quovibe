@@ -38,6 +38,8 @@
   },
   "form": {
     "dateTime": "Datum & Tijd",
+    "time": "Tijd",
+    "openCalendar": "Kalender openen",
     "datePlaceholder": "dd.MM.jjjj",
     "quantity": "Aantal",
     "price": "Koers",
@@ -115,6 +117,9 @@
     "edit": "Bewerken",
     "delete": "Verwijderen",
     "new": "Nieuw"
+  },
+  "a11y": {
+    "rowActions": "Acties voor {{type}} op {{date}}"
   },
   "editTitles": {
     "buy": "Koop bewerken",
