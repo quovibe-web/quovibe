@@ -120,7 +120,7 @@ export function TaxonomyChart({
       <div className="flex flex-col md:flex-row items-center gap-6">
         {mode === 'treemap' ? (
           <div className="w-full h-[320px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={320}>
               <Treemap
                 data={data}
                 dataKey="value"
@@ -153,7 +153,7 @@ export function TaxonomyChart({
         ) : (
           /* Donut chart with interactive center label */
           <div className="relative w-[260px] h-[260px] flex-shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width={260} height={260}>
               <PieChart>
                 <Pie
                   data={data}
