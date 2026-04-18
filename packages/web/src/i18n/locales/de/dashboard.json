@@ -125,7 +125,12 @@
       "noHoldings": "Keine Positionen in diesem Zeitraum",
       "loadError": "Fehler beim Laden der Positionen",
       "showMore_one": "+ {{count}} weitere",
-      "showMore_other": "+ {{count}} weitere"
+      "showMore_other": "+ {{count}} weitere",
+      "headers": {
+        "weight": "Gewichtung",
+        "marketValue": "Wert",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "Keine Daten für diesen Zeitraum",

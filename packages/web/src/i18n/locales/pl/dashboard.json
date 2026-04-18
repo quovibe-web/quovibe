@@ -129,7 +129,12 @@
       "showMore_one": "+ {{count}} więcej",
       "showMore_few": "+ {{count}} więcej",
       "showMore_many": "+ {{count}} więcej",
-      "showMore_other": "+ {{count}} więcej"
+      "showMore_other": "+ {{count}} więcej",
+      "headers": {
+        "weight": "Waga",
+        "marketValue": "Wartość",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "Brak danych dla tego okresu",

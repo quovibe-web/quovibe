@@ -461,7 +461,7 @@ export default function Investments() {
                 return (
                   <>
                     <span className="text-lg font-semibold truncate block">
-                      {isPrivate ? '••••••' : top.name}
+                      {top.name}
                     </span>
                     <span className="text-sm text-muted-foreground tabular-nums">
                       {isPrivate ? '••••' : formatPercentage(parseFloat(top.percentage) / 100)}

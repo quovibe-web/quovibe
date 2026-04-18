@@ -125,7 +125,12 @@
       "noHoldings": "Geen posities in deze periode",
       "loadError": "Fout bij het laden van posities",
       "showMore_one": "+ {{count}} meer",
-      "showMore_other": "+ {{count}} meer"
+      "showMore_other": "+ {{count}} meer",
+      "headers": {
+        "weight": "Gewicht",
+        "marketValue": "Waarde",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "Geen gegevens voor deze periode",

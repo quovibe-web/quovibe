@@ -171,6 +171,14 @@ export default function WidgetTopHoldings() {
   return (
     <FadeIn>
       <div className="flex flex-col px-1">
+        {/* Column headers — mirror HoldingRow column widths */}
+        <div className="flex items-center gap-2 h-5 px-1 -mx-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="w-4 shrink-0" />
+          <span className="w-6 shrink-0" />
+          <span className="flex-1 min-w-0 truncate">{t('widget.topHoldings.headers.weight')}</span>
+          <span className="w-[88px] shrink-0 text-right">{t('widget.topHoldings.headers.marketValue')}</span>
+          <span className="w-[62px] shrink-0 text-right">{t('widget.topHoldings.headers.ttwror')}</span>
+        </div>
         {topHoldings.map((item, index) => (
           <HoldingRow
             key={item.securityId}

@@ -7,6 +7,46 @@ import { useChartTheme, toLightweightTheme } from '@/hooks/use-chart-theme';
 /** Map chart instances to their ResizeObserver for cleanup — avoids mutating the library object */
 // quovibe:allow-module-state — DOM observer registry keyed by chart instance; portfolio-agnostic DOM cleanup (ADR-016).
 const chartResizeObservers = new WeakMap<IChartApi, ResizeObserver>();
+// quovibe:allow-module-state — DOM observer registry keyed by chart instance; portfolio-agnostic DOM cleanup (ADR-016).
+const chartAttributionObservers = new WeakMap<IChartApi, MutationObserver>();
+
+const SANITIZED_TV_HREF =
+  'https://www.tradingview.com/?utm_medium=lwc-link&utm_campaign=lwc-chart&utm_source=quovibe-web';
+
+/**
+ * Strip the current page URL (which may contain portfolio / security UUIDs) from the
+ * TradingView attribution anchor that lightweight-charts injects as `#tv-attr-logo`.
+ * The library re-creates the anchor on theme changes, so we watch the container subtree.
+ */
+function sanitizeTradingViewAttribution(container: HTMLElement): MutationObserver {
+  function fix(el: HTMLAnchorElement) {
+    if (el.href !== SANITIZED_TV_HREF) el.href = SANITIZED_TV_HREF;
+  }
+  const existing = container.querySelector<HTMLAnchorElement>('a#tv-attr-logo');
+  if (existing) fix(existing);
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (!(node instanceof HTMLElement)) continue;
+        if (node instanceof HTMLAnchorElement && node.id === 'tv-attr-logo') {
+          fix(node);
+          continue;
+        }
+        const anchor = node.querySelector?.<HTMLAnchorElement>('a#tv-attr-logo');
+        if (anchor) fix(anchor);
+      }
+      if (
+        m.type === 'attributes' &&
+        m.target instanceof HTMLAnchorElement &&
+        m.target.id === 'tv-attr-logo'
+      ) {
+        fix(m.target);
+      }
+    }
+  });
+  observer.observe(container, { childList: true, subtree: true, attributes: true, attributeFilter: ['href'] });
+  return observer;
+}
 
 interface UseLightweightChartOptions {
   options?: DeepPartial<ChartOptions>;
@@ -77,6 +117,8 @@ export function useLightweightChart(
         chartResizeObservers.set(chart, resizeObs);
       }
 
+      chartAttributionObservers.set(chart, sanitizeTradingViewAttribution(container));
+
       setReady((v) => v + 1); // native-ok
       return true;
     }
@@ -109,6 +151,8 @@ export function useLightweightChart(
       if (chartRef.current) {
         const obs = chartResizeObservers.get(chartRef.current);
         obs?.disconnect();
+        const attrObs = chartAttributionObservers.get(chartRef.current);
+        attrObs?.disconnect();
         try { chartRef.current.remove(); } catch { /* chart already destroyed (HMR) */ }
         chartRef.current = null;
       }

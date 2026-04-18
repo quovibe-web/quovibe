@@ -125,7 +125,12 @@
       "noHoldings": "No holdings in this period",
       "loadError": "Error loading holdings",
       "showMore_one": "+ {{count}} more",
-      "showMore_other": "+ {{count}} more"
+      "showMore_other": "+ {{count}} more",
+      "headers": {
+        "weight": "Weight",
+        "marketValue": "Value",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "No data for this period",

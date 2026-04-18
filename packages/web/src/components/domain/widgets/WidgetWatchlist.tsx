@@ -44,7 +44,7 @@ export default function WidgetWatchlist() {
   }
 
   return (
-    <div className="overflow-auto max-h-[300px]" style={{ filter: isPrivate ? 'blur(8px) saturate(0)' : 'none' }}>
+    <div className="overflow-auto max-h-[300px]">
       <div className="space-y-0">
         {watchlist.securities.map((sec) => {
           const price = sec.latestPrice ?? sec.previousClose;
@@ -70,8 +70,13 @@ export default function WidgetWatchlist() {
                     <CurrencyDisplay value={price} currency={sec.currency} />
                   ) : '\u2014'}
                 </div>
-                <div className={cn('text-[10px] tabular-nums', change != null && change >= 0 ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
-                  {change != null ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%` : '\u2014'}
+                <div
+                  className={cn(
+                    'text-[10px] tabular-nums',
+                    !isPrivate && change != null && (change >= 0 ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]'),
+                  )}
+                >
+                  {isPrivate ? '••••' : change != null ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%` : '\u2014'}
                 </div>
               </div>
             </div>

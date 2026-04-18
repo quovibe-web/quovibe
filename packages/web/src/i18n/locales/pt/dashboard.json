@@ -125,7 +125,12 @@
       "noHoldings": "Sem posições neste período",
       "loadError": "Erro ao carregar posições",
       "showMore_one": "+ {{count}} mais",
-      "showMore_other": "+ {{count}} mais"
+      "showMore_other": "+ {{count}} mais",
+      "headers": {
+        "weight": "Peso",
+        "marketValue": "Valor",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "Sem dados para este período",
