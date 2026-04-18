@@ -47,6 +47,12 @@
     "createFailed": "Não foi possível criar a carteira: {{msg}}",
     "duplicateName": "Já existe uma carteira com este nome."
   },
+  "recent": {
+    "heading": "Continuar com uma carteira",
+    "lastOpened": "Última abertura {{date}}",
+    "neverOpened": "Criada em {{date}}",
+    "demoTag": "Demo"
+  },
   "hub": {
     "title": "Importar dados existentes",
     "subtitle": "Importa dados de uma fonte externa. Será criada uma nova carteira.",

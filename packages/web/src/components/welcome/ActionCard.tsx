@@ -1,4 +1,4 @@
-import type { ElementType, ReactNode } from 'react';
+import type { ElementType } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -19,7 +19,6 @@ export interface ActionCardProps {
   badge?: string;
   disabled?: boolean;
   onClick: () => void;
-  children?: ReactNode;
 }
 
 export function ActionCard({
@@ -31,26 +30,14 @@ export function ActionCard({
   badge,
   disabled,
   onClick,
-  children,
 }: ActionCardProps) {
   const accentVar = ACCENT_VAR[accent];
 
   return (
-    <div
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-disabled={disabled || undefined}
-      onClick={disabled ? undefined : onClick}
-      onKeyDown={
-        disabled
-          ? undefined
-          : (e) => {
-              if ((e.key === 'Enter' || e.key === ' ') && e.currentTarget === e.target) {
-                e.preventDefault();
-                onClick();
-              }
-            }
-      }
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
       className={cn(
         'qv-card-interactive group relative flex w-full items-start gap-4 overflow-hidden',
         'rounded-xl border bg-card px-5 py-5 text-left',
@@ -95,7 +82,6 @@ export function ActionCard({
           )}
         </span>
         <span className="text-sm text-muted-foreground leading-snug">{description}</span>
-        {children && <span className="mt-1 block">{children}</span>}
         <span
           className={cn(
             'mt-2 inline-flex items-center gap-1.5 text-sm font-medium',
@@ -124,6 +110,6 @@ export function ActionCard({
           style={{ color: accentVar }}
         />
       </span>
-    </div>
+    </button>
   );
 }

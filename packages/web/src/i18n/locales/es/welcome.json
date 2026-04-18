@@ -47,6 +47,12 @@
     "createFailed": "No se pudo crear la cartera: {{msg}}",
     "duplicateName": "Ya existe una cartera con este nombre."
   },
+  "recent": {
+    "heading": "Continuar con una cartera",
+    "lastOpened": "Última apertura {{date}}",
+    "neverOpened": "Creada el {{date}}",
+    "demoTag": "Demo"
+  },
   "hub": {
     "title": "Importar datos existentes",
     "subtitle": "Importar datos desde una fuente externa. Se creará una cartera nueva.",

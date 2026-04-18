@@ -47,6 +47,12 @@
     "createFailed": "Kon de portefeuille niet aanmaken: {{msg}}",
     "duplicateName": "Er bestaat al een portefeuille met deze naam."
   },
+  "recent": {
+    "heading": "Verder met een portefeuille",
+    "lastOpened": "Laatst geopend {{date}}",
+    "neverOpened": "Aangemaakt op {{date}}",
+    "demoTag": "Demo"
+  },
   "hub": {
     "title": "Bestaande data importeren",
     "subtitle": "Importeer data uit een externe bron. Er wordt een nieuwe portefeuille voor je aangemaakt.",

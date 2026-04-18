@@ -47,6 +47,12 @@
     "createFailed": "Could not create the portfolio: {{msg}}",
     "duplicateName": "A portfolio with this name already exists."
   },
+  "recent": {
+    "heading": "Continue with a portfolio",
+    "lastOpened": "Last opened {{date}}",
+    "neverOpened": "Created {{date}}",
+    "demoTag": "Demo"
+  },
   "hub": {
     "title": "Import existing data",
     "subtitle": "Bring data in from an external source. A new portfolio will be created for you.",

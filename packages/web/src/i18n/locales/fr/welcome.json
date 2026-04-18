@@ -47,6 +47,12 @@
     "createFailed": "Impossible de créer le portefeuille : {{msg}}",
     "duplicateName": "Un portefeuille portant ce nom existe déjà."
   },
+  "recent": {
+    "heading": "Continuer avec un portefeuille",
+    "lastOpened": "Dernière ouverture {{date}}",
+    "neverOpened": "Créé le {{date}}",
+    "demoTag": "Démo"
+  },
   "hub": {
     "title": "Importer des données",
     "subtitle": "Importer des données depuis une source externe. Un nouveau portefeuille sera créé pour vous.",

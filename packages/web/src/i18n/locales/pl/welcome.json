@@ -47,6 +47,12 @@
     "createFailed": "Nie udało się utworzyć portfela: {{msg}}",
     "duplicateName": "Portfel o tej nazwie już istnieje."
   },
+  "recent": {
+    "heading": "Kontynuuj z portfelem",
+    "lastOpened": "Ostatnio otwarty {{date}}",
+    "neverOpened": "Utworzono {{date}}",
+    "demoTag": "Demo"
+  },
   "hub": {
     "title": "Zaimportuj istniejące dane",
     "subtitle": "Zaimportuj dane ze źródła zewnętrznego. Zostanie utworzony nowy portfel.",

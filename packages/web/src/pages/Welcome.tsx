@@ -1,23 +1,43 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Sparkles, PlayCircle, Download, ArrowRight } from 'lucide-react';
+import { Sparkles, PlayCircle, Download, ArrowRight, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { SubmitButton } from '@/components/shared/SubmitButton';
-import { useCreatePortfolio } from '@/api/use-portfolios';
+import {
+  useCreatePortfolio,
+  usePortfolioRegistry,
+  type PortfolioRegistryEntry,
+} from '@/api/use-portfolios';
 import { WelcomeBackground } from '@/components/welcome/WelcomeBackground';
 import { WelcomeTopBar } from '@/components/welcome/WelcomeTopBar';
 import { WelcomeHero } from '@/components/welcome/WelcomeHero';
 import { WelcomeFooter } from '@/components/welcome/WelcomeFooter';
 import { ActionCard } from '@/components/welcome/ActionCard';
+import { formatDate } from '@/lib/formatters';
 
 const STAGGER_DELAYS = {
+  recent: '0ms',
   hero: '0ms',
   card1: '120ms',
   card2: '220ms',
   card3: '320ms',
 } as const;
+
+const RECENT_LIMIT = 5;
+
+function sortByRecency(a: PortfolioRegistryEntry, b: PortfolioRegistryEntry): number {
+  // lastOpenedAt DESC NULLS LAST, tiebreak on createdAt DESC.
+  const aKey = a.lastOpenedAt ?? '';
+  const bKey = b.lastOpenedAt ?? '';
+  if (aKey !== bKey) {
+    if (!aKey) return 1;
+    if (!bKey) return -1;
+    return bKey.localeCompare(aKey);
+  }
+  return b.createdAt.localeCompare(a.createdAt);
+}
 
 export default function Welcome() {
   const { t } = useTranslation('welcome');
@@ -25,6 +45,12 @@ export default function Welcome() {
   const create = useCreatePortfolio();
   const [name, setName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const registry = usePortfolioRegistry();
+
+  const recentPortfolios = useMemo<PortfolioRegistryEntry[]>(() => {
+    const list = registry.data?.portfolios ?? [];
+    return [...list].sort(sortByRecency).slice(0, RECENT_LIMIT);
+  }, [registry.data?.portfolios]);
 
   useEffect(() => {
     document.title = 'quovibe';
@@ -68,7 +94,64 @@ export default function Welcome() {
       <div className="flex min-h-svh flex-col">
         <WelcomeTopBar />
         <main className="flex-1 px-6 py-8 md:px-10 md:py-14">
-          <div className="mx-auto grid max-w-6xl gap-12 md:grid-cols-[1.1fr_1fr] md:gap-16 lg:gap-24">
+          <div className="mx-auto max-w-6xl">
+            {recentPortfolios.length > 0 && (
+              <section
+                aria-labelledby="welcome-recent-heading"
+                className="qv-stagger-fade mb-10"
+                style={{ animationDelay: STAGGER_DELAYS.recent }}
+              >
+                <h2
+                  id="welcome-recent-heading"
+                  className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                >
+                  {t('recent.heading')}
+                </h2>
+                <ul className="flex flex-col gap-2">
+                  {recentPortfolios.map((p) => (
+                    <li key={p.id}>
+                      <Link
+                        to={`/p/${p.id}/dashboard`}
+                        className="qv-card-interactive group flex items-center gap-3 rounded-xl border bg-card px-4 py-3 text-left no-underline"
+                      >
+                        <Clock
+                          aria-hidden="true"
+                          size={18}
+                          strokeWidth={1.75}
+                          className="shrink-0 text-muted-foreground"
+                        />
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                          {p.name}
+                        </span>
+                        {p.kind === 'demo' && (
+                          <span
+                            className="shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider"
+                            style={{
+                              color: 'var(--color-chart-2)',
+                              background:
+                                'color-mix(in srgb, var(--color-chart-2) 12%, transparent)',
+                            }}
+                          >
+                            {t('recent.demoTag')}
+                          </span>
+                        )}
+                        <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+                          {p.lastOpenedAt
+                            ? t('recent.lastOpened', { date: formatDate(p.lastOpenedAt) })
+                            : t('recent.neverOpened', { date: formatDate(p.createdAt) })}
+                        </span>
+                        <ArrowRight
+                          aria-hidden="true"
+                          size={14}
+                          className="shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5"
+                        />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            <div className="grid gap-12 md:grid-cols-[1.1fr_1fr] md:gap-16 lg:gap-24">
             <div
               className="qv-stagger-fade"
               style={{ animationDelay: STAGGER_DELAYS.hero }}
@@ -183,6 +266,7 @@ export default function Welcome() {
                   onClick={() => navigate('/import')}
                 />
               </div>
+            </div>
             </div>
           </div>
         </main>

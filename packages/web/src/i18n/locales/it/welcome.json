@@ -47,6 +47,12 @@
     "createFailed": "Impossibile creare il portafoglio: {{msg}}",
     "duplicateName": "Esiste già un portafoglio con questo nome."
   },
+  "recent": {
+    "heading": "Continua con un portafoglio",
+    "lastOpened": "Ultimo accesso {{date}}",
+    "neverOpened": "Creato il {{date}}",
+    "demoTag": "Demo"
+  },
   "hub": {
     "title": "Importa dati esistenti",
     "subtitle": "Importa dati da una sorgente esterna. Verrà creato un nuovo portafoglio.",
