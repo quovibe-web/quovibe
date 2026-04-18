@@ -206,7 +206,7 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
               type="number" min={0} max={100} step={0.01}
               defaultValue={alloc.toFixed(2)}
               onBlur={e => handleAllocationBlur(row.original.id, e.target.value)}
-              className="w-20 text-sm h-7"
+              className="w-24 text-sm h-7 tabular-nums"
             />
             {hasError && (
               <TooltipProvider>

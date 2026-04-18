@@ -1,6 +1,15 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  parseISO,
+  format,
+  getYear,
+  getQuarter,
+  eachMonthOfInterval,
+  eachQuarterOfInterval,
+  eachYearOfInterval,
+} from 'date-fns';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
   BarChart,
@@ -39,6 +48,49 @@ import type { PaymentGroup } from '@/api/types';
 
 type AmountMode = 'gross' | 'net';
 
+type GroupByMode = 'month' | 'quarter' | 'year';
+
+// Mirror the backend bucketKey() shape in packages/api/src/services/reports.service.ts:
+// year → "yyyy", quarter → "yyyy-Qn", month → "yyyy-MM".
+function bucketKeyForDate(d: Date, groupBy: GroupByMode): string {
+  if (groupBy === 'year') return String(getYear(d));
+  if (groupBy === 'quarter') return `${getYear(d)}-Q${getQuarter(d)}`;
+  return format(d, 'yyyy-MM');
+}
+
+function padBuckets(
+  groups: PaymentGroup[],
+  amountMode: AmountMode,
+  groupBy: GroupByMode,
+  periodStart: string,
+  periodEnd: string,
+): Array<{ bucket: string; total: number }> {
+  const start = parseISO(periodStart);
+  const end = parseISO(periodEnd);
+  if (!(start instanceof Date) || !(end instanceof Date) || isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+    return [];
+  }
+
+  const valueByBucket = new Map<string, number>();
+  for (const g of groups) {
+    valueByBucket.set(g.bucket, parseFloat(amountMode === 'gross' ? g.totalGross : g.totalNet));
+  }
+
+  const dates =
+    groupBy === 'month'
+      ? eachMonthOfInterval({ start, end })
+      : groupBy === 'quarter'
+        ? eachQuarterOfInterval({ start, end })
+        : eachYearOfInterval({ start, end });
+
+  return dates
+    .map((d) => {
+      const bucket = bucketKeyForDate(d, groupBy);
+      return { bucket, total: valueByBucket.get(bucket) ?? 0 };
+    })
+    .sort((a, b) => a.bucket.localeCompare(b.bucket));
+}
+
 function PaymentBarChart({
   groups,
   amountMode,
@@ -54,7 +106,7 @@ function PaymentBarChart({
   title: string;
   isPrivate: boolean;
   type: 'DIVIDEND' | 'INTEREST';
-  groupBy: 'month' | 'quarter' | 'year';
+  groupBy: GroupByMode;
 }) {
   const { i18n } = useTranslation('common');
   const { gridColor, gridOpacity, tickColor, isDark } = useChartTheme();
@@ -65,10 +117,12 @@ function PaymentBarChart({
   const api = useScopedApi();
   const { portfolioId, fetch: scopedFetch } = api;
 
-  const chartData = groups.map((g) => ({
-    bucket: g.bucket,
-    total: parseFloat(amountMode === 'gross' ? g.totalGross : g.totalNet),
-  }));
+  // Pad missing buckets with zero totals so the x-axis is a continuous timeline
+  // instead of skipping months/quarters that had no payments.
+  const chartData = useMemo(
+    () => padBuckets(groups, amountMode, groupBy, periodStart, periodEnd),
+    [groups, amountMode, groupBy, periodStart, periodEnd],
+  );
 
   const handleMouseMove = useCallback((state: { activeLabel?: string }) => {
     const bucket = state?.activeLabel ?? null;
@@ -99,7 +153,9 @@ function PaymentBarChart({
     };
   }, []);
 
-  if (chartData.length === 0) return null;
+  // Preserve "no data at all → hide chart" UX: only render when the API returned
+  // at least one bucket. Padding only fills gaps between real payments.
+  if (groups.length === 0 || chartData.length === 0) return null;
 
   return (
     <Card>

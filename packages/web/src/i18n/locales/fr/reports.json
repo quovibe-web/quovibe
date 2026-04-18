@@ -145,6 +145,7 @@
     "dividends": "Dividendes",
     "fees": "Frais",
     "selectTaxonomy": "Taxonomie",
+    "categoryLabel": "Catégorie",
     "subtitle": "Performance trends by category"
   },
   "taxonomyNodePicker": {

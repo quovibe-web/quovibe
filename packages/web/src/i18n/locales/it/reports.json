@@ -145,6 +145,7 @@
     "dividends": "Dividendi",
     "fees": "Commissioni",
     "selectTaxonomy": "Tassonomia",
+    "categoryLabel": "Categoria",
     "subtitle": "Andamento performance per categoria"
   },
   "taxonomyNodePicker": {

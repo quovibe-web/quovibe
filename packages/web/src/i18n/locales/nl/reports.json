@@ -145,6 +145,7 @@
     "dividends": "Dividenden",
     "fees": "Vergoedingen",
     "selectTaxonomy": "Taxonomie",
+    "categoryLabel": "Categorie",
     "subtitle": "Performance trends by category"
   },
   "taxonomyNodePicker": {

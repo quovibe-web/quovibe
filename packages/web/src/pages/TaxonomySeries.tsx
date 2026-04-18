@@ -242,12 +242,17 @@ export default function TaxonomySeries() {
           </div>
         )}
         {selectedTaxonomyId && (
-          <TaxonomyNodePickerPopover
-            taxonomyId={selectedTaxonomyId}
-            taxonomyName={selectedTaxonomy?.name ?? ''}
-            selectedId={selectedCategoryId}
-            onSelectionChange={setSelectedCategoryId}
-          />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground font-medium">
+              {t('taxonomySeries.categoryLabel')}
+            </span>
+            <TaxonomyNodePickerPopover
+              taxonomyId={selectedTaxonomyId}
+              taxonomyName={selectedTaxonomy?.name ?? ''}
+              selectedId={selectedCategoryId}
+              onSelectionChange={setSelectedCategoryId}
+            />
+          </div>
         )}
       </div>
 

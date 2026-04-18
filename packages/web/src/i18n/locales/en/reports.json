@@ -145,7 +145,8 @@
     "gain": "Gain",
     "dividends": "Dividends",
     "fees": "Fees",
-    "selectTaxonomy": "Taxonomy"
+    "selectTaxonomy": "Taxonomy",
+    "categoryLabel": "Category"
   },
   "taxonomyNodePicker": {
     "loading": "Loading…",

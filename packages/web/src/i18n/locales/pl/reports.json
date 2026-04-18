@@ -147,6 +147,7 @@
     "dividends": "Dywidendy",
     "fees": "Opłaty",
     "selectTaxonomy": "Taksonomia",
+    "categoryLabel": "Kategoria",
     "subtitle": "Performance trends by category"
   },
   "taxonomyNodePicker": {
