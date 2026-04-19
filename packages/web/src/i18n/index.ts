@@ -20,6 +20,7 @@ import enWelcome from './locales/en/welcome.json';
 import enSwitcher from './locales/en/switcher.json';
 import enPortfolioSettings from './locales/en/portfolioSettings.json';
 import enUserSettings from './locales/en/userSettings.json';
+import enPortfolioSetup from './locales/en/portfolio-setup.json';
 // IT
 import itCommon from './locales/it/common.json';
 import itNavigation from './locales/it/navigation.json';
@@ -38,6 +39,7 @@ import itWelcome from './locales/it/welcome.json';
 import itSwitcher from './locales/it/switcher.json';
 import itPortfolioSettings from './locales/it/portfolioSettings.json';
 import itUserSettings from './locales/it/userSettings.json';
+import itPortfolioSetup from './locales/it/portfolio-setup.json';
 // DE
 import deCommon from './locales/de/common.json';
 import deNavigation from './locales/de/navigation.json';
@@ -56,6 +58,7 @@ import deWelcome from './locales/de/welcome.json';
 import deSwitcher from './locales/de/switcher.json';
 import dePortfolioSettings from './locales/de/portfolioSettings.json';
 import deUserSettings from './locales/de/userSettings.json';
+import dePortfolioSetup from './locales/de/portfolio-setup.json';
 // FR
 import frCommon from './locales/fr/common.json';
 import frNavigation from './locales/fr/navigation.json';
@@ -74,6 +77,7 @@ import frWelcome from './locales/fr/welcome.json';
 import frSwitcher from './locales/fr/switcher.json';
 import frPortfolioSettings from './locales/fr/portfolioSettings.json';
 import frUserSettings from './locales/fr/userSettings.json';
+import frPortfolioSetup from './locales/fr/portfolio-setup.json';
 // ES
 import esCommon from './locales/es/common.json';
 import esNavigation from './locales/es/navigation.json';
@@ -92,6 +96,7 @@ import esWelcome from './locales/es/welcome.json';
 import esSwitcher from './locales/es/switcher.json';
 import esPortfolioSettings from './locales/es/portfolioSettings.json';
 import esUserSettings from './locales/es/userSettings.json';
+import esPortfolioSetup from './locales/es/portfolio-setup.json';
 // NL
 import nlCommon from './locales/nl/common.json';
 import nlNavigation from './locales/nl/navigation.json';
@@ -110,6 +115,7 @@ import nlWelcome from './locales/nl/welcome.json';
 import nlSwitcher from './locales/nl/switcher.json';
 import nlPortfolioSettings from './locales/nl/portfolioSettings.json';
 import nlUserSettings from './locales/nl/userSettings.json';
+import nlPortfolioSetup from './locales/nl/portfolio-setup.json';
 // PL
 import plCommon from './locales/pl/common.json';
 import plNavigation from './locales/pl/navigation.json';
@@ -128,6 +134,7 @@ import plWelcome from './locales/pl/welcome.json';
 import plSwitcher from './locales/pl/switcher.json';
 import plPortfolioSettings from './locales/pl/portfolioSettings.json';
 import plUserSettings from './locales/pl/userSettings.json';
+import plPortfolioSetup from './locales/pl/portfolio-setup.json';
 // PT
 import ptCommon from './locales/pt/common.json';
 import ptNavigation from './locales/pt/navigation.json';
@@ -146,24 +153,25 @@ import ptWelcome from './locales/pt/welcome.json';
 import ptSwitcher from './locales/pt/switcher.json';
 import ptPortfolioSettings from './locales/pt/portfolioSettings.json';
 import ptUserSettings from './locales/pt/userSettings.json';
+import ptPortfolioSetup from './locales/pt/portfolio-setup.json';
 
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
-      en: { common: enCommon, navigation: enNavigation, securities: enSecurities, transactions: enTransactions, accounts: enAccounts, performance: enPerformance, reports: enReports, settings: enSettings, errors: enErrors, dashboard: enDashboard, investments: enInvestments, 'csv-import': enCsvImport, watchlists: enWatchlists, welcome: enWelcome, switcher: enSwitcher, portfolioSettings: enPortfolioSettings, userSettings: enUserSettings },
-      it: { common: itCommon, navigation: itNavigation, securities: itSecurities, transactions: itTransactions, accounts: itAccounts, performance: itPerformance, reports: itReports, settings: itSettings, errors: itErrors, dashboard: itDashboard, investments: itInvestments, 'csv-import': itCsvImport, watchlists: itWatchlists, welcome: itWelcome, switcher: itSwitcher, portfolioSettings: itPortfolioSettings, userSettings: itUserSettings },
-      de: { common: deCommon, navigation: deNavigation, securities: deSecurities, transactions: deTransactions, accounts: deAccounts, performance: dePerformance, reports: deReports, settings: deSettings, errors: deErrors, dashboard: deDashboard, investments: deInvestments, 'csv-import': deCsvImport, watchlists: deWatchlists, welcome: deWelcome, switcher: deSwitcher, portfolioSettings: dePortfolioSettings, userSettings: deUserSettings },
-      fr: { common: frCommon, navigation: frNavigation, securities: frSecurities, transactions: frTransactions, accounts: frAccounts, performance: frPerformance, reports: frReports, settings: frSettings, errors: frErrors, dashboard: frDashboard, investments: frInvestments, 'csv-import': frCsvImport, watchlists: frWatchlists, welcome: frWelcome, switcher: frSwitcher, portfolioSettings: frPortfolioSettings, userSettings: frUserSettings },
-      es: { common: esCommon, navigation: esNavigation, securities: esSecurities, transactions: esTransactions, accounts: esAccounts, performance: esPerformance, reports: esReports, settings: esSettings, errors: esErrors, dashboard: esDashboard, investments: esInvestments, 'csv-import': esCsvImport, watchlists: esWatchlists, welcome: esWelcome, switcher: esSwitcher, portfolioSettings: esPortfolioSettings, userSettings: esUserSettings },
-      nl: { common: nlCommon, navigation: nlNavigation, securities: nlSecurities, transactions: nlTransactions, accounts: nlAccounts, performance: nlPerformance, reports: nlReports, settings: nlSettings, errors: nlErrors, dashboard: nlDashboard, investments: nlInvestments, 'csv-import': nlCsvImport, watchlists: nlWatchlists, welcome: nlWelcome, switcher: nlSwitcher, portfolioSettings: nlPortfolioSettings, userSettings: nlUserSettings },
-      pl: { common: plCommon, navigation: plNavigation, securities: plSecurities, transactions: plTransactions, accounts: plAccounts, performance: plPerformance, reports: plReports, settings: plSettings, errors: plErrors, dashboard: plDashboard, investments: plInvestments, 'csv-import': plCsvImport, watchlists: plWatchlists, welcome: plWelcome, switcher: plSwitcher, portfolioSettings: plPortfolioSettings, userSettings: plUserSettings },
-      pt: { common: ptCommon, navigation: ptNavigation, securities: ptSecurities, transactions: ptTransactions, accounts: ptAccounts, performance: ptPerformance, reports: ptReports, settings: ptSettings, errors: ptErrors, dashboard: ptDashboard, investments: ptInvestments, 'csv-import': ptCsvImport, watchlists: ptWatchlists, welcome: ptWelcome, switcher: ptSwitcher, portfolioSettings: ptPortfolioSettings, userSettings: ptUserSettings },
+      en: { common: enCommon, navigation: enNavigation, securities: enSecurities, transactions: enTransactions, accounts: enAccounts, performance: enPerformance, reports: enReports, settings: enSettings, errors: enErrors, dashboard: enDashboard, investments: enInvestments, 'csv-import': enCsvImport, watchlists: enWatchlists, welcome: enWelcome, switcher: enSwitcher, portfolioSettings: enPortfolioSettings, userSettings: enUserSettings, 'portfolio-setup': enPortfolioSetup },
+      it: { common: itCommon, navigation: itNavigation, securities: itSecurities, transactions: itTransactions, accounts: itAccounts, performance: itPerformance, reports: itReports, settings: itSettings, errors: itErrors, dashboard: itDashboard, investments: itInvestments, 'csv-import': itCsvImport, watchlists: itWatchlists, welcome: itWelcome, switcher: itSwitcher, portfolioSettings: itPortfolioSettings, userSettings: itUserSettings, 'portfolio-setup': itPortfolioSetup },
+      de: { common: deCommon, navigation: deNavigation, securities: deSecurities, transactions: deTransactions, accounts: deAccounts, performance: dePerformance, reports: deReports, settings: deSettings, errors: deErrors, dashboard: deDashboard, investments: deInvestments, 'csv-import': deCsvImport, watchlists: deWatchlists, welcome: deWelcome, switcher: deSwitcher, portfolioSettings: dePortfolioSettings, userSettings: deUserSettings, 'portfolio-setup': dePortfolioSetup },
+      fr: { common: frCommon, navigation: frNavigation, securities: frSecurities, transactions: frTransactions, accounts: frAccounts, performance: frPerformance, reports: frReports, settings: frSettings, errors: frErrors, dashboard: frDashboard, investments: frInvestments, 'csv-import': frCsvImport, watchlists: frWatchlists, welcome: frWelcome, switcher: frSwitcher, portfolioSettings: frPortfolioSettings, userSettings: frUserSettings, 'portfolio-setup': frPortfolioSetup },
+      es: { common: esCommon, navigation: esNavigation, securities: esSecurities, transactions: esTransactions, accounts: esAccounts, performance: esPerformance, reports: esReports, settings: esSettings, errors: esErrors, dashboard: esDashboard, investments: esInvestments, 'csv-import': esCsvImport, watchlists: esWatchlists, welcome: esWelcome, switcher: esSwitcher, portfolioSettings: esPortfolioSettings, userSettings: esUserSettings, 'portfolio-setup': esPortfolioSetup },
+      nl: { common: nlCommon, navigation: nlNavigation, securities: nlSecurities, transactions: nlTransactions, accounts: nlAccounts, performance: nlPerformance, reports: nlReports, settings: nlSettings, errors: nlErrors, dashboard: nlDashboard, investments: nlInvestments, 'csv-import': nlCsvImport, watchlists: nlWatchlists, welcome: nlWelcome, switcher: nlSwitcher, portfolioSettings: nlPortfolioSettings, userSettings: nlUserSettings, 'portfolio-setup': nlPortfolioSetup },
+      pl: { common: plCommon, navigation: plNavigation, securities: plSecurities, transactions: plTransactions, accounts: plAccounts, performance: plPerformance, reports: plReports, settings: plSettings, errors: plErrors, dashboard: plDashboard, investments: plInvestments, 'csv-import': plCsvImport, watchlists: plWatchlists, welcome: plWelcome, switcher: plSwitcher, portfolioSettings: plPortfolioSettings, userSettings: plUserSettings, 'portfolio-setup': plPortfolioSetup },
+      pt: { common: ptCommon, navigation: ptNavigation, securities: ptSecurities, transactions: ptTransactions, accounts: ptAccounts, performance: ptPerformance, reports: ptReports, settings: ptSettings, errors: ptErrors, dashboard: ptDashboard, investments: ptInvestments, 'csv-import': ptCsvImport, watchlists: ptWatchlists, welcome: ptWelcome, switcher: ptSwitcher, portfolioSettings: ptPortfolioSettings, userSettings: ptUserSettings, 'portfolio-setup': ptPortfolioSetup },
     },
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'navigation', 'securities', 'transactions', 'accounts', 'performance', 'reports', 'settings', 'errors', 'dashboard', 'investments', 'csv-import', 'watchlists', 'welcome', 'switcher', 'portfolioSettings', 'userSettings'],
+    ns: ['common', 'navigation', 'securities', 'transactions', 'accounts', 'performance', 'reports', 'settings', 'errors', 'dashboard', 'investments', 'csv-import', 'watchlists', 'welcome', 'switcher', 'portfolioSettings', 'userSettings', 'portfolio-setup'],
     detection: {
       order: ['localStorage', 'navigator'],
       lookupLocalStorage: 'quovibe-language',

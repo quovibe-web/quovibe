@@ -1,0 +1,38 @@
+{
+  "dialog": {
+    "title": "Utwórz portfel",
+    "description": "Nadaj nazwę portfelowi i skonfiguruj jego pierwszy rachunek papierów wartościowych oraz rachunek gotówkowy."
+  },
+  "setupPage": {
+    "title": "Dokończ konfigurację {{name}}",
+    "description": "Ten portfel wymaga rachunku papierów wartościowych i rachunku gotówkowego, zanim będzie można go używać."
+  },
+  "fields": {
+    "name": "Nazwa portfela",
+    "namePlaceholder": "Mój portfel",
+    "baseCurrency": "Waluta bazowa",
+    "securitiesAccountName": "Nazwa rachunku papierów wartościowych",
+    "securitiesAccountPlaceholder": "Główny papierów wartościowych",
+    "primaryDepositName": "Nazwa rachunku gotówkowego",
+    "primaryDepositPlaceholder": "Gotówka",
+    "extraDepositName": "Nazwa dodatkowego rachunku",
+    "extraDepositCurrency": "Waluta"
+  },
+  "advanced": {
+    "toggle": "Zaawansowane",
+    "description": "Dodaj dodatkowe rachunki gotówkowe (dla portfeli wielowalutowych). Możesz je dodać również później w sekcji Konta.",
+    "addDeposit": "Dodaj rachunek",
+    "removeDeposit": "Usuń"
+  },
+  "submit": {
+    "create": "Utwórz portfel",
+    "finishSetup": "Zakończ konfigurację",
+    "submitting": "Zapisywanie…"
+  },
+  "errors": {
+    "duplicateName": "Każdy rachunek musi mieć unikalną nazwę.",
+    "alreadySetup": "Ten portfel jest już skonfigurowany. Przekierowywanie…",
+    "createFailed": "Nie można utworzyć portfela: {{msg}}",
+    "setupFailed": "Nie można zakończyć konfiguracji: {{msg}}"
+  }
+}
