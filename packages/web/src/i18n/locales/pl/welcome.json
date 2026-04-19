@@ -20,8 +20,7 @@
       "title": "Zacznij od nowa",
       "body": "Utwórz zupełnie nowy pusty portfel i dodawaj transakcje w miarę potrzeb.",
       "cta": "Utwórz portfel",
-      "badge": "Zalecane",
-      "namePlaceholder": "Nazwa portfela"
+      "badge": "Zalecane"
     },
     "demo": {
       "title": "Wypróbuj demo",

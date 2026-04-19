@@ -109,7 +109,7 @@ interface TradePreviewInput {
   dateFormat: string;
   decimalSeparator: '.' | ',';
   thousandSeparator: '' | '.' | ',' | ' ';
-  targetPortfolioId: string;
+  targetSecuritiesAccountId: string;
 }
 
 export async function previewTradeImport(
@@ -119,13 +119,13 @@ export async function previewTradeImport(
   const filePath = getTempFilePath(input.tempFileId);
   if (!filePath) throw new CsvImportError('TEMP_FILE_EXPIRED', 'Temp file not found');
 
-  // Resolve portfolio -> deposit account
+  // Resolve securities account -> deposit account
   const acctRow = sqlite.prepare(
     'SELECT uuid, type, currency, referenceAccount FROM account WHERE uuid = ?',
-  ).get(input.targetPortfolioId) as { uuid: string; type: string; currency: string | null; referenceAccount: string | null } | undefined;
+  ).get(input.targetSecuritiesAccountId) as { uuid: string; type: string; currency: string | null; referenceAccount: string | null } | undefined;
 
   if (!acctRow || acctRow.type !== 'portfolio') {
-    throw new CsvImportError('INVALID_PORTFOLIO', 'Target must be a portfolio account');
+    throw new CsvImportError('INVALID_SECURITIES_ACCOUNT', 'Not a securities account (type=portfolio)');
   }
   if (!acctRow.referenceAccount) {
     throw new CsvImportError('NO_REFERENCE_ACCOUNT', 'Portfolio has no linked deposit account');
@@ -269,7 +269,7 @@ export async function previewTradeImport(
 
   // Map to transactions for preview
   const ctx: TradeMapperContext = {
-    portfolioId: input.targetPortfolioId,
+    portfolioId: input.targetSecuritiesAccountId,
     depositAccountId: acctRow.referenceAccount,
     portfolioCurrency,
     securityMap,
@@ -322,7 +322,7 @@ interface TradeExecuteInput {
     decimalSeparator: '.' | ',';
     thousandSeparator: '' | '.' | ',' | ' ';
   };
-  targetPortfolioId: string;
+  targetSecuritiesAccountId: string;
   securityMapping: Record<string, string>;       // csvName → securityId
   newSecurities: Array<{ name: string; isin?: string; ticker?: string; currency: string }>;
   excludedRows: number[];
@@ -339,10 +339,10 @@ export async function executeTradeImport(
 
   acquireLock();
   try {
-    // Resolve portfolio -> deposit
+    // Resolve securities account -> deposit
     const acctRow = sqlite.prepare(
       'SELECT uuid, type, currency, referenceAccount FROM account WHERE uuid = ?',
-    ).get(input.targetPortfolioId) as { uuid: string; type: string; currency: string | null; referenceAccount: string | null };
+    ).get(input.targetSecuritiesAccountId) as { uuid: string; type: string; currency: string | null; referenceAccount: string | null };
 
     const depositRow = sqlite.prepare('SELECT uuid, currency FROM account WHERE uuid = ?')
       .get(acctRow.referenceAccount!) as { uuid: string; currency: string | null };
@@ -434,7 +434,7 @@ export async function executeTradeImport(
 
     // Map
     const ctx: TradeMapperContext = {
-      portfolioId: input.targetPortfolioId,
+      portfolioId: input.targetSecuritiesAccountId,
       depositAccountId: acctRow.referenceAccount!,
       portfolioCurrency,
       securityMap,

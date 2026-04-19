@@ -44,9 +44,12 @@ function seedCashAccount(id: string): string {
   const accountUuid = randomUUID();
   const h = acquirePortfolioDb(id);
   try {
+    // Distinct name from the auto-seeded 'Cash' primary deposit so there is no
+    // ambiguity in the test fixture; the route filters by accountId UUID
+    // anyway, but the raw INSERT bypass means we want a unique label too.
     h.sqlite.prepare(
       `INSERT INTO account (_id, uuid, name, currency, type, updatedAt, _xmlid, _order)
-       VALUES (100, ?, 'Cash', 'EUR', 'account', '2026-01-01T00:00:00Z', 0, 0)`,
+       VALUES (100, ?, 'Test Cash', 'EUR', 'account', '2026-01-01T00:00:00Z', 100, 100)`,
     ).run(accountUuid);
   } finally {
     releasePortfolioDb(id);
@@ -60,7 +63,12 @@ describe('POST /transactions idempotency (BUG-50)', () => {
     recoverFromInterruptedSwap();
     const app = createApp();
 
-    const rP = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'IDEM' });
+    const rP = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'IDEM',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
     expect(rP.status).toBe(201);
     const pid = rP.body.entry.id;
     const accountUuid = seedCashAccount(pid);
@@ -98,7 +106,12 @@ describe('POST /transactions idempotency (BUG-50)', () => {
     recoverFromInterruptedSwap();
     const app = createApp();
 
-    const rP = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'IDEM2' });
+    const rP = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'IDEM2',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
     expect(rP.status).toBe(201);
     const pid = rP.body.entry.id;
     const accountUuid = seedCashAccount(pid);

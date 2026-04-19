@@ -1,0 +1,38 @@
+{
+  "dialog": {
+    "title": "Criar carteira",
+    "description": "Dê um nome à sua carteira e configure a primeira conta de títulos e conta de caixa."
+  },
+  "setupPage": {
+    "title": "Configurar {{name}}",
+    "description": "Esta carteira precisa de uma conta de títulos e uma conta de caixa antes de poder ser usada."
+  },
+  "fields": {
+    "name": "Nome da carteira",
+    "namePlaceholder": "A minha carteira",
+    "baseCurrency": "Moeda base",
+    "securitiesAccountName": "Nome da conta de títulos",
+    "securitiesAccountPlaceholder": "Títulos principal",
+    "primaryDepositName": "Nome da conta de caixa",
+    "primaryDepositPlaceholder": "Caixa",
+    "extraDepositName": "Nome da conta adicional",
+    "extraDepositCurrency": "Moeda"
+  },
+  "advanced": {
+    "toggle": "Avançado",
+    "description": "Adicione contas de caixa adicionais (para carteiras multi-moeda). Também pode adicioná-las mais tarde na secção Contas.",
+    "addDeposit": "Adicionar conta",
+    "removeDeposit": "Remover"
+  },
+  "submit": {
+    "create": "Criar carteira",
+    "finishSetup": "Concluir configuração",
+    "submitting": "A guardar…"
+  },
+  "errors": {
+    "duplicateName": "Cada conta deve ter um nome único.",
+    "alreadySetup": "Esta carteira já está configurada. A redirecionar…",
+    "createFailed": "Não foi possível criar a carteira: {{msg}}",
+    "setupFailed": "Não foi possível concluir a configuração: {{msg}}"
+  }
+}

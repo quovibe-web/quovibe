@@ -136,7 +136,12 @@ describe('GET /api/p/:pid/watchlists — previousClose (BUG-40)', () => {
     recoverFromInterruptedSwap();
     const app = createApp();
 
-    const rP = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'WL-PREVCLOSE-1' });
+    const rP = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'WL-PREVCLOSE-1',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
     expect(rP.status).toBe(201);
     const pid = rP.body.entry.id as string;
 
@@ -161,7 +166,12 @@ describe('GET /api/p/:pid/watchlists — previousClose (BUG-40)', () => {
     recoverFromInterruptedSwap();
     const app = createApp();
 
-    const rP = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'WL-PREVCLOSE-2' });
+    const rP = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'WL-PREVCLOSE-2',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
     expect(rP.status).toBe(201);
     const pid = rP.body.entry.id as string;
 
@@ -184,7 +194,12 @@ describe('GET /api/p/:pid/watchlists — previousClose (BUG-40)', () => {
     recoverFromInterruptedSwap();
     const app = createApp();
 
-    const rP = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'WL-PREVCLOSE-3' });
+    const rP = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'WL-PREVCLOSE-3',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
     expect(rP.status).toBe(201);
     const pid = rP.body.entry.id as string;
 

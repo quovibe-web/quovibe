@@ -25,6 +25,7 @@ import CsvImportPage from '@/pages/CsvImportPage';
 import Analytics from '@/pages/Analytics';
 import Welcome from '@/pages/Welcome';
 import ImportHub from '@/pages/ImportHub';
+import PortfolioSetupPage from '@/pages/PortfolioSetupPage';
 
 /**
  * URL-alias redirect that preserves `location.search`. Use this instead of
@@ -55,6 +56,11 @@ export const router = createBrowserRouter([
   { path: '/', element: <RootRedirect />, errorElement: <ErrorFallback /> },
   { path: '/welcome', element: <Welcome />, errorElement: <ErrorFallback /> },
   { path: '/import', element: <ImportHub />, errorElement: <ErrorFallback /> },
+  // Setup redirect target for legacy N=0 portfolios. Sibling of the
+  // PortfolioLayout-wrapped /p/:portfolioId branch — NOT a child — because
+  // PortfolioLayout itself redirects on N=0, so /setup must be reachable
+  // without going through that layout (otherwise infinite loop).
+  { path: '/p/:portfolioId/setup', element: <PortfolioSetupPage />, errorElement: <ErrorFallback /> },
   {
     path: '/settings',
     element: <UserSettingsLayout />,

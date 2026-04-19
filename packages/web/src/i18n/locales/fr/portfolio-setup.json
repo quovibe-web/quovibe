@@ -1,0 +1,38 @@
+{
+  "dialog": {
+    "title": "Créer un portefeuille",
+    "description": "Donnez un nom à votre portefeuille et configurez son premier compte-titres et compte espèces."
+  },
+  "setupPage": {
+    "title": "Configurer {{name}}",
+    "description": "Ce portefeuille a besoin d'un compte-titres et d'un compte espèces avant de pouvoir être utilisé."
+  },
+  "fields": {
+    "name": "Nom du portefeuille",
+    "namePlaceholder": "Mon portefeuille",
+    "baseCurrency": "Devise de base",
+    "securitiesAccountName": "Nom du compte-titres",
+    "securitiesAccountPlaceholder": "Compte-titres principal",
+    "primaryDepositName": "Nom du compte espèces",
+    "primaryDepositPlaceholder": "Espèces",
+    "extraDepositName": "Nom du compte espèces supplémentaire",
+    "extraDepositCurrency": "Devise"
+  },
+  "advanced": {
+    "toggle": "Avancé",
+    "description": "Ajoutez des comptes espèces supplémentaires (pour les portefeuilles multi-devises). Vous pouvez aussi les ajouter plus tard dans la section Comptes.",
+    "addDeposit": "Ajouter un compte espèces",
+    "removeDeposit": "Supprimer"
+  },
+  "submit": {
+    "create": "Créer le portefeuille",
+    "finishSetup": "Terminer la configuration",
+    "submitting": "Enregistrement…"
+  },
+  "errors": {
+    "duplicateName": "Chaque compte doit avoir un nom unique.",
+    "alreadySetup": "Ce portefeuille est déjà configuré. Redirection…",
+    "createFailed": "Impossible de créer le portefeuille : {{msg}}",
+    "setupFailed": "Impossible de terminer la configuration : {{msg}}"
+  }
+}

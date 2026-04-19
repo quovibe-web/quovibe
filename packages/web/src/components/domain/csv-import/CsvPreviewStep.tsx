@@ -22,7 +22,7 @@ interface Props {
 // to i18n keys. Keep the code-list aligned with .claude/rules/csv-import.md.
 function mapExecuteError(message: string): string {
   switch (message) {
-    case 'INVALID_PORTFOLIO': return 'errors.invalidPortfolio';
+    case 'INVALID_SECURITIES_ACCOUNT': return 'errors.invalidSecuritiesAccount';
     case 'NO_REFERENCE_ACCOUNT': return 'errors.noReferenceAccount';
     case 'TEMP_FILE_EXPIRED': return 'errors.tempExpired';
     case 'IMPORT_IN_PROGRESS': return 'errors.importInProgress';
@@ -76,6 +76,7 @@ export function CsvPreviewStep({ state, onBack }: Props) {
   };
 
   const handleImport = () => {
+    if (!state.targetSecuritiesAccountId) return; // gated by Next-button on Step 3
     executeMutation.mutate({
       tempFileId: state.parseResult!.tempFileId,
       config: {
@@ -84,7 +85,7 @@ export function CsvPreviewStep({ state, onBack }: Props) {
         decimalSeparator: state.decimalSeparator,
         thousandSeparator: state.thousandSeparator,
       },
-      targetPortfolioId: portfolio.id,
+      targetSecuritiesAccountId: state.targetSecuritiesAccountId,
       securityMapping: state.securityMapping,
       newSecurities: state.newSecurities,
       excludedRows: Array.from(excludedRows),

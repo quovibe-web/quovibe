@@ -106,8 +106,18 @@ describe('cross-portfolio isolation (RC-1 regression)', () => {
     recoverFromInterruptedSwap();
     const app = createApp();
 
-    const rA = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'A' });
-    const rB = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'B' });
+    const rA = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'A',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
+    const rB = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'B',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
     expect(rA.status).toBe(201);
     expect(rB.status).toBe(201);
     const idA = rA.body.entry.id;
@@ -148,8 +158,18 @@ describe('cross-portfolio isolation (RC-1 regression)', () => {
     recoverFromInterruptedSwap();
     const app = createApp();
 
-    const rA = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'hA' });
-    const rB = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'hB' });
+    const rA = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'hA',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
+    const rB = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'hB',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
     expect(rA.status).toBe(201);
     expect(rB.status).toBe(201);
     const idA = rA.body.entry.id;

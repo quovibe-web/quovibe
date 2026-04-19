@@ -86,7 +86,12 @@ describe('demo portfolio rejects live price fetches', () => {
 
   it('real portfolios are not affected by the demo guard', async () => {
     const app = createApp();
-    const create = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'Real' });
+    const create = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'Real',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
     expect(create.status).toBe(201);
     const realId = create.body.entry.id;
 

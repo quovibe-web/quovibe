@@ -20,8 +20,7 @@
       "title": "Partir de zéro",
       "body": "Créer un portefeuille vide flambant neuf et ajouter des transactions au fil du temps.",
       "cta": "Créer le portefeuille",
-      "badge": "Recommandé",
-      "namePlaceholder": "Nom du portefeuille"
+      "badge": "Recommandé"
     },
     "demo": {
       "title": "Essayer la démo",

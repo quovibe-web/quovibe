@@ -34,16 +34,27 @@ beforeAll(async () => {
   await import('../services/portfolio-registry');
 });
 
+// Minimal valid M3 fresh-portfolio body — the duplicate-name guard fires on
+// `name`, not on the rest of the payload, so each call uses the same defaults.
+function freshBody(name: string): Record<string, unknown> {
+  return {
+    source: 'fresh', name,
+    baseCurrency: 'EUR',
+    securitiesAccountName: 'Main Securities',
+    primaryDeposit: { name: 'Cash' },
+  };
+}
+
 describe('POST /portfolios duplicate-name guard (BUG-05)', () => {
   it('second fresh portfolio with the same name returns 409 DUPLICATE_NAME', async () => {
     loadSettings();
     recoverFromInterruptedSwap();
     const app = createApp();
 
-    const first = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'Alpha' });
+    const first = await request(app).post('/api/portfolios').send(freshBody('Alpha'));
     expect(first.status).toBe(201);
 
-    const second = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'Alpha' });
+    const second = await request(app).post('/api/portfolios').send(freshBody('Alpha'));
     expect(second.status, `unexpected body: ${JSON.stringify(second.body)}`).toBe(409);
     expect(second.body.error).toBe('DUPLICATE_NAME');
   });
@@ -53,14 +64,14 @@ describe('POST /portfolios duplicate-name guard (BUG-05)', () => {
     recoverFromInterruptedSwap();
     const app = createApp();
 
-    const first = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'Bravo' });
+    const first = await request(app).post('/api/portfolios').send(freshBody('Bravo'));
     expect(first.status).toBe(201);
 
-    const dup = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'BRAVO' });
+    const dup = await request(app).post('/api/portfolios').send(freshBody('BRAVO'));
     expect(dup.status).toBe(409);
     expect(dup.body.error).toBe('DUPLICATE_NAME');
 
-    const dupWithSpaces = await request(app).post('/api/portfolios').send({ source: 'fresh', name: '  bravo  ' });
+    const dupWithSpaces = await request(app).post('/api/portfolios').send(freshBody('  bravo  '));
     expect(dupWithSpaces.status).toBe(409);
   });
 
@@ -69,8 +80,8 @@ describe('POST /portfolios duplicate-name guard (BUG-05)', () => {
     recoverFromInterruptedSwap();
     const app = createApp();
 
-    const a = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'Charlie' });
-    const b = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'Delta' });
+    const a = await request(app).post('/api/portfolios').send(freshBody('Charlie'));
+    const b = await request(app).post('/api/portfolios').send(freshBody('Delta'));
     expect(a.status).toBe(201);
     expect(b.status).toBe(201);
 

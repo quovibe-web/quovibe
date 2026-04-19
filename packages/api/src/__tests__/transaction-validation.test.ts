@@ -90,7 +90,12 @@ async function makePortfolio(): Promise<{ app: ReturnType<typeof createApp>; pid
   loadSettings();
   recoverFromInterruptedSwap();
   const app = createApp();
-  const rP = await request(app).post('/api/portfolios').send({ source: 'fresh', name: `VAL-${randomUUID().slice(0, 8)}` });
+  const rP = await request(app).post('/api/portfolios').send({
+    source: 'fresh', name: `VAL-${randomUUID().slice(0, 8)}`,
+    baseCurrency: 'EUR',
+    securitiesAccountName: 'Main Securities',
+    primaryDeposit: { name: 'Cash' },
+  });
   expect(rP.status).toBe(201);
   const pid = rP.body.entry.id;
   const accts = seedAccounts(pid);

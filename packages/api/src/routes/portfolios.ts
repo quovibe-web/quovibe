@@ -4,10 +4,12 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
+import { createPortfolioSchema } from '@quovibe/shared';
 import {
   createPortfolio, renamePortfolio, deletePortfolio, exportPortfolio,
   touchPortfolio, PortfolioManagerError,
 } from '../services/portfolio-manager';
+import { AccountServiceError } from '../services/accounts.service';
 import { validateQuovibeDbFile, ImportValidationError } from '../services/import-validation';
 import { listPortfolios, getPortfolioEntry } from '../services/portfolio-registry';
 import { getSettings } from '../services/settings.service';
@@ -19,14 +21,6 @@ const upload = multer({
   dest: path.join(DATA_DIR, 'tmp'),
   limits: { fileSize: IMPORT_MAX_MB * 1024 * 1024 },
 });
-
-const createSchema = z.discriminatedUnion('source', [
-  z.object({ source: z.literal('fresh'), name: z.string().min(1).max(200) }),
-  z.object({ source: z.literal('demo') }),
-  // import-pp-xml is handled by routes/import.ts which calls portfolio-manager directly;
-  // the registry endpoint only accepts the declarative sources.
-  z.object({ source: z.literal('import-quovibe-db') }),
-]);
 
 const patchSchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -64,26 +58,28 @@ const postCreate: RequestHandler = async (req, res) => {
       }
       const result = await createPortfolio({
         source: 'import-quovibe-db',
-        name: '',                                  // name read from vf_portfolio_meta
-        uploadedDbPath: file.path,
+        uploadedDbPath: file.path,                 // name read from vf_portfolio_meta
       });
       try { fs.unlinkSync(file.path); } catch { /* ok */ }
       res.status(201).json(result);
       return;
     }
 
-    const parsed = createSchema.safeParse(req.body);
+    const parsed = createPortfolioSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: 'INVALID_INPUT', details: parsed.error.format() });
       return;
     }
     if (parsed.data.source === 'fresh') {
-      const r = await createPortfolio({ source: 'fresh', name: parsed.data.name });
+      // parsed.data is { source:'fresh' } & FreshPortfolioInput — same shape as
+      // the service-internal `CreatePortfolioInput` fresh branch (the shared
+      // schema and the server-internal type intentionally overlap here).
+      const r = await createPortfolio(parsed.data);
       res.status(201).json(r);
       return;
     }
     if (parsed.data.source === 'demo') {
-      const r = await createPortfolio({ source: 'demo', name: '' });
+      const r = await createPortfolio({ source: 'demo' });
       res.status(201).json(r);
       return;
     }
@@ -95,6 +91,15 @@ const postCreate: RequestHandler = async (req, res) => {
       // the client can distinguish it from generic 400 INVALID_INPUT.
       const http = err.code === 'DUPLICATE_NAME' ? 409 : 400;
       res.status(http).json({ error: err.code });
+      return;
+    }
+    if (err instanceof AccountServiceError && err.code === 'DUPLICATE_NAME') {
+      // BUG-54/55 Phase 2 carry-forward: createFreshImpl now seeds accounts
+      // through accounts.service.createAccount, which can throw
+      // DUPLICATE_NAME inside the seeding transaction (e.g. primary deposit
+      // and an extra deposit share a name). Surface as 409 — symmetric with
+      // setup.ts and accounts.ts (`.claude/rules/api.md`).
+      res.status(409).json({ error: err.code });
       return;
     }
     if (err instanceof Error && 'code' in err && (err as { code?: string }).code === 'LIMIT_FILE_SIZE') {

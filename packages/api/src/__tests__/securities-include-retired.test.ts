@@ -35,7 +35,12 @@ beforeAll(async () => {
 });
 
 async function freshPortfolio(app: ReturnType<typeof createApp>, name: string): Promise<string> {
-  const rP = await request(app).post('/api/portfolios').send({ source: 'fresh', name });
+  const rP = await request(app).post('/api/portfolios').send({
+    source: 'fresh', name,
+    baseCurrency: 'EUR',
+    securitiesAccountName: 'Main Securities',
+    primaryDeposit: { name: 'Cash' },
+  });
   expect(rP.status).toBe(201);
   return rP.body.entry.id as string;
 }

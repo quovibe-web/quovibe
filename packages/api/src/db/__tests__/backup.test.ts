@@ -61,7 +61,13 @@ beforeEach(() => {
 
 describe('backupDb end-to-end via pool handle', () => {
   it('creates a valid .bak.{ts} file next to the portfolio DB', async () => {
-    const { entry } = await createPortfolio({ source: 'fresh', name: 'Backup-E2E' });
+    const { entry } = await createPortfolio({
+      source: 'fresh', name: 'Backup-E2E',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+      extraDeposits: [],
+    });
     const srcPath = resolvePortfolioPath(entry);
     expect(fs.existsSync(srcPath)).toBe(true);
 
@@ -97,7 +103,13 @@ describe('backupDb end-to-end via pool handle', () => {
   });
 
   it('rotates old backups so at most DB_BACKUP_MAX (default 3) coexist next to the DB', async () => {
-    const { entry } = await createPortfolio({ source: 'fresh', name: 'Backup-Rotate' });
+    const { entry } = await createPortfolio({
+      source: 'fresh', name: 'Backup-Rotate',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+      extraDeposits: [],
+    });
     const srcPath = resolvePortfolioPath(entry);
     const dir = path.dirname(srcPath);
     const base = path.basename(srcPath);

@@ -20,8 +20,7 @@
       "title": "Start fresh",
       "body": "Create a brand-new empty portfolio and add transactions as you go.",
       "cta": "Create portfolio",
-      "badge": "Recommended",
-      "namePlaceholder": "Portfolio name"
+      "badge": "Recommended"
     },
     "demo": {
       "title": "Try the demo",

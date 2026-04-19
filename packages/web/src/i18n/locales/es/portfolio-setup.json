@@ -1,0 +1,38 @@
+{
+  "dialog": {
+    "title": "Crear cartera",
+    "description": "Da un nombre a tu cartera y configura su primera cuenta de valores y cuenta de efectivo."
+  },
+  "setupPage": {
+    "title": "Configurar {{name}}",
+    "description": "Esta cartera necesita una cuenta de valores y una cuenta de efectivo antes de poder usarse."
+  },
+  "fields": {
+    "name": "Nombre de la cartera",
+    "namePlaceholder": "Mi cartera",
+    "baseCurrency": "Moneda base",
+    "securitiesAccountName": "Nombre de la cuenta de valores",
+    "securitiesAccountPlaceholder": "Valores principal",
+    "primaryDepositName": "Nombre de la cuenta de efectivo",
+    "primaryDepositPlaceholder": "Efectivo",
+    "extraDepositName": "Nombre de la cuenta adicional",
+    "extraDepositCurrency": "Moneda"
+  },
+  "advanced": {
+    "toggle": "Avanzado",
+    "description": "Agrega cuentas de efectivo adicionales (para carteras multidivisa). También puedes agregarlas más tarde en la sección Cuentas.",
+    "addDeposit": "Agregar cuenta",
+    "removeDeposit": "Quitar"
+  },
+  "submit": {
+    "create": "Crear cartera",
+    "finishSetup": "Finalizar configuración",
+    "submitting": "Guardando…"
+  },
+  "errors": {
+    "duplicateName": "Cada cuenta debe tener un nombre único.",
+    "alreadySetup": "Esta cartera ya está configurada. Redirigiendo…",
+    "createFailed": "No se pudo crear la cartera: {{msg}}",
+    "setupFailed": "No se pudo finalizar la configuración: {{msg}}"
+  }
+}
