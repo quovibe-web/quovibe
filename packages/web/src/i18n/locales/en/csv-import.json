@@ -56,6 +56,10 @@
 
   "securities.title": "Match Securities",
   "securities.description": "Match CSV securities to existing ones or create new",
+  "securities.pickerLoading": "Loading securities accounts…",
+  "securities.picker.label": "Securities account",
+  "securities.picker.description": "This portfolio has multiple securities accounts. Choose which one the import targets.",
+  "securities.picker.placeholder": "Choose an account",
   "securities.csvName": "CSV Name",
   "securities.matched": "Matched",
   "securities.matchedTo": "Matched to",

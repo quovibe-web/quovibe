@@ -56,6 +56,10 @@
 
   "securities.title": "Abbina Titoli",
   "securities.description": "Abbina i titoli del CSV a quelli esistenti o creane di nuovi",
+  "securities.pickerLoading": "Caricamento dei conti titoli…",
+  "securities.picker.label": "Conto titoli",
+  "securities.picker.description": "Questo portafoglio ha più conti titoli. Scegli quello a cui destinare l'importazione.",
+  "securities.picker.placeholder": "Scegli un conto",
   "securities.csvName": "Nome CSV",
   "securities.matched": "Abbinato",
   "securities.matchedTo": "Abbinato a",

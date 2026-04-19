@@ -56,6 +56,10 @@
 
   "securities.title": "Dopasuj papiery wartościowe",
   "securities.description": "Dopasuj papiery wartościowe z CSV do istniejących lub utwórz nowe",
+  "securities.pickerLoading": "Ładowanie rachunków papierów wartościowych…",
+  "securities.picker.label": "Rachunek papierów wartościowych",
+  "securities.picker.description": "Ten portfel ma wiele rachunków papierów wartościowych. Wybierz docelowy rachunek dla importu.",
+  "securities.picker.placeholder": "Wybierz rachunek",
   "securities.csvName": "Nazwa CSV",
   "securities.matched": "Dopasowany",
   "securities.matchedTo": "Dopasowany do",

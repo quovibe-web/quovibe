@@ -56,6 +56,10 @@
 
   "securities.title": "Wertpapiere abgleichen",
   "securities.description": "CSV-Wertpapiere mit vorhandenen abgleichen oder neu erstellen",
+  "securities.pickerLoading": "Wertpapierdepots werden geladen…",
+  "securities.picker.label": "Wertpapierdepot",
+  "securities.picker.description": "Dieses Portfolio hat mehrere Wertpapierdepots. Wähle das Zieldepot für den Import.",
+  "securities.picker.placeholder": "Depot auswählen",
   "securities.csvName": "CSV-Name",
   "securities.matched": "Abgeglichen",
   "securities.matchedTo": "Abgeglichen mit",

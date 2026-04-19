@@ -56,6 +56,10 @@
 
   "securities.title": "Effecten koppelen",
   "securities.description": "CSV-effecten koppelen aan bestaande of nieuwe maken",
+  "securities.pickerLoading": "Effectenrekeningen worden geladen…",
+  "securities.picker.label": "Effectenrekening",
+  "securities.picker.description": "Deze portefeuille heeft meerdere effectenrekeningen. Kies de doelrekening voor de import.",
+  "securities.picker.placeholder": "Kies een rekening",
   "securities.csvName": "CSV-naam",
   "securities.matched": "Gekoppeld",
   "securities.matchedTo": "Gekoppeld aan",

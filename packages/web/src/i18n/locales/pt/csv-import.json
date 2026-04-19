@@ -56,6 +56,10 @@
 
   "securities.title": "Associar ativos",
   "securities.description": "Associar ativos do CSV aos existentes ou criar novos",
+  "securities.pickerLoading": "A carregar contas de títulos…",
+  "securities.picker.label": "Conta de títulos",
+  "securities.picker.description": "Esta carteira tem várias contas de títulos. Escolhe a conta de destino para a importação.",
+  "securities.picker.placeholder": "Escolhe uma conta",
   "securities.csvName": "Nome CSV",
   "securities.matched": "Associado",
   "securities.matchedTo": "Associado a",

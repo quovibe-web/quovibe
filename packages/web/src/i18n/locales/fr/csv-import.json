@@ -56,6 +56,10 @@
 
   "securities.title": "Correspondance des titres",
   "securities.description": "Faire correspondre les titres CSV aux titres existants ou en créer de nouveaux",
+  "securities.pickerLoading": "Chargement des comptes-titres…",
+  "securities.picker.label": "Compte-titres",
+  "securities.picker.description": "Ce portefeuille comporte plusieurs comptes-titres. Choisissez le compte cible de l'import.",
+  "securities.picker.placeholder": "Choisir un compte",
   "securities.csvName": "Nom CSV",
   "securities.matched": "Correspondance trouvée",
   "securities.matchedTo": "Associé à",

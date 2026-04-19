@@ -26,6 +26,11 @@ export interface WizardState {
   previewResult: TradePreviewResult | null;
   securityMapping: Record<string, string>;
   newSecurities: Array<{ name: string; isin?: string; ticker?: string; currency: string }>;
+
+  // BUG-54/55 Phase 6 — picked inner securities-account UUID. Resolved by
+  // CsvSecurityMatchStep on mount (auto-pick when N=1, picker when N>1).
+  // Phase 5 redirect handles N=0 before the user can reach this wizard.
+  targetSecuritiesAccountId: string | null;
 }
 
 const initialState: WizardState = {
@@ -39,6 +44,7 @@ const initialState: WizardState = {
   previewResult: null,
   securityMapping: {},
   newSecurities: [],
+  targetSecuritiesAccountId: null,
 };
 
 export default function CsvImportPage() {

@@ -76,6 +76,7 @@ export function CsvPreviewStep({ state, onBack }: Props) {
   };
 
   const handleImport = () => {
+    if (!state.targetSecuritiesAccountId) return; // gated by Next-button on Step 3
     executeMutation.mutate({
       tempFileId: state.parseResult!.tempFileId,
       config: {
@@ -84,7 +85,7 @@ export function CsvPreviewStep({ state, onBack }: Props) {
         decimalSeparator: state.decimalSeparator,
         thousandSeparator: state.thousandSeparator,
       },
-      targetSecuritiesAccountId: portfolio.id,
+      targetSecuritiesAccountId: state.targetSecuritiesAccountId,
       securityMapping: state.securityMapping,
       newSecurities: state.newSecurities,
       excludedRows: Array.from(excludedRows),

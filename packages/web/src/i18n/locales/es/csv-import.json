@@ -56,6 +56,10 @@
 
   "securities.title": "Asociar valores",
   "securities.description": "Asociar valores CSV con los existentes o crear nuevos",
+  "securities.pickerLoading": "Cargando cuentas de valores…",
+  "securities.picker.label": "Cuenta de valores",
+  "securities.picker.description": "Esta cartera tiene varias cuentas de valores. Elige la cuenta de destino para la importación.",
+  "securities.picker.placeholder": "Elige una cuenta",
   "securities.csvName": "Nombre CSV",
   "securities.matched": "Asociado",
   "securities.matchedTo": "Asociado a",
