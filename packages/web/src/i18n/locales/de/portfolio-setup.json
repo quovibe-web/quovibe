@@ -33,6 +33,8 @@
     "duplicateName": "Jedes Konto muss einen eindeutigen Namen haben.",
     "alreadySetup": "Dieses Portfolio ist bereits eingerichtet. Weiterleitung…",
     "createFailed": "Portfolio konnte nicht erstellt werden: {{msg}}",
-    "setupFailed": "Einrichtung konnte nicht abgeschlossen werden: {{msg}}"
+    "setupFailed": "Einrichtung konnte nicht abgeschlossen werden: {{msg}}",
+    "fillRequired": "Bitte fülle alle Pflichtfelder aus, bevor du fortfährst.",
+    "required": "Pflichtfeld"
   }
 }

@@ -33,6 +33,8 @@
     "duplicateName": "Cada cuenta debe tener un nombre único.",
     "alreadySetup": "Esta cartera ya está configurada. Redirigiendo…",
     "createFailed": "No se pudo crear la cartera: {{msg}}",
-    "setupFailed": "No se pudo finalizar la configuración: {{msg}}"
+    "setupFailed": "No se pudo finalizar la configuración: {{msg}}",
+    "fillRequired": "Completa todos los campos obligatorios para continuar.",
+    "required": "Obligatorio"
   }
 }

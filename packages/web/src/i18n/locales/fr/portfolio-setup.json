@@ -33,6 +33,8 @@
     "duplicateName": "Chaque compte doit avoir un nom unique.",
     "alreadySetup": "Ce portefeuille est déjà configuré. Redirection…",
     "createFailed": "Impossible de créer le portefeuille : {{msg}}",
-    "setupFailed": "Impossible de terminer la configuration : {{msg}}"
+    "setupFailed": "Impossible de terminer la configuration : {{msg}}",
+    "fillRequired": "Veuillez remplir tous les champs obligatoires avant de continuer.",
+    "required": "Obligatoire"
   }
 }

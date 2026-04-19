@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { setupPortfolioSchema, type SetupPortfolioInput } from '@quovibe/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,21 +72,33 @@ export function PortfolioSetupForm({
 
   const { fields, append, remove } = useFieldArray({ control, name: 'extraDeposits' });
 
-  const handleFormSubmit = handleSubmit((raw) => {
-    const normalized = buildSetupInput(raw);
-    const dups = findDuplicateDepositNames([
-      normalized.primaryDeposit.name,
-      ...normalized.extraDeposits.map(d => d.name),
-    ]);
-    if (dups.length > 0) {
-      setError('root.duplicateName', { message: t('errors.duplicateName') });
-      return;
-    }
-    clearErrors('root.duplicateName');
-    onSubmit(normalized);
-  });
+  const handleFormSubmit = handleSubmit(
+    (raw) => {
+      const normalized = buildSetupInput(raw);
+      const dups = findDuplicateDepositNames([
+        normalized.primaryDeposit.name,
+        ...normalized.extraDeposits.map(d => d.name),
+      ]);
+      if (dups.length > 0) {
+        setError('root.duplicateName', { message: t('errors.duplicateName') });
+        toast.error(t('errors.duplicateName'));
+        return;
+      }
+      clearErrors('root.duplicateName');
+      onSubmit(normalized);
+    },
+    () => {
+      // Surface a toast on every failed-validation submit so the click is
+      // never silently swallowed (the previous behaviour made the button look
+      // dead when a required field was empty — typically an unfilled extra
+      // deposit name in the Advanced section).
+      toast.error(t('errors.fillRequired'));
+    },
+  );
 
   const dupError = errors.root?.duplicateName?.message;
+  const securitiesError = errors.securitiesAccountName?.message;
+  const primaryError = errors.primaryDeposit?.name?.message;
 
   return (
     <form onSubmit={handleFormSubmit} className="space-y-5">
@@ -114,8 +127,12 @@ export function PortfolioSetupForm({
         <Input
           id="portfolio-setup-securities-name"
           placeholder={t('fields.securitiesAccountPlaceholder')}
+          aria-invalid={!!securitiesError}
           {...register('securitiesAccountName')}
         />
+        {securitiesError && (
+          <p className="text-xs text-destructive">{t('errors.required')}</p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -123,8 +140,12 @@ export function PortfolioSetupForm({
         <Input
           id="portfolio-setup-primary-name"
           placeholder={t('fields.primaryDepositPlaceholder')}
+          aria-invalid={!!primaryError}
           {...register('primaryDeposit.name')}
         />
+        {primaryError && (
+          <p className="text-xs text-destructive">{t('errors.required')}</p>
+        )}
       </div>
 
       <div className="border-t pt-4">
@@ -142,7 +163,9 @@ export function PortfolioSetupForm({
         {advancedOpen && (
           <div id={ADVANCED_REGION_ID} role="region" className="mt-3 space-y-3">
             <p className="text-xs text-muted-foreground">{t('advanced.description')}</p>
-            {fields.map((field, index) => (
+            {fields.map((field, index) => {
+              const extraNameError = errors.extraDeposits?.[index]?.name?.message;
+              return (
               <div key={field.id} className="flex items-end gap-2">
                 <div className="flex-1 space-y-1">
                   <Label htmlFor={`extra-name-${index}`} className="text-xs">
@@ -150,8 +173,12 @@ export function PortfolioSetupForm({
                   </Label>
                   <Input
                     id={`extra-name-${index}`}
+                    aria-invalid={!!extraNameError}
                     {...register(`extraDeposits.${index}.name`)}
                   />
+                  {extraNameError && (
+                    <p className="text-xs text-destructive">{t('errors.required')}</p>
+                  )}
                 </div>
                 <div className="w-28 space-y-1">
                   <Label htmlFor={`extra-currency-${index}`} className="text-xs">
@@ -184,7 +211,8 @@ export function PortfolioSetupForm({
                   <X size={16} />
                 </Button>
               </div>
-            ))}
+              );
+            })}
             <Button
               type="button"
               variant="outline"

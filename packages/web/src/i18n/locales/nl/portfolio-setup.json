@@ -33,6 +33,8 @@
     "duplicateName": "Elke rekening moet een unieke naam hebben.",
     "alreadySetup": "Deze portefeuille is al ingesteld. Doorverwijzen…",
     "createFailed": "Kon portefeuille niet aanmaken: {{msg}}",
-    "setupFailed": "Kon instelling niet voltooien: {{msg}}"
+    "setupFailed": "Kon instelling niet voltooien: {{msg}}",
+    "fillRequired": "Vul alle verplichte velden in om door te gaan.",
+    "required": "Verplicht"
   }
 }

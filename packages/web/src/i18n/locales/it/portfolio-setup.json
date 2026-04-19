@@ -33,6 +33,8 @@
     "duplicateName": "Ogni conto deve avere un nome univoco.",
     "alreadySetup": "Questo portafoglio è già configurato. Reindirizzamento…",
     "createFailed": "Impossibile creare il portafoglio: {{msg}}",
-    "setupFailed": "Impossibile completare la configurazione: {{msg}}"
+    "setupFailed": "Impossibile completare la configurazione: {{msg}}",
+    "fillRequired": "Compila tutti i campi obbligatori per continuare.",
+    "required": "Obbligatorio"
   }
 }

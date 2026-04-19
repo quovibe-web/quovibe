@@ -33,6 +33,8 @@
     "duplicateName": "Each account must have a unique name.",
     "alreadySetup": "This portfolio is already set up. Redirecting…",
     "createFailed": "Could not create portfolio: {{msg}}",
-    "setupFailed": "Could not finish setup: {{msg}}"
+    "setupFailed": "Could not finish setup: {{msg}}",
+    "fillRequired": "Please fill all required fields before continuing.",
+    "required": "Required"
   }
 }

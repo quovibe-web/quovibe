@@ -33,6 +33,8 @@
     "duplicateName": "Każdy rachunek musi mieć unikalną nazwę.",
     "alreadySetup": "Ten portfel jest już skonfigurowany. Przekierowywanie…",
     "createFailed": "Nie można utworzyć portfela: {{msg}}",
-    "setupFailed": "Nie można zakończyć konfiguracji: {{msg}}"
+    "setupFailed": "Nie można zakończyć konfiguracji: {{msg}}",
+    "fillRequired": "Wypełnij wszystkie wymagane pola, aby kontynuować.",
+    "required": "Wymagane"
   }
 }
