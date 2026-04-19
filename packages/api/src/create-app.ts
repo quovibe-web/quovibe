@@ -27,6 +27,7 @@ import { logoRouter } from './routes/logo';
 import { importRouter } from './routes/import';
 import { portfoliosRouter } from './routes/portfolios';
 import { eventsRouter } from './routes/events';
+import { setupRouter } from './routes/setup';
 
 /**
  * Build the Express app. In ADR-015 the server carries no global DB handle —
@@ -76,6 +77,7 @@ export function createApp(): Express {
   app.use('/api/p/:portfolioId/chart-config', chartConfigRouter);
   app.use('/api/p/:portfolioId/csv-import', csvImportRouter);
   app.use('/api/p/:portfolioId/watchlists', watchlistsRouter);
+  app.use('/api/p/:portfolioId', setupRouter);
 
   if (process.env.NODE_ENV !== 'production') {
     app.use('/api/p/:portfolioId/debug', debugRouter);
