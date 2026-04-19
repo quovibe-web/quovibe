@@ -119,3 +119,50 @@ describe('POST /csv-import/trades/parse boundary hardening (BUG-46)', () => {
     expect(typeof res.body.tempFileId).toBe('string');
   });
 });
+
+// BUG-55 regression: in the CSV-import wizard, the wire field used to be
+// `targetPortfolioId` and was typed by the client as the OUTER portfolio
+// metadata UUID, but the service-layer `SELECT ... WHERE uuid = ? AND
+// type = 'portfolio'` check treated it as an INNER `account.uuid`. These
+// match only when a portfolio's inner DB has exactly one `type='portfolio'`
+// row whose UUID coincidentally equals the metadata UUID. Multi-broker
+// portfolios (Demo = Interactive Brokers + Scalable Capital, or any portfolio
+// with N>=1 securities accounts whose UUIDs differ from the outer id) fail.
+//
+// Phase 1 of the BUG-54/55 plan renames the wire field
+// `targetPortfolioId` → `targetSecuritiesAccountId` and the error code
+// `INVALID_PORTFOLIO` → `INVALID_SECURITIES_ACCOUNT` so the names accurately
+// describe what they represent. THIS TEST IS RED until Task 1.3 lands the
+// rename; that is intentional TDD state. See
+// docs/superpowers/plans/2026-04-19-portfolio-account-wiring.md Task 1.1.
+describe('BUG-55: wire contract rejects outer metadata UUID on multi-broker portfolio', () => {
+  it('returns 400 INVALID_SECURITIES_ACCOUNT when targetSecuritiesAccountId is the outer portfolio UUID of a multi-broker portfolio', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+
+    // Lazy-import so module-top env (QUOVIBE_DATA_DIR / QUOVIBE_DEMO_SOURCE)
+    // is in place before the helper resolves the api modules it depends on.
+    const { seedMultiBrokerFixture } = await import('./_helpers/portfolio-fixtures');
+    const { portfolioId, tempFileId } = await seedMultiBrokerFixture(app);
+
+    // targetSecuritiesAccountId = outer metadata UUID → should fail because
+    // none of the inner `type='portfolio'` rows seeded by the fixture share
+    // that UUID. After the Task 1.3 rename the service must reject with the
+    // new error code.
+    const res = await request(app)
+      .post(`/api/p/${portfolioId}/csv-import/trades/preview`)
+      .send({
+        tempFileId,
+        delimiter: ',',
+        columnMapping: { date: 0, type: 1, security: 2, amount: 3 },
+        dateFormat: 'yyyy-MM-dd',
+        decimalSeparator: '.',
+        thousandSeparator: '',
+        targetSecuritiesAccountId: portfolioId, // BUG-55 vector
+      });
+
+    expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).toBe(400);
+    expect(res.body.error).toBe('INVALID_SECURITIES_ACCOUNT');
+  });
+});
