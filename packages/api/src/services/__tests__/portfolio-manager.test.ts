@@ -249,7 +249,7 @@ describe('portfolio-manager', () => {
         caught = err;
       }
       expect(caught).toBeInstanceOf(AccountServiceError);
-      expect((caught as AccountServiceError).code).toBe('DUPLICATE_NAME');
+      expect((caught as { code: string }).code).toBe('DUPLICATE_NAME');
     });
   });
 });
