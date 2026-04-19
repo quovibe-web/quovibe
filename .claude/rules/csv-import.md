@@ -20,7 +20,7 @@ the wire; anything else becomes 500 `INTERNAL_ERROR`.
 | `NO_FILE`            | 400    | Request reached the handler with no `file` field                        |
 | `INVALID_FILE_FORMAT`| 400    | Multer fileFilter reject (non-`.csv` extension) or any other multer fault |
 | `FILE_TOO_LARGE`     | 400    | Multer `LIMIT_FILE_SIZE` — upload exceeded `UPLOAD_MAX_BYTES` (100 MB)  |
-| `INVALID_PORTFOLIO`  | 400    | Preview/execute target is not a portfolio account                       |
+| `INVALID_SECURITIES_ACCOUNT` | 400 | Preview/execute `targetSecuritiesAccountId` does not resolve to an inner `account.uuid` with `type='portfolio'` |
 | `NO_REFERENCE_ACCOUNT`| 400   | Portfolio has no linked deposit account                                 |
 | `IMPORT_IN_PROGRESS` | 409    | Another import holds the temp-file lock                                 |
 | `TEMP_FILE_EXPIRED`  | 410    | Upload's temp file was cleaned up before the wizard finished            |
