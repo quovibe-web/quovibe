@@ -2,6 +2,7 @@
 import type { Request } from 'express';
 import type BetterSqlite3 from 'better-sqlite3';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+import { getPortfolioEntry } from '../services/portfolio-registry';
 
 export type AppDb = BetterSQLite3Database<Record<string, unknown>>;
 
@@ -23,4 +24,8 @@ export function getSqlite(req: Request): BetterSqlite3.Database {
 export function getPortfolioId(req: Request): string {
   if (!req.portfolioId) throw new Error('getPortfolioId: req.portfolioId missing');
   return req.portfolioId;
+}
+
+export function isDemoPortfolio(req: Request): boolean {
+  return getPortfolioEntry(getPortfolioId(req))?.kind === 'demo';
 }

@@ -8,7 +8,7 @@ import { convertPriceFromDb } from '../services/unit-conversion';
 import { fetchNetSharesPerSecurity } from '../services/performance.service';
 import { fetchSecurityPrices, testFetchPrices } from '../services/prices.service';
 import type { TestFetchConfig } from '../services/prices.service';
-import { getDb, getSqlite } from '../helpers/request';
+import { getDb, getSqlite, isDemoPortfolio } from '../helpers/request';
 import { securitySearchRouter } from './security-search';
 import {
   createSecurity as createSecurityService,
@@ -355,6 +355,11 @@ const updateTaxonomyHandler: RequestHandler = async (req, res) => {
 const fetchSecurityPricesHandler: RequestHandler = async (req, res) => {
   const sqlite = getSqlite(req);
   const id = req.params['id'] as string;
+
+  if (isDemoPortfolio(req)) {
+    res.status(403).json({ error: 'DEMO_PORTFOLIO_FETCH_BLOCKED' });
+    return;
+  }
 
   const row = sqlite
     .prepare('SELECT uuid, feed FROM security WHERE uuid = ?')

@@ -2,6 +2,7 @@
 import type BetterSqlite3 from 'better-sqlite3';
 import { setOnOpened } from './portfolio-db-pool';
 import { getSettings } from './settings.service';
+import { getPortfolioEntry } from './portfolio-registry';
 import { fetchAllPrices } from './prices.service';
 
 // quovibe:allow-module-state — one-shot-per-portfolio auto-fetch dedup; keyed by portfolio id, no data held (ADR-016).
@@ -24,6 +25,10 @@ export function wireAutoFetchHook(): void {
     if (!getSettings().app.autoFetchPricesOnFirstOpen) return;
     if (fetchedInProcess.has(id)) return;
     fetchedInProcess.add(id);
+    // Demo portfolios are a seeded simulation, not a live portfolio; live Yahoo
+    // fetches overwrite the tail of the seeded random walk and create a visible
+    // discontinuity where the two series meet.
+    if (getPortfolioEntry(id)?.kind === 'demo') return;
     if (!isStale(sqlite) || !hasActiveSecurities(sqlite)) return;
     // Fire-and-forget. Errors log but don't propagate — boot must not fail.
     Promise.resolve().then(() => fetchAllPrices(sqlite))

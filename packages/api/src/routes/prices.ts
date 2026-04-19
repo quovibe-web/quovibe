@@ -3,7 +3,7 @@ import { fetchExchangeRatesSchema } from '@quovibe/shared';
 import { getRate } from '../services/fx.service';
 import { fetchAllExchangeRates } from '../services/fx-fetcher.service';
 import { fetchAllPrices } from '../services/prices.service';
-import { getSqlite, getPortfolioId } from '../helpers/request';
+import { getSqlite, getPortfolioId, isDemoPortfolio } from '../helpers/request';
 
 export const pricesRouter: RouterType = Router();
 
@@ -14,6 +14,10 @@ const fetchInFlight = new Set<string>();
 
 const fetchAll: RequestHandler = async (req, res) => {
   const id = getPortfolioId(req);
+  if (isDemoPortfolio(req)) {
+    res.status(403).json({ error: 'DEMO_PORTFOLIO_FETCH_BLOCKED' });
+    return;
+  }
   if (fetchInFlight.has(id)) {
     res.status(409).json({ error: 'FETCH_IN_PROGRESS' });
     return;
