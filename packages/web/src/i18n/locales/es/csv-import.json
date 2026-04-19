@@ -112,7 +112,7 @@
   "errors.importInProgress": "Otra importación está en curso. Por favor, espere.",
   "errors.noFile": "Ningún archivo seleccionado",
   "errors.invalidFile": "Formato de archivo no válido. Por favor, suba un archivo CSV.",
-  "errors.invalidPortfolio": "Esta cartera no está lista para recibir importaciones. Configure su cuenta de valores y cuenta de efectivo antes de reintentar.",
+  "errors.invalidSecuritiesAccount": "Esta cartera no está lista para recibir importaciones. Configure su cuenta de valores y cuenta de efectivo antes de reintentar.",
   "errors.noReferenceAccount": "Esta cartera no tiene una cuenta de efectivo vinculada. Añada una antes de importar.",
   "errors.previewFailed": "La vista previa ha fallado. Vuelva atrás y verifique el mapeo de columnas, o inténtelo de nuevo.",
   "errors.importFailed": "La importación ha fallado. Vuelva atrás y verifique sus datos, o inténtelo de nuevo.",

@@ -112,7 +112,7 @@
   "errors.importInProgress": "Another import is currently in progress. Please wait.",
   "errors.noFile": "No file selected",
   "errors.invalidFile": "Invalid file format. Please upload a CSV file.",
-  "errors.invalidPortfolio": "This portfolio isn't ready to receive imports. Please set up its securities account and cash account before retrying.",
+  "errors.invalidSecuritiesAccount": "This portfolio isn't ready to receive imports. Please set up its securities account and cash account before retrying.",
   "errors.noReferenceAccount": "This portfolio has no linked cash account. Please add one before importing.",
   "errors.previewFailed": "Preview failed. Please go back and verify your column mapping, or try again.",
   "errors.importFailed": "Import failed. Please go back and check your data, or try again.",

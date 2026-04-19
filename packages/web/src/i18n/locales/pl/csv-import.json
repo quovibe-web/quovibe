@@ -112,7 +112,7 @@
   "errors.importInProgress": "Inny import jest w toku. Proszę czekać.",
   "errors.noFile": "Nie wybrano pliku",
   "errors.invalidFile": "Nieprawidłowy format pliku. Prześlij plik CSV.",
-  "errors.invalidPortfolio": "Ten portfel nie jest gotowy do odbioru importów. Skonfiguruj konto papierów wartościowych i konto gotówkowe przed ponowną próbą.",
+  "errors.invalidSecuritiesAccount": "Ten portfel nie jest gotowy do odbioru importów. Skonfiguruj konto papierów wartościowych i konto gotówkowe przed ponowną próbą.",
   "errors.noReferenceAccount": "Ten portfel nie ma powiązanego konta gotówkowego. Dodaj je przed importowaniem.",
   "errors.previewFailed": "Podgląd nie powiódł się. Wróć i sprawdź mapowanie kolumn lub spróbuj ponownie.",
   "errors.importFailed": "Import nie powiódł się. Wróć i sprawdź swoje dane lub spróbuj ponownie.",

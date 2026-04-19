@@ -22,7 +22,7 @@ interface Props {
 // to i18n keys. Keep the code-list aligned with .claude/rules/csv-import.md.
 function mapPreviewError(message: string): string {
   switch (message) {
-    case 'INVALID_PORTFOLIO': return 'errors.invalidPortfolio';
+    case 'INVALID_SECURITIES_ACCOUNT': return 'errors.invalidSecuritiesAccount';
     case 'NO_REFERENCE_ACCOUNT': return 'errors.noReferenceAccount';
     case 'TEMP_FILE_EXPIRED': return 'errors.tempExpired';
     case 'IMPORT_IN_PROGRESS': return 'errors.importInProgress';
@@ -46,7 +46,7 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
         dateFormat: state.dateFormat,
         decimalSeparator: state.decimalSeparator,
         thousandSeparator: state.thousandSeparator,
-        targetPortfolioId: portfolio.id,
+        targetSecuritiesAccountId: portfolio.id,
       },
       {
         onSuccess: (result) => {

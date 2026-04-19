@@ -89,7 +89,7 @@ export function usePreviewCsvTrades() {
       dateFormat: string;
       decimalSeparator: string;
       thousandSeparator: string;
-      targetPortfolioId: string;
+      targetSecuritiesAccountId: string;
     }) =>
       api.fetch<TradePreviewResult>('/api/csv-import/trades/preview', {
         method: 'POST',
@@ -110,7 +110,7 @@ export function useExecuteCsvTrades() {
         decimalSeparator: string;
         thousandSeparator: string;
       };
-      targetPortfolioId: string;
+      targetSecuritiesAccountId: string;
       securityMapping: Record<string, string>;
       newSecurities: Array<{ name: string; isin?: string; ticker?: string; currency: string }>;
       excludedRows: number[];

@@ -112,7 +112,7 @@
   "errors.importInProgress": "Un autre import est en cours. Veuillez patienter.",
   "errors.noFile": "Aucun fichier sélectionné",
   "errors.invalidFile": "Format de fichier invalide. Veuillez télécharger un fichier CSV.",
-  "errors.invalidPortfolio": "Ce portefeuille n'est pas prêt à recevoir des imports. Veuillez configurer son compte titres et son compte espèces avant de réessayer.",
+  "errors.invalidSecuritiesAccount": "Ce portefeuille n'est pas prêt à recevoir des imports. Veuillez configurer son compte titres et son compte espèces avant de réessayer.",
   "errors.noReferenceAccount": "Ce portefeuille n'a pas de compte espèces associé. Veuillez en ajouter un avant d'importer.",
   "errors.previewFailed": "L'aperçu a échoué. Veuillez revenir en arrière et vérifier le mappage des colonnes, ou réessayer.",
   "errors.importFailed": "L'import a échoué. Veuillez revenir en arrière et vérifier vos données, ou réessayer.",

@@ -112,7 +112,7 @@
   "errors.importInProgress": "Un'altra importazione è in corso. Attendere prego.",
   "errors.noFile": "Nessun file selezionato",
   "errors.invalidFile": "Formato file non valido. Si prega di caricare un file CSV.",
-  "errors.invalidPortfolio": "Questo portafoglio non è pronto per ricevere importazioni. Configura il conto titoli e il conto di liquidità prima di riprovare.",
+  "errors.invalidSecuritiesAccount": "Questo portafoglio non è pronto per ricevere importazioni. Configura il conto titoli e il conto di liquidità prima di riprovare.",
   "errors.noReferenceAccount": "Questo portafoglio non ha un conto di liquidità collegato. Aggiungine uno prima di importare.",
   "errors.previewFailed": "Anteprima non riuscita. Torna indietro e verifica la mappatura delle colonne, oppure riprova.",
   "errors.importFailed": "Importazione non riuscita. Torna indietro e verifica i dati, oppure riprova.",
