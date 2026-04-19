@@ -1,5 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { FreshPortfolioInput } from '@quovibe/shared';
 import { apiFetch } from './fetch';
+
+// useCreatePortfolio accepts these four shapes; only the JSON ones go through
+// apiFetch — the file branches use FormData against POST /api/portfolios or
+// /api/import/xml respectively. The fresh shape mirrors the wire schema in
+// @quovibe/shared (Phase 2 createPortfolioSchema) so the dialog can pass its
+// react-hook-form state through unchanged.
+type CreatePortfolioBody =
+  | FreshPortfolioInput
+  | { source: 'demo' }
+  | { source: 'import-pp-xml'; file: File; name?: string }
+  | { source: 'import-quovibe-db'; file: File };
 
 export interface PortfolioRegistryEntry {
   id: string;
@@ -31,20 +43,17 @@ export function usePortfolioRegistry() {
 export function useCreatePortfolio() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: {
-      source: 'fresh' | 'demo' | 'import-quovibe-db' | 'import-pp-xml';
-      name?: string;
-      file?: File;
-    }): Promise<{ entry: PortfolioRegistryEntry; alreadyExisted?: boolean }> => {
+    mutationFn: async (
+      body: CreatePortfolioBody,
+    ): Promise<{ entry: PortfolioRegistryEntry; alreadyExisted?: boolean }> => {
       if (body.source === 'import-quovibe-db') {
         const fd = new FormData();
-        if (body.file) fd.append('file', body.file);
+        fd.append('file', body.file);
         const r = await fetch('/api/portfolios', { method: 'POST', body: fd });
         if (!r.ok) throw new Error((await r.json()).error ?? `HTTP ${r.status}`);
         return r.json();
       }
       if (body.source === 'import-pp-xml') {
-        if (!body.file) throw new Error('FILE_REQUIRED');
         const fd = new FormData();
         fd.append('file', body.file);
         if (body.name) fd.append('name', body.name);
@@ -81,9 +90,10 @@ export function useCreatePortfolio() {
           },
         };
       }
+      // body is FreshPortfolioInput or { source: 'demo' } — JSON pass-through.
       return apiFetch<{ entry: PortfolioRegistryEntry; alreadyExisted?: boolean }>(
         '/api/portfolios',
-        { method: 'POST', body: JSON.stringify({ source: body.source, ...(body.name && { name: body.name }) }) },
+        { method: 'POST', body: JSON.stringify(body) },
       );
     },
     onSuccess: async () => {

@@ -20,8 +20,7 @@
       "title": "Começar do zero",
       "body": "Cria uma carteira vazia de raiz e adiciona transações à medida que avanças.",
       "cta": "Criar carteira",
-      "badge": "Recomendado",
-      "namePlaceholder": "Nome da carteira"
+      "badge": "Recomendado"
     },
     "demo": {
       "title": "Experimentar a demo",
