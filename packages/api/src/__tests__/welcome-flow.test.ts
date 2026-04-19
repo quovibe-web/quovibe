@@ -60,7 +60,12 @@ describe('welcome flow end-to-end', () => {
     const demoId = r.body.entry.id;
 
     // 3. Create fresh
-    r = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'Work' });
+    r = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'Work',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
     expect(r.status).toBe(201);
     const realId = r.body.entry.id;
 
@@ -100,7 +105,12 @@ describe('welcome flow end-to-end', () => {
   it('export/import produces a real portfolio with a new UUID', async () => {
     const app = createApp();
 
-    const r1 = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'Source' });
+    const r1 = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'Source',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
     const sourceId = r1.body.entry.id;
 
     // Supertest must buffer the binary body into a Buffer — otherwise res.body

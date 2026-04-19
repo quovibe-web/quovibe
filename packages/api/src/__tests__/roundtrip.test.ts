@@ -21,6 +21,9 @@ let releasePortfolioDb: typeof import('../services/portfolio-db-pool').releasePo
 let validateQuovibeDbFile: typeof import('../services/import-validation').validateQuovibeDbFile;
 
 function seedTransactions(sqlite: Database.Database, n: number): void {
+  // Strip the auto-seeded M3 default rows so this fixture controls the exact
+  // account shape it asserts against (also clears _id=1/2 collisions).
+  sqlite.prepare('DELETE FROM account').run();
   // Minimal columns required by the CHECKed/NOT-NULL ppxml2db schema.
   // Two accounts: one cash (Group B deposits) + one portfolio (Group A BUY double-entry).
   sqlite.prepare(
@@ -147,7 +150,13 @@ beforeAll(async () => {
 
 describe('Gate 4: portfolio .db roundtrip', () => {
   it('export → import produces identical summaries', async () => {
-    const { entry: first } = await createPortfolio({ source: 'fresh', name: 'Roundtrip' });
+    const { entry: first } = await createPortfolio({
+      source: 'fresh', name: 'Roundtrip',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+      extraDeposits: [],
+    });
     const { sqlite } = acquirePortfolioDb(first.id);
     try {
       seedTransactions(sqlite, 50);
@@ -172,7 +181,6 @@ describe('Gate 4: portfolio .db roundtrip', () => {
 
     const { entry: second } = await createPortfolio({
       source: 'import-quovibe-db',
-      name: '',
       uploadedDbPath: out.filePath,
     });
 

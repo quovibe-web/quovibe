@@ -6,19 +6,28 @@ import { tmpdir } from 'os';
 import fs from 'fs';
 import Database from 'better-sqlite3';
 import type { PortfolioEntry } from '@quovibe/shared';
+import type { CreatePortfolioInput } from '../portfolio-manager';
 
 // Set env BEFORE importing anything that reads from config.
 const tmp = mkdtempSync(path.join(tmpdir(), 'qv-pm-'));
 process.env.QUOVIBE_DATA_DIR = tmp;
 process.env.QUOVIBE_DEMO_SOURCE = path.join(tmp, 'demo-src.db');
 
+// Helper to build the M3 fresh-portfolio payload — the test only varies `name`.
+function freshInput(name: string): CreatePortfolioInput {
+  return {
+    source: 'fresh', name,
+    baseCurrency: 'EUR',
+    securitiesAccountName: 'Main Securities',
+    primaryDeposit: { name: 'Cash' },
+    extraDeposits: [],
+  };
+}
+
 // Late-bound bindings populated in beforeAll.
-let createPortfolio: (input: {
-  source: 'fresh' | 'demo' | 'import-pp-xml' | 'import-quovibe-db';
-  name: string;
-  uploadedDbPath?: string;
-  ppxmlTempDbPath?: string;
-}) => Promise<{ entry: PortfolioEntry; alreadyExisted?: boolean }>;
+let createPortfolio: (
+  input: CreatePortfolioInput,
+) => Promise<{ entry: PortfolioEntry; alreadyExisted?: boolean }>;
 let renamePortfolio: (id: string, newName: string) => PortfolioEntry;
 let deletePortfolio: (id: string) => void;
 let exportPortfolio: (id: string) => Promise<{ filePath: string; downloadName: string }>;
@@ -60,7 +69,7 @@ describe('portfolio-manager', () => {
 
   describe('create', () => {
     it('fresh creates a new real portfolio with default dashboard', async () => {
-      const { entry } = await createPortfolio({ source: 'fresh', name: 'Mine' });
+      const { entry } = await createPortfolio(freshInput('Mine'));
       expect(entry.kind).toBe('real');
       expect(entry.source).toBe('fresh');
       const dbPath = path.join(tmp, `portfolio-${entry.id}.db`);
@@ -77,8 +86,8 @@ describe('portfolio-manager', () => {
 
     it('demo is idempotent under concurrent calls (demo-singleton mutex)', async () => {
       const [a, b] = await Promise.all([
-        createPortfolio({ source: 'demo', name: 'x' }),
-        createPortfolio({ source: 'demo', name: 'x' }),
+        createPortfolio({ source: 'demo' }),
+        createPortfolio({ source: 'demo' }),
       ]);
       expect(a.entry.id).toBe(b.entry.id);
       // Exactly one demo file on disk
@@ -88,9 +97,9 @@ describe('portfolio-manager', () => {
 
     it('3 parallel fresh creates produce 3 distinct files and 3 distinct ids', async () => {
       const all = Promise.all([
-        createPortfolio({ source: 'fresh', name: 'X-0' }),
-        createPortfolio({ source: 'fresh', name: 'X-1' }),
-        createPortfolio({ source: 'fresh', name: 'X-2' }),
+        createPortfolio(freshInput('X-0')),
+        createPortfolio(freshInput('X-1')),
+        createPortfolio(freshInput('X-2')),
       ]);
       // Prove the mutations don't hang (they shouldn't serialize on any lock).
       const timeout = new Promise<never>((_resolve, reject) =>
@@ -108,7 +117,7 @@ describe('portfolio-manager', () => {
 
   describe('rename', () => {
     it('updates vf_portfolio_meta.name and the sidecar entry', async () => {
-      const { entry } = await createPortfolio({ source: 'fresh', name: 'Old' });
+      const { entry } = await createPortfolio(freshInput('Old'));
       const renamed = renamePortfolio(entry.id, 'New');
       expect(renamed.name).toBe('New');
       const db = new Database(path.join(tmp, `portfolio-${entry.id}.db`), { readonly: true });
@@ -119,7 +128,7 @@ describe('portfolio-manager', () => {
     });
 
     it('rejects rename of a demo portfolio', async () => {
-      const { entry } = await createPortfolio({ source: 'demo', name: 'ignored' });
+      const { entry } = await createPortfolio({ source: 'demo' });
       expect(() => renamePortfolio(entry.id, 'Hacked'))
         .toThrow(/DEMO_PORTFOLIO_IMMUTABLE_METADATA/);
     });
@@ -127,7 +136,7 @@ describe('portfolio-manager', () => {
 
   describe('delete', () => {
     it('removes the file and sidecar entry, unlinks WAL siblings', async () => {
-      const { entry } = await createPortfolio({ source: 'fresh', name: 'Doomed' });
+      const { entry } = await createPortfolio(freshInput('Doomed'));
       const dbPath = path.join(tmp, `portfolio-${entry.id}.db`);
       fs.writeFileSync(dbPath + '-wal', 'x');           // fake WAL to prove unlink happens
       deletePortfolio(entry.id);
@@ -136,7 +145,7 @@ describe('portfolio-manager', () => {
     });
 
     it('rejects delete of a demo portfolio', async () => {
-      const { entry } = await createPortfolio({ source: 'demo', name: 'x' });
+      const { entry } = await createPortfolio({ source: 'demo' });
       expect(() => deletePortfolio(entry.id))
         .toThrow(/DEMO_PORTFOLIO_IMMUTABLE_METADATA/);
     });
@@ -144,7 +153,7 @@ describe('portfolio-manager', () => {
 
   describe('export', () => {
     it('produces a self-contained .db copy that re-imports round-trip', async () => {
-      const { entry } = await createPortfolio({ source: 'fresh', name: 'Roundtrip' });
+      const { entry } = await createPortfolio(freshInput('Roundtrip'));
       const out = await exportPortfolio(entry.id);
       expect(fs.existsSync(out.filePath)).toBe(true);
       expect(out.downloadName).toMatch(/^Roundtrip-\d{4}-\d{2}-\d{2}\.db$/);

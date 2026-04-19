@@ -31,14 +31,10 @@ async function buildApp(): Promise<Express> {
 }
 
 /**
- * Create a fresh empty portfolio via `createPortfolio({source:'fresh', name})`
- * and return its outer metadata id alongside a freshly-built Express app.
- *
- * NOTE: the richer `createPortfolio` payload from the plan
- * (`baseCurrency / securitiesAccountName / primaryDeposit / extraDeposits`)
- * is a Phase 2 addition and does not yet exist in this codebase. Callers that
- * need pre-seeded `account` rows must INSERT them directly via
- * `acquirePortfolioDb` (see `seedPortfolioWith2SecuritiesAccounts`).
+ * Create a fresh empty portfolio via `createPortfolio({source:'fresh', ...})`
+ * with the M3 default account layout (1 securities account + 1 primary
+ * deposit) and return its outer metadata id alongside a freshly-built Express
+ * app.
  */
 export async function seedFreshPortfolio(): Promise<{ portfolioId: string; app: Express }> {
   const app = await buildApp();
@@ -46,16 +42,19 @@ export async function seedFreshPortfolio(): Promise<{ portfolioId: string; app: 
   const { entry } = await createPortfolio({
     source: 'fresh',
     name: `Fresh-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, // native-ok
+    baseCurrency: 'EUR',
+    securitiesAccountName: 'Main Securities',
+    primaryDeposit: { name: 'Cash' },
+    extraDeposits: [],
   });
   return { portfolioId: entry.id, app };
 }
 
 /**
  * Simulate the pre-fix "legacy" state: a portfolio whose inner DB has zero
- * rows in `account`. Implemented by creating a fresh portfolio (which already
- * has zero account rows in the current codebase) and then running an explicit
- * DELETE to make the intent unambiguous and forward-compatible with Phase 2,
- * which will start auto-seeding default account rows.
+ * rows in `account`. Implemented by creating a fresh portfolio (which now
+ * auto-seeds the M3 default layout) and then running an explicit DELETE so
+ * the test fixture matches the legacy on-disk shape that BUG-54/55 targets.
  */
 export async function seedLegacyFreshPortfolio(): Promise<{ portfolioId: string; app: Express }> {
   const { portfolioId, app } = await seedFreshPortfolio();
@@ -136,12 +135,32 @@ export async function seedMultiBrokerFixture(
 }
 
 /**
- * Client-test alias for `seedLegacyFreshPortfolio`, kept separate so tests
- * read clearly even if the implementations converge.
+ * Client-test alias for `seedLegacyFreshPortfolio` that lets the caller
+ * specify the portfolio name. Threads `opts.name` into the actual create call
+ * so the on-disk vf_portfolio_meta + sidecar agree with the façade entry —
+ * fix for the Task 1.1 code-review Minor #2 (previously `opts.name` was
+ * silently dropped and only echoed back in the façade).
  */
 export const createLegacyFreshPortfolio = async (
   opts: { name: string },
 ): Promise<{ entry: { id: string; name: string }; app: Express }> => {
-  const { portfolioId, app } = await seedLegacyFreshPortfolio();
-  return { entry: { id: portfolioId, name: opts.name }, app };
+  const app = await buildApp();
+  const { createPortfolio } = await import('../../services/portfolio-manager');
+  const { entry } = await createPortfolio({
+    source: 'fresh',
+    name: opts.name,
+    baseCurrency: 'EUR',
+    securitiesAccountName: 'Main Securities',
+    primaryDeposit: { name: 'Cash' },
+    extraDeposits: [],
+  });
+  // Strip the auto-seeded account rows to simulate the pre-fix N=0 state.
+  const { acquirePortfolioDb, releasePortfolioDb } = await import('../../services/portfolio-db-pool');
+  const { sqlite } = acquirePortfolioDb(entry.id);
+  try {
+    sqlite.prepare('DELETE FROM account').run();
+  } finally {
+    releasePortfolioDb(entry.id);
+  }
+  return { entry: { id: entry.id, name: entry.name }, app };
 };

@@ -35,7 +35,12 @@ beforeAll(async () => {
 });
 
 async function makePortfolio(app: ReturnType<typeof import('../create-app').createApp>, name: string): Promise<string> {
-  const r = await request(app).post('/api/portfolios').send({ source: 'fresh', name });
+  const r = await request(app).post('/api/portfolios').send({
+    source: 'fresh', name,
+    baseCurrency: 'EUR',
+    securitiesAccountName: 'Main Securities',
+    primaryDeposit: { name: 'Cash' },
+  });
   expect(r.status).toBe(201);
   return r.body.entry.id;
 }

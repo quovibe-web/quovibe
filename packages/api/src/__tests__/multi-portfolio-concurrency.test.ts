@@ -48,16 +48,29 @@ describe('multi-portfolio concurrency', () => {
     const app = createApp();
 
     // Create 2 portfolios
-    const r1 = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'A' });
-    const r2 = await request(app).post('/api/portfolios').send({ source: 'fresh', name: 'B' });
+    const r1 = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'A',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
+    const r2 = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'B',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
     expect(r1.status).toBe(201);
     expect(r2.status).toBe(201);
     const idA = r1.body.entry.id;
     const idB = r2.body.entry.id;
 
-    // Seed each with a distinguishing account (portfolio-specific UUID so we can tell them apart).
+    // Strip auto-seeded M3 default rows so the per-portfolio assertion below
+    // can enforce a single-row distinguishing account, and seed each with a
+    // distinguishing account (portfolio-specific UUID so we can tell them apart).
     for (const [id, label] of [[idA, 'A-acc'], [idB, 'B-acc']] as const) {
       const h = acquirePortfolioDb(id);
+      h.sqlite.prepare('DELETE FROM account').run();
       h.sqlite.prepare(
         `INSERT INTO account (_id, uuid, name, currency, type, updatedAt, _xmlid, _order)
          VALUES (1, ?, ?, 'EUR', 'account', '2026-01-01T00:00:00Z', 0, 0)`,

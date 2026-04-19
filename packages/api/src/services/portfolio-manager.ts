@@ -17,16 +17,36 @@ import {
 import { evictPortfolioDb, acquirePortfolioDb, releasePortfolioDb } from './portfolio-db-pool';
 import { broadcast } from '../routes/events';
 import { getSettings, updateSettings } from './settings.service';
+import { createAccount } from './accounts.service';
 import type { PortfolioEntry } from '@quovibe/shared';
 
 export type CreatePortfolioSource = 'fresh' | 'demo' | 'import-pp-xml' | 'import-quovibe-db';
 
-export interface CreatePortfolioInput {
-  source: CreatePortfolioSource;
-  name: string;                 // ignored for 'demo' (fixed to 'Demo Portfolio')
-  uploadedDbPath?: string;      // required for 'import-quovibe-db'
-  ppxmlTempDbPath?: string;     // required for 'import-pp-xml' (already populated by ppxml2db)
+/**
+ * Server-internal payload for fresh-portfolio creation. Mirrors the wire-level
+ * `FreshPortfolioInput` from `@quovibe/shared` (POST /api/portfolios body)
+ * but is NOT a re-export — the two types are intentionally maintained
+ * independently so service-internal callers (createFreshImpl, setupPortfolio)
+ * stay decoupled from the HTTP contract.
+ */
+export interface FreshPortfolioInput {
+  name: string;
+  baseCurrency: string;
+  securitiesAccountName: string;
+  primaryDeposit: { name: string };
+  extraDeposits: Array<{ name: string; currency: string }>;
 }
+
+/**
+ * Server-internal superset of the shared `createPortfolioSchema` wire shape:
+ * adds the `import-pp-xml` branch which flows through /api/import/xml and
+ * never hits the registry endpoint. Discriminated union — narrow on `source`.
+ */
+export type CreatePortfolioInput =
+  | ({ source: 'fresh' } & FreshPortfolioInput)
+  | { source: 'demo' }
+  | { source: 'import-pp-xml'; name: string; ppxmlTempDbPath: string }
+  | { source: 'import-quovibe-db'; uploadedDbPath: string };
 
 export interface CreatePortfolioResult {
   entry: PortfolioEntry;
@@ -95,27 +115,22 @@ async function createPortfolioImpl(input: CreatePortfolioInput): Promise<CreateP
     if (existing) return { entry: existing, alreadyExisted: true };
     return createDemoImpl();
   }
-  if (input.source === 'fresh') return createFreshImpl(input.name);
+  if (input.source === 'fresh') return createFreshImpl(input);
   if (input.source === 'import-pp-xml') {
-    if (!input.ppxmlTempDbPath) {
-      throw new PortfolioManagerError('INVALID_INPUT', 'ppxmlTempDbPath required');
-    }
     return createImportedPpxmlImpl(input.name, input.ppxmlTempDbPath);
   }
   if (input.source === 'import-quovibe-db') {
-    if (!input.uploadedDbPath) {
-      throw new PortfolioManagerError('INVALID_INPUT', 'uploadedDbPath required');
-    }
     return createImportedQuovibeDbImpl(input.uploadedDbPath);
   }
-  throw new PortfolioManagerError('INVALID_SOURCE', input.source);
+  // Exhaustiveness — TS narrows `input` to never here.
+  throw new PortfolioManagerError('INVALID_SOURCE');
 }
 
-function createFreshImpl(name: string): CreatePortfolioResult {
-  assertUniquePortfolioName(name);
+function createFreshImpl(input: FreshPortfolioInput): CreatePortfolioResult {
+  assertUniquePortfolioName(input.name);
   const id = crypto.randomUUID();
   const entry: PortfolioEntry = {
-    id, name, kind: 'real', source: 'fresh',
+    id, name: input.name, kind: 'real', source: 'fresh',
     createdAt: new Date().toISOString(),
     lastOpenedAt: null,
   };
@@ -123,14 +138,63 @@ function createFreshImpl(name: string): CreatePortfolioResult {
   const db = new Database(filePath);
   try {
     applyBootstrap(db);
-    seedMeta(db, { name, createdAt: entry.createdAt, source: 'fresh' });
+    seedMeta(db, { name: input.name, createdAt: entry.createdAt, source: 'fresh' });
     seedDefaultDashboard(db);
+    seedFreshAccounts(db, input);
   } finally {
     db.close();
   }
   finalizeRegistry(entry);
   broadcast('portfolio.created', { id });
   return { entry };
+}
+
+/**
+ * Seed the M3 default account layout for a freshly-created portfolio:
+ *   1. primary deposit (currency = baseCurrency, no referenceAccount)
+ *   2. zero or more extra deposits (each with its own currency)
+ *   3. one securities account, referenceAccount → primary deposit's UUID
+ *
+ * All inserts run inside a single SQLite transaction so a partial failure
+ * (e.g. DUPLICATE_NAME on an extra deposit) leaves the DB in its pre-call
+ * state. Every insert routes through `accounts.service.createAccount` per
+ * `.claude/rules/api.md` ("Every DB write MUST go through a service method").
+ */
+function seedFreshAccounts(
+  db: Database.Database,
+  input: FreshPortfolioInput,
+): void {
+  db.transaction(() => {
+    // 1. Primary deposit (in base currency)
+    const primaryId = crypto.randomUUID();
+    createAccount(db, {
+      id: primaryId,
+      name: input.primaryDeposit.name,
+      dbType: 'account',
+      dbCurrency: input.baseCurrency,
+      referenceAccountId: null,
+    });
+
+    // 2. Extra deposits
+    for (const extra of input.extraDeposits) {
+      createAccount(db, {
+        id: crypto.randomUUID(),
+        name: extra.name,
+        dbType: 'account',
+        dbCurrency: extra.currency,
+        referenceAccountId: null,
+      });
+    }
+
+    // 3. Securities account (references primary deposit)
+    createAccount(db, {
+      id: crypto.randomUUID(),
+      name: input.securitiesAccountName,
+      dbType: 'portfolio',
+      dbCurrency: null,
+      referenceAccountId: primaryId,
+    });
+  })();
 }
 
 function createDemoImpl(): CreatePortfolioResult {

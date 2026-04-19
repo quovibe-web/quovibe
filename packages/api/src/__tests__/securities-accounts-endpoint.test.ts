@@ -38,15 +38,16 @@ beforeAll(async () => {
 });
 
 describe('GET /api/p/:pid/securities-accounts', () => {
-  // NOTE: `seedFreshPortfolio` calls `createPortfolio({source:'fresh', name})`
-  // which today does NOT seed any account rows (that's BUG-54, fixed in
-  // Task 2.4). So this case correctly expects an empty list with the current
-  // server behavior and will need to be revisited when T2.4 lands.
-  it('returns empty list for a fresh (N=0) portfolio', async () => {
+  it('returns one row for a freshly-seeded portfolio', async () => {
     const { portfolioId, app } = await seedFreshPortfolio();
     const res = await request(app).get(`/api/p/${portfolioId}/securities-accounts`);
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body).toEqual([]);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0]).toMatchObject({
+      name: 'Main Securities',
+      currency: null,
+      referenceAccountId: expect.any(String),
+    });
   });
 
   it('returns the N=2 rows for a Demo-like portfolio, ordered by _order', async () => {

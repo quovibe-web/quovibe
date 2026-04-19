@@ -4,6 +4,7 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
+import { createPortfolioSchema } from '@quovibe/shared';
 import {
   createPortfolio, renamePortfolio, deletePortfolio, exportPortfolio,
   touchPortfolio, PortfolioManagerError,
@@ -19,14 +20,6 @@ const upload = multer({
   dest: path.join(DATA_DIR, 'tmp'),
   limits: { fileSize: IMPORT_MAX_MB * 1024 * 1024 },
 });
-
-const createSchema = z.discriminatedUnion('source', [
-  z.object({ source: z.literal('fresh'), name: z.string().min(1).max(200) }),
-  z.object({ source: z.literal('demo') }),
-  // import-pp-xml is handled by routes/import.ts which calls portfolio-manager directly;
-  // the registry endpoint only accepts the declarative sources.
-  z.object({ source: z.literal('import-quovibe-db') }),
-]);
 
 const patchSchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -64,26 +57,28 @@ const postCreate: RequestHandler = async (req, res) => {
       }
       const result = await createPortfolio({
         source: 'import-quovibe-db',
-        name: '',                                  // name read from vf_portfolio_meta
-        uploadedDbPath: file.path,
+        uploadedDbPath: file.path,                 // name read from vf_portfolio_meta
       });
       try { fs.unlinkSync(file.path); } catch { /* ok */ }
       res.status(201).json(result);
       return;
     }
 
-    const parsed = createSchema.safeParse(req.body);
+    const parsed = createPortfolioSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: 'INVALID_INPUT', details: parsed.error.format() });
       return;
     }
     if (parsed.data.source === 'fresh') {
-      const r = await createPortfolio({ source: 'fresh', name: parsed.data.name });
+      // parsed.data is { source:'fresh' } & FreshPortfolioInput — same shape as
+      // the service-internal `CreatePortfolioInput` fresh branch (the shared
+      // schema and the server-internal type intentionally overlap here).
+      const r = await createPortfolio(parsed.data);
       res.status(201).json(r);
       return;
     }
     if (parsed.data.source === 'demo') {
-      const r = await createPortfolio({ source: 'demo', name: '' });
+      const r = await createPortfolio({ source: 'demo' });
       res.status(201).json(r);
       return;
     }
