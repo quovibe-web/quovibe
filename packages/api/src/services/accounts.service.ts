@@ -38,6 +38,39 @@ function assertUniqueAccountName(
   if (row) throw new AccountServiceError('DUPLICATE_NAME');
 }
 
+export interface SecuritiesAccountRow {
+  id: string;
+  name: string;
+  currency: string | null;
+  referenceAccountId: string | null;
+}
+
+/**
+ * Lists active securities accounts (account.type='portfolio', isRetired=0)
+ * for the given portfolio DB, ordered by `_order` ASC. Drives the CSV-wizard
+ * inner-account picker (Phase 6) and the PortfolioLayout N=0 redirect
+ * (Phase 5). Intentionally returns only the active slice; an
+ * `includeRetired` flag can be added when a caller needs it.
+ */
+export function listSecuritiesAccounts(
+  sqlite: BetterSqlite3.Database,
+): SecuritiesAccountRow[] {
+  const rows = sqlite
+    .prepare(
+      `SELECT uuid, name, currency, referenceAccount
+       FROM account
+       WHERE type = 'portfolio' AND isRetired = 0
+       ORDER BY _order ASC`,
+    )
+    .all() as Array<{ uuid: string; name: string; currency: string | null; referenceAccount: string | null }>;
+  return rows.map(r => ({
+    id: r.uuid,
+    name: r.name,
+    currency: r.currency,
+    referenceAccountId: r.referenceAccount,
+  }));
+}
+
 export interface CreateAccountInput {
   id: string;
   name: string;
