@@ -222,6 +222,12 @@ export function setupPortfolio(
 
   const { sqlite } = acquirePortfolioDb(id);
   try {
+    // TOCTOU invariant: the check-then-seed sequence is atomic *only* because
+    // the entire call graph (listSecuritiesAccounts → assertUniqueAccountName
+    // → createAccount → seedFreshAccounts) is synchronous on a single JS
+    // turn. If any link becomes async, two concurrent POST /setup calls could
+    // both observe N=0 and both seed. Either keep the chain sync or move the
+    // read inside seedFreshAccounts's `db.transaction` callback.
     const existing = listSecuritiesAccounts(sqlite);
     if (existing.length > 0) {
       throw new PortfolioManagerError('ALREADY_SETUP');

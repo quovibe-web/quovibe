@@ -35,6 +35,7 @@ let setupPortfolio: (id: string, input: Omit<FreshPortfolioInput, 'name'>) => vo
 let acquirePortfolioDb: (id: string) => { sqlite: import('better-sqlite3').Database };
 let releasePortfolioDb: (id: string) => void;
 let listSecuritiesAccounts: typeof import('../accounts.service').listSecuritiesAccounts;
+let AccountServiceError: typeof import('../accounts.service').AccountServiceError;
 let loadSettings: () => void;
 
 describe('portfolio-manager', () => {
@@ -64,6 +65,7 @@ describe('portfolio-manager', () => {
 
     const accounts = await import('../accounts.service');
     listSecuritiesAccounts = accounts.listSecuritiesAccounts;
+    AccountServiceError = accounts.AccountServiceError;
 
     const settings = await import('../settings.service');
     loadSettings = settings.loadSettings;
@@ -229,20 +231,25 @@ describe('portfolio-manager', () => {
       ).toThrow(expect.objectContaining({ code: 'ALREADY_SETUP' }));
     });
 
-    it('throws DUPLICATE_NAME when primary and an extra deposit share a name', async () => {
+    it('throws AccountServiceError DUPLICATE_NAME when primary and an extra deposit share a name', async () => {
       const id = await makeLegacyN0('DupTest');
-      // The inner throw is AccountServiceError('DUPLICATE_NAME'); setupPortfolio
-      // lets it propagate unchanged so the route layer can do its own instanceof
-      // mapping. The shared `code === 'DUPLICATE_NAME'` invariant is what we
-      // pin here — the exact class identity is asserted at the route layer.
-      expect(() =>
+      // Pin both class identity AND code: the route layer dispatches on
+      // `err instanceof AccountServiceError` (not on `.code` alone), so a
+      // future refactor that accidentally re-wraps this error in a plain
+      // PortfolioManagerError would silently regress the 409 mapping.
+      let caught: unknown;
+      try {
         setupPortfolio(id, {
           baseCurrency: 'EUR',
           securitiesAccountName: 'Main',
           primaryDeposit: { name: 'Cash' },
           extraDeposits: [{ name: 'Cash', currency: 'USD' }],
-        }),
-      ).toThrow(expect.objectContaining({ code: 'DUPLICATE_NAME' }));
+        });
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught).toBeInstanceOf(AccountServiceError);
+      expect((caught as AccountServiceError).code).toBe('DUPLICATE_NAME');
     });
   });
 });
