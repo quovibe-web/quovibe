@@ -2,10 +2,9 @@
 //
 // This is a SQL-level unit test, intentionally bypassing the supertest /
 // portfolio-pool stack: it exercises the service function against a raw
-// `:memory:` SQLite handle prepared by `applyBootstrap`. The pattern mirrors
-// other service-layer tests in this folder (e.g. account-duplicate-name.test.ts
-// uses supertest because it tests the route, but service-level tests like the
-// ones in db/__tests__/ work directly on a Database handle).
+// `:memory:` SQLite handle prepared by `applyBootstrap`. The shape matches
+// how the db-layer tests in `src/db/__tests__/` drive a bare Database handle —
+// same pattern, just applied one layer up at the service boundary.
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { applyBootstrap } from '../db/apply-bootstrap';

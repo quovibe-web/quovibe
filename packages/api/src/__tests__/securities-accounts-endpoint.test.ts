@@ -49,11 +49,15 @@ describe('GET /api/p/:pid/securities-accounts', () => {
     expect(res.body).toEqual([]);
   });
 
-  it('returns the N=2 rows for a Demo-like portfolio', async () => {
+  it('returns the N=2 rows for a Demo-like portfolio, ordered by _order', async () => {
     const { portfolioId, app } = await seedPortfolioWith2SecuritiesAccounts();
     const res = await request(app).get(`/api/p/${portfolioId}/securities-accounts`);
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toHaveLength(2);
+    // Ordering contract — Phase 6's picker renders these in list order, so lock
+    // the _order ASC invariant at the wire. Fixture inserts Broker A (_order=2)
+    // before Broker B (_order=3).
+    expect(res.body.map((r: { name: string }) => r.name)).toEqual(['Broker A', 'Broker B']);
     expect(res.body[0]).toMatchObject({
       id: expect.any(String),
       name: expect.any(String),
@@ -64,6 +68,9 @@ describe('GET /api/p/:pid/securities-accounts', () => {
 
   it('404s for a non-existent portfolio', async () => {
     const { app } = await seedFreshPortfolio();
+    // UUID is RFC-4122 v4-valid (passes UUID_V4_RE in portfolioContext) but not
+    // registered — so the 404 comes from the registry lookup, not from the
+    // format guard. A malformed UUID would 400 via a different path.
     const res = await request(app).get(`/api/p/00000000-0000-4000-8000-000000000000/securities-accounts`);
     expect(res.status).toBe(404);
   });

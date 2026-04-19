@@ -13,6 +13,13 @@
 //                               redirect)
 //
 // The `POST /setup` route (Task 2.5) will live alongside this once it lands.
+//
+// REQUIREMENT: must be mounted under the `portfolioContext` middleware so
+// `getSqlite(req)` resolves. Mounting elsewhere will 500 at the first request.
+//
+// `mergeParams: true` is kept so the (future) POST handler can read
+// `req.params.portfolioId` directly. Current GET handler doesn't need it but
+// keeping the flag avoids a silent footgun when T2.5 is added.
 import { Router, type RequestHandler, type Router as RouterType } from 'express';
 import { listSecuritiesAccounts } from '../services/accounts.service';
 import { getSqlite } from '../helpers/request';
