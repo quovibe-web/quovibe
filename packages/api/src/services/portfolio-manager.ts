@@ -17,7 +17,7 @@ import {
 import { evictPortfolioDb, acquirePortfolioDb, releasePortfolioDb } from './portfolio-db-pool';
 import { broadcast } from '../routes/events';
 import { getSettings, updateSettings } from './settings.service';
-import { createAccount } from './accounts.service';
+import { createAccount, listSecuritiesAccounts } from './accounts.service';
 import type { PortfolioEntry } from '@quovibe/shared';
 
 export type CreatePortfolioSource = 'fresh' | 'demo' | 'import-pp-xml' | 'import-quovibe-db';
@@ -195,6 +195,45 @@ function seedFreshAccounts(
       referenceAccountId: primaryId,
     });
   })();
+}
+
+/**
+ * Initialize the M3 default account layout for an already-existing portfolio
+ * whose inner DB has zero rows in `account` (the "legacy N=0" state). Used by
+ * `POST /api/p/:pid/setup` (Phase 5 redirects users here when their portfolio
+ * has not yet been wired).
+ *
+ * Guards:
+ *   - PORTFOLIO_NOT_FOUND when the registry has no entry for `id` (defence in
+ *     depth — middleware already 404s the route before we get here).
+ *   - ALREADY_SETUP when the active securities-account list is non-empty.
+ *
+ * Inner errors from the seeding helper (notably AccountServiceError
+ * 'DUPLICATE_NAME') propagate unchanged so the route layer can map them
+ * symmetrically with `POST /api/portfolios` (both routes share the seeding
+ * surface; both must surface DUPLICATE_NAME as 409).
+ */
+export function setupPortfolio(
+  id: string,
+  input: Omit<FreshPortfolioInput, 'name'>,
+): void {
+  const entry = getPortfolioEntry(id);
+  if (!entry) throw new PortfolioManagerError('PORTFOLIO_NOT_FOUND');
+
+  const { sqlite } = acquirePortfolioDb(id);
+  try {
+    const existing = listSecuritiesAccounts(sqlite);
+    if (existing.length > 0) {
+      throw new PortfolioManagerError('ALREADY_SETUP');
+    }
+    // Reuse the same transactional helper used by createFreshImpl. The `name`
+    // field is required by the FreshPortfolioInput shape but is unused inside
+    // the seeding helper — accounts only — so passing the registry name is
+    // strictly type-satisfaction.
+    seedFreshAccounts(sqlite, { name: entry.name, ...input });
+  } finally {
+    releasePortfolioDb(id);
+  }
 }
 
 function createDemoImpl(): CreatePortfolioResult {

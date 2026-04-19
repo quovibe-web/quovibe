@@ -102,6 +102,24 @@ describe('welcome flow end-to-end', () => {
     expect(r.body.initialized).toBe(false);
   });
 
+  it('returns 409 DUPLICATE_NAME when primary and an extra deposit share a name (BUG-54/55)', async () => {
+    // POST /api/portfolios → createFreshImpl → seedFreshAccounts →
+    // accounts.service.createAccount throws AccountServiceError('DUPLICATE_NAME')
+    // when the second deposit collides with the first. The route must surface
+    // it as 409, symmetric with the new POST /api/p/:pid/setup mapping.
+    const app = createApp();
+    const r = await request(app).post('/api/portfolios').send({
+      source: 'fresh',
+      name: 'Dup Cash',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+      extraDeposits: [{ name: 'Cash', currency: 'USD' }],
+    });
+    expect(r.status, JSON.stringify(r.body)).toBe(409);
+    expect(r.body).toEqual({ error: 'DUPLICATE_NAME' });
+  });
+
   it('export/import produces a real portfolio with a new UUID', async () => {
     const app = createApp();
 

@@ -6,7 +6,7 @@ import { tmpdir } from 'os';
 import fs from 'fs';
 import Database from 'better-sqlite3';
 import type { PortfolioEntry } from '@quovibe/shared';
-import type { CreatePortfolioInput } from '../portfolio-manager';
+import type { CreatePortfolioInput, FreshPortfolioInput } from '../portfolio-manager';
 
 // Set env BEFORE importing anything that reads from config.
 const tmp = mkdtempSync(path.join(tmpdir(), 'qv-pm-'));
@@ -31,6 +31,10 @@ let createPortfolio: (
 let renamePortfolio: (id: string, newName: string) => PortfolioEntry;
 let deletePortfolio: (id: string) => void;
 let exportPortfolio: (id: string) => Promise<{ filePath: string; downloadName: string }>;
+let setupPortfolio: (id: string, input: Omit<FreshPortfolioInput, 'name'>) => void;
+let acquirePortfolioDb: (id: string) => { sqlite: import('better-sqlite3').Database };
+let releasePortfolioDb: (id: string) => void;
+let listSecuritiesAccounts: typeof import('../accounts.service').listSecuritiesAccounts;
 let loadSettings: () => void;
 
 describe('portfolio-manager', () => {
@@ -52,6 +56,14 @@ describe('portfolio-manager', () => {
     renamePortfolio = pm.renamePortfolio;
     deletePortfolio = pm.deletePortfolio;
     exportPortfolio = pm.exportPortfolio;
+    setupPortfolio = pm.setupPortfolio;
+
+    const pool = await import('../portfolio-db-pool');
+    acquirePortfolioDb = pool.acquirePortfolioDb as typeof acquirePortfolioDb;
+    releasePortfolioDb = pool.releasePortfolioDb;
+
+    const accounts = await import('../accounts.service');
+    listSecuritiesAccounts = accounts.listSecuritiesAccounts;
 
     const settings = await import('../settings.service');
     loadSettings = settings.loadSettings;
@@ -163,6 +175,74 @@ describe('portfolio-manager', () => {
         { value: string };
       db.close();
       expect(name.value).toBe('Roundtrip');
+    });
+  });
+
+  // BUG-54/55 Phase 2 — Task 2.5. Setup is the inverse of createFreshImpl: it
+  // populates the M3 default account layout for an already-existing portfolio
+  // whose inner DB is in the legacy N=0 state. Locks the three invariants
+  // listed in the plan: legacy-seeds, ALREADY_SETUP guard, and DUPLICATE_NAME
+  // propagation from the inner accounts.service.
+  describe('setupPortfolio', () => {
+    // Force the legacy N=0 state inline (no need for the test-_helpers fixture
+    // here — this file already has its own env wiring + late-bound bindings).
+    async function makeLegacyN0(name: string): Promise<string> {
+      const { entry } = await createPortfolio(freshInput(name));
+      const { sqlite } = acquirePortfolioDb(entry.id);
+      try {
+        sqlite.prepare('DELETE FROM account').run();
+      } finally {
+        releasePortfolioDb(entry.id);
+      }
+      return entry.id;
+    }
+
+    it('seeds accounts for a legacy N=0 portfolio', async () => {
+      const id = await makeLegacyN0('Legacy');
+      setupPortfolio(id, {
+        baseCurrency: 'EUR',
+        securitiesAccountName: 'Main Securities',
+        primaryDeposit: { name: 'Cash' },
+        extraDeposits: [],
+      });
+
+      const { sqlite } = acquirePortfolioDb(id);
+      try {
+        expect(listSecuritiesAccounts(sqlite)).toHaveLength(1);
+      } finally {
+        releasePortfolioDb(id);
+      }
+    });
+
+    it('throws ALREADY_SETUP when N>=1', async () => {
+      // createPortfolio({source:'fresh',...}) already seeds N=1, so this
+      // exercises the guard without touching the legacy strip step.
+      const { entry } = await createPortfolio(freshInput('AlreadySet'));
+
+      expect(() =>
+        setupPortfolio(entry.id, {
+          baseCurrency: 'USD',
+          securitiesAccountName: 'Second',
+          primaryDeposit: { name: 'Other Cash' },
+          extraDeposits: [],
+        }),
+      ).toThrow(expect.objectContaining({ code: 'ALREADY_SETUP' }));
+    });
+
+    it('throws DUPLICATE_NAME when primary and an extra deposit share a name', async () => {
+      const id = await makeLegacyN0('DupTest');
+      // The inner throw is AccountServiceError('DUPLICATE_NAME'); setupPortfolio
+      // lets it propagate unchanged so the route layer can do its own instanceof
+      // mapping. The shared `code === 'DUPLICATE_NAME'` invariant is what we
+      // pin here — the exact class identity is asserted at the route layer.
+      expect(() =>
+        setupPortfolio(id, {
+          baseCurrency: 'EUR',
+          securitiesAccountName: 'Main',
+          primaryDeposit: { name: 'Cash' },
+          extraDeposits: [{ name: 'Cash', currency: 'USD' }],
+        }),
+      ).toThrow(expect.objectContaining({ code: 'DUPLICATE_NAME' }));
     });
   });
 });

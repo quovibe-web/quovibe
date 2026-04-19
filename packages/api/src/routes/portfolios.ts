@@ -9,6 +9,7 @@ import {
   createPortfolio, renamePortfolio, deletePortfolio, exportPortfolio,
   touchPortfolio, PortfolioManagerError,
 } from '../services/portfolio-manager';
+import { AccountServiceError } from '../services/accounts.service';
 import { validateQuovibeDbFile, ImportValidationError } from '../services/import-validation';
 import { listPortfolios, getPortfolioEntry } from '../services/portfolio-registry';
 import { getSettings } from '../services/settings.service';
@@ -90,6 +91,15 @@ const postCreate: RequestHandler = async (req, res) => {
       // the client can distinguish it from generic 400 INVALID_INPUT.
       const http = err.code === 'DUPLICATE_NAME' ? 409 : 400;
       res.status(http).json({ error: err.code });
+      return;
+    }
+    if (err instanceof AccountServiceError && err.code === 'DUPLICATE_NAME') {
+      // BUG-54/55 Phase 2 carry-forward: createFreshImpl now seeds accounts
+      // through accounts.service.createAccount, which can throw
+      // DUPLICATE_NAME inside the seeding transaction (e.g. primary deposit
+      // and an extra deposit share a name). Surface as 409 — symmetric with
+      // setup.ts and accounts.ts (`.claude/rules/api.md`).
+      res.status(409).json({ error: err.code });
       return;
     }
     if (err instanceof Error && 'code' in err && (err as { code?: string }).code === 'LIMIT_FILE_SIZE') {
