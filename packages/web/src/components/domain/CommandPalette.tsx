@@ -65,7 +65,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     sectionKey: 'sections.system',
     items: [
-      { to: '/settings', labelKey: 'items.settings', icon: Settings },
+      { to: '/settings', labelKey: 'items.preferences', icon: Settings },
     ],
   },
 ];

@@ -14,7 +14,8 @@
     "analytics": "Auswertungen",
     "assetAllocation": "Klassifizierungen",
     "dataSeries": "Datenreihen",
-    "settings": "Einstellungen",
+    "settings": "Portfolio-Einstellungen",
+    "preferences": "Einstellungen",
     "watchlists": "Watchlists"
   },
   "period": "Zeitraum",

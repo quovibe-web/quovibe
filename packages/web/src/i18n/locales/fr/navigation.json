@@ -14,7 +14,8 @@
     "analytics": "Analyses",
     "assetAllocation": "Taxonomies",
     "dataSeries": "Séries de données",
-    "settings": "Paramètres",
+    "settings": "Paramètres du portefeuille",
+    "preferences": "Préférences",
     "watchlists": "Listes de suivi"
   },
   "period": "Période",

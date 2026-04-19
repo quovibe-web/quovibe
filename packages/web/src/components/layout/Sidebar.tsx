@@ -24,6 +24,7 @@ import {
   GitBranch,
   List,
   Settings,
+  SlidersHorizontal,
   Menu,
   ExternalLink,
   Sun,
@@ -90,7 +91,10 @@ const NAV_SUFFIXES: NavSection[] = [
   },
   {
     sectionKey: 'sections.system',
-    items: [{ to: 'settings/data', labelKey: 'items.settings', icon: Settings }],
+    items: [
+      { to: '/settings', labelKey: 'items.preferences', icon: SlidersHorizontal },
+      { to: 'settings/data', labelKey: 'items.settings', icon: Settings },
+    ],
   },
 ];
 
@@ -103,6 +107,7 @@ const MOBILE_NAV_SUFFIXES: NavItem[] = [
 ];
 
 function scopePath(portfolioId: string, suffix: string): string {
+  if (suffix.startsWith('/')) return suffix;
   return suffix ? `/p/${portfolioId}/${suffix}` : `/p/${portfolioId}`;
 }
 
