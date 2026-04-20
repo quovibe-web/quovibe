@@ -99,6 +99,12 @@ export function useCreatePortfolio() {
     onSuccess: async () => {
       await qc.refetchQueries({ queryKey: portfoliosKeys.list() });
     },
+    // BUG-70: without this, a single 409 DUPLICATE_NAME response produced two
+    // toasts — the component's `onError` toast plus the MutationCache global
+    // fallback (which only knows how to print `error.message`, leaking the
+    // raw server code). Suppressing the global toast puts the component in
+    // sole charge of the error surface, so it can render a translated message.
+    meta: { suppressGlobalErrorToast: true },
   });
 }
 

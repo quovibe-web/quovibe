@@ -23,6 +23,7 @@ wire; anything else becomes 500 `CONVERSION_FAILED`.
 | `INVALID_FORMAT`     | 400    | XML parsed but root element ≠ `<client>` or no `id` attributes present           |
 | `ENCRYPTED_FORMAT`   | 400    | File content does not start with `<` (encrypted export or binary)                |
 | `IMPORT_IN_PROGRESS` | 409    | Another import holds the cross-process lock file                                 |
+| `DUPLICATE_NAME`     | 409    | Derived portfolio name collides with an existing registry entry (BUG-92). Raised by `PortfolioManagerError`, not `ImportError`; the route catch-block at `import.ts` maps it symmetrically with `POST /api/portfolios`. Client: `ImportHub` translates via `errors.portfolio.duplicateName`. |
 | `CONVERSION_FAILED`  | 500    | ppxml2db subprocess crashed, timed out, or produced no `.db`                     |
 
 ### Server — Multer wrapping is mandatory

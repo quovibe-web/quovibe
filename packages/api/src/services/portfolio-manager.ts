@@ -60,18 +60,34 @@ export class PortfolioManagerError extends Error {
   }
 }
 
-// BUG-05: case-insensitive duplicate-name guard. The sidecar (listPortfolios) is
-// the canonical list surface — the switcher reads from it — so the check runs
-// there, not against vf_portfolio_meta. Demo entries are excluded because the
-// demo name is a fixed constant ('Demo Portfolio') and demo creation is
-// idempotent (alreadyExisted: true); a user with a real portfolio called
-// "Demo Portfolio" must not collide with the demo, and vice versa. `selfId`
-// lets renamePortfolio skip its own entry.
+// BUG-05 / BUG-102: case-insensitive duplicate-name guard. The sidecar
+// (listPortfolios) is the canonical list surface — the switcher reads from it —
+// so the check runs there, not against vf_portfolio_meta. The guard compares
+// against ALL registry entries, demo included: two rows rendering as the same
+// label in the switcher are indistinguishable to the user regardless of `kind`.
+// `selfId` lets renamePortfolio skip its own entry so a same-name PATCH is a
+// no-op 200 instead of a self-collision 409.
+//
+// 'Demo Portfolio' is reserved regardless of current registry state because
+// createDemoImpl does not route through this guard — if a fresh/rename/import
+// caller could claim the name while no demo existed, a subsequent "Try Demo"
+// click would produce the exact switcher-collision BUG-102 files. Legacy-
+// tolerant: a same-name no-op rename of a pre-fix real still passes.
+const DEMO_PORTFOLIO_NAME_LC = 'demo portfolio';
+
 function assertUniquePortfolioName(name: string, selfId?: string): void {
   const target = name.trim().toLowerCase();
   if (!target) return; // empty name is rejected upstream
-  const clash = listPortfolios().some(
-    p => p.kind === 'real' && p.id !== selfId && p.name.trim().toLowerCase() === target,
+  const entries = listPortfolios();
+  if (target === DEMO_PORTFOLIO_NAME_LC) {
+    const selfAlreadyHasName = selfId !== undefined
+      && entries.some(p => p.id === selfId && p.name.trim().toLowerCase() === target);
+    if (!selfAlreadyHasName) {
+      throw new PortfolioManagerError('DUPLICATE_NAME');
+    }
+  }
+  const clash = entries.some(
+    p => p.id !== selfId && p.name.trim().toLowerCase() === target,
   );
   if (clash) throw new PortfolioManagerError('DUPLICATE_NAME');
 }
@@ -260,11 +276,13 @@ function createDemoImpl(): CreatePortfolioResult {
 }
 
 function createImportedPpxmlImpl(name: string, ppxmlTempDbPath: string): CreatePortfolioResult {
-  // BUG-05: the import paths deliberately bypass the duplicate-name guard.
-  // Restoring a backup (quovibe-db) or re-importing a PP XML that matches a
-  // real existing portfolio is a legitimate flow — see roundtrip.test.ts and
-  // welcome-flow.test.ts. The guard only fires where the user types the name
-  // interactively (createFreshImpl + renamePortfolio).
+  // BUG-92: PP XML re-import is an interactive wizard flow — the user types
+  // (or accepts the filename-derived) name in ImportHub, so a collision must
+  // surface as 409 and let them rename, exactly like fresh create + rename.
+  // Only `.db` restore keeps the bypass (see createImportedQuovibeDbImpl),
+  // since restoring a backup over an existing same-named portfolio is a
+  // legitimate overwrite flow.
+  assertUniquePortfolioName(name);
   const id = crypto.randomUUID();
   const entry: PortfolioEntry = {
     id, name, kind: 'real', source: 'import-pp-xml',
@@ -307,8 +325,11 @@ function createImportedQuovibeDbImpl(uploadedDbPath: string): CreatePortfolioRes
   } finally {
     readDb.close();
   }
-  // BUG-05: see createImportedPpxmlImpl — the import paths bypass the
-  // duplicate-name guard so backup/restore roundtrips still work.
+  // `.db` restore is a legitimate overwrite flow (re-importing a backup over
+  // an existing same-named portfolio is the whole point), so the duplicate-
+  // name guard is intentionally NOT applied here. Unlike XML import — which
+  // runs the guard per BUG-92 because re-import is an interactive wizard —
+  // the user has explicitly chosen "restore from backup" in the UI.
   const entry: PortfolioEntry = {
     id, name: sourceName, kind: 'real', source: 'import-quovibe-db',
     createdAt,

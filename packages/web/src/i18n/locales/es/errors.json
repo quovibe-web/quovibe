@@ -22,5 +22,8 @@
   },
   "mutation": {
     "genericFailure": "Algo salió mal. Por favor, inténtelo de nuevo."
+  },
+  "portfolio": {
+    "duplicateName": "Ya existe un portafolio llamado «{{name}}». Elija un nombre diferente."
   }
 }

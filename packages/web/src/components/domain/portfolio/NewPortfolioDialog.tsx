@@ -29,13 +29,15 @@ interface Props {
 
 export function NewPortfolioDialog({ open, onOpenChange }: Props) {
   const { t } = useTranslation('portfolio-setup');
+  const { t: tErrors } = useTranslation('errors');
   const navigate = useNavigate();
   const create = useCreatePortfolio();
   const [name, setName] = useState('');
 
   function handleSubmit(input: SetupPortfolioInput) {
+    const attemptedName = name.trim();
     create.mutate(
-      { source: 'fresh', name: name.trim(), ...input },
+      { source: 'fresh', name: attemptedName, ...input },
       {
         onSuccess: (r) => {
           onOpenChange(false);
@@ -44,11 +46,8 @@ export function NewPortfolioDialog({ open, onOpenChange }: Props) {
         },
         onError: (err) => {
           const msg = (err as Error).message;
-          // DUPLICATE_NAME on the portfolio name itself → 409 from the registry
-          // guard. Surface its own copy; everything else falls through to the
-          // generic createFailed.
           if (msg === 'DUPLICATE_NAME') {
-            toast.error(t('errors.createFailed', { msg }));
+            toast.error(tErrors('portfolio.duplicateName', { name: attemptedName }));
             return;
           }
           toast.error(t('errors.createFailed', { msg }));

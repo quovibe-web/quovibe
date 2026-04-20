@@ -33,13 +33,26 @@ account on every usable portfolio.
 
 | `CreatePortfolioSource` | N securities accounts after creation | Notes |
 |---|---|---|
-| `fresh` | 1 + N≥0 user-supplied extras | Seeded by `createFreshImpl` from the M3 dialog payload. |
+| `fresh` | 1 + N≥0 user-supplied extras | Seeded by `createFreshImpl` from the M3 dialog payload. Registry-name guard runs (409 `DUPLICATE_NAME` on collision with any real or demo entry). |
 | `demo` | 2 (Interactive Brokers + Scalable Capital) | Comes from the seeded `data/demo.db` template. Unchanged. |
-| `import-pp-xml` | N≥1 from PP's wizard | PP enforces the invariant; we trust the import. Unchanged. |
-| `import-quovibe-db` | N from the source DB (N=0 possible for backups taken pre-fix) | `PortfolioLayout` setup-redirect catches the N=0 case. |
+| `import-pp-xml` | N≥1 from PP's wizard | PP enforces the N≥1 invariant. **Registry-name guard runs (BUG-92): a re-import whose derived name collides with any existing entry returns 409 `DUPLICATE_NAME`, and the ImportHub dialog lets the user rename and retry.** |
+| `import-quovibe-db` | N from the source DB (N=0 possible for backups taken pre-fix) | `PortfolioLayout` setup-redirect catches the N=0 case. Registry-name guard is **intentionally bypassed**: restoring a backup over an existing same-named portfolio is a legitimate overwrite flow. |
 
-`demo` and `import-pp-xml` are NOT touched by the BUG-54 fix. Changes there
-would add risk with zero payoff.
+`demo` is not touched by the BUG-54 fix. `import-pp-xml` gained the
+registry-name guard under BUG-92 (see `createImportedPpxmlImpl` comment) so the
+UX matches fresh/rename; `.db` restore keeps the bypass.
+
+## Duplicate-name invariant (BUG-05 / BUG-102 / BUG-92)
+
+`assertUniquePortfolioName` in `portfolio-manager.ts` is the single source of
+truth for registry-name uniqueness. Invoked by `createFreshImpl`,
+`renamePortfolio`, and `createImportedPpxmlImpl`. Comparison is trimmed +
+case-insensitive and runs against **all** entries (real and demo) — two rows
+rendering as the same label in the switcher are indistinguishable regardless
+of `kind`. `selfId` lets `renamePortfolio` skip its own entry so a same-name
+PATCH is a no-op 200 instead of a self-collision 409. Client surfaces of the
+409 translate the raw `DUPLICATE_NAME` code via `errors.portfolio.duplicateName`
+(BUG-70); see `NewPortfolioDialog`, `RenamePortfolioDialog`, `ImportHub`.
 
 ## Server — schemas, services, routes
 

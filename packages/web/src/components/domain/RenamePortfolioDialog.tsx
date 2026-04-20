@@ -14,14 +14,23 @@ export function RenamePortfolioDialog(props: {
   currentName: string;
 }) {
   const { t } = useTranslation('portfolioSettings');
+  const { t: tErrors } = useTranslation('errors');
   const [name, setName] = useState(props.currentName);
   useEffect(() => { setName(props.currentName); }, [props.currentName]);
   const rename = useRenamePortfolio();
   const submit = (): void => {
-    if (!name.trim()) return;
-    rename.mutate({ id: props.id, name: name.trim() }, {
+    const attemptedName = name.trim();
+    if (!attemptedName) return;
+    rename.mutate({ id: props.id, name: attemptedName }, {
       onSuccess: () => { toast.success(t('rename.success')); props.onOpenChange(false); },
-      onError: (err) => toast.error(t('rename.error', { msg: (err as Error).message })),
+      onError: (err) => {
+        const msg = (err as Error).message;
+        if (msg === 'DUPLICATE_NAME') {
+          toast.error(tErrors('portfolio.duplicateName', { name: attemptedName }));
+          return;
+        }
+        toast.error(t('rename.error', { msg }));
+      },
     });
   };
   return (

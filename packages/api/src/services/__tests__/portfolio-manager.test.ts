@@ -1,5 +1,6 @@
 // packages/api/src/services/__tests__/portfolio-manager.test.ts
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import crypto from 'crypto';
 import path from 'path';
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
@@ -145,6 +146,82 @@ describe('portfolio-manager', () => {
       const { entry } = await createPortfolio({ source: 'demo' });
       expect(() => renamePortfolio(entry.id, 'Hacked'))
         .toThrow(/DEMO_PORTFOLIO_IMMUTABLE_METADATA/);
+    });
+
+    // BUG-102: rename to a name already held by the DEMO portfolio must be
+    // rejected. The pre-fix guard filtered `kind === 'real'`, so this slipped
+    // through silently and produced two registry entries rendering identically
+    // in the switcher ("Demo Portfolio" twice).
+    it('rejects rename of a real portfolio to the demo portfolio name (BUG-102)', async () => {
+      await createPortfolio({ source: 'demo' });
+      const { entry } = await createPortfolio(freshInput('Alpha'));
+      expect(() => renamePortfolio(entry.id, 'Demo Portfolio'))
+        .toThrow(expect.objectContaining({ code: 'DUPLICATE_NAME' }));
+    });
+
+    // BUG-102 case-insensitive coverage against demo.
+    it('rejects rename to demo name case-insensitively', async () => {
+      await createPortfolio({ source: 'demo' });
+      const { entry } = await createPortfolio(freshInput('Bravo'));
+      expect(() => renamePortfolio(entry.id, '  demo portfolio '))
+        .toThrow(expect.objectContaining({ code: 'DUPLICATE_NAME' }));
+    });
+
+    // BUG-102 reservation: the demo name is blocked for fresh/rename even
+    // when no demo entry exists in the registry yet. Otherwise a user could
+    // fresh-create "Demo Portfolio" first and then "Try Demo" would produce
+    // two entries with identical names.
+    it('rejects fresh create of "Demo Portfolio" when no demo exists', async () => {
+      await expect(createPortfolio(freshInput('Demo Portfolio')))
+        .rejects.toThrow(expect.objectContaining({ code: 'DUPLICATE_NAME' }));
+    });
+
+    it('rejects rename to "Demo Portfolio" when no demo exists', async () => {
+      const { entry } = await createPortfolio(freshInput('Gamma'));
+      expect(() => renamePortfolio(entry.id, 'Demo Portfolio'))
+        .toThrow(expect.objectContaining({ code: 'DUPLICATE_NAME' }));
+    });
+  });
+
+  // BUG-92: XML re-import with a name that already exists in the registry must
+  // now throw DUPLICATE_NAME instead of silently creating a parallel portfolio.
+  // Pre-fix, `createImportedPpxmlImpl` deliberately bypassed the guard; the fix
+  // restricts the bypass to `.db` restore only (legitimate overwrite flow).
+  describe('createImportedPpxmlImpl duplicate-name guard (BUG-92)', () => {
+    function makeTempPpxmlDb(): string {
+      const tempPath = path.join(tmp, `ppxml-tmp-${crypto.randomUUID()}.db`);
+      const src = new Database(tempPath);
+      src.close();
+      return tempPath;
+    }
+
+    it('throws DUPLICATE_NAME on second import with the same name', async () => {
+      const first = await createPortfolio({
+        source: 'import-pp-xml',
+        name: 'ImportTest',
+        ppxmlTempDbPath: makeTempPpxmlDb(),
+      });
+      expect(first.entry.name).toBe('ImportTest');
+
+      await expect(
+        createPortfolio({
+          source: 'import-pp-xml',
+          name: 'ImportTest',
+          ppxmlTempDbPath: makeTempPpxmlDb(),
+        }),
+      ).rejects.toThrow(expect.objectContaining({ code: 'DUPLICATE_NAME' }));
+    });
+
+    it('throws DUPLICATE_NAME when XML import name collides with the demo name', async () => {
+      await createPortfolio({ source: 'demo' });
+
+      await expect(
+        createPortfolio({
+          source: 'import-pp-xml',
+          name: 'Demo Portfolio',
+          ppxmlTempDbPath: makeTempPpxmlDb(),
+        }),
+      ).rejects.toThrow(expect.objectContaining({ code: 'DUPLICATE_NAME' }));
     });
   });
 

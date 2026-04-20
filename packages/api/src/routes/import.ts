@@ -74,35 +74,43 @@ const uploadXml: RequestHandler = async (req, res) => {
     // Produces a populated temp DB file; no live handle touched.
     const result = await runImport(xmlPath);
 
-    // Derive a display name: use the provided body.name, else the XML filename stripped.
-    const bodyName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
-    const fallback = req.file.originalname.replace(/\.xml$/i, '').slice(0, 100);
-    const name = bodyName || fallback || 'Imported Portfolio';
+    try {
+      // Derive a display name: use the provided body.name, else the XML filename stripped.
+      const bodyName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+      const fallback = req.file.originalname.replace(/\.xml$/i, '').slice(0, 100);
+      const name = bodyName || fallback || 'Imported Portfolio';
 
-    const created = await createPortfolio({
-      source: 'import-pp-xml',
-      name,
-      ppxmlTempDbPath: result.tempDbPath,
-    });
+      const created = await createPortfolio({
+        source: 'import-pp-xml',
+        name,
+        ppxmlTempDbPath: result.tempDbPath,
+      });
 
-    // portfolio-manager atomic-copies the temp DB into place; clean up the original.
-    try { fs.unlinkSync(result.tempDbPath); } catch { /* ok */ }
+      // Record the last-import timestamp on the user-level sidecar.
+      updateAppState({ lastImport: new Date().toISOString() });
 
-    // Record the last-import timestamp on the user-level sidecar.
-    updateAppState({ lastImport: new Date().toISOString() });
-
-    console.log(`[quovibe] Import completed. New portfolio created: ${created.entry.id}`);
-    res.status(201).json({
-      status: 'success',
-      id: created.entry.id,
-      name: created.entry.name,
-      accounts: result.accounts,
-      securities: result.securities,
-    });
+      console.log(`[quovibe] Import completed. New portfolio created: ${created.entry.id}`);
+      res.status(201).json({
+        status: 'success',
+        id: created.entry.id,
+        name: created.entry.name,
+        accounts: result.accounts,
+        securities: result.securities,
+      });
+    } finally {
+      // portfolio-manager atomic-COPIES (not moves) the temp DB, and the guard
+      // (BUG-92) may throw before the copy runs. Clean up either way so the
+      // DUPLICATE_NAME rejection path doesn't orphan the file in os.tmpdir().
+      try { fs.unlinkSync(result.tempDbPath); } catch { /* ok */ }
+    }
   } catch (err) {
     if (err instanceof ImportError) { handleError(res, err); return; }
     if (err instanceof PortfolioManagerError) {
-      res.status(400).json({ error: err.code });
+      // BUG-92: duplicate-name collision from the registry guard must map to
+      // 409, mirroring POST /api/portfolios. Other PortfolioManagerError codes
+      // (INVALID_SOURCE, DEMO_SOURCE_MISSING, …) keep the 400 default.
+      const status = err.code === 'DUPLICATE_NAME' ? 409 : 400;
+      res.status(status).json({ error: err.code });
       return;
     }
     console.error('[quovibe] Import error:', err);

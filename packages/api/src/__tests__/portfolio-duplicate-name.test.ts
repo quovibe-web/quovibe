@@ -98,4 +98,26 @@ describe('POST /portfolios duplicate-name guard (BUG-05)', () => {
       .send({ name: 'Charlie' });
     expect(self.status).toBe(200);
   });
+
+  // BUG-102: pre-fix, the guard filtered `kind === 'real'` so renaming a real
+  // portfolio to the demo name ("Demo Portfolio") returned 200 silently. The
+  // registry ended up with two entries rendering identically in the switcher.
+  it('PATCH /api/portfolios/:id rejects rename to the demo portfolio name (BUG-102)', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+
+    const demo = await request(app).post('/api/portfolios').send({ source: 'demo' });
+    expect(demo.status).toBe(201);
+    expect(demo.body.entry.name).toBe('Demo Portfolio');
+
+    const real = await request(app).post('/api/portfolios').send(freshBody('Echo'));
+    expect(real.status).toBe(201);
+
+    const collide = await request(app)
+      .patch(`/api/portfolios/${real.body.entry.id}`)
+      .send({ name: 'Demo Portfolio' });
+    expect(collide.status, `unexpected body: ${JSON.stringify(collide.body)}`).toBe(409);
+    expect(collide.body.error).toBe('DUPLICATE_NAME');
+  });
 });

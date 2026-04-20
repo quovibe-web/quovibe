@@ -22,5 +22,8 @@
   },
   "mutation": {
     "genericFailure": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut."
+  },
+  "portfolio": {
+    "duplicateName": "Ein Portfolio mit dem Namen „{{name}}“ existiert bereits. Wählen Sie einen anderen Namen."
   }
 }

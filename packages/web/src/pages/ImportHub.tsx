@@ -41,6 +41,7 @@ type SourceId = 'pp-xml' | 'quovibe-db';
 
 export default function ImportHub() {
   const { t } = useTranslation('welcome');
+  const { t: tErrors } = useTranslation('errors');
   const navigate = useNavigate();
   const create = useCreatePortfolio();
 
@@ -68,6 +69,13 @@ export default function ImportHub() {
       toast.error(t('hub.errors.fileRequired'));
       return;
     }
+    // BUG-92: mirror the server's derivation in routes/import.ts so the
+    // translated DUPLICATE_NAME toast can interpolate the attempted name
+    // without the server echoing it back in `details`.
+    const attemptedName =
+      ppName.trim() ||
+      ppFile.name.replace(/\.xml$/i, '').slice(0, 100) ||
+      'Imported Portfolio';
     setPpUploadError(null);
     create.mutate(
       { source: 'import-pp-xml', file: ppFile, name: ppName.trim() || undefined },
@@ -79,6 +87,10 @@ export default function ImportHub() {
           const mapped = mapServerError(msg);
           if (mapped) {
             setPpUploadError(mapped);
+            return;
+          }
+          if (msg === 'DUPLICATE_NAME' || msg.startsWith('DUPLICATE_NAME:')) {
+            toast.error(tErrors('portfolio.duplicateName', { name: attemptedName }));
             return;
           }
           toast.error(t('hub.errors.importFailed', { msg }));
