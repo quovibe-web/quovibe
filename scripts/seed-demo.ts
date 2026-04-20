@@ -16,6 +16,7 @@ import { format, isWeekend, eachDayOfInterval } from 'date-fns';
 import * as fs from 'fs';
 import * as path from 'path';
 import { applyBootstrap } from '../packages/api/src/db/apply-bootstrap';
+import { CURRENT_VERSION as WIDGETS_SCHEMA_VERSION } from '../packages/api/src/services/widget-migrations';
 
 const ROOT = path.resolve(__dirname, '..');
 const DB_OUT = path.join(ROOT, 'data/demo.db');
@@ -87,7 +88,7 @@ const RISK_DASHBOARD_ID = randomUUID();
 
 const insertDashboard = db.prepare(
   `INSERT INTO vf_dashboard (id, name, position, widgets_json, schema_version, columns, createdAt, updatedAt)
-   VALUES (?, ?, ?, ?, 1, ?, ?, ?)`,
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 insertDashboard.run(
@@ -106,6 +107,7 @@ insertDashboard.run(
     { id: 'w9', type: 'top-holdings',         title: null, span: 1, config: {} },
     { id: 'w10', type: 'watchlist',           title: null, span: 1, config: { options: { watchlistId: 1 } } },
   ]),
+  WIDGETS_SCHEMA_VERSION,
   3,
   now,
   now,
@@ -124,6 +126,7 @@ insertDashboard.run(
     { id: 'r6', type: 'distance-from-ath', title: null, span: 1, config: {} },
     { id: 'r7', type: 'drawdown-chart',    title: null, span: 3, config: {} },
   ]),
+  WIDGETS_SCHEMA_VERSION,
   3,
   now,
   now,

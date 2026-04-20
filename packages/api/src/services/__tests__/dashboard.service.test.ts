@@ -68,3 +68,32 @@ describe('dashboard.service.rowToItem — forward-compat guard', () => {
     sqlite.close();
   });
 });
+
+describe('dashboard.service.getDashboard — BUG-91 legacy rows heal on read', () => {
+  it('a schema_version=1 row with the legacy DEFAULT_WIDGETS seed returns migrated widget types', () => {
+    const sqlite = freshSqlite();
+    const now = new Date().toISOString();
+    sqlite.prepare(
+      `INSERT INTO vf_dashboard
+         (id, name, position, widgets_json, schema_version, columns, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      'legacy-ovw', 'Overview', 0,
+      JSON.stringify([
+        { id: 'w-summary', type: 'performance-summary',    title: null, span: 3, config: {} },
+        { id: 'w-chart',   type: 'performance-chart',      title: null, span: 3, config: {} },
+        { id: 'w-alloc',   type: 'asset-allocation-donut', title: null, span: 1, config: {} },
+        { id: 'w-top',     type: 'top-holdings',           title: null, span: 2, config: {} },
+      ]),
+      1, 3, now, now,
+    );
+
+    const item = getDashboard(sqlite, 'legacy-ovw');
+    expect(item).not.toBeNull();
+    // schemaVersion is still 1 on disk (migration-on-read is in memory) but widgets are migrated
+    expect(item!.schemaVersion).toBe(1);
+    const types = (item!.widgets as Array<{ type: string }>).map(w => w.type);
+    expect(types).toEqual(['market-value', 'perf-chart', 'top-holdings']);
+    sqlite.close();
+  });
+});

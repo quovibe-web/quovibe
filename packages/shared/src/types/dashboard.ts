@@ -45,3 +45,36 @@ export interface WidgetDefBase {
     hasCustomOptions: boolean;
   };
 }
+
+/**
+ * Shape of a single seeded widget in a freshly-created dashboard.
+ * Mirrors the persisted `widgets_json` object layout; kept loose (config is
+ * Record<string, unknown>) because each widget type owns its own config schema.
+ */
+export interface DefaultDashboardWidget {
+  id: string;
+  type: string;
+  title: string | null;
+  span: 1 | 2 | 3;
+  config: Record<string, unknown>;
+}
+
+/**
+ * Default "Overview" dashboard layout seeded for every non-demo portfolio
+ * (source='fresh' and source='import-pp-xml'). Widget `type` strings MUST
+ * exist in the web widget-registry — BUG-91 traces to this list having
+ * drifted. A coverage test in `packages/web` pins the invariant.
+ *
+ * Layout (3-column grid):
+ *   row 1 — market-value | ttwror | irr                   (three 1-span KPIs)
+ *   row 2 — perf-chart   (full width)
+ *   row 3 — top-holdings (2) | absolute-performance (1)
+ */
+export const DEFAULT_DASHBOARD_WIDGETS: readonly DefaultDashboardWidget[] = [
+  { id: 'w-mv',       type: 'market-value',         title: null, span: 1, config: {} },
+  { id: 'w-ttwror',   type: 'ttwror',               title: null, span: 1, config: {} },
+  { id: 'w-irr',      type: 'irr',                  title: null, span: 1, config: {} },
+  { id: 'w-chart',    type: 'perf-chart',           title: null, span: 3, config: {} },
+  { id: 'w-top',      type: 'top-holdings',         title: null, span: 2, config: {} },
+  { id: 'w-absperf',  type: 'absolute-performance', title: null, span: 1, config: {} },
+];
