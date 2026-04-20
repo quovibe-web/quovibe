@@ -12,7 +12,7 @@ import { usePortfolio } from '@/context/PortfolioContext';
 import { taxonomyKeys } from '@/api/use-taxonomies';
 import { useReorderTaxonomy } from '@/api/use-taxonomy-mutations';
 import { useTheme } from '@/hooks/use-theme';
-import { useUpdateSettings } from '@/api/use-portfolio';
+import { useUpdatePreferences } from '@/api/use-preferences';
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import {
   LayoutDashboard,
@@ -490,13 +490,13 @@ interface SidebarDrawerProps {
 export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
   const { t } = useTranslation('navigation');
   const { theme, setTheme } = useTheme();
-  const { mutate: updateSettings } = useUpdateSettings();
+  const { mutate: updatePreferences } = useUpdatePreferences();
   const portfolio = usePortfolio();
   const NAV = scopeSections(portfolio.id, NAV_SUFFIXES);
 
   function handleTheme(next: 'light' | 'dark' | 'system') {
     setTheme(next);
-    updateSettings({ theme: next });
+    updatePreferences({ theme: next });
   }
 
   return (

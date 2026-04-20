@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useScopedApi } from './use-scoped-api';
 import type { PortfolioResponse } from './types';
 
@@ -15,34 +15,8 @@ export function usePortfolio() {
   });
 }
 
-interface UpdateSettingsData {
-  // DB fields
-  currency?: string;
-  costMethod?: string;
-  calendar?: string;
-  alphaVantageApiKey?: string;
-  alphaVantageRateLimit?: string;
-  // Sidecar fields
-  language?: string;
-  theme?: 'light' | 'dark' | 'system';
-  sharesPrecision?: number;
-  quotesPrecision?: number;
-  showCurrencyCode?: boolean;
-  showPaSuffix?: boolean;
-  privacyMode?: boolean;
-  activeReportingPeriodId?: string;
-  defaultDataSeriesTaxonomyId?: string;
-}
-
-export function useUpdateSettings() {
-  const api = useScopedApi();
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: UpdateSettingsData) =>
-      api.fetch('/api/portfolio/settings', {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: portfolioKeys.all(api.portfolioId) }),
-  });
-}
+// User-level preference writes moved to useUpdatePreferences (BUG-56).
+// DB-side portfolio settings (costMethod, currency, calendar, alphaVantage)
+// have no frontend writer today; they're seeded during bootstrap/import.
+// Re-introduce a portfolio-scoped hook under the sharper name
+// useUpdatePortfolioDbSettings if a caller appears.

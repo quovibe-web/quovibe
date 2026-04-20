@@ -17,7 +17,8 @@ import {
 import { useReportingPeriod } from '@/api/use-performance';
 import { useFirstTransactionDate } from '@/api/use-transactions';
 import { useReportingPeriods } from '@/api/use-reporting-periods';
-import { usePortfolio, useUpdateSettings } from '@/api/use-portfolio';
+import { usePortfolio } from '@/api/use-portfolio';
+import { useUpdatePreferences } from '@/api/use-preferences';
 import { usePortfolio as usePortfolioContext } from '@/context/PortfolioContext';
 import { usePrivacy } from '@/context/privacy-context';
 import { useTheme } from '@/hooks/use-theme';
@@ -42,16 +43,16 @@ function ToggleGroup() {
   const { t } = useTranslation('navigation');
   const { isPrivate, togglePrivacy } = usePrivacy();
   const { theme, setTheme } = useTheme();
-  const { mutate: updateSettings } = useUpdateSettings();
+  const { mutate: updatePreferences } = useUpdatePreferences();
 
   function handleTheme(next: 'light' | 'dark' | 'system') {
     setTheme(next);
-    updateSettings({ theme: next });
+    updatePreferences({ theme: next });
   }
 
   function handlePrivacy() {
     togglePrivacy();
-    updateSettings({ privacyMode: !isPrivate });
+    updatePreferences({ privacyMode: !isPrivate });
   }
 
   return (
@@ -130,7 +131,7 @@ function PeriodSelector() {
   const { data: periodsData } = useReportingPeriods();
   const { data: portfolioData } = usePortfolio();
   const currentPortfolio = usePortfolioContext();
-  const { mutate: updateSettings } = useUpdateSettings();
+  const { mutate: updatePreferences } = useUpdatePreferences();
 
 
   const [overflowOpen, setOverflowOpen] = useState(false);
@@ -215,13 +216,13 @@ function PeriodSelector() {
   function selectPeriod(def: ReportingPeriodDef) {
     const resolved = resolveReportingPeriod(def, todayStr);
     setPeriod(resolved.periodStart, resolved.periodEnd);
-    updateSettings({ activeReportingPeriodId: getPeriodId(def) });
+    updatePreferences({ activeReportingPeriodId: getPeriodId(def) });
   }
 
   function selectAll() {
     if (!firstDateData?.date) return;
     setPeriod(firstDateData.date, todayStr);
-    updateSettings({ activeReportingPeriodId: ALL_PERIOD_ID });
+    updatePreferences({ activeReportingPeriodId: ALL_PERIOD_ID });
   }
 
   return (

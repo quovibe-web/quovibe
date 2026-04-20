@@ -217,23 +217,15 @@ export const DEFAULT_SETTINGS: QuovibeSettings = quovibeSettingsSchema.parse({})
 // API request schemas for settings updates
 // ---------------------------------------------------------------------------
 
+// Portfolio-scoped settings body for PUT /api/p/:portfolioId/portfolio/settings.
+// DB-only: sidecar/user-level fields must go through PUT /api/settings/preferences
+// (BUG-56 — a portfolio-scoped endpoint must not mutate user-global state).
 export const updateSettingsSchema = z.object({
-  // DB fields (existing)
   costMethod: z.nativeEnum(CostMethod).optional(),
   currency: z.string().length(3).optional(),
   calendar: z.string().optional(),
   alphaVantageApiKey: z.string().optional(),
   alphaVantageRateLimit: z.string().optional(),
-  // Sidecar fields
-  language: z.string().optional(),
-  theme: z.enum(['light', 'dark', 'system']).optional(),
-  sharesPrecision: z.number().int().min(1).max(8).optional(),
-  quotesPrecision: z.number().int().min(1).max(8).optional(),
-  showCurrencyCode: z.boolean().optional(),
-  showPaSuffix: z.boolean().optional(),
-  privacyMode: z.boolean().optional(),
-  activeReportingPeriodId: z.string().optional(),
-  defaultDataSeriesTaxonomyId: z.string().optional(),
-});
+}).strict();
 
 export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;

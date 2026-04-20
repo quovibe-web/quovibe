@@ -17,7 +17,8 @@ import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { TaxonomyNodePickerPopover } from '@/components/domain/TaxonomyNodePickerPopover';
 import { useTaxonomies } from '@/api/use-taxonomies';
 import { useTaxonomySeries } from '@/api/use-taxonomy-series';
-import { usePortfolio, useUpdateSettings } from '@/api/use-portfolio';
+import { usePortfolio } from '@/api/use-portfolio';
+import { useUpdatePreferences } from '@/api/use-preferences';
 import { formatPercentage, formatCurrency } from '@/lib/formatters';
 import { useBaseCurrency } from '@/hooks/use-base-currency';
 import { usePrivacy } from '@/context/privacy-context';
@@ -75,7 +76,7 @@ export default function TaxonomySeries() {
     () => getSavedChartType(CHART_ID) ?? 'area',
   );
   const { data: portfolioData } = usePortfolio();
-  const { mutate: saveSettings, isPending: savePending } = useUpdateSettings();
+  const { mutate: saveSettings, isPending: savePending } = useUpdatePreferences();
 
   // Auto-select taxonomy on load using sidecar preference, falling back to first
   useEffect(() => {
