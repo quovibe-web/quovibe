@@ -298,7 +298,22 @@ db.transaction(() => {
   }
 })();
 
-console.log(`[Prices] ${ALL_SECURITIES.length * numDays} price rows + ${ALL_SECURITIES.length} latest_price rows`);
+// Invariant: every latest_price row must share a tstamp with MAX(price.tstamp)
+// for its security. Orphans are dormant in the UI (effectiveLatestPrice in
+// securities.ts picks the newer historical close) but still wrong data — fail
+// loud at seed time so a future regression can't ship a polluted template.
+const latestPriceOrphans = db.prepare(`
+  SELECT s.name AS name, lp.tstamp AS lpTs,
+         (SELECT MAX(tstamp) FROM price WHERE security = s.uuid) AS histTs
+  FROM latest_price lp
+  JOIN security s ON s.uuid = lp.security
+  WHERE lp.tstamp != (SELECT MAX(tstamp) FROM price WHERE security = s.uuid)
+`).all();
+if (latestPriceOrphans.length > 0) {
+  throw new Error(`[Seed invariant] latest_price / price tstamp mismatch: ${JSON.stringify(latestPriceOrphans)}`);
+}
+
+console.log(`[Prices] ${ALL_SECURITIES.length * numDays} price rows + ${ALL_SECURITIES.length} latest_price rows (invariant checked)`);
 
 // ---------------------------------------------------------------------------
 // Helper: look up price from priceHistory, walking back up to 5 days for weekends
