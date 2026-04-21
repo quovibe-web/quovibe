@@ -43,6 +43,7 @@
     "NO_REFERENCE_ACCOUNT": "Este portafolio no tiene una cuenta de efectivo vinculada. Añada una primero en la configuración del portafolio.",
     "TEMP_FILE_EXPIRED": "La carga expiró. Reinicie la importación.",
     "ALREADY_SETUP": "Este portafolio ya está configurado.",
-    "PORTFOLIO_NOT_FOUND": "Portafolio no encontrado."
+    "PORTFOLIO_NOT_FOUND": "Portafolio no encontrado.",
+    "DEMO_PORTFOLIO_FETCH_BLOCKED": "Las actualizaciones de precios están deshabilitadas para el portafolio Demo. Importa un XML real o crea tu propio portafolio para actualizar los precios."
   }
 }

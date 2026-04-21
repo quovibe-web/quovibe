@@ -60,12 +60,12 @@ export function validateXmlFormat(xmlPath: string): void {
   try {
     content = fs.readFileSync(xmlPath, 'utf-8');
   } catch {
-    throw new ImportError('INVALID_XML', 'Impossibile leggere il file XML');
+    throw new ImportError('INVALID_XML', 'Cannot read XML file');
   }
 
   // Must be parseable XML
   if (!content.trimStart().startsWith('<')) {
-    throw new ImportError('ENCRYPTED_FORMAT', 'Il file non è XML (potrebbe essere cifrato)');
+    throw new ImportError('ENCRYPTED_FORMAT', 'File is not XML (may be encrypted)');
   }
 
   // Parse with cheerio in XML mode
@@ -77,7 +77,7 @@ export function validateXmlFormat(xmlPath: string): void {
   if (rootName !== 'client') {
     throw new ImportError(
       'INVALID_FORMAT',
-      `Root element '${rootName}' non riconosciuto. Atteso: 'client'`,
+      `Unexpected root element '${rootName}'. Expected: 'client'`,
     );
   }
 
@@ -89,7 +89,7 @@ export function validateXmlFormat(xmlPath: string): void {
   if (!hasIdAttrs) {
     throw new ImportError(
       'INVALID_FORMAT',
-      'Il file XML non ha attributi ID. Esporta con: File → Salva come → XML con attributi ID',
+      'The XML file has no ID attributes. Re-export with: File → Save As → XML with ID attributes',
     );
   }
 }
@@ -120,7 +120,7 @@ export async function runImport(xmlPath: string): Promise<ImportResult> {
   try {
     fs.writeFileSync(LOCK_FILE, JSON.stringify({ id: uuid, pid: process.pid, ts: Date.now() }), { flag: 'wx' });
   } catch {
-    throw new ImportError('IMPORT_IN_PROGRESS', 'Import già in corso');
+    throw new ImportError('IMPORT_IN_PROGRESS', 'Import already in progress');
   }
 
   try {
@@ -208,11 +208,11 @@ export async function runImport(xmlPath: string): Promise<ImportResult> {
       }
     } catch (err: unknown) {
       const details = err instanceof Error ? err.message : String(err);
-      throw new ImportError('CONVERSION_FAILED', 'Errore durante la conversione ppxml2db', details);
+      throw new ImportError('CONVERSION_FAILED', 'Error during ppxml2db conversion', details);
     }
 
     if (!fs.existsSync(tempDbPath)) {
-      throw new ImportError('CONVERSION_FAILED', 'ppxml2db non ha prodotto il file .db atteso');
+      throw new ImportError('CONVERSION_FAILED', 'ppxml2db did not produce the expected .db file');
     }
 
     // Step 5: Validate schema of converted DB
@@ -227,7 +227,7 @@ export async function runImport(xmlPath: string): Promise<ImportResult> {
     if (!schemaResult.valid) {
       throw new ImportError(
         'INVALID_FORMAT',
-        `Schema DB non valido. Tabelle mancanti: ${schemaResult.missing.join(', ')}`,
+        `Invalid DB schema. Missing tables: ${schemaResult.missing.join(', ')}`,
       );
     }
 

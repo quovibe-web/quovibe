@@ -66,12 +66,12 @@ export function verifyColumnTypes(db: Database): void {
       const col = info.find(c => c.name === column);
       if (col && col.type !== expectedType) {
         console.warn(
-          `[quovibe] Attenzione: ${table}.${column} è ${col.type},` +
-          ` atteso ${expectedType}. Possibile incompatibilità ppxml2db.`
+          `[quovibe] Warning: ${table}.${column} is ${col.type},` +
+          ` expected ${expectedType}. Possible ppxml2db incompatibility.`
         );
       }
     } catch {
-      // Tabella non trovata: già segnalata da verifySchema
+      // Table not found: already reported by verifySchema
     }
   }
 }

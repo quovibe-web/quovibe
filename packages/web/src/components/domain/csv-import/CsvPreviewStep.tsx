@@ -11,7 +11,23 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useExecuteCsvTrades, useCreateCsvConfig } from '@/api/use-csv-import';
 import { usePortfolio } from '@/context/PortfolioContext';
 import type { WizardState } from '@/pages/CsvImportPage';
-import type { TradeExecuteResult } from '@quovibe/shared';
+import type { TradeExecuteResult, CsvErrorCode } from '@quovibe/shared';
+
+// Maps RowError codes (emitted by packages/api/src/services/csv/*) to the
+// csv-import:errors.* i18n keys. The server's `message` field is an historical
+// i18n path string (e.g. "csvImport.errors.missingSecurity") that doesn't
+// resolve against any namespace on the client — we translate by `code` instead
+// (BUG-99). Keep the mapping aligned with `csvErrorCodes` in
+// packages/shared/src/csv/csv-types.ts.
+const ROW_ERROR_I18N: Partial<Record<CsvErrorCode, string>> = {
+  INVALID_DATE: 'errors.invalidDate',
+  INVALID_NUMBER: 'errors.invalidNumber',
+  UNKNOWN_TYPE: 'errors.unknownType',
+  INVALID_PRICE: 'errors.invalidPrice',
+  MISSING_SECURITY: 'errors.missingSecurity',
+  MISSING_SHARES: 'errors.missingShares',
+  MISSING_CROSS_ACCOUNT: 'errors.missingCrossAccount',
+};
 
 interface Props {
   state: WizardState;
@@ -167,12 +183,18 @@ export function CsvPreviewStep({ state, onBack }: Props) {
           <CardHeader><CardTitle>{t('preview.errors')}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-1 max-h-40 overflow-y-auto">
-              {preview.errors.map((err, i) => (
-                <div key={i} className="text-sm text-destructive">
-                  Row {err.row}: {err.column ? `[${err.column}] ` : ''}{err.message}
-                  {err.value ? ` (${err.value})` : ''}
-                </div>
-              ))}
+              {preview.errors.map((err, i) => {
+                const i18nKey = ROW_ERROR_I18N[err.code];
+                const translated = i18nKey
+                  ? t(i18nKey, { value: err.value ?? '', field: err.column ?? '' })
+                  : err.code;
+                return (
+                  <div key={i} className="text-sm text-destructive">
+                    {t('preview.rowErrorPrefix', { row: err.row })}
+                    {err.column ? ` [${err.column}] ` : ' '}{translated}
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

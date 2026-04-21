@@ -43,6 +43,7 @@
     "NO_REFERENCE_ACCOUNT": "Deze portefeuille heeft geen gekoppelde kasrekening. Voeg er eerst een toe in de portefeuille-instellingen.",
     "TEMP_FILE_EXPIRED": "De upload is verlopen. Start de import opnieuw.",
     "ALREADY_SETUP": "Deze portefeuille is al geconfigureerd.",
-    "PORTFOLIO_NOT_FOUND": "Portefeuille niet gevonden."
+    "PORTFOLIO_NOT_FOUND": "Portefeuille niet gevonden.",
+    "DEMO_PORTFOLIO_FETCH_BLOCKED": "Prijsupdates zijn uitgeschakeld voor de Demo-portefeuille. Importeer een echte XML of maak je eigen portefeuille aan om prijzen bij te werken."
   }
 }

@@ -43,6 +43,7 @@
     "NO_REFERENCE_ACCOUNT": "Dieses Portfolio hat kein verknüpftes Bargeldkonto. Fügen Sie zuerst eines in den Portfolioeinstellungen hinzu.",
     "TEMP_FILE_EXPIRED": "Der Upload ist abgelaufen. Starten Sie den Import erneut.",
     "ALREADY_SETUP": "Dieses Portfolio ist bereits eingerichtet.",
-    "PORTFOLIO_NOT_FOUND": "Portfolio nicht gefunden."
+    "PORTFOLIO_NOT_FOUND": "Portfolio nicht gefunden.",
+    "DEMO_PORTFOLIO_FETCH_BLOCKED": "Kursaktualisierungen sind für das Demo-Portfolio deaktiviert. Importieren Sie eine echte XML-Datei oder erstellen Sie Ihr eigenes Portfolio, um Kurse zu aktualisieren."
   }
 }

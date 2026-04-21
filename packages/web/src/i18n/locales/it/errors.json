@@ -43,6 +43,7 @@
     "NO_REFERENCE_ACCOUNT": "Questo portafoglio non ha un conto di liquidità collegato. Aggiungine uno nelle impostazioni del portafoglio.",
     "TEMP_FILE_EXPIRED": "Il caricamento è scaduto. Avvia nuovamente l'importazione.",
     "ALREADY_SETUP": "Questo portafoglio è già stato configurato.",
-    "PORTFOLIO_NOT_FOUND": "Portafoglio non trovato."
+    "PORTFOLIO_NOT_FOUND": "Portafoglio non trovato.",
+    "DEMO_PORTFOLIO_FETCH_BLOCKED": "Gli aggiornamenti dei prezzi sono disabilitati per il portafoglio Demo. Importa un XML reale o crea un tuo portafoglio per aggiornare i prezzi."
   }
 }

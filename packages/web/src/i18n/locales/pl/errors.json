@@ -43,6 +43,7 @@
     "NO_REFERENCE_ACCOUNT": "Ten portfel nie ma powiązanego rachunku gotówkowego. Najpierw dodaj go w ustawieniach portfela.",
     "TEMP_FILE_EXPIRED": "Przesyłanie wygasło. Rozpocznij import ponownie.",
     "ALREADY_SETUP": "Ten portfel jest już skonfigurowany.",
-    "PORTFOLIO_NOT_FOUND": "Nie znaleziono portfela."
+    "PORTFOLIO_NOT_FOUND": "Nie znaleziono portfela.",
+    "DEMO_PORTFOLIO_FETCH_BLOCKED": "Aktualizacje cen są wyłączone dla portfela Demo. Zaimportuj prawdziwy plik XML lub utwórz własny portfel, aby aktualizować ceny."
   }
 }

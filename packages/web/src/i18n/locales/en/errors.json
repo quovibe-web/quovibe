@@ -43,6 +43,7 @@
     "NO_REFERENCE_ACCOUNT": "This portfolio has no linked cash account. Add one in portfolio settings first.",
     "TEMP_FILE_EXPIRED": "The upload expired. Start the import again.",
     "ALREADY_SETUP": "This portfolio is already set up.",
-    "PORTFOLIO_NOT_FOUND": "Portfolio not found."
+    "PORTFOLIO_NOT_FOUND": "Portfolio not found.",
+    "DEMO_PORTFOLIO_FETCH_BLOCKED": "Price updates are disabled for the Demo portfolio. Import a real XML or create your own portfolio to update prices."
   }
 }

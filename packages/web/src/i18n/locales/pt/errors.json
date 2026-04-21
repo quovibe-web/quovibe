@@ -43,6 +43,7 @@
     "NO_REFERENCE_ACCOUNT": "Este portfólio não tem uma conta de liquidez associada. Adicione uma primeiro nas definições do portfólio.",
     "TEMP_FILE_EXPIRED": "O carregamento expirou. Inicie a importação novamente.",
     "ALREADY_SETUP": "Este portfólio já está configurado.",
-    "PORTFOLIO_NOT_FOUND": "Portfólio não encontrado."
+    "PORTFOLIO_NOT_FOUND": "Portfólio não encontrado.",
+    "DEMO_PORTFOLIO_FETCH_BLOCKED": "As atualizações de preços estão desativadas para o portfólio Demo. Importe um XML real ou crie o seu próprio portfólio para atualizar os preços."
   }
 }

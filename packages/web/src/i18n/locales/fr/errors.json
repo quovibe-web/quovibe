@@ -43,6 +43,7 @@
     "NO_REFERENCE_ACCOUNT": "Ce portefeuille n'a pas de compte de trésorerie lié. Ajoutez-en un dans les paramètres du portefeuille.",
     "TEMP_FILE_EXPIRED": "Le chargement a expiré. Relancez l'import.",
     "ALREADY_SETUP": "Ce portefeuille est déjà configuré.",
-    "PORTFOLIO_NOT_FOUND": "Portefeuille introuvable."
+    "PORTFOLIO_NOT_FOUND": "Portefeuille introuvable.",
+    "DEMO_PORTFOLIO_FETCH_BLOCKED": "Les mises à jour de prix sont désactivées pour le portefeuille Démo. Importez un vrai fichier XML ou créez votre propre portefeuille pour mettre à jour les prix."
   }
 }
