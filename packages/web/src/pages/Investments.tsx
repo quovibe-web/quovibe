@@ -33,7 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { useSecurities, useFetchAllPrices, useDeleteSecurity, SecurityHasTransactionsError } from '@/api/use-securities';
+import { useSecurities, useFetchAllPrices, useDeleteSecurity } from '@/api/use-securities';
 import { useAccountDetail, useAccountHoldings } from '@/api/use-accounts';
 import { useStatementOfAssets, useHoldings } from '@/api/use-reports';
 import { useReportingPeriod, usePerformanceSecurities } from '@/api/use-performance';
@@ -350,14 +350,9 @@ export default function Investments() {
         toast.success(tCommon('toasts.securityDeleted'));
         setDeleteTarget(null);
       },
-      onError: (err) => {
-        if (err instanceof SecurityHasTransactionsError) {
-          toast.error(tSecurities('errors.hasTransactions', { count: err.count }));
-        } else {
-          toast.error((err as Error).message ?? tCommon('toasts.errorDeleting'));
-        }
-        setDeleteTarget(null);
-      },
+      // Error toast is handled by the global MutationCache handler
+      // (query-client.ts → errors:server.*). We only clear the dialog state.
+      onError: () => { setDeleteTarget(null); },
     });
   }
 

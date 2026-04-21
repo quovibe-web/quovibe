@@ -2,15 +2,31 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { MutationCache } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { ApiError } from '../fetch';
 
 // sonner is mocked at module level
 vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
-// stub i18n so i18n.t(...) returns a deterministic string in the generic-fallback branch
+// stub i18n so i18n.t(...) returns a deterministic string in the generic-fallback branch.
+// For `errors:server.<CODE>` lookups: return a translated string when the code is known,
+// otherwise return the key itself (i18next's default miss behavior) so the handler's
+// fallback branch is exercised.
 vi.mock('@/i18n', () => ({
   default: {
-    t: vi.fn((key: string) => {
-      if (key === 'mutation.genericFailure') return 'GENERIC_FAIL_STUB';
-      return key;
+    t: vi.fn((key: string, opts?: Record<string, unknown>) => {
+      const KNOWN: Record<string, string> = {
+        'server.security_has_transactions':
+          'Cannot delete — {{count}} transactions linked',
+        'server.INVALID_INPUT': 'Invalid input. Check the fields.',
+        'server.Validation error': 'Invalid input. Check the fields.',
+        'server.INVALID_FORMAT': 'The XML is not a Portfolio Performance export.',
+        'mutation.genericFailure': 'GENERIC_FAIL_STUB',
+      };
+      const template = KNOWN[key];
+      if (!template) return key;
+      return Object.entries(opts ?? {}).reduce(
+        (s, [k, v]) => s.replace(`{{${k}}}`, String(v)),
+        template,
+      );
     }),
   },
 }));
@@ -26,12 +42,6 @@ async function freshlyImportedQueryClient() {
   return mod.queryClient;
 }
 
-/**
- * Runs a mutation through the real TanStack Query pipeline using cache.build() +
- * mutation.execute(). This exercises the same code path as useMutation in production
- * (mutation.ts:276-282 calls mutationCache.config.onError with the Mutation instance
- * as arg 4), without requiring @testing-library/react or jsdom.
- */
 describe('MutationCache global error toast', () => {
   beforeEach(() => {
     (toast.error as unknown as ReturnType<typeof vi.fn>).mockClear();
@@ -76,7 +86,6 @@ describe('MutationCache global error toast', () => {
     });
     await mutation.execute(undefined as unknown as never).catch(() => {});
 
-    // Give the event loop one more tick to confirm no toast is coming.
     await new Promise(r => setTimeout(r, 20));
     expect(toast.error).not.toHaveBeenCalled();
   });
@@ -85,5 +94,69 @@ describe('MutationCache global error toast', () => {
     const client = await freshlyImportedQueryClient();
     const cache = client.getMutationCache();
     expect(cache).toBeInstanceOf(MutationCache);
+  });
+
+  test('ApiError with known code is translated via errors:server.<CODE>', async () => {
+    const client = await freshlyImportedQueryClient();
+    const cache = client.getMutationCache();
+
+    const mutation = cache.build(client, {
+      mutationFn: async () => {
+        throw new ApiError(409, 'security_has_transactions', { count: 15 });
+      },
+    });
+    await mutation.execute(undefined as unknown as never).catch(() => {});
+
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect((toast.error as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      'Cannot delete — 15 transactions linked',
+    );
+  });
+
+  test('ApiError with 400 INVALID_INPUT is translated', async () => {
+    const client = await freshlyImportedQueryClient();
+    const cache = client.getMutationCache();
+
+    const mutation = cache.build(client, {
+      mutationFn: async () => { throw new ApiError(400, 'INVALID_INPUT'); },
+    });
+    await mutation.execute(undefined as unknown as never).catch(() => {});
+
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect((toast.error as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      'Invalid input. Check the fields.',
+    );
+  });
+
+  test('ApiError with server-emitted "Validation error" key is translated', async () => {
+    // The Express error handler emits `{error: "Validation error"}` for ZodErrors,
+    // so the human-readable string itself is the lookup key. Regression guard for
+    // the taxonomy allocation route (BUG-77/89).
+    const client = await freshlyImportedQueryClient();
+    const cache = client.getMutationCache();
+
+    const mutation = cache.build(client, {
+      mutationFn: async () => { throw new ApiError(400, 'Validation error'); },
+    });
+    await mutation.execute(undefined as unknown as never).catch(() => {});
+
+    expect((toast.error as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      'Invalid input. Check the fields.',
+    );
+  });
+
+  test('ApiError with unknown code falls through to raw code in dev', async () => {
+    // import.meta.env.DEV is true under vitest by default.
+    const client = await freshlyImportedQueryClient();
+    const cache = client.getMutationCache();
+
+    const mutation = cache.build(client, {
+      mutationFn: async () => { throw new ApiError(500, 'UNDOCUMENTED_CODE'); },
+    });
+    await mutation.execute(undefined as unknown as never).catch(() => {});
+
+    expect((toast.error as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      'UNDOCUMENTED_CODE',
+    );
   });
 });

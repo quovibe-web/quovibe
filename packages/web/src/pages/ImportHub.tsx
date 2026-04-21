@@ -10,6 +10,7 @@ import { SubmitButton } from '@/components/shared/SubmitButton';
 import { Input } from '@/components/ui/input';
 import { ImportDropzone } from '@/components/ImportDropzone';
 import { useCreatePortfolio, type PortfolioRegistryEntry } from '@/api/use-portfolios';
+import { ApiError } from '@/api/fetch';
 import { cn } from '@/lib/utils';
 import { sniffLikelyXml } from '@quovibe/shared';
 
@@ -17,7 +18,16 @@ import { sniffLikelyXml } from '@quovibe/shared';
 // blocking on large uploads. Mirrors CsvUploadStep's BINARY_SNIFF_BYTES.
 const XML_SNIFF_BYTES = 4096; // native-ok
 
-type PpUploadError = 'invalidFile' | 'tooLarge' | 'binary' | null;
+export type PpUploadError =
+  | 'invalidFile'
+  | 'tooLarge'
+  | 'binary'
+  | 'invalidFormat'
+  | 'encrypted'
+  | 'invalidXml'
+  | 'importInProgress'
+  | 'conversionFailed'
+  | null;
 
 async function validateXmlClientSide(file: File): Promise<PpUploadError> {
   if (!file.name.toLowerCase().endsWith('.xml')) return 'invalidFile';
@@ -28,13 +38,33 @@ async function validateXmlClientSide(file: File): Promise<PpUploadError> {
   return sniff.reason === 'NOT_TEXT' ? 'binary' : 'invalidFile';
 }
 
-// use-portfolios.ts:61 throws `new Error(`${code}: ${details}`)` for XML
-// import failures, so we match by prefix rather than equality.
-function mapServerError(message: string): PpUploadError {
-  if (message.startsWith('FILE_TOO_LARGE')) return 'tooLarge';
-  if (message.startsWith('INVALID_FILE_FORMAT')) return 'invalidFile';
-  if (message.startsWith('NO_FILE')) return 'invalidFile';
-  return null;
+/**
+ * Full code table matches `.claude/rules/xml-import.md` — any code documented
+ * there must produce a non-null PpUploadError so the inline <Alert> renders.
+ * DUPLICATE_NAME is intentionally excluded: it has its own localized toast
+ * path via `errors.portfolio.duplicateName` and must NOT render as an
+ * upload-drop-zone error (user keeps the file, only renames).
+ */
+export function mapServerError(code: string): PpUploadError {
+  switch (code) {
+    case 'FILE_TOO_LARGE':
+      return 'tooLarge';
+    case 'INVALID_FILE_FORMAT':
+    case 'NO_FILE':
+      return 'invalidFile';
+    case 'INVALID_XML':
+      return 'invalidXml';
+    case 'INVALID_FORMAT':
+      return 'invalidFormat';
+    case 'ENCRYPTED_FORMAT':
+      return 'encrypted';
+    case 'IMPORT_IN_PROGRESS':
+      return 'importInProgress';
+    case 'CONVERSION_FAILED':
+      return 'conversionFailed';
+    default:
+      return null;
+  }
 }
 
 type SourceId = 'pp-xml' | 'quovibe-db';
@@ -83,17 +113,20 @@ export default function ImportHub() {
         onSuccess: (r: { entry: PortfolioRegistryEntry }) =>
           navigate(`/p/${r.entry.id}/dashboard`),
         onError: (err) => {
-          const msg = (err as Error).message;
-          const mapped = mapServerError(msg);
+          // Prefer the structured ApiError code (post-fetch.ts refactor). Fall
+          // back to message-prefix matching for non-ApiError shapes so this
+          // handler remains defensive if something upstream changes.
+          const code = err instanceof ApiError ? err.code : (err as Error).message;
+          if (code === 'DUPLICATE_NAME') {
+            toast.error(tErrors('portfolio.duplicateName', { name: attemptedName }));
+            return;
+          }
+          const mapped = mapServerError(code);
           if (mapped) {
             setPpUploadError(mapped);
             return;
           }
-          if (msg === 'DUPLICATE_NAME' || msg.startsWith('DUPLICATE_NAME:')) {
-            toast.error(tErrors('portfolio.duplicateName', { name: attemptedName }));
-            return;
-          }
-          toast.error(t('hub.errors.importFailed', { msg }));
+          toast.error(t('hub.errors.importFailed', { msg: code }));
         },
       },
     );
@@ -109,8 +142,10 @@ export default function ImportHub() {
       {
         onSuccess: (r: { entry: PortfolioRegistryEntry }) =>
           navigate(`/p/${r.entry.id}/dashboard`),
-        onError: (err) =>
-          toast.error(t('hub.errors.importFailed', { msg: (err as Error).message })),
+        onError: (err) => {
+          const code = err instanceof ApiError ? err.code : (err as Error).message;
+          toast.error(t('hub.errors.importFailed', { msg: code }));
+        },
       },
     );
   };

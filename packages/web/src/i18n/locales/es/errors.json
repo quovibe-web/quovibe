@@ -25,5 +25,24 @@
   },
   "portfolio": {
     "duplicateName": "Ya existe un portafolio llamado «{{name}}». Elija un nombre diferente."
+  },
+  "server": {
+    "security_has_transactions": "No se puede eliminar — {{count}} transacciones están vinculadas a este valor. Elimínelas o reasígnelas primero.",
+    "INVALID_INPUT": "Entrada no válida. Verifique los campos e inténtelo de nuevo.",
+    "Validation error": "Entrada no válida. Verifique los campos e inténtelo de nuevo.",
+    "DUPLICATE_NAME": "Ya existe un portafolio con este nombre. Elija un nombre diferente.",
+    "INVALID_FORMAT": "El XML no es una exportación de Portfolio Performance (falta el elemento raíz <client> o los atributos ID).",
+    "ENCRYPTED_FORMAT": "El archivo parece estar cifrado. Reexporte desde Portfolio Performance eligiendo el formato XML con atributos ID.",
+    "INVALID_XML": "El archivo no es un XML válido. Reexporte desde Portfolio Performance e inténtelo de nuevo.",
+    "IMPORT_IN_PROGRESS": "Otra importación ya está en curso. Espere a que termine e inténtelo de nuevo.",
+    "CONVERSION_FAILED": "La conversión falló. Sus portafolios existentes no se modificaron.",
+    "FILE_TOO_LARGE": "El archivo supera el límite de tamaño permitido.",
+    "INVALID_FILE_FORMAT": "Tipo de archivo no soportado. Cargue un archivo de texto con la extensión esperada.",
+    "NO_FILE": "No se cargó ningún archivo.",
+    "INVALID_SECURITIES_ACCOUNT": "La cuenta de valores seleccionada no es válida para este portafolio.",
+    "NO_REFERENCE_ACCOUNT": "Este portafolio no tiene una cuenta de efectivo vinculada. Añada una primero en la configuración del portafolio.",
+    "TEMP_FILE_EXPIRED": "La carga expiró. Reinicie la importación.",
+    "ALREADY_SETUP": "Este portafolio ya está configurado.",
+    "PORTFOLIO_NOT_FOUND": "Portafolio no encontrado."
   }
 }

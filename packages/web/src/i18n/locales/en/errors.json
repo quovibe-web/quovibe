@@ -25,5 +25,24 @@
   },
   "portfolio": {
     "duplicateName": "A portfolio named “{{name}}” already exists. Choose a different name."
+  },
+  "server": {
+    "security_has_transactions": "Cannot delete — {{count}} transactions are linked to this security. Delete or reassign them first.",
+    "INVALID_INPUT": "Invalid input. Check the fields and try again.",
+    "Validation error": "Invalid input. Check the fields and try again.",
+    "DUPLICATE_NAME": "A portfolio with this name already exists. Choose a different name.",
+    "INVALID_FORMAT": "The XML is not a Portfolio Performance export (missing <client> root or ID attributes).",
+    "ENCRYPTED_FORMAT": "The file appears to be encrypted. Re-export from Portfolio Performance choosing XML format with ID attributes.",
+    "INVALID_XML": "The file is not valid XML. Re-export from Portfolio Performance and try again.",
+    "IMPORT_IN_PROGRESS": "Another import is already running. Wait for it to finish and try again.",
+    "CONVERSION_FAILED": "Conversion failed. Your existing portfolios are untouched.",
+    "FILE_TOO_LARGE": "The file exceeds the upload size limit.",
+    "INVALID_FILE_FORMAT": "File type not supported. Upload a plain-text file with the expected extension.",
+    "NO_FILE": "No file was uploaded.",
+    "INVALID_SECURITIES_ACCOUNT": "The selected securities account is not valid for this portfolio.",
+    "NO_REFERENCE_ACCOUNT": "This portfolio has no linked cash account. Add one in portfolio settings first.",
+    "TEMP_FILE_EXPIRED": "The upload expired. Start the import again.",
+    "ALREADY_SETUP": "This portfolio is already set up.",
+    "PORTFOLIO_NOT_FOUND": "Portfolio not found."
   }
 }

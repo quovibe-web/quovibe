@@ -82,7 +82,12 @@
       "importFailed": "Importazione fallita: {{msg}}",
       "invalidFile": "File XML non valido. Atteso un file .xml esportato da Portfolio Performance.",
       "tooLarge": "Il file supera il limite di dimensione consentito.",
-      "binary": "Il file sembra binario o danneggiato. Atteso un export XML in testo semplice."
+      "binary": "Il file sembra binario o danneggiato. Atteso un export XML in testo semplice.",
+      "invalidXml": "Il file non è un XML valido. Riesporta da Portfolio Performance e riprova.",
+      "invalidFormat": "L'XML non è un'esportazione di Portfolio Performance (manca l'elemento radice <client> o gli attributi ID). Riesporta con gli ID abilitati.",
+      "encrypted": "Il file sembra criptato. Riesporta da Portfolio Performance scegliendo il formato XML con attributi ID.",
+      "importInProgress": "Un'altra importazione è già in corso. Attendi il completamento e riprova.",
+      "conversionFailed": "Conversione fallita. I portafogli esistenti non sono stati modificati."
     }
   }
 }

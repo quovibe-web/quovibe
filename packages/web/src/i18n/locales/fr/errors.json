@@ -25,5 +25,24 @@
   },
   "portfolio": {
     "duplicateName": "Un portefeuille nommé « {{name}} » existe déjà. Choisissez un autre nom."
+  },
+  "server": {
+    "security_has_transactions": "Suppression impossible — {{count}} transactions sont liées à ce titre. Supprimez-les ou réaffectez-les d'abord.",
+    "INVALID_INPUT": "Saisie invalide. Vérifiez les champs et réessayez.",
+    "Validation error": "Saisie invalide. Vérifiez les champs et réessayez.",
+    "DUPLICATE_NAME": "Un portefeuille avec ce nom existe déjà. Choisissez un autre nom.",
+    "INVALID_FORMAT": "Le XML n'est pas un export Portfolio Performance (élément racine <client> ou attributs ID manquants).",
+    "ENCRYPTED_FORMAT": "Le fichier semble chiffré. Réexportez depuis Portfolio Performance en choisissant le format XML avec attributs ID.",
+    "INVALID_XML": "Le fichier n'est pas un XML valide. Réexportez depuis Portfolio Performance et réessayez.",
+    "IMPORT_IN_PROGRESS": "Un autre import est déjà en cours. Attendez la fin et réessayez.",
+    "CONVERSION_FAILED": "Échec de la conversion. Vos portefeuilles existants sont intacts.",
+    "FILE_TOO_LARGE": "Le fichier dépasse la taille limite autorisée.",
+    "INVALID_FILE_FORMAT": "Type de fichier non supporté. Chargez un fichier texte avec l'extension attendue.",
+    "NO_FILE": "Aucun fichier chargé.",
+    "INVALID_SECURITIES_ACCOUNT": "Le compte-titres sélectionné n'est pas valide pour ce portefeuille.",
+    "NO_REFERENCE_ACCOUNT": "Ce portefeuille n'a pas de compte de trésorerie lié. Ajoutez-en un dans les paramètres du portefeuille.",
+    "TEMP_FILE_EXPIRED": "Le chargement a expiré. Relancez l'import.",
+    "ALREADY_SETUP": "Ce portefeuille est déjà configuré.",
+    "PORTFOLIO_NOT_FOUND": "Portefeuille introuvable."
   }
 }

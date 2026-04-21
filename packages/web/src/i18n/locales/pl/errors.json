@@ -25,5 +25,24 @@
   },
   "portfolio": {
     "duplicateName": "Portfel o nazwie „{{name}}” już istnieje. Wybierz inną nazwę."
+  },
+  "server": {
+    "security_has_transactions": "Nie można usunąć — {{count}} transakcji jest powiązanych z tym papierem wartościowym. Najpierw je usuń lub przypisz ponownie.",
+    "INVALID_INPUT": "Nieprawidłowe dane. Sprawdź pola i spróbuj ponownie.",
+    "Validation error": "Nieprawidłowe dane. Sprawdź pola i spróbuj ponownie.",
+    "DUPLICATE_NAME": "Portfel o tej nazwie już istnieje. Wybierz inną nazwę.",
+    "INVALID_FORMAT": "XML nie jest eksportem z Portfolio Performance (brak elementu głównego <client> lub atrybutów ID).",
+    "ENCRYPTED_FORMAT": "Plik wydaje się być zaszyfrowany. Wyeksportuj ponownie z Portfolio Performance wybierając format XML z atrybutami ID.",
+    "INVALID_XML": "Plik nie jest prawidłowym XML. Wyeksportuj ponownie z Portfolio Performance i spróbuj ponownie.",
+    "IMPORT_IN_PROGRESS": "Inny import już trwa. Poczekaj na zakończenie i spróbuj ponownie.",
+    "CONVERSION_FAILED": "Konwersja nie powiodła się. Twoje istniejące portfele pozostały nietknięte.",
+    "FILE_TOO_LARGE": "Plik przekracza dozwolony rozmiar.",
+    "INVALID_FILE_FORMAT": "Nieobsługiwany typ pliku. Wgraj plik tekstowy z oczekiwanym rozszerzeniem.",
+    "NO_FILE": "Nie wgrano żadnego pliku.",
+    "INVALID_SECURITIES_ACCOUNT": "Wybrany rachunek papierów wartościowych nie jest prawidłowy dla tego portfela.",
+    "NO_REFERENCE_ACCOUNT": "Ten portfel nie ma powiązanego rachunku gotówkowego. Najpierw dodaj go w ustawieniach portfela.",
+    "TEMP_FILE_EXPIRED": "Przesyłanie wygasło. Rozpocznij import ponownie.",
+    "ALREADY_SETUP": "Ten portfel jest już skonfigurowany.",
+    "PORTFOLIO_NOT_FOUND": "Nie znaleziono portfela."
   }
 }

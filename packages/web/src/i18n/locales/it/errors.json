@@ -25,5 +25,24 @@
   },
   "portfolio": {
     "duplicateName": "Esiste già un portafoglio chiamato “{{name}}”. Scegli un nome diverso."
+  },
+  "server": {
+    "security_has_transactions": "Impossibile eliminare — {{count}} transazioni sono collegate a questo titolo. Eliminale o riassegnale prima.",
+    "INVALID_INPUT": "Dati non validi. Verifica i campi e riprova.",
+    "Validation error": "Dati non validi. Verifica i campi e riprova.",
+    "DUPLICATE_NAME": "Esiste già un portafoglio con questo nome. Scegli un nome diverso.",
+    "INVALID_FORMAT": "L'XML non è un'esportazione di Portfolio Performance (manca l'elemento radice <client> o gli attributi ID).",
+    "ENCRYPTED_FORMAT": "Il file sembra essere criptato. Riesporta da Portfolio Performance scegliendo il formato XML con attributi ID.",
+    "INVALID_XML": "Il file non è un XML valido. Riesporta da Portfolio Performance e riprova.",
+    "IMPORT_IN_PROGRESS": "Un'altra importazione è già in corso. Attendi il completamento e riprova.",
+    "CONVERSION_FAILED": "Conversione fallita. I portafogli esistenti non sono stati modificati.",
+    "FILE_TOO_LARGE": "Il file supera il limite di dimensione consentito.",
+    "INVALID_FILE_FORMAT": "Tipo di file non supportato. Carica un file di testo con l'estensione prevista.",
+    "NO_FILE": "Nessun file è stato caricato.",
+    "INVALID_SECURITIES_ACCOUNT": "Il conto titoli selezionato non è valido per questo portafoglio.",
+    "NO_REFERENCE_ACCOUNT": "Questo portafoglio non ha un conto di liquidità collegato. Aggiungine uno nelle impostazioni del portafoglio.",
+    "TEMP_FILE_EXPIRED": "Il caricamento è scaduto. Avvia nuovamente l'importazione.",
+    "ALREADY_SETUP": "Questo portafoglio è già stato configurato.",
+    "PORTFOLIO_NOT_FOUND": "Portafoglio non trovato."
   }
 }

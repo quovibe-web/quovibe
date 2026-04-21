@@ -81,7 +81,12 @@
       "importFailed": "Import nie powiódł się: {{msg}}",
       "invalidFile": "Nieprawidłowy eksport XML. Wymagany plik .xml z Portfolio Performance.",
       "tooLarge": "Plik przekracza dozwolony rozmiar przesyłki.",
-      "binary": "Plik wygląda na binarny lub uszkodzony. Wymagany eksport XML w postaci zwykłego tekstu."
+      "binary": "Plik wygląda na binarny lub uszkodzony. Wymagany eksport XML w postaci zwykłego tekstu.",
+      "invalidXml": "Plik nie jest prawidłowym XML. Wyeksportuj ponownie z Portfolio Performance i spróbuj ponownie.",
+      "invalidFormat": "XML nie jest eksportem z Portfolio Performance (brak elementu głównego <client> lub atrybutów ID). Wyeksportuj ponownie z włączonymi ID.",
+      "encrypted": "Plik wydaje się zaszyfrowany. Wyeksportuj ponownie z Portfolio Performance wybierając format XML z atrybutami ID.",
+      "importInProgress": "Inny import już trwa. Poczekaj na zakończenie i spróbuj ponownie.",
+      "conversionFailed": "Konwersja nie powiodła się. Twoje istniejące portfele pozostały nietknięte."
     }
   }
 }

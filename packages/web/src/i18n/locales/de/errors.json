@@ -25,5 +25,24 @@
   },
   "portfolio": {
     "duplicateName": "Ein Portfolio mit dem Namen „{{name}}“ existiert bereits. Wählen Sie einen anderen Namen."
+  },
+  "server": {
+    "security_has_transactions": "Löschen nicht möglich — {{count}} Transaktionen sind mit diesem Wertpapier verknüpft. Löschen oder ordnen Sie sie zuerst neu zu.",
+    "INVALID_INPUT": "Ungültige Eingabe. Überprüfen Sie die Felder und versuchen Sie es erneut.",
+    "Validation error": "Ungültige Eingabe. Überprüfen Sie die Felder und versuchen Sie es erneut.",
+    "DUPLICATE_NAME": "Ein Portfolio mit diesem Namen existiert bereits. Wählen Sie einen anderen Namen.",
+    "INVALID_FORMAT": "Die XML ist keine Portfolio-Performance-Exportdatei (fehlendes <client>-Stammelement oder ID-Attribute).",
+    "ENCRYPTED_FORMAT": "Die Datei scheint verschlüsselt zu sein. Exportieren Sie erneut aus Portfolio Performance und wählen Sie das XML-Format mit ID-Attributen.",
+    "INVALID_XML": "Die Datei ist kein gültiges XML. Exportieren Sie erneut aus Portfolio Performance und versuchen Sie es erneut.",
+    "IMPORT_IN_PROGRESS": "Ein anderer Import läuft bereits. Warten Sie auf den Abschluss und versuchen Sie es erneut.",
+    "CONVERSION_FAILED": "Konvertierung fehlgeschlagen. Ihre vorhandenen Portfolios sind unverändert.",
+    "FILE_TOO_LARGE": "Die Datei überschreitet die zulässige Größe.",
+    "INVALID_FILE_FORMAT": "Dateityp nicht unterstützt. Laden Sie eine Textdatei mit der erwarteten Erweiterung hoch.",
+    "NO_FILE": "Keine Datei hochgeladen.",
+    "INVALID_SECURITIES_ACCOUNT": "Das ausgewählte Wertpapierdepot ist für dieses Portfolio nicht gültig.",
+    "NO_REFERENCE_ACCOUNT": "Dieses Portfolio hat kein verknüpftes Bargeldkonto. Fügen Sie zuerst eines in den Portfolioeinstellungen hinzu.",
+    "TEMP_FILE_EXPIRED": "Der Upload ist abgelaufen. Starten Sie den Import erneut.",
+    "ALREADY_SETUP": "Dieses Portfolio ist bereits eingerichtet.",
+    "PORTFOLIO_NOT_FOUND": "Portfolio nicht gefunden."
   }
 }

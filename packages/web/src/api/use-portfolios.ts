@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { FreshPortfolioInput } from '@quovibe/shared';
-import { apiFetch } from './fetch';
+import { apiFetch, toApiError } from './fetch';
 
 // useCreatePortfolio accepts these four shapes; only the JSON ones go through
 // apiFetch — the file branches use FormData against POST /api/portfolios or
@@ -50,7 +50,7 @@ export function useCreatePortfolio() {
         const fd = new FormData();
         fd.append('file', body.file);
         const r = await fetch('/api/portfolios', { method: 'POST', body: fd });
-        if (!r.ok) throw new Error((await r.json()).error ?? `HTTP ${r.status}`);
+        if (!r.ok) throw await toApiError(r);
         return r.json();
       }
       if (body.source === 'import-pp-xml') {
@@ -58,21 +58,11 @@ export function useCreatePortfolio() {
         fd.append('file', body.file);
         if (body.name) fd.append('name', body.name);
         const r = await fetch('/api/import/xml', { method: 'POST', body: fd });
-        const raw = await r.json().catch(() => ({ error: 'UNKNOWN' }));
-        if (!r.ok) {
-          // Surface the backend's `details` (e.g. Python stack from ppxml2db) in
-          // the thrown message so the toast shows something actionable instead of
-          // just "CONVERSION_FAILED".
-          const code = raw.error ?? `HTTP ${r.status}`;
-          const details = typeof raw.details === 'string' && raw.details.length
-            ? raw.details.slice(0, 2000)
-            : '';
-          throw new Error(details ? `${code}: ${details}` : code);
-        }
+        if (!r.ok) throw await toApiError(r);
         // POST /api/import/xml returns a flat shape `{ status, id, name, accounts, securities }`.
         // Normalize to the same `{ entry }` envelope the other branches return so callers can
         // read `r.entry.id` uniformly.
-        const lifted = raw as {
+        const lifted = (await r.json()) as {
           status: 'success';
           id: string;
           name: string;

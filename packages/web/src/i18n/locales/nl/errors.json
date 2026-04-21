@@ -25,5 +25,24 @@
   },
   "portfolio": {
     "duplicateName": "Er bestaat al een portefeuille met de naam “{{name}}”. Kies een andere naam."
+  },
+  "server": {
+    "security_has_transactions": "Verwijderen niet mogelijk — {{count}} transacties zijn gekoppeld aan dit effect. Verwijder of herwijs ze eerst toe.",
+    "INVALID_INPUT": "Ongeldige invoer. Controleer de velden en probeer het opnieuw.",
+    "Validation error": "Ongeldige invoer. Controleer de velden en probeer het opnieuw.",
+    "DUPLICATE_NAME": "Er bestaat al een portefeuille met deze naam. Kies een andere naam.",
+    "INVALID_FORMAT": "De XML is geen Portfolio Performance-export (ontbrekend <client>-hoofdelement of ID-attributen).",
+    "ENCRYPTED_FORMAT": "Het bestand lijkt versleuteld. Exporteer opnieuw vanuit Portfolio Performance en kies XML-formaat met ID-attributen.",
+    "INVALID_XML": "Het bestand is geen geldig XML. Exporteer opnieuw vanuit Portfolio Performance en probeer het opnieuw.",
+    "IMPORT_IN_PROGRESS": "Een andere import is al bezig. Wacht tot deze is voltooid en probeer het opnieuw.",
+    "CONVERSION_FAILED": "Conversie mislukt. Uw bestaande portefeuilles zijn onveranderd.",
+    "FILE_TOO_LARGE": "Het bestand overschrijdt de toegestane maximale grootte.",
+    "INVALID_FILE_FORMAT": "Bestandstype niet ondersteund. Upload een tekstbestand met de verwachte extensie.",
+    "NO_FILE": "Er is geen bestand geüpload.",
+    "INVALID_SECURITIES_ACCOUNT": "De geselecteerde effectenrekening is niet geldig voor deze portefeuille.",
+    "NO_REFERENCE_ACCOUNT": "Deze portefeuille heeft geen gekoppelde kasrekening. Voeg er eerst een toe in de portefeuille-instellingen.",
+    "TEMP_FILE_EXPIRED": "De upload is verlopen. Start de import opnieuw.",
+    "ALREADY_SETUP": "Deze portefeuille is al geconfigureerd.",
+    "PORTFOLIO_NOT_FOUND": "Portefeuille niet gevonden."
   }
 }

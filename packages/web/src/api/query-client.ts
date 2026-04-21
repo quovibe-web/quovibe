@@ -5,6 +5,23 @@ import {
 } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import i18n from '@/i18n';
+import type { ApiError } from './fetch';
+
+/**
+ * Structural check rather than `instanceof ApiError`. Module duplication (HMR,
+ * vi.resetModules, pnpm dedupe edge cases) can produce two distinct ApiError
+ * class objects in the same process, at which point `instanceof` returns false
+ * for errors constructed against the "other" copy. The shape-check keeps the
+ * handler working across all of those cases.
+ */
+function isApiError(err: unknown): err is ApiError {
+  return (
+    err instanceof Error &&
+    (err as { name?: string }).name === 'ApiError' &&
+    typeof (err as { code?: unknown }).code === 'string' &&
+    typeof (err as { status?: unknown }).status === 'number'
+  );
+}
 
 /**
  * Module augmentation so `meta.suppressGlobalErrorToast` is typed at every
@@ -18,6 +35,32 @@ declare module '@tanstack/react-query' {
   interface Register {
     mutationMeta: { suppressGlobalErrorToast?: boolean };
   }
+}
+
+/**
+ * When an `ApiError` reaches the global handler, we look up a translation under
+ * `errors:server.<CODE>`. i18next with `returnNull: false` (default) returns the
+ * key itself on miss, so we sniff that to decide whether to fall back. Keys and
+ * interpolation variables are enumerated in `locales/*\/errors.json` under
+ * `server.*`; see `.claude/rules/xml-import.md` and `.claude/rules/csv-import.md`
+ * for the authoritative code list.
+ */
+function translateServerCode(err: ApiError): string {
+  const key = `server.${err.code}`;
+  const translated = i18n.t(key, { ns: 'errors', ...(err.details ?? {}) });
+  if (translated && translated !== key) return translated;
+  // Unknown code: in dev surface the raw code to speed debugging; in prod fall
+  // back to the generic "something went wrong" so users never see identifiers.
+  if (import.meta.env.DEV) {
+    // CONVERSION_FAILED leaks a ~2 KB Python traceback in `details.details`;
+    // truncate so toast rendering and error-reporting stay bounded.
+    const raw = err.details?.['details'];
+    if (typeof raw === 'string' && raw.length > 0) {
+      return `${err.code}: ${raw.slice(0, 500)}`;
+    }
+    return err.code;
+  }
+  return i18n.t('mutation.genericFailure', { ns: 'errors' });
 }
 
 /**
@@ -35,10 +78,14 @@ declare module '@tanstack/react-query' {
 const mutationCache = new MutationCache({
   onError: (error, _variables, _context, mutation: Mutation<unknown, unknown, unknown, unknown>) => {
     if (mutation.meta?.suppressGlobalErrorToast) return;
-    const msg =
-      error instanceof Error && error.message
-        ? error.message
-        : i18n.t('mutation.genericFailure', { ns: 'errors' });
+    let msg: string;
+    if (isApiError(error)) {
+      msg = translateServerCode(error);
+    } else if (error instanceof Error && error.message) {
+      msg = error.message;
+    } else {
+      msg = i18n.t('mutation.genericFailure', { ns: 'errors' });
+    }
     toast.error(msg);
   },
 });

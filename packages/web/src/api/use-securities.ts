@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useScopedApi } from './use-scoped-api';
+import { toApiError } from './fetch';
 import type { SecurityListItem, SecurityDetailResponse, TestFetchResponse, FetchAllResult, SearchResult, PreviewPricesResponse, PreviewPrice } from './types';
 import { taxonomyKeys } from './use-taxonomies';
 
@@ -211,12 +212,6 @@ export function useImportPrices(securityId: string) {
   });
 }
 
-export class SecurityHasTransactionsError extends Error {
-  constructor(public readonly count: number) {
-    super('security_has_transactions');
-  }
-}
-
 export function useDeleteSecurity() {
   const api = useScopedApi();
   const qc = useQueryClient();
@@ -224,17 +219,9 @@ export function useDeleteSecurity() {
     mutationFn: async (id: string) => {
       const url = api.scopedUrl(`/api/securities/${id}`);
       const res = await fetch(url, { method: 'DELETE' });
-      if (res.status === 409) {
-        const body = await res.json().catch(() => ({ count: 0 }));
-        throw new SecurityHasTransactionsError(body.count ?? 0);
-      }
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(body.error ?? `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw await toApiError(res);
       return res.json() as Promise<{ ok: boolean }>;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'securities'] }),
-    meta: { suppressGlobalErrorToast: true },
   });
 }

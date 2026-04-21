@@ -81,7 +81,12 @@
       "importFailed": "Import failed: {{msg}}",
       "invalidFile": "Not a valid XML export. Expected a .xml file from Portfolio Performance.",
       "tooLarge": "File exceeds the upload size limit.",
-      "binary": "File appears to be binary or corrupted. Expected a plain-text XML export."
+      "binary": "File appears to be binary or corrupted. Expected a plain-text XML export.",
+      "invalidXml": "The file is not valid XML. Re-export from Portfolio Performance and try again.",
+      "invalidFormat": "The XML is not a Portfolio Performance export (missing <client> root or ID attributes). Re-export with IDs enabled.",
+      "encrypted": "The file appears to be encrypted. Re-export from Portfolio Performance choosing XML format with ID attributes.",
+      "importInProgress": "Another import is already running. Wait for it to finish and try again.",
+      "conversionFailed": "Conversion failed. Your existing portfolios are untouched."
     }
   }
 }

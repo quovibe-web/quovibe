@@ -529,7 +529,14 @@ function TargetAllocationCell({
         onChange={(e) => setVal(e.target.value)}
         onBlur={() => {
           const num = parseFloat(val);
-          if (!isNaN(num)) mutate({ categoryId, allocation: Math.round(num * 100) });
+          // Clamp client-side: the HTML min/max attributes are hints only, and
+          // the server 400 response used to be swallowed by the UI (BUG-77/89).
+          // The global MutationCache handler now surfaces any server INVALID_INPUT
+          // as a toast, but rejecting invalid input here avoids the round-trip
+          // and keeps the cell's previous value visible.
+          if (!isNaN(num) && num >= 0 && num <= 100) {
+            mutate({ categoryId, allocation: Math.round(num * 100) });
+          }
           setEditing(false);
         }}
         onKeyDown={(e) => {

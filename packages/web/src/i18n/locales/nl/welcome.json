@@ -81,7 +81,12 @@
       "importFailed": "Import mislukt: {{msg}}",
       "invalidFile": "Geen geldige XML-export. Een .xml-bestand uit Portfolio Performance wordt verwacht.",
       "tooLarge": "Het bestand overschrijdt de maximale uploadgrootte.",
-      "binary": "Het bestand lijkt binair of beschadigd te zijn. Een XML-export als platte tekst wordt verwacht."
+      "binary": "Het bestand lijkt binair of beschadigd te zijn. Een XML-export als platte tekst wordt verwacht.",
+      "invalidXml": "Het bestand is geen geldig XML. Exporteer opnieuw vanuit Portfolio Performance en probeer het opnieuw.",
+      "invalidFormat": "De XML is geen Portfolio Performance-export (ontbrekend <client>-hoofdelement of ID-attributen). Exporteer opnieuw met IDs ingeschakeld.",
+      "encrypted": "Het bestand lijkt versleuteld. Exporteer opnieuw vanuit Portfolio Performance en kies XML-formaat met ID-attributen.",
+      "importInProgress": "Een andere import is al bezig. Wacht tot deze is voltooid en probeer het opnieuw.",
+      "conversionFailed": "Conversie mislukt. Je bestaande portefeuilles zijn onveranderd."
     }
   }
 }
