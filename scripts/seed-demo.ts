@@ -741,24 +741,30 @@ db.transaction(() => {
   ]);
 
   // Region (weights sum to 100%)
+  // Cash category mirrors the Asset-Class taxonomy so the Allocation surface's
+  // portfolio total matches across all three taxonomies (BUG-78).
   createTaxonomy('Region', [
-    { name: 'Global', color: '#4285F4', weight: 3000, items: [secItem(VWCE), secItem(IWDA)] },
-    { name: 'North America', color: '#EA4335', weight: 3000, items: [secItem(SXR8), secItem(AAPL), secItem(MSFT), secItem(NVDA)] },
-    { name: 'Europe', color: '#FBBC04', weight: 2500, items: [secItem(ASML), secItem(SAP_SEC), secItem(MC), secItem(ALV), secItem(DTE), secItem(XBLC)] },
+    { name: 'Global', color: '#4285F4', weight: 2500, items: [secItem(VWCE), secItem(IWDA)] },
+    { name: 'North America', color: '#EA4335', weight: 2500, items: [secItem(SXR8), secItem(AAPL), secItem(MSFT), secItem(NVDA)] },
+    { name: 'Europe', color: '#FBBC04', weight: 2000, items: [secItem(ASML), secItem(SAP_SEC), secItem(MC), secItem(ALV), secItem(DTE), secItem(XBLC)] },
     { name: 'Emerging Markets', color: '#34A853', weight: 500, items: [secItem(EIMI)] },
     { name: 'Japan', color: '#FF6D01', weight: 500, items: [secItem(CJ1)] },
     { name: 'Thematic', color: '#46BDC6', weight: 500, items: [secItem(IQQH)] },
+    { name: 'Cash', color: '#9E9E9E', weight: 1500, items: [accItem(IB_CASH_ID), accItem(SC_CASH_ID), accItem(CASH_RESERVE_ID)] },
   ]);
 
   // Sector (weights sum to 100%)
+  // Cash category mirrors the Asset-Class taxonomy so the Allocation surface's
+  // portfolio total matches across all three taxonomies (BUG-78).
   createTaxonomy('Sector', [
-    { name: 'Technology', color: '#4285F4', weight: 3000, items: [secItem(AAPL), secItem(ASML), secItem(SAP_SEC), secItem(MSFT), secItem(NVDA)] },
-    { name: 'Broad Market', color: '#EA4335', weight: 2500, items: [secItem(VWCE), secItem(IWDA), secItem(SXR8), secItem(EIMI), secItem(CJ1)] },
+    { name: 'Technology', color: '#4285F4', weight: 2500, items: [secItem(AAPL), secItem(ASML), secItem(SAP_SEC), secItem(MSFT), secItem(NVDA)] },
+    { name: 'Broad Market', color: '#EA4335', weight: 2000, items: [secItem(VWCE), secItem(IWDA), secItem(SXR8), secItem(EIMI), secItem(CJ1)] },
     { name: 'Finance & Insurance', color: '#FBBC04', weight: 1000, items: [secItem(ALV)] },
     { name: 'Luxury', color: '#34A853', weight: 1000, items: [secItem(MC)] },
     { name: 'Telecom', color: '#FF6D01', weight: 1000, items: [secItem(DTE)] },
     { name: 'Clean Energy', color: '#46BDC6', weight: 500, items: [secItem(IQQH)] },
-    { name: 'Fixed Income', color: '#9334E6', weight: 1000, items: [secItem(XBLC)] },
+    { name: 'Fixed Income', color: '#9334E6', weight: 500, items: [secItem(XBLC)] },
+    { name: 'Cash', color: '#9E9E9E', weight: 1500, items: [accItem(IB_CASH_ID), accItem(SC_CASH_ID), accItem(CASH_RESERVE_ID)] },
   ]);
 })();
 
