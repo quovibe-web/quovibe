@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useScopedApi } from './use-scoped-api';
 import type {
   CsvImportConfig, CsvParseResult, TradePreviewResult,
-  TradeExecuteResult, PriceExecuteResult,
+  TradeExecuteResult, PriceExecuteResult, CsvDelimiter,
 } from '@quovibe/shared';
 
 // ─── Query Keys ───────────────────────────────────
@@ -80,16 +80,36 @@ export function useParseCsvTrades() {
   });
 }
 
+// BUG-97: re-parse an already-uploaded file with a different delimiter. Used
+// when the user changes the Step-1 Delimiter dropdown — the server still holds
+// the original bytes keyed by tempFileId, so we just ask it to re-split.
+export function useReparseCsvTrades() {
+  const api = useScopedApi();
+  return useMutation({
+    mutationFn: (data: { tempFileId: string; delimiter: CsvDelimiter; skipLines?: number }) =>
+      api.fetch<CsvParseResult>('/api/csv-import/trades/reparse', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+  });
+}
+
 export function usePreviewCsvTrades() {
   const api = useScopedApi();
   return useMutation({
     mutationFn: (data: {
       tempFileId: string;
+      delimiter?: CsvDelimiter;
       columnMapping: Record<string, number>;
       dateFormat: string;
       decimalSeparator: string;
       thousandSeparator: string;
       targetSecuritiesAccountId: string;
+      // BUG-100: on Step-3 Next, the client re-fires preview with the user's
+      // finalized resolutions so Step 4's summary reflects reality. Omitted
+      // on the initial Step-3-entry call.
+      securityMapping?: Record<string, string>;
+      newSecurityNames?: string[];
     }) =>
       api.fetch<TradePreviewResult>('/api/csv-import/trades/preview', {
         method: 'POST',
@@ -105,6 +125,7 @@ export function useExecuteCsvTrades() {
     mutationFn: (data: {
       tempFileId: string;
       config: {
+        delimiter?: CsvDelimiter;
         columnMapping: Record<string, number>;
         dateFormat: string;
         decimalSeparator: string;

@@ -1,5 +1,5 @@
 // packages/web/src/components/domain/csv-import/CsvUploadStep.tsx
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useParseCsvTrades, useCsvConfigs } from '@/api/use-csv-import';
+import { useParseCsvTrades, useReparseCsvTrades, useCsvConfigs } from '@/api/use-csv-import';
 import type { WizardState } from '@/pages/CsvImportPage';
 import { csvDelimiters, csvDateFormats, sniffLikelyTradeCsv } from '@quovibe/shared';
 
@@ -40,8 +40,41 @@ function mapServerError(message: string): 'invalidFile' | 'tooLarge' {
 export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
   const { t } = useTranslation('csv-import');
   const parseMutation = useParseCsvTrades();
+  const reparseMutation = useReparseCsvTrades();
   const { data: configs } = useCsvConfigs();
   const [uploadError, setUploadError] = useState<'invalidFile' | 'tooLarge' | 'binary' | null>(null);
+  // BUG-97: kept separate from uploadError so a failed re-parse doesn't make
+  // the user think their originally-uploaded file is bad.
+  const [reparseError, setReparseError] = useState<'invalidFile' | 'tooLarge' | null>(null);
+  // BUG-97: sequence guard. If the user clicks A → B → C quickly and the
+  // responses arrive out of order, only the latest onSuccess wins.
+  const reparseSeq = useRef(0); // native-ok
+
+  // BUG-97: when the user changes the Delimiter dropdown, re-ask the server to
+  // split the already-uploaded file with the new delimiter. The preview table
+  // and the sniff both read from `state.parseResult`, so a single update here
+  // is enough to unblock the Next button when the auto-detected delimiter was
+  // wrong.
+  function handleDelimiterChange(v: string) {
+    const next = v as typeof state.delimiter;
+    onUpdate({ delimiter: next });
+    if (!state.parseResult?.tempFileId) return;
+    setReparseError(null);
+    const seq = ++reparseSeq.current; // native-ok
+    reparseMutation.mutate(
+      { tempFileId: state.parseResult.tempFileId, delimiter: next },
+      {
+        onSuccess: (result) => {
+          if (seq !== reparseSeq.current) return; // superseded by a newer change
+          onUpdate({ parseResult: result });
+        },
+        onError: (err) => {
+          if (seq !== reparseSeq.current) return;
+          setReparseError(mapServerError(err instanceof Error ? err.message : String(err)));
+        },
+      },
+    );
+  }
 
   async function handleFile(file: File) {
     setUploadError(null);
@@ -89,7 +122,12 @@ export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
       )
     : null;
 
-  const canProceed = state.parseResult != null && sniff?.ok === true && uploadError == null;
+  const canProceed =
+    state.parseResult != null
+    && sniff?.ok === true
+    && uploadError == null
+    && reparseError == null
+    && !reparseMutation.isPending;
 
   const sniffWarningKey: string | null = (() => {
     if (!sniff || sniff.ok) return null;
@@ -176,7 +214,7 @@ export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>{t('upload.delimiter')}</Label>
-                <Select value={state.delimiter} onValueChange={(v) => onUpdate({ delimiter: v as typeof state.delimiter })}>
+                <Select value={state.delimiter} onValueChange={handleDelimiterChange}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {csvDelimiters.map((d) => (
@@ -235,6 +273,12 @@ export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
                 className="w-24"
               />
             </div>
+
+            {reparseError && (
+              <Alert variant="destructive" role="alert">
+                <AlertDescription>{t(`upload.errors.${reparseError}`)}</AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -254,7 +298,9 @@ export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
         <Card>
           <CardHeader><CardTitle>{t('upload.preview')}</CardTitle></CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+            <div
+              className={`overflow-x-auto ${reparseMutation.isPending ? 'opacity-40 pointer-events-none' : ''}`}
+            >
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">

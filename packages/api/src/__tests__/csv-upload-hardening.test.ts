@@ -125,6 +125,168 @@ describe('POST /csv-import/trades/parse boundary hardening (BUG-46)', () => {
   });
 });
 
+// BUG-97: re-parse an already-uploaded file with a new delimiter. Step 1's
+// Delimiter dropdown used to persist state without telling the server, leaving
+// the preview + sniff stale. The new /reparse route lets the client replace
+// parseResult in place. These tests pin the wire contract.
+describe('POST /csv-import/trades/reparse (BUG-97)', () => {
+  it('re-splits an uploaded file with a new delimiter', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+    const pid = await freshPortfolio(app, 'CSV-REPARSE-1');
+
+    // Semicolon-delimited CSV uploaded: on first parse the server's detector
+    // lands on ';', but we then ask it to re-parse with ',' — which collapses
+    // every row to a single column.
+    const csv = 'date;type;security;amount\n2026-01-02;BUY;ACME;100.00\n';
+    const up = await request(app)
+      .post(`/api/p/${pid}/csv-import/trades/parse`)
+      .attach('file', Buffer.from(csv), { filename: 'semi.csv', contentType: 'text/csv' });
+    expect(up.status).toBe(200);
+    expect(up.body.detectedDelimiter).toBe(';');
+    const tempFileId = up.body.tempFileId as string;
+
+    const res = await request(app)
+      .post(`/api/p/${pid}/csv-import/trades/reparse`)
+      .send({ tempFileId, delimiter: ',' });
+
+    expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).toBe(200);
+    expect(res.body.headers).toEqual(['date;type;security;amount']);
+    expect(res.body.detectedDelimiter).toBe(',');
+    expect(res.body.tempFileId).toBe(tempFileId);
+  });
+
+  it('returns 400 NO_FILE when tempFileId is missing', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+    const pid = await freshPortfolio(app, 'CSV-REPARSE-2');
+
+    const res = await request(app)
+      .post(`/api/p/${pid}/csv-import/trades/reparse`)
+      .send({ delimiter: ',' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('NO_FILE');
+  });
+
+  it('returns 410 TEMP_FILE_EXPIRED when the temp file is gone', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+    const pid = await freshPortfolio(app, 'CSV-REPARSE-3');
+
+    const res = await request(app)
+      .post(`/api/p/${pid}/csv-import/trades/reparse`)
+      .send({ tempFileId: 'does-not-exist-uuid', delimiter: ',' });
+
+    expect(res.status).toBe(410);
+    expect(res.body.error).toBe('TEMP_FILE_EXPIRED');
+  });
+
+  it('returns 400 INVALID_INPUT on an unsupported delimiter (Zod guard)', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+    const pid = await freshPortfolio(app, 'CSV-REPARSE-4');
+
+    const up = await request(app)
+      .post(`/api/p/${pid}/csv-import/trades/parse`)
+      .attach('file', Buffer.from('a,b\n1,2\n'), { filename: 'ok.csv', contentType: 'text/csv' });
+    expect(up.status).toBe(200);
+
+    const res = await request(app)
+      .post(`/api/p/${pid}/csv-import/trades/reparse`)
+      .send({ tempFileId: up.body.tempFileId, delimiter: 'xx' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('INVALID_INPUT');
+  });
+});
+
+// /trades/preview and /trades/execute used to accept `req.body` without any
+// validation — malformed payloads would reach the service layer and risk a
+// 500. These tests lock the Zod guards introduced alongside BUG-100 (see
+// csv-import.ts tradePreviewSchema / tradeExecuteSchema).
+describe('POST /csv-import/trades/preview + /execute Zod validation', () => {
+  it('preview: 400 INVALID_INPUT when body is empty', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+    const pid = await freshPortfolio(app, 'CSV-PV-ZOD-1');
+
+    const res = await request(app)
+      .post(`/api/p/${pid}/csv-import/trades/preview`)
+      .send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('INVALID_INPUT');
+  });
+
+  it('preview: 400 INVALID_INPUT when dateFormat is not one of csvDateFormats', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+    const pid = await freshPortfolio(app, 'CSV-PV-ZOD-2');
+
+    const res = await request(app)
+      .post(`/api/p/${pid}/csv-import/trades/preview`)
+      .send({
+        tempFileId: 'x',
+        columnMapping: { date: 0 },
+        dateFormat: 'nonsense',
+        decimalSeparator: '.',
+        thousandSeparator: '',
+        targetSecuritiesAccountId: 'x',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('INVALID_INPUT');
+  });
+
+  it('execute: 400 INVALID_INPUT when body is empty', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+    const pid = await freshPortfolio(app, 'CSV-EX-ZOD-1');
+
+    const res = await request(app)
+      .post(`/api/p/${pid}/csv-import/trades/execute`)
+      .send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('INVALID_INPUT');
+  });
+
+  it('execute: 400 INVALID_INPUT when newSecurities lacks required fields', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+    const pid = await freshPortfolio(app, 'CSV-EX-ZOD-2');
+
+    const res = await request(app)
+      .post(`/api/p/${pid}/csv-import/trades/execute`)
+      .send({
+        tempFileId: 'x',
+        config: {
+          delimiter: ',',
+          columnMapping: { date: 0 },
+          dateFormat: 'yyyy-MM-dd',
+          decimalSeparator: '.',
+          thousandSeparator: '',
+        },
+        targetSecuritiesAccountId: 'x',
+        securityMapping: {},
+        newSecurities: [{ name: 'FooCorp' /* missing currency */ }],
+        excludedRows: [],
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('INVALID_INPUT');
+  });
+});
+
 // BUG-55 regression: in the CSV-import wizard, the wire field used to be
 // `targetPortfolioId` and was typed by the client as the OUTER portfolio
 // metadata UUID, but the service-layer `SELECT ... WHERE uuid = ? AND

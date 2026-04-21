@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAccounts } from '@/api/use-accounts';
+import { useSecuritiesAccounts } from '@/api/use-securities-accounts';
 import { usePortfolio } from '@/context/PortfolioContext';
 import { tradeColumnFields, requiredTradeColumns } from '@quovibe/shared';
 import type { WizardState } from '@/pages/CsvImportPage';
@@ -20,16 +21,26 @@ export function CsvColumnMapStep({ state, onUpdate, onBack, onNext }: Props) {
   const { t } = useTranslation('csv-import');
   const { data: accounts } = useAccounts();
   const portfolio = usePortfolio();
+  // BUG-98: Step 2's deposit hint used to look up `accounts.find(a => a.id ===
+  // portfolio.id)` — comparing an inner account.uuid to the outer metadata
+  // UUID, which never matches. Use the same securities-accounts hook Step 3
+  // uses for its N=1/N>1 logic so the hint stays consistent with what the
+  // import actually targets, then follow referenceAccountId to the deposit.
+  const secAccounts = useSecuritiesAccounts(portfolio.id);
 
   const headers = state.parseResult?.headers ?? [];
 
   const depositName = useMemo(() => {
-    if (!accounts) return null;
-    const owner = accounts.find((a) => a.id === portfolio.id);
-    if (!owner?.referenceAccountId) return null;
-    const deposit = accounts.find((a) => a.id === owner.referenceAccountId);
-    return deposit?.name ?? null;
-  }, [portfolio.id, accounts]);
+    if (!accounts || !secAccounts.data) return null;
+    // Prefer the user's explicit pick; fall back to N=1 auto-pick if the pick
+    // is stale (not found in current list) or absent.
+    const pick = state.targetSecuritiesAccountId
+      ? secAccounts.data.find((a) => a.id === state.targetSecuritiesAccountId)
+      : undefined;
+    const selectedSec = pick ?? (secAccounts.data.length === 1 ? secAccounts.data[0] : null);
+    if (!selectedSec?.referenceAccountId) return null;
+    return accounts.find((a) => a.id === selectedSec.referenceAccountId)?.name ?? null;
+  }, [accounts, secAccounts.data, state.targetSecuritiesAccountId]);
 
   const requiredSet = new Set<string>(requiredTradeColumns);
 

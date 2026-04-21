@@ -15,6 +15,11 @@ import { parseCsvFile, parseCsvRows } from './csv-reader';
 import { mapTradeRows, type TradeMapperContext, type XactInsert, type CrossEntryInsert } from './csv-trade-mapper';
 import { mapPriceRows, type PriceInsert } from './csv-price-mapper';
 
+// BUG-100: placeholder used only inside previewTradeImport's in-memory
+// securityMap for create-new rows. Never written to DB, never compared
+// downstream.
+const PREVIEW_PENDING_NEW_SENTINEL = '__PENDING_NEW__';
+
 // ─── Temp file management ─────────────────────────
 
 const TEMP_DIR = path.join(os.tmpdir(), 'quovibe-csv');
@@ -104,12 +109,18 @@ export async function parseCsv(
 
 interface TradePreviewInput {
   tempFileId: string;
-  delimiter: CsvDelimiter;
+  delimiter?: CsvDelimiter;
   columnMapping: Record<string, number>;
   dateFormat: string;
   decimalSeparator: '.' | ',';
   thousandSeparator: '' | '.' | ',' | ' ';
   targetSecuritiesAccountId: string;
+  // BUG-100: on the second preview call (Step 3 → Next), the client sends the
+  // finalized security resolutions so the summary reflects what execute will
+  // actually do. The initial Step-3-entry call omits both fields; the server
+  // falls back to auto-matching then.
+  securityMapping?: Record<string, string>;  // csvName → existing security.uuid
+  newSecurityNames?: string[];                // csvNames flagged for create-new
 }
 
 export async function previewTradeImport(
@@ -229,11 +240,24 @@ export async function previewTradeImport(
     }
   }
 
-  // Auto-match securities
+  // Auto-match securities. Skip the DB round-trips for names the client has
+  // already resolved (user picked existing or flagged create-new on Step 3)
+  // — the overlay loop below would overwrite the auto-match anyway. UI still
+  // needs an unmatchedSecurities row for those names, so we push a bare
+  // entry in the skip branch.
   const securityMap = new Map<string, string>();
   const unmatchedSecurities: UnmatchedSecurity[] = [];
+  const clientResolved = new Set<string>([
+    ...Object.keys(input.securityMapping ?? {}),
+    ...(input.newSecurityNames ?? []),
+  ]);
 
   for (const [csvName, info] of uniqueSecurities) {
+    if (clientResolved.has(csvName)) {
+      unmatchedSecurities.push({ csvName, csvIsin: info.isin, csvTicker: info.ticker });
+      continue;
+    }
+
     let match: { uuid: string; name: string; isin: string } | undefined;
 
     // Try ISIN exact match
@@ -264,6 +288,23 @@ export async function previewTradeImport(
       });
     } else {
       unmatchedSecurities.push({ csvName, csvIsin: info.isin, csvTicker: info.ticker });
+    }
+  }
+
+  // BUG-100: overlay user-provided resolutions on top of auto-matches.
+  //  (1) user-matched: overrides any auto-match for the same csvName.
+  //  (2) pending-create: placeholder sentinel so the mapper's
+  //      SECURITY_REQUIRED_TYPES guard passes. The sentinel is NEVER persisted
+  //      (preview writes nothing) and is never compared for equality
+  //      downstream — execute regenerates real UUIDs via uuidv4() and seeds
+  //      its own securityMap from `input.securityMapping` + newly-created
+  //      security UUIDs. Keep this comment if the sentinel ever changes.
+  for (const [csvName, secId] of Object.entries(input.securityMapping ?? {})) {
+    securityMap.set(csvName, secId);
+  }
+  for (const name of input.newSecurityNames ?? []) {
+    if (!securityMap.has(name)) {
+      securityMap.set(name, PREVIEW_PENDING_NEW_SENTINEL);
     }
   }
 
@@ -475,10 +516,15 @@ export async function executeTradeImport(
     // Cleanup temp file
     try { fs.unlinkSync(filePath); } catch { /* ignore */ }
 
+    // BUG-101: report input-row count, not raw xact-row count. BUY/SELL and
+    // transfers emit 2 xact rows per input row (see csv-trade-mapper); doubling
+    // leaks an implementation detail into user-facing copy. Subtract mapper
+    // errors because those rows were in normalizedRows but produced no xact.
+    const logicalCount = normalizedRows.length - mapped.errors.length; // native-ok
     return {
-      imported: mapped.transactions.length, // native-ok
+      imported: logicalCount,
       created: {
-        transactions: mapped.transactions.length, // native-ok
+        transactions: logicalCount,
         securities: createdSecurities,
       },
       errors: mapped.errors,

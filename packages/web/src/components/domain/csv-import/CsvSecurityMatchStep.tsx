@@ -13,7 +13,7 @@
 // previously-conflated `portfolio.id` is the OUTER metadata UUID and is no
 // longer sent.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ import { useSecurities } from '@/api/use-securities';
 import { useSecuritiesAccounts } from '@/api/use-securities-accounts';
 import { usePortfolio } from '@/context/PortfolioContext';
 import type { WizardState } from '@/pages/CsvImportPage';
+import type { TradePreviewResult } from '@quovibe/shared';
 
 interface Props {
   state: WizardState;
@@ -55,32 +56,55 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
   const { data: allSecurities } = useSecurities();
   const secAccounts = useSecuritiesAccounts(portfolio.id);
   const [localMapping, setLocalMapping] = useState<Record<string, string>>(state.securityMapping);
+  // Replay-fn for the Retry button. Each preview path (initial entry, or the
+  // finalizing re-fire triggered by Next) installs its own replay closure;
+  // Retry runs whichever was most recent. Without this, Retry would fall back
+  // to the initial-entry shape after a finalizing failure and wipe the
+  // overlay-aware summary — the user would think Retry reverted their work.
+  const lastPreviewFnRef = useRef<(() => void) | null>(null);
 
-  function runPreview(targetSecuritiesAccountId: string) {
+  type PreviewOverlay = {
+    securityMapping?: Record<string, string>;
+    newSecurityNames?: string[];
+  };
+
+  function firePreview(
+    targetSecuritiesAccountId: string,
+    overlay: PreviewOverlay,
+    onSuccess: (result: TradePreviewResult) => void,
+  ) {
     if (!state.parseResult) return;
-    previewMutation.mutate(
-      {
-        tempFileId: state.parseResult.tempFileId,
-        columnMapping: state.columnMapping,
-        dateFormat: state.dateFormat,
-        decimalSeparator: state.decimalSeparator,
-        thousandSeparator: state.thousandSeparator,
-        targetSecuritiesAccountId,
-      },
-      {
-        onSuccess: (result) => {
-          onUpdate({ previewResult: result });
-          // Pre-fill mapping from auto-matches
-          const mapping: Record<string, string> = {};
-          for (const sec of result.unmatchedSecurities) {
-            if (sec.suggestedMatch) {
-              mapping[sec.csvName] = sec.suggestedMatch.id;
-            }
-          }
-          setLocalMapping(mapping);
+    const fire = () => {
+      if (!state.parseResult) return;
+      previewMutation.mutate(
+        {
+          tempFileId: state.parseResult.tempFileId,
+          delimiter: state.delimiter,
+          columnMapping: state.columnMapping,
+          dateFormat: state.dateFormat,
+          decimalSeparator: state.decimalSeparator,
+          thousandSeparator: state.thousandSeparator,
+          targetSecuritiesAccountId,
+          ...overlay,
         },
-      },
-    );
+        { onSuccess },
+      );
+    };
+    lastPreviewFnRef.current = fire;
+    fire();
+  }
+
+  function runInitialPreview(targetSecuritiesAccountId: string) {
+    firePreview(targetSecuritiesAccountId, {}, (result) => {
+      onUpdate({ previewResult: result });
+      const mapping: Record<string, string> = {};
+      for (const sec of result.unmatchedSecurities) {
+        if (sec.suggestedMatch) {
+          mapping[sec.csvName] = sec.suggestedMatch.id;
+        }
+      }
+      setLocalMapping(mapping);
+    });
   }
 
   // N branching on first load. Auto-picks N=1; bounces N=0 to /setup as a
@@ -102,7 +126,7 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
   // picker selection (N>1 case).
   useEffect(() => {
     if (state.targetSecuritiesAccountId && state.parseResult) {
-      runPreview(state.targetSecuritiesAccountId);
+      runInitialPreview(state.targetSecuritiesAccountId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.targetSecuritiesAccountId]);
@@ -112,19 +136,41 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
   const hasError = previewMutation.isError;
   const errorKey = hasError ? mapPreviewError(previewMutation.error?.message ?? '') : null;
 
+  // BUG-100: re-fire preview with the user's finalized resolutions before
+  // advancing to Step 4, so Step 4's summary matches what execute will do.
+  // On error we stay on Step 3; Retry replays via lastPreviewFnRef, preserving
+  // the overlay. Skips the re-fire round-trip entirely when the user hasn't
+  // made any choices AND there are no unmatched-create-new rows.
   const handleNext = () => {
-    onUpdate({
-      securityMapping: localMapping,
-      newSecurities: unmatchedSecurities
-        .filter((s) => !localMapping[s.csvName])
-        .map((s) => ({
-          name: s.csvName,
-          isin: s.csvIsin,
-          ticker: s.csvTicker,
-          currency: 'EUR', // default currency
-        })),
-    });
-    onNext();
+    if (!state.targetSecuritiesAccountId || !state.parseResult) return;
+
+    const newSecs = unmatchedSecurities
+      .filter((s) => !localMapping[s.csvName])
+      .map((s) => ({
+        name: s.csvName,
+        isin: s.csvIsin,
+        ticker: s.csvTicker,
+        currency: 'EUR',
+      }));
+
+    if (newSecs.length === 0 && Object.keys(localMapping).length === 0) {
+      onUpdate({ securityMapping: {}, newSecurities: [] });
+      onNext();
+      return;
+    }
+
+    firePreview(
+      state.targetSecuritiesAccountId,
+      { securityMapping: localMapping, newSecurityNames: newSecs.map((s) => s.name) },
+      (refined) => {
+        onUpdate({
+          previewResult: refined,
+          securityMapping: localMapping,
+          newSecurities: newSecs,
+        });
+        onNext();
+      },
+    );
   };
 
   if (secAccounts.isLoading) {
@@ -167,8 +213,8 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
             <Button
               size="sm"
               variant="outline"
-              onClick={() => state.targetSecuritiesAccountId && runPreview(state.targetSecuritiesAccountId)}
-              disabled={!state.targetSecuritiesAccountId}
+              onClick={() => lastPreviewFnRef.current?.()}
+              disabled={!state.targetSecuritiesAccountId || !lastPreviewFnRef.current}
             >
               {t('nav.retry')}
             </Button>
@@ -252,7 +298,12 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
         </Button>
         <Button
           onClick={handleNext}
-          disabled={hasError || !state.previewResult || !state.targetSecuritiesAccountId}
+          disabled={
+            hasError
+            || !state.previewResult
+            || !state.targetSecuritiesAccountId
+            || previewMutation.isPending
+          }
         >
           {t('nav.next')}
         </Button>

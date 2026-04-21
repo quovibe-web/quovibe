@@ -1,7 +1,7 @@
 // packages/api/src/services/csv/csv-import.service.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { saveTempFile, parseCsv, executePriceImport } from './csv-import.service';
+import { saveTempFile, parseCsv, executePriceImport, executeTradeImport, previewTradeImport } from './csv-import.service';
 
 // Only run if better-sqlite3 native bindings are available
 const hasSqliteBindings = (() => {
@@ -167,6 +167,147 @@ function createTestDb(): Database.Database {
 
       expect(result.inserted).toBe(1);
       expect(result.skipped).toBe(1);
+    });
+  });
+
+  describe('executeTradeImport (BUG-101)', () => {
+    let sqlite: Database.Database;
+
+    beforeEach(() => { sqlite = createTestDb(); });
+    afterEach(() => { sqlite.close(); });
+
+    it('reports input-row count, not raw xact-row count (BUY/SELL double internally)', async () => {
+      // 2 BUYs + 1 SELL (all dual-entry → 2 xact rows each) + 1 DEPOSIT +
+      // 1 DIVIDEND (single row each). User imports 5 logical rows; internal
+      // xact table ends up with 8 rows. The success blurb reads
+      // `created.transactions`, which must be 5, not 8 — the exact
+      // QA-PASS-5 BUG-101 scenario.
+      const csv = [
+        'date,type,security,shares,amount',
+        '2024-01-02,BUY,Apple Inc,10,1500.00',
+        '2024-01-03,BUY,Apple Inc,5,760.00',
+        '2024-01-04,SELL,Apple Inc,3,480.00',
+        '2024-01-05,DEPOSIT,,,2000.00',
+        '2024-01-06,DIVIDEND,Apple Inc,,12.50',
+      ].join('\n');
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'trades.csv');
+
+      const result = await executeTradeImport(sqlite, {
+        tempFileId,
+        config: {
+          delimiter: ',',
+          columnMapping: { date: 0, type: 1, security: 2, shares: 3, amount: 4 },
+          dateFormat: 'yyyy-MM-dd',
+          decimalSeparator: '.',
+          thousandSeparator: '',
+        },
+        targetSecuritiesAccountId: 'port-1',
+        securityMapping: { 'Apple Inc': 'sec-1' },
+        newSecurities: [],
+        excludedRows: [],
+      });
+
+      // User-facing counts: 5 logical input rows became 5 transactions.
+      expect(result.created.transactions).toBe(5);
+      expect(result.imported).toBe(5);
+      // Field alignment — future readers picking `imported` must see the same
+      // number as readers picking `created.transactions`.
+      expect(result.imported).toBe(result.created.transactions);
+      expect(result.errors).toHaveLength(0);
+
+      // Internal DB: 3 dual-entries (2 BUY + 1 SELL) × 2 rows + 1 DEPOSIT +
+      // 1 DIVIDEND = 8 xact rows. Pins the invariant that the wire count
+      // differs from the table count.
+      const xactRowCount = (sqlite.prepare('SELECT COUNT(*) AS n FROM xact').get() as { n: number }).n;
+      expect(xactRowCount).toBe(8);
+    });
+  });
+
+  describe('previewTradeImport (BUG-100)', () => {
+    let sqlite: Database.Database;
+
+    beforeEach(() => { sqlite = createTestDb(); });
+    afterEach(() => { sqlite.close(); });
+
+    const baseInput = (tempFileId: string) => ({
+      tempFileId,
+      delimiter: ',' as const,
+      columnMapping: { date: 0, type: 1, security: 2, shares: 3, amount: 4 },
+      dateFormat: 'yyyy-MM-dd',
+      decimalSeparator: '.' as const,
+      thousandSeparator: '' as const,
+      targetSecuritiesAccountId: 'port-1',
+    });
+
+    const unmatchedCsv = [
+      'date,type,security,shares,amount',
+      '2024-01-02,BUY,FooCorp,10,1500.00',
+      '2024-01-03,BUY,BarInc,5,760.00',
+    ].join('\n');
+
+    it('baseline: unmatched securities produce MISSING_SECURITY errors when no overlay is provided', async () => {
+      const tempFileId = saveTempFile(Buffer.from(unmatchedCsv, 'utf-8'), 'a.csv');
+      const result = await previewTradeImport(sqlite, baseInput(tempFileId));
+
+      // Baseline: pre-fix behavior. No auto-match found for either name.
+      expect(result.summary.valid).toBe(0);
+      expect(result.summary.errors).toBe(2);
+      expect(result.errors.every((e) => e.code === 'MISSING_SECURITY')).toBe(true);
+    });
+
+    it('newSecurityNames overlay: pending-create names do NOT emit MISSING_SECURITY', async () => {
+      const tempFileId = saveTempFile(Buffer.from(unmatchedCsv, 'utf-8'), 'b.csv');
+      const result = await previewTradeImport(sqlite, {
+        ...baseInput(tempFileId),
+        newSecurityNames: ['FooCorp', 'BarInc'],
+      });
+
+      // After the overlay, both rows are considered valid — the client has
+      // promised to create those securities on execute.
+      expect(result.summary.valid).toBe(2);
+      expect(result.summary.errors).toBe(0);
+      expect(result.errors).toHaveLength(0);
+
+      // The preview-only placeholder must never escape to the wire. Pins the
+      // sentinel-containment contract documented at the overlay site.
+      expect(JSON.stringify(result)).not.toContain('__PENDING_NEW__');
+    });
+
+    it('securityMapping overlay: user-chosen existing security resolves without auto-match', async () => {
+      // Map "FooCorp" to the seeded 'sec-1' (Apple Inc); leave BarInc for
+      // create-new. Both rows should become valid.
+      const tempFileId = saveTempFile(Buffer.from(unmatchedCsv, 'utf-8'), 'c.csv');
+      const result = await previewTradeImport(sqlite, {
+        ...baseInput(tempFileId),
+        securityMapping: { FooCorp: 'sec-1' },
+        newSecurityNames: ['BarInc'],
+      });
+
+      expect(result.summary.valid).toBe(2);
+      expect(result.summary.errors).toBe(0);
+    });
+
+    it('securityMapping overrides a server auto-match for the same csvName', async () => {
+      // Seed a second security whose name contains "Apple" — auto-match
+      // would pick 'sec-1' (Apple Inc) for any csvName containing "Apple".
+      // We override with a user pick to 'sec-2'.
+      sqlite.prepare(
+        'INSERT INTO security (uuid, name, isin, tickerSymbol, currency, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+      ).run('sec-2', 'Apple Pie Fund', 'US0000000000', 'APF', 'USD', '2024-01-01');
+
+      const csv = [
+        'date,type,security,shares,amount',
+        '2024-01-02,BUY,Apple Pie,10,100.00',
+      ].join('\n');
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'd.csv');
+
+      const result = await previewTradeImport(sqlite, {
+        ...baseInput(tempFileId),
+        securityMapping: { 'Apple Pie': 'sec-2' },
+      });
+
+      expect(result.summary.valid).toBe(1);
+      expect(result.summary.errors).toBe(0);
     });
   });
 });

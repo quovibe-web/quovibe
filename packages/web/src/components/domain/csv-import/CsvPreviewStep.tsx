@@ -96,6 +96,7 @@ export function CsvPreviewStep({ state, onBack }: Props) {
     executeMutation.mutate({
       tempFileId: state.parseResult!.tempFileId,
       config: {
+        delimiter: state.delimiter,
         columnMapping: state.columnMapping,
         dateFormat: state.dateFormat,
         decimalSeparator: state.decimalSeparator,

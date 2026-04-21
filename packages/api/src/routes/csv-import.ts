@@ -9,7 +9,8 @@ import {
 import {
   listCsvConfigs, createCsvConfig, updateCsvConfig, deleteCsvConfig,
 } from '../services/csv/csv-config.service';
-import { csvImportConfigSchema } from '@quovibe/shared';
+import { csvImportConfigSchema, csvDelimiters, csvDateFormats } from '@quovibe/shared';
+import { z } from 'zod';
 import { getSqlite } from '../helpers/request';
 
 const UPLOAD_MAX_BYTES = 100 * 1024 * 1024; // native-ok — 100 MB
@@ -96,9 +97,90 @@ const parseTrades: RequestHandler = async (req, res) => {
   }
 };
 
-const previewTrades: RequestHandler = async (req, res) => {
+// BUG-97: re-parse a previously-uploaded file with a different delimiter (or
+// skipLines). No multer — the file is already on disk; JSON body carries the
+// tempFileId. Same handleError mapping as parse (TEMP_FILE_EXPIRED → 410).
+// Zod-validated per api.md: invalid delimiter / type must surface as 400, not
+// flow into the parser where an unknown string would crash with a 500 (same
+// failure class as BUG-46).
+const reparseTradesSchema = z.object({
+  tempFileId: z.string().min(1),
+  delimiter: z.enum(csvDelimiters).optional(),
+  skipLines: z.number().int().min(0).optional(),
+}).strict();
+
+const reparseTrades: RequestHandler = async (req, res) => {
+  const parsed = reparseTradesSchema.safeParse(req.body);
+  if (!parsed.success) {
+    if (req.body?.tempFileId == null) {
+      res.status(400).json({ error: 'NO_FILE' });
+      return;
+    }
+    handleError(res, new CsvImportError('INVALID_INPUT', parsed.error.message));
+    return;
+  }
   try {
-    const result = await previewTradeImport(getSqlite(req), req.body);
+    const result = await parseCsv(parsed.data.tempFileId, {
+      delimiter: parsed.data.delimiter,
+      skipLines: parsed.data.skipLines,
+    });
+    res.json(result);
+  } catch (err) {
+    handleError(res, err);
+  }
+};
+
+// Shared fragments. dateFormat + separators are narrowed to the UI-exposed
+// sets so a malformed payload produces 400 `INVALID_INPUT` instead of a 500
+// from the downstream parser (same failure class as BUG-46 on the body side
+// rather than the multer side).
+const columnMappingSchema = z.record(z.string(), z.number().int().min(0));
+const decimalSeparatorSchema = z.enum(['.', ',']);
+const thousandSeparatorSchema = z.enum(['', '.', ',', ' ']);
+const dateFormatSchema = z.enum(csvDateFormats);
+
+const tradePreviewSchema = z.object({
+  tempFileId: z.string().min(1),
+  delimiter: z.enum(csvDelimiters).optional(),
+  columnMapping: columnMappingSchema,
+  dateFormat: dateFormatSchema,
+  decimalSeparator: decimalSeparatorSchema,
+  thousandSeparator: thousandSeparatorSchema,
+  targetSecuritiesAccountId: z.string().min(1),
+  securityMapping: z.record(z.string(), z.string().min(1)).optional(),
+  newSecurityNames: z.array(z.string().min(1)).optional(),
+}).strict();
+
+const tradeExecuteSchema = z.object({
+  tempFileId: z.string().min(1),
+  config: z.object({
+    // Client omits delimiter on execute; csv-reader falls back to ',' which is
+    // the happy path for most CSVs. Keep optional to match wire reality.
+    delimiter: z.enum(csvDelimiters).optional(),
+    columnMapping: columnMappingSchema,
+    dateFormat: dateFormatSchema,
+    decimalSeparator: decimalSeparatorSchema,
+    thousandSeparator: thousandSeparatorSchema,
+  }).strict(),
+  targetSecuritiesAccountId: z.string().min(1),
+  securityMapping: z.record(z.string(), z.string().min(1)),
+  newSecurities: z.array(z.object({
+    name: z.string().min(1),
+    isin: z.string().optional(),
+    ticker: z.string().optional(),
+    currency: z.string().min(1),
+  }).strict()),
+  excludedRows: z.array(z.number().int().min(1)),
+}).strict();
+
+const previewTrades: RequestHandler = async (req, res) => {
+  const parsed = tradePreviewSchema.safeParse(req.body);
+  if (!parsed.success) {
+    handleError(res, new CsvImportError('INVALID_INPUT', parsed.error.message));
+    return;
+  }
+  try {
+    const result = await previewTradeImport(getSqlite(req), parsed.data);
     res.json(result);
   } catch (err) {
     handleError(res, err);
@@ -106,8 +188,13 @@ const previewTrades: RequestHandler = async (req, res) => {
 };
 
 const executeTrades: RequestHandler = async (req, res) => {
+  const parsed = tradeExecuteSchema.safeParse(req.body);
+  if (!parsed.success) {
+    handleError(res, new CsvImportError('INVALID_INPUT', parsed.error.message));
+    return;
+  }
   try {
-    const result = await executeTradeImport(getSqlite(req), req.body);
+    const result = await executeTradeImport(getSqlite(req), parsed.data);
     res.json(result);
   } catch (err) {
     handleError(res, err);
@@ -115,6 +202,7 @@ const executeTrades: RequestHandler = async (req, res) => {
 };
 
 csvImportRouter.post('/trades/parse', uploadSingle('file'), parseTrades);
+csvImportRouter.post('/trades/reparse', reparseTrades);
 csvImportRouter.post('/trades/preview', previewTrades);
 csvImportRouter.post('/trades/execute', executeTrades);
 
