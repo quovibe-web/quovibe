@@ -301,32 +301,40 @@ export default function PerformanceChart() {
     const portfolioConfig = chartSeries.find(
       (rs) => rs.config.type === 'portfolio' && rs.config.id === 'portfolio-default',
     );
-    const portfolioAreaFill = portfolioConfig?.config.areaFill ?? false;
-    const portfolioLineStyle = portfolioConfig?.config.lineStyle ?? 'solid';
-    const portfolioColor = portfolioConfig?.config.color ?? dividend;
-    const portfolioVisible = portfolioConfig?.config.visible ?? true;
+    const userPortfolio = chartSeries.find(
+      (rs) => rs.config.type === 'portfolio' && rs.config.id !== 'portfolio-default',
+    );
 
-    const portfolioData = displayData
-      .map((p) => ({ time: p.date, value: p.ttwror }))
-      .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
+    // Suppress the fallback stub when the user has explicitly added their own
+    // portfolio series — otherwise both render and the legend duplicates.
+    if (!userPortfolio) {
+      const portfolioAreaFill = portfolioConfig?.config.areaFill ?? false;
+      const portfolioLineStyle = portfolioConfig?.config.lineStyle ?? 'solid';
+      const portfolioColor = portfolioConfig?.config.color ?? dividend;
+      const portfolioVisible = portfolioConfig?.config.visible ?? true;
 
-    const portfolioType = portfolioAreaFill ? 'baseline' as const : 'line' as const;
-    const { options: portfolioOptions } = buildSeriesOptions(portfolioType, {
-      color: portfolioColor,
-      profitColor: portfolioColor,
-      lossColor: loss,
-      basePrice: 0,
-      lineStyle: toLwcLineStyle(portfolioLineStyle),
-      priceScaleId: 'right',
-      visible: portfolioVisible,
-    });
-    const PortfolioConstructor = portfolioAreaFill ? BaselineSeries : LineSeries;
-    const portfolioSeries = chart.addSeries(PortfolioConstructor, portfolioOptions);
-    portfolioSeries.setData(portfolioData);
-    seriesMapRef.current.set('portfolio-default', {
-      series: portfolioSeries,
-      visible: portfolioVisible,
-    });
+      const portfolioData = displayData
+        .map((p) => ({ time: p.date, value: p.ttwror }))
+        .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
+
+      const portfolioType = portfolioAreaFill ? 'baseline' as const : 'line' as const;
+      const { options: portfolioOptions } = buildSeriesOptions(portfolioType, {
+        color: portfolioColor,
+        profitColor: portfolioColor,
+        lossColor: loss,
+        basePrice: 0,
+        lineStyle: toLwcLineStyle(portfolioLineStyle),
+        priceScaleId: 'right',
+        visible: portfolioVisible,
+      });
+      const PortfolioConstructor = portfolioAreaFill ? BaselineSeries : LineSeries;
+      const portfolioSeries = chart.addSeries(PortfolioConstructor, portfolioOptions);
+      portfolioSeries.setData(portfolioData);
+      seriesMapRef.current.set('portfolio-default', {
+        series: portfolioSeries,
+        visible: portfolioVisible,
+      });
+    }
 
     // --- Additional series (securities, benchmarks, accounts, additional portfolios) ---
     const sortedSeries = [...chartSeries]
@@ -370,10 +378,12 @@ export default function PerformanceChart() {
     chart.priceScale('right').applyOptions({
       mode: PriceScaleMode.Normal,
     });
-    // Apply percentage formatter to the portfolio series (drives right scale labels)
-    const portfolioEntry = seriesMapRef.current.get('portfolio-default');
-    if (portfolioEntry) {
-      portfolioEntry.series.applyOptions({
+    // Applied to whichever series drives the right-scale labels.
+    const formatterEntry =
+      seriesMapRef.current.get('portfolio-default') ??
+      seriesMapRef.current.values().next().value;
+    if (formatterEntry) {
+      formatterEntry.series.applyOptions({
         priceFormat: {
           type: 'custom',
           formatter: (price: number) => `${(price * 100).toFixed(2)}%`, // native-ok
