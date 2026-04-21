@@ -416,11 +416,13 @@ function insertBuy(
   // FEE unit so getFees(tx) picks it up in Cost & Tax Drag
   insertXactUnit.run(secSideUuid, 'FEE', feeHecto);
 
-  // Cash-side xact (same security, shares=0, fees=0, taxes=0)
+  // Cash-side xact (same security, shares=0, fees=0, taxes=0).
+  // ppxml2db convention: xact.amount is a non-negative magnitude; sign is
+  // carried by xact.type (BUY is an OUTFLOW). See transaction.service.ts:11-32.
   const cashSideUuid = randomUUID();
   insertXact.run(
     cashSideUuid, 'account', depositId, dateStr,
-    -hecto(totalAmount + feeEur), secDef.uuid, 0,
+    hecto(totalAmount + feeEur), secDef.uuid, 0,
     null, now, 'BUY', 0, 0, nextXmlId(), nextOrder()
   );
 
@@ -544,7 +546,7 @@ function insertDividend(
   insertXact.run(
     uuid, 'account', depositId, dateStr,
     hecto(netAmount), secDef.uuid, 0,
-    note, now, 'DIVIDEND', 0, hecto(taxEur), nextXmlId(), nextOrder()
+    note, now, 'DIVIDENDS', 0, hecto(taxEur), nextXmlId(), nextOrder()
   );
 
   // Tax unit if tax > 0
@@ -624,8 +626,8 @@ db.transaction(() => {
   const dateStr = '2024-09-02';
   const amount = 5000;
 
-  // TRANSFER_OUT from IB Cash
-  insertXact.run(outUuid, 'account', IB_CASH_ID, dateStr, -hecto(amount), null, 0, 'Transfer to Scalable', now, 'TRANSFER_OUT', 0, 0, nextXmlId(), nextOrder());
+  // TRANSFER_OUT from IB Cash (same magnitude convention as BUY cash-side above).
+  insertXact.run(outUuid, 'account', IB_CASH_ID, dateStr, hecto(amount), null, 0, 'Transfer to Scalable', now, 'TRANSFER_OUT', 0, 0, nextXmlId(), nextOrder());
 
   // TRANSFER_IN to SC Cash
   insertXact.run(inUuid, 'account', SC_CASH_ID, dateStr, hecto(amount), null, 0, 'Transfer from IB', now, 'TRANSFER_IN', 0, 0, nextXmlId(), nextOrder());
@@ -635,6 +637,49 @@ db.transaction(() => {
 })();
 
 console.log('[Transfer] 1 account transfer inserted');
+
+// ---------------------------------------------------------------------------
+// Invariant: every xact.amount is a non-negative magnitude (ppxml2db
+// convention). Sign is carried by xact.type (OUTFLOW vs INFLOW) — see
+// transaction.service.ts:11-32 for the canonical rule. Getting this wrong
+// silently double-negates BUY/TRANSFER_OUT in getDepositBalance and inflates
+// cash balances; that was BUG-80.
+// ---------------------------------------------------------------------------
+const negativeAmountRows = db.prepare(`
+  SELECT type, COUNT(*) AS n
+  FROM xact
+  WHERE amount < 0
+  GROUP BY type
+`).all();
+if (negativeAmountRows.length > 0) {
+  throw new Error(
+    `[Seed invariant] xact.amount must be >= 0 (ppxml2db magnitude convention); ` +
+    `violations: ${JSON.stringify(negativeAmountRows)}`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Invariant: xact.type stores the ppxml2db form, not the quovibe enum form.
+// The live write path (transaction.service.ts:55-65) maps enum→DB for the
+// divergent names; the seed must produce the same on-disk shape or the
+// balance/reports queries that key on the DB form silently skip rows. The
+// only divergent name today is DIVIDEND→DIVIDENDS; extend this guard when
+// TYPE_MAP_TO_PPXML2DB grows.
+// ---------------------------------------------------------------------------
+const enumLeakRows = db.prepare(`
+  SELECT type, COUNT(*) AS n
+  FROM xact
+  WHERE type IN ('DIVIDEND')
+  GROUP BY type
+`).all();
+if (enumLeakRows.length > 0) {
+  throw new Error(
+    `[Seed invariant] xact.type must use ppxml2db form (e.g. 'DIVIDENDS' not 'DIVIDEND'); ` +
+    `violations: ${JSON.stringify(enumLeakRows)}`
+  );
+}
+
+console.log('[Xact] invariants checked (amount >= 0, DB type names)');
 
 // ---------------------------------------------------------------------------
 // 10. Taxonomies
