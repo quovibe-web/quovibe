@@ -1,13 +1,5 @@
-import { TransactionType } from '@/lib/enums';
+import { PRICED_SHARE_TYPES } from '@quovibe/shared';
 import type { TransactionFormValues } from '@/components/domain/TransactionForm';
-
-const PRICE_TYPES = new Set<TransactionType>([
-  TransactionType.BUY,
-  TransactionType.SELL,
-  TransactionType.DELIVERY_INBOUND,
-  TransactionType.DELIVERY_OUTBOUND,
-  TransactionType.SECURITY_TRANSFER,
-]);
 
 export function preparePayload(values: TransactionFormValues): Record<string, unknown> {
   const { price, securityId, accountId, crossAccountId, shares, amount, fees, taxes,
@@ -21,7 +13,7 @@ export function preparePayload(values: TransactionFormValues): Record<string, un
   const taxesFxNum = taxesFx ? parseFloat(taxesFx) : undefined;
 
   let amountNum: number;
-  if (PRICE_TYPES.has(values.type) && sharesNum != null && priceNum != null) {
+  if (PRICED_SHARE_TYPES.has(values.type) && sharesNum != null && priceNum != null) {
     amountNum = sharesNum * priceNum;
   } else {
     amountNum = parseFloat(amount ?? '0');

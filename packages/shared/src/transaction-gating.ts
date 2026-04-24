@@ -41,6 +41,17 @@ const ALLOWED: Record<AccountType, Set<TransactionType>> = {
 // a transaction whose `accountId` is a portfolio is only acceptable when the
 // type is in this set — anything else (e.g. TRANSFER_BETWEEN_ACCOUNTS) would
 // pin the portfolio as the cash holder, which is a data-integrity hole.
+// Types whose `amount` is derived from shares × quote price and must be > 0.
+// PP convention (docs/pp-reference/transfer.md) — used by the shared Zod schema
+// guardrail and by the web client's preparePayload derivation.
+export const PRICED_SHARE_TYPES: ReadonlySet<TransactionType> = new Set([
+  TransactionType.BUY,
+  TransactionType.SELL,
+  TransactionType.DELIVERY_INBOUND,
+  TransactionType.DELIVERY_OUTBOUND,
+  TransactionType.SECURITY_TRANSFER,
+]);
+
 export const CASH_ONLY_ROUTED_TYPES: ReadonlySet<TransactionType> = new Set([
   TransactionType.DEPOSIT,
   TransactionType.REMOVAL,

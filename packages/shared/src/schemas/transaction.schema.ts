@@ -1,19 +1,6 @@
 import { z } from 'zod';
 import { TransactionType } from '../enums';
-
-const SHARE_TYPES = new Set<TransactionType>([
-  TransactionType.BUY, TransactionType.SELL,
-  TransactionType.DELIVERY_INBOUND, TransactionType.DELIVERY_OUTBOUND,
-  TransactionType.SECURITY_TRANSFER,
-]);
-
-// Types whose `amount` is derived from shares × quote price and must be > 0
-// (quote price is mandatory per PP convention — see docs/pp-reference/transfer.md).
-const PRICED_SHARE_TYPES = new Set<TransactionType>([
-  TransactionType.BUY, TransactionType.SELL,
-  TransactionType.DELIVERY_INBOUND, TransactionType.DELIVERY_OUTBOUND,
-  TransactionType.SECURITY_TRANSFER,
-]);
+import { PRICED_SHARE_TYPES } from '../transaction-gating';
 
 const CASH_TYPES = new Set<TransactionType>([
   TransactionType.DEPOSIT, TransactionType.REMOVAL,
@@ -44,26 +31,14 @@ export const createTransactionSchema = z.object({
   feesFx: z.number().min(0).optional(),
   taxesFx: z.number().min(0).optional(),
 }).superRefine((data, ctx) => {
-  if (SHARE_TYPES.has(data.type) && (data.shares == null || data.shares <= 0)) {
+  if (PRICED_SHARE_TYPES.has(data.type) && (data.shares == null || data.shares <= 0)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'shares is required and must be positive for this transaction type',
       path: ['shares'],
     });
   }
-  if (CASH_TYPES.has(data.type) && data.amount === 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'amount must be greater than 0 for this transaction type',
-      path: ['amount'],
-    });
-  }
-  // Priced-share types (BUY/SELL/DELIVERY_*/SECURITY_TRANSFER) carry a
-  // quote price. PP requires it to be > 0 (see transfer.md §"Setting the
-  // quote price"). Enforce at the boundary so clients that skip the
-  // `shares × price` derivation can't land amount=0 rows that break
-  // per-account CFout/CFin math downstream.
-  if (PRICED_SHARE_TYPES.has(data.type) && data.amount <= 0) {
+  if ((CASH_TYPES.has(data.type) || PRICED_SHARE_TYPES.has(data.type)) && data.amount <= 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'amount must be greater than 0 for this transaction type',
