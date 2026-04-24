@@ -362,7 +362,7 @@ function insertDeposit(accountId: string, dateStr: string, amountEur: number, no
 
 db.transaction(() => {
   // Initial deposits — Jan 2024
-  insertDeposit(IB_CASH_ID, '2024-01-03', 50000, 'Initial funding');
+  insertDeposit(IB_CASH_ID, '2024-01-03', 60000, 'Initial funding');
   insertDeposit(SC_CASH_ID, '2024-01-03', 30000, 'Initial funding');
   insertDeposit(CASH_RESERVE_ID, '2024-01-05', 10000, 'Emergency fund setup');
 
@@ -680,6 +680,50 @@ if (enumLeakRows.length > 0) {
 }
 
 console.log('[Xact] invariants checked (amount >= 0, DB type names)');
+
+// ---------------------------------------------------------------------------
+// Invariant: every cash account ends with a non-negative balance. CASE copies
+// getDepositBalance in accounts.service.ts:138-157 verbatim (DB-form, post
+// enum→ppxml2db rename). When TYPE_MAP_TO_PPXML2DB grows or a new
+// cash-affecting xact.type is introduced, this CASE and getDepositBalance's
+// must be updated in lockstep — they share the same sign table by definition.
+// Closes BUG-105: pre-fix, BUG-80's sign-flip silently inflated IB Cash so the
+// DCA + lump-sum schedule appeared solvent; the honest ledger ended at -€5,852.
+// ---------------------------------------------------------------------------
+const negativeCashAccounts = db.prepare(`
+  SELECT a.uuid, a.name,
+         COALESCE(SUM(
+           CASE x.type
+             WHEN 'DEPOSIT'         THEN  x.amount
+             WHEN 'REMOVAL'         THEN -x.amount
+             WHEN 'BUY'             THEN -x.amount
+             WHEN 'SELL'            THEN  x.amount
+             WHEN 'DIVIDENDS'       THEN  x.amount
+             WHEN 'INTEREST'        THEN  x.amount
+             WHEN 'FEES'            THEN -x.amount
+             WHEN 'FEES_REFUND'     THEN  x.amount
+             WHEN 'TAXES'           THEN -x.amount
+             WHEN 'TAX_REFUND'      THEN  x.amount
+             WHEN 'INTEREST_CHARGE' THEN -x.amount
+             WHEN 'TRANSFER_IN'     THEN  x.amount
+             WHEN 'TRANSFER_OUT'    THEN -x.amount
+             ELSE 0
+           END
+         ), 0) AS balance
+  FROM account a
+  LEFT JOIN xact x ON x.account = a.uuid
+  WHERE a.type = 'account'
+  GROUP BY a.uuid
+  HAVING balance < 0
+`).all();
+if (negativeCashAccounts.length > 0) {
+  throw new Error(
+    `[Seed invariant] cash accounts ended below zero (BUG-105): ` +
+    JSON.stringify(negativeCashAccounts)
+  );
+}
+
+console.log('[Cash] per-account balance invariant checked (all >= 0)');
 
 // ---------------------------------------------------------------------------
 // 10. Taxonomies
