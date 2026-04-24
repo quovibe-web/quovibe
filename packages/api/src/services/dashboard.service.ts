@@ -75,19 +75,48 @@ export function updateDashboard(
   const existing = getDashboard(sqlite, id);
   if (!existing) return null;
   const now = new Date().toISOString();
-  sqlite.prepare(
-    `UPDATE vf_dashboard SET
-       name = ?, widgets_json = ?, schema_version = ?, columns = ?, position = ?, updatedAt = ?
-     WHERE id = ?`,
-  ).run(
-    input.name ?? existing.name,
-    JSON.stringify(input.widgets ?? existing.widgets),
-    CURRENT_VERSION,                    // persist at current shape
-    input.columns ?? existing.columns,
-    input.position ?? existing.position,
-    now,
-    id,
-  );
+
+  // BUG-103: position PATCH must atomically reshuffle siblings to preserve
+  // uniqueness. Without the cascade, a blind write creates duplicate positions
+  // (repro: three dashboards at 0/1/2, PATCH id2 to 1 → two rows at position 1).
+  // Clamp target into [0, maxPosition] so a malformed client payload can't
+  // create gaps.
+  const txn = sqlite.transaction(() => {
+    let newPos = existing.position;
+    if (input.position !== undefined && input.position !== existing.position) {
+      const maxPos = (sqlite.prepare(
+        'SELECT COALESCE(MAX(position), 0) AS m FROM vf_dashboard',
+      ).get() as { m: number }).m;
+      newPos = Math.max(0, Math.min(input.position, maxPos));
+      if (newPos !== existing.position) {
+        if (existing.position < newPos) {
+          sqlite.prepare(
+            `UPDATE vf_dashboard SET position = position - 1
+             WHERE position > ? AND position <= ? AND id != ?`,
+          ).run(existing.position, newPos, id);
+        } else {
+          sqlite.prepare(
+            `UPDATE vf_dashboard SET position = position + 1
+             WHERE position >= ? AND position < ? AND id != ?`,
+          ).run(newPos, existing.position, id);
+        }
+      }
+    }
+    sqlite.prepare(
+      `UPDATE vf_dashboard SET
+         name = ?, widgets_json = ?, schema_version = ?, columns = ?, position = ?, updatedAt = ?
+       WHERE id = ?`,
+    ).run(
+      input.name ?? existing.name,
+      JSON.stringify(input.widgets ?? existing.widgets),
+      CURRENT_VERSION,
+      input.columns ?? existing.columns,
+      newPos,
+      now,
+      id,
+    );
+  });
+  txn();
   return getDashboard(sqlite, id);
 }
 

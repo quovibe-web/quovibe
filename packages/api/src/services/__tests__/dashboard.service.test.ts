@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import Database from 'better-sqlite3';
 import { applyBootstrap } from '../../db/apply-bootstrap';
-import { getDashboard, createDashboard } from '../dashboard.service';
+import { getDashboard, createDashboard, updateDashboard, listDashboards } from '../dashboard.service';
 import { CURRENT_VERSION } from '../widget-migrations';
 
 function freshSqlite(): Database.Database {
@@ -65,6 +65,125 @@ describe('dashboard.service.rowToItem — forward-compat guard', () => {
     expect(created.widgets).toHaveLength(1);
     const w = created.widgets[0] as { type: string };
     expect(w.type).toBe('summary');
+    sqlite.close();
+  });
+});
+
+describe('dashboard.service.updateDashboard — BUG-103 atomic position reshuffle', () => {
+  function seedFour(sqlite: Database.Database): Array<{ id: string; position: number }> {
+    const d0 = createDashboard(sqlite, { name: 'A', widgets: [], columns: 3 });
+    const d1 = createDashboard(sqlite, { name: 'B', widgets: [], columns: 3 });
+    const d2 = createDashboard(sqlite, { name: 'C', widgets: [], columns: 3 });
+    const d3 = createDashboard(sqlite, { name: 'D', widgets: [], columns: 3 });
+    expect([d0.position, d1.position, d2.position, d3.position]).toEqual([0, 1, 2, 3]);
+    return [d0, d1, d2, d3].map(d => ({ id: d.id, position: d.position }));
+  }
+
+  it('BUG-103 exact repro: PATCH position from 2→1 shifts sibling from 1→2; no duplicates', () => {
+    const sqlite = freshSqlite();
+    const [a, b, c, d] = seedFour(sqlite);
+    // Repro: dashboard at position 2 moves to position 1. Pre-fix: server
+    // wrote position=1 blindly and both C (pos=1 new) and B (pos=1 original)
+    // held position 1 simultaneously.
+    const updated = updateDashboard(sqlite, c.id, { position: 1 });
+    expect(updated?.position).toBe(1);
+
+    const positions = new Map(listDashboards(sqlite).map(x => [x.id, x.position]));
+    expect(positions.get(a.id)).toBe(0);
+    expect(positions.get(c.id)).toBe(1);
+    expect(positions.get(b.id)).toBe(2);
+    expect(positions.get(d.id)).toBe(3);
+    // Invariant: no duplicate positions across any pair.
+    const seen = new Set<number>();
+    for (const p of positions.values()) {
+      expect(seen.has(p)).toBe(false);
+      seen.add(p);
+    }
+    sqlite.close();
+  });
+
+  it('moving down (0→3) shifts intervening siblings up by 1', () => {
+    const sqlite = freshSqlite();
+    const [a, b, c, d] = seedFour(sqlite);
+    const updated = updateDashboard(sqlite, a.id, { position: 3 });
+    expect(updated?.position).toBe(3);
+
+    const positions = new Map(listDashboards(sqlite).map(x => [x.id, x.position]));
+    expect(positions.get(b.id)).toBe(0);
+    expect(positions.get(c.id)).toBe(1);
+    expect(positions.get(d.id)).toBe(2);
+    expect(positions.get(a.id)).toBe(3);
+    sqlite.close();
+  });
+
+  it('moving up (3→0) shifts intervening siblings down by 1', () => {
+    const sqlite = freshSqlite();
+    const [a, b, c, d] = seedFour(sqlite);
+    const updated = updateDashboard(sqlite, d.id, { position: 0 });
+    expect(updated?.position).toBe(0);
+
+    const positions = new Map(listDashboards(sqlite).map(x => [x.id, x.position]));
+    expect(positions.get(d.id)).toBe(0);
+    expect(positions.get(a.id)).toBe(1);
+    expect(positions.get(b.id)).toBe(2);
+    expect(positions.get(c.id)).toBe(3);
+    sqlite.close();
+  });
+
+  it('target position clamped to maxPosition when client sends out-of-range value', () => {
+    const sqlite = freshSqlite();
+    const [a, b, c, d] = seedFour(sqlite);
+    const updated = updateDashboard(sqlite, a.id, { position: 999 });
+    // Clamped to maxPosition=3 — full shift, a ends up at tail.
+    expect(updated?.position).toBe(3);
+
+    const positions = new Map(listDashboards(sqlite).map(x => [x.id, x.position]));
+    expect(positions.get(b.id)).toBe(0);
+    expect(positions.get(c.id)).toBe(1);
+    expect(positions.get(d.id)).toBe(2);
+    expect(positions.get(a.id)).toBe(3);
+    sqlite.close();
+  });
+
+  it('PATCH position === existing.position is a no-op (no sibling movement)', () => {
+    const sqlite = freshSqlite();
+    const [a, b, c, d] = seedFour(sqlite);
+    const updated = updateDashboard(sqlite, c.id, { position: 2 });
+    expect(updated?.position).toBe(2);
+
+    const positions = new Map(listDashboards(sqlite).map(x => [x.id, x.position]));
+    expect(positions.get(a.id)).toBe(0);
+    expect(positions.get(b.id)).toBe(1);
+    expect(positions.get(c.id)).toBe(2);
+    expect(positions.get(d.id)).toBe(3);
+    sqlite.close();
+  });
+
+  it('cascading multi-PATCH (simulating DnD move of head → tail) preserves uniqueness at every step', () => {
+    const sqlite = freshSqlite();
+    const [a, b, c, d] = seedFour(sqlite);
+    // Client arrayMove(A, 0→3) → [B, C, D, A]. Dashboard.tsx multi-PATCHes
+    // with final target indices keyed off ORIGINAL positions. Fire them in
+    // the same order the client does and assert uniqueness holds throughout.
+    const patches: Array<{ id: string; target: number }> = [
+      { id: b.id, target: 0 },
+      { id: c.id, target: 1 },
+      { id: d.id, target: 2 },
+      { id: a.id, target: 3 },
+    ];
+    for (const p of patches) {
+      updateDashboard(sqlite, p.id, { position: p.target });
+      const seen = new Set<number>();
+      for (const row of listDashboards(sqlite)) {
+        expect(seen.has(row.position), `duplicate position ${row.position} after PATCH`).toBe(false);
+        seen.add(row.position);
+      }
+    }
+    const positions = new Map(listDashboards(sqlite).map(x => [x.id, x.position]));
+    expect(positions.get(b.id)).toBe(0);
+    expect(positions.get(c.id)).toBe(1);
+    expect(positions.get(d.id)).toBe(2);
+    expect(positions.get(a.id)).toBe(3);
     sqlite.close();
   });
 });
