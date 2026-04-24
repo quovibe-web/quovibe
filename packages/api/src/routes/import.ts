@@ -2,6 +2,7 @@ import { Router, type RequestHandler, type Router as RouterType } from 'express'
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { runImport, isImportInProgress, ImportError } from '../services/import.service';
 import { updateAppState, getSettings } from '../services/settings.service';
 import { createPortfolio, PortfolioManagerError } from '../services/portfolio-manager';
@@ -19,7 +20,12 @@ const UPLOAD_MAX_BYTES = IMPORT_MAX_MB * 1024 * 1024; // native-ok
 const upload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, uploadDir),
-    filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+    // BUG-94: the uuid is the collision guard for same-millisecond uploads
+    // carrying the same originalname (a `Promise.all` of two identical
+    // uploads from DevTools console was the repro vector). Without it,
+    // multer overwrites the first file with the second, then the race in
+    // the ensuing rename-and-convert pipeline leaks ENOENT+path over the wire.
+    filename: (_req, file, cb) => cb(null, `${Date.now()}-${uuidv4()}-${file.originalname}`),
   }),
   limits: { fileSize: UPLOAD_MAX_BYTES },
   fileFilter: (_req, file, cb) => {
@@ -66,13 +72,16 @@ const uploadXml: RequestHandler = async (req, res) => {
     return;
   }
 
-  // Rename multer's temp file to .xml extension (ppxml2db needs the .xml extension)
-  const xmlPath = req.file.path + '.xml';
-  fs.renameSync(req.file.path, xmlPath);
-
+  // BUG-94: no rename step. multer's fileFilter rejects non-`.xml` extensions
+  // (see fileFilter above), so req.file.path already ends in `.xml` and is
+  // a valid input for ppxml2db. The previous `req.file.path + '.xml'` rename
+  // appended a redundant `.xml` (producing `.xml.xml`) and opened a race
+  // window on concurrent same-name uploads: A.rename() succeeds, B.rename()
+  // ENOENTs on the source because A moved it — and the raw errno string
+  // (including the absolute server path) leaked via handleError's fallback.
   try {
     // Produces a populated temp DB file; no live handle touched.
-    const result = await runImport(xmlPath);
+    const result = await runImport(req.file.path);
 
     try {
       // Derive a display name: use the provided body.name, else the XML filename stripped.
@@ -113,11 +122,11 @@ const uploadXml: RequestHandler = async (req, res) => {
       res.status(status).json({ error: err.code });
       return;
     }
+    // BUG-96: log the raw error for ops debugging, but never forward
+    // String(err) to the wire. Packaged-desktop builds run outside
+    // `production`, so the previous NODE_ENV gate was effectively a leak.
     console.error('[quovibe] Import error:', err);
-    const details = process.env.NODE_ENV === 'production'
-      ? 'Internal server error'
-      : String(err);
-    res.status(500).json({ error: 'CONVERSION_FAILED', details });
+    res.status(500).json({ error: 'CONVERSION_FAILED' });
   }
 };
 
@@ -145,17 +154,27 @@ importRouter.get('/status', getStatus);
 //   INVALID_XML, INVALID_FORMAT, ENCRYPTED_FORMAT    → 400
 //   IMPORT_IN_PROGRESS                               → 409
 //   CONVERSION_FAILED                                → 500
+//
+// Info-disclosure posture (BUG-96) — see `.claude/rules/xml-import.md`:
+//   CONVERSION_FAILED NEVER carries `details`. The service layer logs
+//   the full ppxml2db stderr (Python traceback + absolute paths +
+//   internal SQLite constraint names) server-side; the wire gets a
+//   bare `{error:'CONVERSION_FAILED'}`. The non-ImportError fallback
+//   below follows the same posture so surprise fs/runtime errors
+//   (e.g. the BUG-94 ENOENT vector) can't leak `String(err)` either.
 function handleError(res: Parameters<RequestHandler>[1], err: unknown): void {
   if (err instanceof ImportError) {
     const status = err.code === 'IMPORT_IN_PROGRESS' ? 409
       : err.code === 'CONVERSION_FAILED' ? 500
       : 400;
     const body: { error: string; details?: string } = { error: err.code };
-    if (err.details) body.details = err.details;
-    else if (err.message) body.details = err.message;
+    if (err.code !== 'CONVERSION_FAILED') {
+      if (err.details) body.details = err.details;
+      else if (err.message) body.details = err.message;
+    }
     res.status(status).json(body);
     return;
   }
-  console.error('[xml-import]', err);
-  res.status(500).json({ error: 'CONVERSION_FAILED', details: String(err) });
+  console.error('[xml-import] unhandled:', err);
+  res.status(500).json({ error: 'CONVERSION_FAILED' });
 }

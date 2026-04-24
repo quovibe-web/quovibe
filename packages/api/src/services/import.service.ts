@@ -16,7 +16,13 @@ const execFileAsync = promisify(execFile);
 const _vendorStandard = path.resolve(__dirname, '../../vendor');
 const _vendorStripped  = path.resolve(__dirname, '../vendor');
 const VENDOR_DIR = fs.existsSync(_vendorStripped) ? _vendorStripped : _vendorStandard;
-const LOCK_FILE = path.join(os.tmpdir(), 'quovibe-import.lock');
+// Lock file for the cross-process import mutex. Default path is
+// `os.tmpdir()/quovibe-import.lock` (survives process restarts, stale
+// locks are reaped by the 5-minute check in `isImportInProgress`). Tests
+// that hit `runImport` must override this via QUOVIBE_IMPORT_LOCK_FILE
+// so parallel test files don't clobber each other's locks — the lock is
+// intentionally a single global path in production but per-suite in test.
+const LOCK_FILE = process.env.QUOVIBE_IMPORT_LOCK_FILE ?? path.join(os.tmpdir(), 'quovibe-import.lock');
 
 export class ImportError extends Error {
   constructor(
@@ -207,8 +213,15 @@ export async function runImport(xmlPath: string): Promise<ImportResult> {
         }
       }
     } catch (err: unknown) {
-      const details = err instanceof Error ? err.message : String(err);
-      throw new ImportError('CONVERSION_FAILED', 'Error during ppxml2db conversion', details);
+      // BUG-96 info-disclosure posture (.claude/rules/xml-import.md):
+      // `err.message` from execFileAsync concatenates ppxml2db's stderr,
+      // which carries full Python traceback + absolute server install
+      // path + user home tmpdir + internal SQLite constraint names.
+      // Log it server-side for ops debugging; throw ImportError with
+      // NO `details` arg so nothing reaches the wire.
+      const raw = err instanceof Error ? err.message : String(err);
+      console.error('[xml-import] ppxml2db conversion failed:', raw);
+      throw new ImportError('CONVERSION_FAILED', 'Error during ppxml2db conversion');
     }
 
     if (!fs.existsSync(tempDbPath)) {

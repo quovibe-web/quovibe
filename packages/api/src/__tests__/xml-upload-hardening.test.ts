@@ -18,6 +18,8 @@ process.env.QUOVIBE_DATA_DIR = tmp;
 process.env.QUOVIBE_DEMO_SOURCE = path.join(tmp, 'demo-src.db');
 // Cap uploads at 1 MB for this suite so the oversize case stays lightweight.
 process.env.IMPORT_MAX_MB = '1';
+// Per-suite import lock so parallel test files don't clobber each other.
+process.env.QUOVIBE_IMPORT_LOCK_FILE = path.join(tmp, 'import.lock');
 
 let applyBootstrap: typeof import('../db/apply-bootstrap').applyBootstrap;
 let createApp: typeof import('../create-app').createApp;
@@ -123,5 +125,60 @@ describe('POST /api/import/xml boundary hardening (BUG-09)', () => {
 
     expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).not.toBe(500);
     expect(['INVALID_FILE_FORMAT', 'FILE_TOO_LARGE', 'NO_FILE']).not.toContain(res.body.error);
+  });
+
+  // BUG-94 regression: two concurrent POSTs with the same originalname race
+  // the wx-flag lock in runImport. Exactly one must win (or fail with a
+  // non-lock error, e.g. CONVERSION_FAILED if Python is absent) and the
+  // other must see 409 IMPORT_IN_PROGRESS. Neither response body may leak
+  // a filesystem path or Node errno string (which was the original leak
+  // vector when the route did an extra fs.renameSync that races).
+  it('concurrent uploads produce exactly one 409 IMPORT_IN_PROGRESS and no path leak (BUG-94)', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+
+    // Minimal payload passing multer + validateXmlFormat (root=client, at
+    // least one id attribute). The winner of the lock race will then hit
+    // Python (absent in CI → CONVERSION_FAILED, present → success), which
+    // is irrelevant to the assertion.
+    const xml = '<?xml version="1.0"?><client><account id="a1"/></client>';
+    const fire = (): request.Test => request(app)
+      .post('/api/import/xml')
+      .attach('file', Buffer.from(xml), {
+        filename: 'probe.xml',
+        contentType: 'application/xml',
+      });
+
+    const responses = await Promise.all([fire(), fire()]);
+
+    const inProgress = responses.filter(r => r.status === 409);
+    expect(
+      inProgress.length,
+      `expected exactly one 409 IMPORT_IN_PROGRESS; got statuses [${responses.map(r => r.status).join(', ')}] bodies ${JSON.stringify(responses.map(r => r.body))}`,
+    ).toBe(1);
+    expect(inProgress[0].body.error).toBe('IMPORT_IN_PROGRESS');
+
+    // Info-disclosure guard: no response body may carry filesystem paths,
+    // ENOENT strings, Python traceback markers, or the old `.xml.xml`
+    // double-suffix that betrayed the rename race.
+    for (const r of responses) {
+      const bodyText = JSON.stringify(r.body);
+      const leaks = [
+        /C:\\\\/,
+        /\/Users\//,
+        /data[\\/]tmp/,
+        /ENOENT/,
+        /Traceback/,
+        /ppxml2db\.py/,
+        /\.xml\.xml/,
+      ];
+      for (const pat of leaks) {
+        expect(
+          bodyText,
+          `response body matched ${pat} — info disclosure regression: ${bodyText}`,
+        ).not.toMatch(pat);
+      }
+    }
   });
 });
