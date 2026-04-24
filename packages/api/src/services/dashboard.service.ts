@@ -102,13 +102,21 @@ export function updateDashboard(
         }
       }
     }
+    // widgets_json is `COALESCE(?, widgets_json)` so a rename/position PATCH
+    // doesn't re-serialize the existing widget tree (and doesn't silently
+    // rewrite a legacy-seed row with its in-memory-migrated shape).
     sqlite.prepare(
       `UPDATE vf_dashboard SET
-         name = ?, widgets_json = ?, schema_version = ?, columns = ?, position = ?, updatedAt = ?
+         name = ?,
+         widgets_json = COALESCE(?, widgets_json),
+         schema_version = ?,
+         columns = ?,
+         position = ?,
+         updatedAt = ?
        WHERE id = ?`,
     ).run(
       input.name ?? existing.name,
-      JSON.stringify(input.widgets ?? existing.widgets),
+      input.widgets === undefined ? null : JSON.stringify(input.widgets),
       CURRENT_VERSION,
       input.columns ?? existing.columns,
       newPos,

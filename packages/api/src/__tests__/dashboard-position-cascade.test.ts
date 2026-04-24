@@ -81,8 +81,8 @@ describe('PATCH /api/p/:pid/dashboards/:id {position} (BUG-103)', () => {
       (list.body as Array<{ id: string; position: number }>).map(d => [d.id, d.position]),
     );
     expect(byId.get(d0.body.id)).toBe(basePos);
-    expect(byId.get(d2.body.id)).toBe(basePos + 1); // moved target
-    expect(byId.get(d1.body.id)).toBe(basePos + 2); // shifted sibling
+    expect(byId.get(d2.body.id)).toBe(basePos + 1);
+    expect(byId.get(d1.body.id)).toBe(basePos + 2);
     expect(byId.get(d3.body.id)).toBe(basePos + 3);
 
     // No duplicates across the whole set (includes the seed dashboard).

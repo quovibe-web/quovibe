@@ -70,13 +70,12 @@ describe('dashboard.service.rowToItem — forward-compat guard', () => {
 });
 
 describe('dashboard.service.updateDashboard — BUG-103 atomic position reshuffle', () => {
-  function seedFour(sqlite: Database.Database): Array<{ id: string; position: number }> {
-    const d0 = createDashboard(sqlite, { name: 'A', widgets: [], columns: 3 });
-    const d1 = createDashboard(sqlite, { name: 'B', widgets: [], columns: 3 });
-    const d2 = createDashboard(sqlite, { name: 'C', widgets: [], columns: 3 });
-    const d3 = createDashboard(sqlite, { name: 'D', widgets: [], columns: 3 });
-    expect([d0.position, d1.position, d2.position, d3.position]).toEqual([0, 1, 2, 3]);
-    return [d0, d1, d2, d3].map(d => ({ id: d.id, position: d.position }));
+  function seedFour(sqlite: Database.Database): string[] {
+    const rows = ['A', 'B', 'C', 'D'].map(name =>
+      createDashboard(sqlite, { name, widgets: [], columns: 3 }),
+    );
+    expect(rows.map(r => r.position)).toEqual([0, 1, 2, 3]);
+    return rows.map(r => r.id);
   }
 
   it('BUG-103 exact repro: PATCH position from 2→1 shifts sibling from 1→2; no duplicates', () => {
@@ -85,14 +84,14 @@ describe('dashboard.service.updateDashboard — BUG-103 atomic position reshuffl
     // Repro: dashboard at position 2 moves to position 1. Pre-fix: server
     // wrote position=1 blindly and both C (pos=1 new) and B (pos=1 original)
     // held position 1 simultaneously.
-    const updated = updateDashboard(sqlite, c.id, { position: 1 });
+    const updated = updateDashboard(sqlite, c, { position: 1 });
     expect(updated?.position).toBe(1);
 
     const positions = new Map(listDashboards(sqlite).map(x => [x.id, x.position]));
-    expect(positions.get(a.id)).toBe(0);
-    expect(positions.get(c.id)).toBe(1);
-    expect(positions.get(b.id)).toBe(2);
-    expect(positions.get(d.id)).toBe(3);
+    expect(positions.get(a)).toBe(0);
+    expect(positions.get(c)).toBe(1);
+    expect(positions.get(b)).toBe(2);
+    expect(positions.get(d)).toBe(3);
     // Invariant: no duplicate positions across any pair.
     const seen = new Set<number>();
     for (const p of positions.values()) {
@@ -105,57 +104,57 @@ describe('dashboard.service.updateDashboard — BUG-103 atomic position reshuffl
   it('moving down (0→3) shifts intervening siblings up by 1', () => {
     const sqlite = freshSqlite();
     const [a, b, c, d] = seedFour(sqlite);
-    const updated = updateDashboard(sqlite, a.id, { position: 3 });
+    const updated = updateDashboard(sqlite, a, { position: 3 });
     expect(updated?.position).toBe(3);
 
     const positions = new Map(listDashboards(sqlite).map(x => [x.id, x.position]));
-    expect(positions.get(b.id)).toBe(0);
-    expect(positions.get(c.id)).toBe(1);
-    expect(positions.get(d.id)).toBe(2);
-    expect(positions.get(a.id)).toBe(3);
+    expect(positions.get(b)).toBe(0);
+    expect(positions.get(c)).toBe(1);
+    expect(positions.get(d)).toBe(2);
+    expect(positions.get(a)).toBe(3);
     sqlite.close();
   });
 
   it('moving up (3→0) shifts intervening siblings down by 1', () => {
     const sqlite = freshSqlite();
     const [a, b, c, d] = seedFour(sqlite);
-    const updated = updateDashboard(sqlite, d.id, { position: 0 });
+    const updated = updateDashboard(sqlite, d, { position: 0 });
     expect(updated?.position).toBe(0);
 
     const positions = new Map(listDashboards(sqlite).map(x => [x.id, x.position]));
-    expect(positions.get(d.id)).toBe(0);
-    expect(positions.get(a.id)).toBe(1);
-    expect(positions.get(b.id)).toBe(2);
-    expect(positions.get(c.id)).toBe(3);
+    expect(positions.get(d)).toBe(0);
+    expect(positions.get(a)).toBe(1);
+    expect(positions.get(b)).toBe(2);
+    expect(positions.get(c)).toBe(3);
     sqlite.close();
   });
 
   it('target position clamped to maxPosition when client sends out-of-range value', () => {
     const sqlite = freshSqlite();
     const [a, b, c, d] = seedFour(sqlite);
-    const updated = updateDashboard(sqlite, a.id, { position: 999 });
     // Clamped to maxPosition=3 — full shift, a ends up at tail.
+    const updated = updateDashboard(sqlite, a, { position: 999 });
     expect(updated?.position).toBe(3);
 
     const positions = new Map(listDashboards(sqlite).map(x => [x.id, x.position]));
-    expect(positions.get(b.id)).toBe(0);
-    expect(positions.get(c.id)).toBe(1);
-    expect(positions.get(d.id)).toBe(2);
-    expect(positions.get(a.id)).toBe(3);
+    expect(positions.get(b)).toBe(0);
+    expect(positions.get(c)).toBe(1);
+    expect(positions.get(d)).toBe(2);
+    expect(positions.get(a)).toBe(3);
     sqlite.close();
   });
 
   it('PATCH position === existing.position is a no-op (no sibling movement)', () => {
     const sqlite = freshSqlite();
     const [a, b, c, d] = seedFour(sqlite);
-    const updated = updateDashboard(sqlite, c.id, { position: 2 });
+    const updated = updateDashboard(sqlite, c, { position: 2 });
     expect(updated?.position).toBe(2);
 
     const positions = new Map(listDashboards(sqlite).map(x => [x.id, x.position]));
-    expect(positions.get(a.id)).toBe(0);
-    expect(positions.get(b.id)).toBe(1);
-    expect(positions.get(c.id)).toBe(2);
-    expect(positions.get(d.id)).toBe(3);
+    expect(positions.get(a)).toBe(0);
+    expect(positions.get(b)).toBe(1);
+    expect(positions.get(c)).toBe(2);
+    expect(positions.get(d)).toBe(3);
     sqlite.close();
   });
 
@@ -166,10 +165,10 @@ describe('dashboard.service.updateDashboard — BUG-103 atomic position reshuffl
     // with final target indices keyed off ORIGINAL positions. Fire them in
     // the same order the client does and assert uniqueness holds throughout.
     const patches: Array<{ id: string; target: number }> = [
-      { id: b.id, target: 0 },
-      { id: c.id, target: 1 },
-      { id: d.id, target: 2 },
-      { id: a.id, target: 3 },
+      { id: b, target: 0 },
+      { id: c, target: 1 },
+      { id: d, target: 2 },
+      { id: a, target: 3 },
     ];
     for (const p of patches) {
       updateDashboard(sqlite, p.id, { position: p.target });
@@ -180,10 +179,42 @@ describe('dashboard.service.updateDashboard — BUG-103 atomic position reshuffl
       }
     }
     const positions = new Map(listDashboards(sqlite).map(x => [x.id, x.position]));
-    expect(positions.get(b.id)).toBe(0);
-    expect(positions.get(c.id)).toBe(1);
-    expect(positions.get(d.id)).toBe(2);
-    expect(positions.get(a.id)).toBe(3);
+    expect(positions.get(b)).toBe(0);
+    expect(positions.get(c)).toBe(1);
+    expect(positions.get(d)).toBe(2);
+    expect(positions.get(a)).toBe(3);
+    sqlite.close();
+  });
+
+  it('PATCH that omits widgets preserves existing widgets_json (no re-serialize, no schema-version rewrite)', () => {
+    const sqlite = freshSqlite();
+    const now = new Date().toISOString();
+    // Seed a legacy-schema row directly: schema_version=1 with a widget the
+    // current codebase renames via widget-migrations. If updateDashboard
+    // wrote back `JSON.stringify(existing.widgets)` it would clobber the
+    // raw legacy JSON with the migrated shape.
+    sqlite.prepare(
+      `INSERT INTO vf_dashboard
+         (id, name, position, widgets_json, schema_version, columns, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      'legacy', 'Overview', 0,
+      JSON.stringify([{ id: 'w1', type: 'performance-summary', span: 3, config: {} }]),
+      1, 3, now, now,
+    );
+
+    updateDashboard(sqlite, 'legacy', { name: 'Renamed' });
+
+    const raw = sqlite.prepare(
+      'SELECT widgets_json, schema_version FROM vf_dashboard WHERE id = ?',
+    ).get('legacy') as { widgets_json: string; schema_version: number };
+    expect(JSON.parse(raw.widgets_json)).toEqual([
+      { id: 'w1', type: 'performance-summary', span: 3, config: {} },
+    ]);
+    // schema_version still reflects prior commit semantics — the row bumps
+    // to CURRENT_VERSION on any write. What must NOT change is the widget
+    // payload (the COALESCE guard).
+    expect(raw.schema_version).toBe(CURRENT_VERSION);
     sqlite.close();
   });
 });
