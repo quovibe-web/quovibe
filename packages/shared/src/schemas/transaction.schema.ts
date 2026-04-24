@@ -7,6 +7,14 @@ const SHARE_TYPES = new Set<TransactionType>([
   TransactionType.SECURITY_TRANSFER,
 ]);
 
+// Types whose `amount` is derived from shares × quote price and must be > 0
+// (quote price is mandatory per PP convention — see docs/pp-reference/transfer.md).
+const PRICED_SHARE_TYPES = new Set<TransactionType>([
+  TransactionType.BUY, TransactionType.SELL,
+  TransactionType.DELIVERY_INBOUND, TransactionType.DELIVERY_OUTBOUND,
+  TransactionType.SECURITY_TRANSFER,
+]);
+
 const CASH_TYPES = new Set<TransactionType>([
   TransactionType.DEPOSIT, TransactionType.REMOVAL,
   TransactionType.DIVIDEND, TransactionType.INTEREST, TransactionType.INTEREST_CHARGE,
@@ -44,6 +52,18 @@ export const createTransactionSchema = z.object({
     });
   }
   if (CASH_TYPES.has(data.type) && data.amount === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'amount must be greater than 0 for this transaction type',
+      path: ['amount'],
+    });
+  }
+  // Priced-share types (BUY/SELL/DELIVERY_*/SECURITY_TRANSFER) carry a
+  // quote price. PP requires it to be > 0 (see transfer.md §"Setting the
+  // quote price"). Enforce at the boundary so clients that skip the
+  // `shares × price` derivation can't land amount=0 rows that break
+  // per-account CFout/CFin math downstream.
+  if (PRICED_SHARE_TYPES.has(data.type) && data.amount <= 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'amount must be greater than 0 for this transaction type',

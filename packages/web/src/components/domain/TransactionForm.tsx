@@ -80,7 +80,7 @@ const FIELD_CONFIG: Record<TransactionType, FieldConfig> = {
   [TransactionType.FEES_REFUND]: { security: 'optional', shares: false, amount: true, price: false, fees: false, taxes: false, accountId: true, crossAccountId: false, note: true },
   [TransactionType.TAXES]: { security: false, shares: false, amount: true, price: false, fees: false, taxes: false, accountId: true, crossAccountId: false, note: true },
   [TransactionType.TAX_REFUND]: { security: false, shares: false, amount: true, price: false, fees: false, taxes: false, accountId: true, crossAccountId: false, note: true },
-  [TransactionType.SECURITY_TRANSFER]: { security: 'required', shares: true, amount: false, price: false, fees: true, taxes: false, accountId: true, crossAccountId: true, note: true },
+  [TransactionType.SECURITY_TRANSFER]: { security: 'required', shares: true, amount: false, price: true, fees: true, taxes: false, accountId: true, crossAccountId: true, note: true },
   [TransactionType.TRANSFER_BETWEEN_ACCOUNTS]: { security: false, shares: false, amount: true, price: false, fees: false, taxes: false, accountId: true, crossAccountId: true, note: true },
 };
 

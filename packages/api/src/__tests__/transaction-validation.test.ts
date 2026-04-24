@@ -210,7 +210,7 @@ describe('transaction write validation', () => {
     const r = await request(app).post(`/api/p/${pid}/transactions`).send({
       date: '2026-01-01',
       type: 'SECURITY_TRANSFER',
-      amount: 0,
+      amount: 100,
       shares: 10,
       securityId: secId,
       accountId: accts.portfolioA,

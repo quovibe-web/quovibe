@@ -6,6 +6,7 @@ const PRICE_TYPES = new Set<TransactionType>([
   TransactionType.SELL,
   TransactionType.DELIVERY_INBOUND,
   TransactionType.DELIVERY_OUTBOUND,
+  TransactionType.SECURITY_TRANSFER,
 ]);
 
 export function preparePayload(values: TransactionFormValues): Record<string, unknown> {

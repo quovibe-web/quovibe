@@ -53,6 +53,7 @@ export function EditSecurityTransferDialog({ open, onOpenChange, transaction }: 
   const [time, setTime] = useState<string>('00:00');
   const [calOpen, setCalOpen] = useState(false);
   const [shares, setShares] = useState('');
+  const [price, setPrice] = useState('');
   const [note, setNote] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +68,10 @@ export function EditSecurityTransferDialog({ open, onOpenChange, transaction }: 
     setSecurityId(transaction.security ?? transaction.securityId ?? '');
     setDate(transaction.date ? new Date(transaction.date) : new Date());
     setTime(transaction.date && transaction.date.length > 10 ? transaction.date.slice(11, 16) : '00:00');
-    setShares(transaction.shares ? Math.abs(parseFloat(transaction.shares)).toString() : '');
+    const absShares = transaction.shares ? Math.abs(parseFloat(transaction.shares)) : 0;
+    setShares(absShares > 0 ? absShares.toString() : '');
+    const amt = transaction.amount ? Math.abs(parseFloat(transaction.amount)) : 0;
+    setPrice(absShares > 0 && amt > 0 ? (amt / absShares).toString() : '');
     setNote(transaction.note ?? '');
     setIsDirty(false);
     setError(null);
@@ -83,6 +87,8 @@ export function EditSecurityTransferDialog({ open, onOpenChange, transaction }: 
     if (!securityId) { setError(t('validation.selectSecurity')); return; }
     const sharesNum = parseFloat(shares);
     if (!shares || isNaN(sharesNum) || sharesNum <= 0) { setError(t('validation.sharesMustBePositive')); return; }
+    const priceNum = parseFloat(price);
+    if (!price || isNaN(priceNum) || priceNum <= 0) { setError(t('validation.priceMustBePositive')); return; }
 
     setError(null);
     updateMutation.mutate(
@@ -95,7 +101,7 @@ export function EditSecurityTransferDialog({ open, onOpenChange, transaction }: 
           securityId,
           date: format(date, 'yyyy-MM-dd') + 'T' + time,
           shares: sharesNum,
-          amount: 0,
+          amount: sharesNum * priceNum,
           note: note || undefined,
         },
       },
@@ -212,17 +218,30 @@ export function EditSecurityTransferDialog({ open, onOpenChange, transaction }: 
                 </div>
               </div>
 
-              {/* Shares */}
-              <div className="space-y-1">
-                <Label>{t('columns.shares')}</Label>
-                <Input
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={shares}
-                  onChange={(e) => { setShares(e.target.value); setIsDirty(true); }}
-                  placeholder="0"
-                />
+              {/* Shares + Quote Price */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>{t('columns.shares')}</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={shares}
+                    onChange={(e) => { setShares(e.target.value); setIsDirty(true); }}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>{t('form.pricePerShare')}</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={price}
+                    onChange={(e) => { setPrice(e.target.value); setIsDirty(true); }}
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
 
               {/* Note */}
