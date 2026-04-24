@@ -23,5 +23,30 @@
     "confirm": "Delete",
     "success": "Portfolio deleted.",
     "error": "Delete failed: {{msg}}"
+  },
+  "data": {
+    "sections": {
+      "accounting": "Rachunkowość",
+      "priceFeeds": "Źródła cen"
+    },
+    "fields": {
+      "costMethod": "Metoda kosztu",
+      "costMethodDescription": "Sposób obliczania kosztu nabycia papierów wartościowych.",
+      "costMethodFifo": "FIFO",
+      "costMethodMovingAverage": "Średnia ruchoma",
+      "currency": "Waluta bazowa",
+      "currencyDescription": "Wszystkie wartości są przeliczane na tę walutę w sumach portfela.",
+      "calendar": "Kalendarz",
+      "calendarDescription": "Identyfikator kalendarza giełdowego (np. NYSE, XETR). Pozostaw puste, aby użyć domyślnego.",
+      "calendarPlaceholder": "np. NYSE",
+      "alphaVantageApiKey": "Klucz API Alpha Vantage",
+      "alphaVantageApiKeyDescription": "Wymagany do pobierania notowań z Alpha Vantage.",
+      "alphaVantageApiKeyConfigured": "Klucz jest skonfigurowany. Wprowadź nową wartość, aby go zastąpić.",
+      "alphaVantageApiKeyPlaceholder": "Wprowadź klucz API…",
+      "alphaVantageApiKeyShow": "Pokaż klucz API",
+      "alphaVantageApiKeyHide": "Ukryj klucz API",
+      "alphaVantageRateLimit": "Limit szybkości Alpha Vantage",
+      "alphaVantageRateLimitDescription": "Liczba wywołań na minutę dozwolona w Twoim planie Alpha Vantage."
+    }
   }
 }

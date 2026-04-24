@@ -27,7 +27,8 @@
     "changeLogo": "Logo wijzigen",
     "retire": "Rekening archiveren",
     "reactivateAccount": "Rekening heractiveren",
-    "fetchLogo": "Logo ophalen"
+    "fetchLogo": "Logo ophalen",
+    "changeReferenceAccount": "Referentierekening wijzigen"
   },
   "menu": {
     "stockSplit": "Aandelensplitsing…",
@@ -76,13 +77,17 @@
     "newDepositAccount": "Nieuwe geldrekening",
     "depositAccountName": "Naam geldrekening",
     "depositNamePlaceholder": "bijv. Mijn betaalrekening",
-    "depositCurrency": "Valuta"
+    "depositCurrency": "Valuta",
+    "changeReferenceAccountTitle": "Referentie-depositorekening wijzigen",
+    "changeReferenceAccountDescription": "Kies de standaard-kasrekening voor deze effectenrekening. Alleen rekeningen in {{currency}} worden weergegeven.",
+    "newDepositCurrencyNote": "De nieuwe depositorekening wordt aangemaakt in {{currency}}."
   },
   "toasts": {
     "depositCreated": "Geldrekening aangemaakt",
     "securitiesCreated": "Effectenrekening aangemaakt",
     "errorCreating": "Fout bij aanmaken van rekening",
-    "duplicateName": "Er bestaat al een rekening met deze naam in deze portefeuille."
+    "duplicateName": "Er bestaat al een rekening met deze naam in deze portefeuille.",
+    "referenceUpdated": "Referentierekening bijgewerkt"
   },
   "clickToChangeLogo": "Klik om logo te wijzigen",
   "hub": {

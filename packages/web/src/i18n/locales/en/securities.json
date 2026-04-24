@@ -13,6 +13,8 @@
     "edit": "Edit",
     "updatePrices": "Update All Prices",
     "updating": "Updating…",
+    "refreshQuote": "Refresh Quote",
+    "refreshing": "Refreshing…",
     "addInstrument": "+ Add Instrument",
     "delete": "Delete"
   },
@@ -144,6 +146,9 @@
     "performance": "Performance",
     "priceHistory": "Price History",
     "transactions": "Transactions",
+    "taxonomies": "Taxonomies",
+    "notClassified": "Not yet classified.",
+    "classify": "Classify →",
     "noTransactions": "No transactions for this security",
     "noPrices": "No price history available",
     "configureFeed": "Configure price feed →",

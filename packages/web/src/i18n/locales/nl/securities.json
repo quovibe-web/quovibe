@@ -13,6 +13,8 @@
     "edit": "Bewerken",
     "updatePrices": "Alle koersen bijwerken",
     "updating": "Bijwerken…",
+    "refreshQuote": "Koers vernieuwen",
+    "refreshing": "Bijwerken…",
     "addInstrument": "+ Instrument toevoegen",
     "delete": "Verwijderen"
   },
@@ -144,6 +146,9 @@
     "performance": "Rendement",
     "priceHistory": "Koersverloop",
     "transactions": "Transacties",
+    "taxonomies": "Taxonomieën",
+    "notClassified": "Nog niet geclassificeerd.",
+    "classify": "Classificeren →",
     "noTransactions": "Geen transacties voor dit instrument",
     "noPrices": "Geen koershistorie beschikbaar",
     "configureFeed": "Prijsfeed configureren →",

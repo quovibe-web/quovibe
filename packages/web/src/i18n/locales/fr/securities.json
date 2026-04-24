@@ -13,6 +13,8 @@
     "edit": "Modifier",
     "updatePrices": "Mettre à jour tous les cours",
     "updating": "Mise à jour…",
+    "refreshQuote": "Actualiser le cours",
+    "refreshing": "Actualisation…",
     "addInstrument": "+ Ajouter un instrument",
     "delete": "Supprimer"
   },
@@ -144,6 +146,9 @@
     "performance": "Performance",
     "priceHistory": "Historique des cours",
     "transactions": "Transactions",
+    "taxonomies": "Taxonomies",
+    "notClassified": "Pas encore classé.",
+    "classify": "Classer →",
     "noTransactions": "Aucune transaction pour cet instrument",
     "noPrices": "Aucun historique de cours disponible",
     "configureFeed": "Configurer le flux de prix →",

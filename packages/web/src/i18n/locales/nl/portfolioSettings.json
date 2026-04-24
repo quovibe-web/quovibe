@@ -23,5 +23,30 @@
     "confirm": "Delete",
     "success": "Portfolio deleted.",
     "error": "Delete failed: {{msg}}"
+  },
+  "data": {
+    "sections": {
+      "accounting": "Boekhouding",
+      "priceFeeds": "Koersbronnen"
+    },
+    "fields": {
+      "costMethod": "Kostenmethode",
+      "costMethodDescription": "Hoe de kostenbasis van effecten wordt berekend.",
+      "costMethodFifo": "FIFO",
+      "costMethodMovingAverage": "Voortschrijdend gemiddelde",
+      "currency": "Basisvaluta",
+      "currencyDescription": "Alle waarden worden naar deze valuta omgerekend voor portefeuille-totalen.",
+      "calendar": "Kalender",
+      "calendarDescription": "Identifier van de beurskalender (bv. NYSE, XETR). Leeg laten voor de standaard.",
+      "calendarPlaceholder": "bv. NYSE",
+      "alphaVantageApiKey": "Alpha Vantage API-sleutel",
+      "alphaVantageApiKeyDescription": "Nodig om koersen op te halen uit Alpha Vantage.",
+      "alphaVantageApiKeyConfigured": "Er is een sleutel geconfigureerd. Voer een nieuwe waarde in om deze te vervangen.",
+      "alphaVantageApiKeyPlaceholder": "API-sleutel invoeren…",
+      "alphaVantageApiKeyShow": "API-sleutel tonen",
+      "alphaVantageApiKeyHide": "API-sleutel verbergen",
+      "alphaVantageRateLimit": "Alpha Vantage rate limit",
+      "alphaVantageRateLimitDescription": "Oproepen per minuut die je Alpha Vantage-abonnement toestaat."
+    }
   }
 }

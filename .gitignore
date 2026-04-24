@@ -83,6 +83,7 @@ docs/pp-verified/
 
 # Development session log — internal only
 docs/CHANGELOG-SESSIONS.md
+.cache-diff.txt
 
 # Engine governance rules — internal Claude Code instructions, never published
 # (references pp-reference docs which are also gitignored)

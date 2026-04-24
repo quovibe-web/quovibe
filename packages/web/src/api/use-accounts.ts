@@ -156,8 +156,14 @@ export function useUpdateAccount() {
   const api = useScopedApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { name?: string } }) =>
-      api.fetch(`/api/accounts/${id}`, {
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { name?: string; referenceAccountId?: string; isRetired?: boolean };
+    }) =>
+      api.fetch<AccountListItem>(`/api/accounts/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),

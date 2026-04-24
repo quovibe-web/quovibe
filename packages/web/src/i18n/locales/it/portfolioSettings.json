@@ -23,5 +23,30 @@
     "confirm": "Elimina",
     "success": "Portafoglio eliminato.",
     "error": "Eliminazione fallita: {{msg}}"
+  },
+  "data": {
+    "sections": {
+      "accounting": "Contabilità",
+      "priceFeeds": "Fonti prezzi"
+    },
+    "fields": {
+      "costMethod": "Metodo di costo",
+      "costMethodDescription": "Come viene calcolato il costo base dei titoli.",
+      "costMethodFifo": "FIFO",
+      "costMethodMovingAverage": "Media mobile",
+      "currency": "Valuta di base",
+      "currencyDescription": "Tutti i valori vengono convertiti in questa valuta per i totali di portafoglio.",
+      "calendar": "Calendario",
+      "calendarDescription": "Identificativo del calendario di borsa (es. NYSE, XETR). Lasciare vuoto per il default.",
+      "calendarPlaceholder": "es. NYSE",
+      "alphaVantageApiKey": "Chiave API Alpha Vantage",
+      "alphaVantageApiKeyDescription": "Necessaria per recuperare quotazioni da Alpha Vantage.",
+      "alphaVantageApiKeyConfigured": "Una chiave è configurata. Inserisci un nuovo valore per sostituirla.",
+      "alphaVantageApiKeyPlaceholder": "Inserisci la chiave API…",
+      "alphaVantageApiKeyShow": "Mostra chiave API",
+      "alphaVantageApiKeyHide": "Nascondi chiave API",
+      "alphaVantageRateLimit": "Limite di velocità Alpha Vantage",
+      "alphaVantageRateLimitDescription": "Chiamate al minuto consentite dal tuo piano Alpha Vantage."
+    }
   }
 }

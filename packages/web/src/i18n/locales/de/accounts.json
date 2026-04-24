@@ -27,7 +27,8 @@
     "changeLogo": "Logo ändern",
     "retire": "Konto archivieren",
     "reactivateAccount": "Konto reaktivieren",
-    "fetchLogo": "Logo abrufen"
+    "fetchLogo": "Logo abrufen",
+    "changeReferenceAccount": "Referenzkonto ändern"
   },
   "menu": {
     "stockSplit": "Aktiensplit…",
@@ -76,13 +77,17 @@
     "newDepositAccount": "Neues Verrechnungskonto",
     "depositAccountName": "Name Verrechnungskonto",
     "depositNamePlaceholder": "z.B. Mein Girokonto",
-    "depositCurrency": "Währung"
+    "depositCurrency": "Währung",
+    "changeReferenceAccountTitle": "Referenz-Verrechnungskonto ändern",
+    "changeReferenceAccountDescription": "Wählen Sie das Verrechnungskonto, das als Standard-Gegenbuchung für dieses Depot dient. Nur Konten in {{currency}} werden angezeigt.",
+    "newDepositCurrencyNote": "Das neue Verrechnungskonto wird in {{currency}} erstellt."
   },
   "toasts": {
     "depositCreated": "Verrechnungskonto erstellt",
     "securitiesCreated": "Depot erstellt",
     "errorCreating": "Fehler beim Erstellen des Kontos",
-    "duplicateName": "Ein Konto mit diesem Namen existiert bereits in diesem Portfolio."
+    "duplicateName": "Ein Konto mit diesem Namen existiert bereits in diesem Portfolio.",
+    "referenceUpdated": "Referenzkonto aktualisiert"
   },
   "clickToChangeLogo": "Klicken um Logo zu ändern",
   "hub": {

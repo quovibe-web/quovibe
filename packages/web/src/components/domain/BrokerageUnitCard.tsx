@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 import { formatPercentage, formatCurrency } from '@/lib/formatters';
 import { useBaseCurrency } from '@/hooks/use-base-currency';
 import { usePrivacy } from '@/context/privacy-context';
+import { ChangeReferenceAccountDialog } from '@/components/domain/ChangeReferenceAccountDialog';
 
 interface BrokerageUnitCardProps {
   unit: BrokerageUnit;
@@ -53,6 +54,7 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: Brokerag
   const baseCurrency = useBaseCurrency();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [renameOpen, setRenameOpen] = useState(false);
+  const [changeRefOpen, setChangeRefOpen] = useState(false);
 
   const [showDomainPrompt, setShowDomainPrompt] = useState(false);
   const [domainInput, setDomainInput] = useState('');
@@ -192,6 +194,12 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: Brokerag
               <DropdownMenuItem onSelect={() => setShowDomainPrompt(prev => !prev)}>
                 {t('actions.fetchLogo')}
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(e) => { e.stopPropagation(); setChangeRefOpen(true); }}
+                disabled={portfolio.isRetired}
+              >
+                {t('actions.changeReferenceAccount')}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={handleRetire}>
                 {portfolio.isRetired ? t('actions.reactivateAccount') : t('actions.retire')}
@@ -252,6 +260,16 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: Brokerag
           );
         })()}
       </div>
+
+      {deposit && (
+        <ChangeReferenceAccountDialog
+          open={changeRefOpen}
+          onOpenChange={setChangeRefOpen}
+          securitiesAccountId={portfolio.id}
+          currentReferenceAccountId={deposit.id}
+          currency={currency}
+        />
+      )}
 
       {/* Rename dialog */}
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>

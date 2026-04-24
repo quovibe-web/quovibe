@@ -23,5 +23,30 @@
     "confirm": "Delete",
     "success": "Portfolio deleted.",
     "error": "Delete failed: {{msg}}"
+  },
+  "data": {
+    "sections": {
+      "accounting": "Contabilidade",
+      "priceFeeds": "Fontes de preços"
+    },
+    "fields": {
+      "costMethod": "Método de custo",
+      "costMethodDescription": "Como o custo base dos títulos é calculado.",
+      "costMethodFifo": "FIFO",
+      "costMethodMovingAverage": "Média móvel",
+      "currency": "Moeda base",
+      "currencyDescription": "Todos os valores são convertidos para esta moeda nos totais da carteira.",
+      "calendar": "Calendário",
+      "calendarDescription": "Identificador do calendário de bolsa (ex. NYSE, XETR). Deixe em branco para o valor por defeito.",
+      "calendarPlaceholder": "ex. NYSE",
+      "alphaVantageApiKey": "Chave API Alpha Vantage",
+      "alphaVantageApiKeyDescription": "Necessária para obter cotações do Alpha Vantage.",
+      "alphaVantageApiKeyConfigured": "Existe uma chave configurada. Insira um novo valor para a substituir.",
+      "alphaVantageApiKeyPlaceholder": "Insira a chave API…",
+      "alphaVantageApiKeyShow": "Mostrar chave API",
+      "alphaVantageApiKeyHide": "Ocultar chave API",
+      "alphaVantageRateLimit": "Limite de taxa Alpha Vantage",
+      "alphaVantageRateLimitDescription": "Chamadas por minuto permitidas pelo seu plano Alpha Vantage."
+    }
   }
 }

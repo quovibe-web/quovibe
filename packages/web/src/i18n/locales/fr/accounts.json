@@ -27,7 +27,8 @@
     "changeLogo": "Changer le logo",
     "retire": "Archiver le compte",
     "reactivateAccount": "Réactiver le compte",
-    "fetchLogo": "Récupérer le logo"
+    "fetchLogo": "Récupérer le logo",
+    "changeReferenceAccount": "Changer le compte de référence"
   },
   "menu": {
     "stockSplit": "Division d'actions…",
@@ -76,13 +77,17 @@
     "newDepositAccount": "Nouveau compte espèces",
     "depositAccountName": "Nom du compte espèces",
     "depositNamePlaceholder": "ex. Mon compte courant",
-    "depositCurrency": "Devise"
+    "depositCurrency": "Devise",
+    "changeReferenceAccountTitle": "Changer le compte de dépôt de référence",
+    "changeReferenceAccountDescription": "Choisissez le compte espèces par défaut de ce compte-titres. Seuls les comptes en {{currency}} sont listés.",
+    "newDepositCurrencyNote": "Le nouveau compte de dépôt sera créé en {{currency}}."
   },
   "toasts": {
     "depositCreated": "Compte espèces créé",
     "securitiesCreated": "Compte-titres créé",
     "errorCreating": "Erreur lors de la création du compte",
-    "duplicateName": "Un compte portant ce nom existe déjà dans ce portefeuille."
+    "duplicateName": "Un compte portant ce nom existe déjà dans ce portefeuille.",
+    "referenceUpdated": "Compte de référence mis à jour"
   },
   "clickToChangeLogo": "Cliquer pour changer le logo",
   "hub": {

@@ -27,7 +27,8 @@
     "changeLogo": "Zmień logo",
     "retire": "Archiwizuj konto",
     "reactivateAccount": "Reaktywuj konto",
-    "fetchLogo": "Pobierz logo"
+    "fetchLogo": "Pobierz logo",
+    "changeReferenceAccount": "Zmień konto referencyjne"
   },
   "menu": {
     "stockSplit": "Podział akcji…",
@@ -76,13 +77,17 @@
     "newDepositAccount": "Nowy rachunek gotówkowy",
     "depositAccountName": "Nazwa rachunku gotówkowego",
     "depositNamePlaceholder": "np. Moje konto bieżące",
-    "depositCurrency": "Waluta"
+    "depositCurrency": "Waluta",
+    "changeReferenceAccountTitle": "Zmień referencyjne konto gotówkowe",
+    "changeReferenceAccountDescription": "Wybierz domyślne konto gotówkowe dla tego konta papierów wartościowych. Wyświetlane są tylko konta w walucie {{currency}}.",
+    "newDepositCurrencyNote": "Nowe konto gotówkowe zostanie utworzone w walucie {{currency}}."
   },
   "toasts": {
     "depositCreated": "Rachunek gotówkowy utworzony",
     "securitiesCreated": "Rachunek papierów wartościowych utworzony",
     "errorCreating": "Błąd podczas tworzenia konta",
-    "duplicateName": "Konto o tej nazwie już istnieje w tym portfelu."
+    "duplicateName": "Konto o tej nazwie już istnieje w tym portfelu.",
+    "referenceUpdated": "Konto referencyjne zaktualizowane"
   },
   "clickToChangeLogo": "Kliknij aby zmienić logo",
   "hub": {

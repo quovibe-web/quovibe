@@ -1,22 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { useTaxonomies } from '@/api/use-taxonomies';
 import { useTaxonomyTree } from '@/api/use-taxonomy-tree';
-import type { TaxonomyAssignment, TaxonomyTreeCategory } from '@/api/types';
+import type { TaxonomyAssignment } from '@/api/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SectionHeader } from './SectionHeader';
 import type { CompletenessStatus } from '@/lib/security-completeness';
-
-function flattenCategories(cats: TaxonomyTreeCategory[], depth = 0): { id: string; label: string }[] {
-  const result: { id: string; label: string }[] = [];
-  for (const cat of cats) {
-    result.push({ id: cat.id, label: '\u00a0\u00a0'.repeat(depth) + cat.name });
-    result.push(...flattenCategories(cat.children, depth + 1));
-  }
-  return result;
-}
+import { flattenCategories } from '@/lib/taxonomy-flatten';
 
 function TaxonomyGroup({
   taxonomyId, taxonomyName, assignments, onChange,
@@ -82,7 +74,7 @@ function TaxonomyGroup({
               >
                 <option value="">{t('taxonomies.notAssigned')}</option>
                 {flatCats.map(c => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
+                  <option key={c.id} value={c.id}>{'  '.repeat(c.depth) + c.name}</option>
                 ))}
               </select>
               <Input

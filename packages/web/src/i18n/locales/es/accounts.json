@@ -27,7 +27,8 @@
     "changeLogo": "Cambiar logo",
     "retire": "Archivar cuenta",
     "reactivateAccount": "Reactivar cuenta",
-    "fetchLogo": "Obtener logo"
+    "fetchLogo": "Obtener logo",
+    "changeReferenceAccount": "Cambiar cuenta de referencia"
   },
   "menu": {
     "stockSplit": "División de acciones…",
@@ -76,13 +77,17 @@
     "newDepositAccount": "Nueva cuenta de efectivo",
     "depositAccountName": "Nombre de cuenta de efectivo",
     "depositNamePlaceholder": "ej. Mi cuenta corriente",
-    "depositCurrency": "Moneda"
+    "depositCurrency": "Moneda",
+    "changeReferenceAccountTitle": "Cambiar cuenta de depósito de referencia",
+    "changeReferenceAccountDescription": "Elige la cuenta de efectivo predeterminada para esta cuenta de valores. Solo se listan cuentas en {{currency}}.",
+    "newDepositCurrencyNote": "La nueva cuenta de depósito se creará en {{currency}}."
   },
   "toasts": {
     "depositCreated": "Cuenta de efectivo creada",
     "securitiesCreated": "Cuenta de valores creada",
     "errorCreating": "Error al crear la cuenta",
-    "duplicateName": "Ya existe una cuenta con este nombre en esta cartera."
+    "duplicateName": "Ya existe una cuenta con este nombre en esta cartera.",
+    "referenceUpdated": "Cuenta de referencia actualizada"
   },
   "clickToChangeLogo": "Haga clic para cambiar el logo",
   "hub": {

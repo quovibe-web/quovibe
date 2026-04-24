@@ -31,6 +31,8 @@ import { cn, txTypeKey } from '@/lib/utils';
 import { StockSplitDialog } from '@/components/domain/StockSplitDialog';
 import { CorporateEventDialog } from '@/components/domain/CorporateEventDialog';
 import { AccountDetailTabs } from '@/components/domain/AccountDetailTabs';
+import { ChangeReferenceAccountDialog } from '@/components/domain/ChangeReferenceAccountDialog';
+import { Pencil } from 'lucide-react';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
 import {
   Select,
@@ -64,6 +66,7 @@ export default function AccountDetail() {
   const [splitOpen, setSplitOpen] = useState(false);
   const [eventOpen, setEventOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [changeRefOpen, setChangeRefOpen] = useState(false);
   const [newSheetOpen, setNewSheetOpen] = useState(false);
   const [newTxType, setNewTxType] = useState<TransactionType>(TransactionType.BUY);
   const newTxFormRef = useRef<HTMLFormElement>(null);
@@ -254,9 +257,16 @@ export default function AccountDetail() {
               {
                 label: t('detail.referenceAccount'),
                 value: (
-                  <span className="text-sm font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setChangeRefOpen(true)}
+                    disabled={account.isRetired}
+                    className="inline-flex items-center gap-1 text-sm font-semibold hover:text-primary disabled:cursor-not-allowed disabled:hover:text-foreground"
+                    aria-label={t('actions.changeReferenceAccount')}
+                  >
                     {depositAccount?.name ?? account.referenceAccountId}
-                  </span>
+                    {!account.isRetired && <Pencil className="h-3 w-3 opacity-60" />}
+                  </button>
                 ),
               },
             ]}
@@ -292,6 +302,15 @@ export default function AccountDetail() {
       </AlertDialog>
       <StockSplitDialog open={splitOpen} onOpenChange={setSplitOpen} />
       <CorporateEventDialog open={eventOpen} onOpenChange={setEventOpen} />
+      {isPortfolio && account.referenceAccountId && (
+        <ChangeReferenceAccountDialog
+          open={changeRefOpen}
+          onOpenChange={setChangeRefOpen}
+          securitiesAccountId={account.id}
+          currentReferenceAccountId={account.referenceAccountId}
+          currency={account.currency ?? depositAccount?.currency ?? 'EUR'}
+        />
+      )}
       {/* New Transaction Sheet */}
       <Sheet open={newSheetOpen} onOpenChange={setNewSheetOpen}>
         <SheetContent side="right" className="sm:max-w-lg w-full flex flex-col">
