@@ -371,7 +371,7 @@ const fetchSecurityPricesHandler: RequestHandler = async (req, res) => {
   }
 
   if (!row.feed) {
-    res.status(400).json({ error: 'Security has no feed configured' });
+    res.status(400).json({ error: 'SECURITY_NO_FEED_CONFIGURED' });
     return;
   }
 

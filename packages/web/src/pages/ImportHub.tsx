@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { ImportDropzone } from '@/components/ImportDropzone';
 import { useCreatePortfolio, type PortfolioRegistryEntry } from '@/api/use-portfolios';
 import { ApiError } from '@/api/fetch';
+import { resolveErrorMessage } from '@/api/query-client';
 import { cn } from '@/lib/utils';
 import { sniffLikelyXml } from '@quovibe/shared';
 
@@ -113,20 +114,18 @@ export default function ImportHub() {
         onSuccess: (r: { entry: PortfolioRegistryEntry }) =>
           navigate(`/p/${r.entry.id}/dashboard`),
         onError: (err) => {
-          // Prefer the structured ApiError code (post-fetch.ts refactor). Fall
-          // back to message-prefix matching for non-ApiError shapes so this
-          // handler remains defensive if something upstream changes.
-          const code = err instanceof ApiError ? err.code : (err as Error).message;
-          if (code === 'DUPLICATE_NAME') {
+          if (err instanceof ApiError && err.code === 'DUPLICATE_NAME') {
             toast.error(tErrors('portfolio.duplicateName', { name: attemptedName }));
             return;
           }
-          const mapped = mapServerError(code);
-          if (mapped) {
-            setPpUploadError(mapped);
-            return;
+          if (err instanceof ApiError) {
+            const mapped = mapServerError(err.code);
+            if (mapped) {
+              setPpUploadError(mapped);
+              return;
+            }
           }
-          toast.error(t('hub.errors.importFailed', { msg: code }));
+          toast.error(t('hub.errors.importFailed', { msg: resolveErrorMessage(err) }));
         },
       },
     );
@@ -142,10 +141,8 @@ export default function ImportHub() {
       {
         onSuccess: (r: { entry: PortfolioRegistryEntry }) =>
           navigate(`/p/${r.entry.id}/dashboard`),
-        onError: (err) => {
-          const code = err instanceof ApiError ? err.code : (err as Error).message;
-          toast.error(t('hub.errors.importFailed', { msg: code }));
-        },
+        onError: (err) =>
+          toast.error(t('hub.errors.importFailed', { msg: resolveErrorMessage(err) })),
       },
     );
   };

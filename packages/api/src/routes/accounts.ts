@@ -316,7 +316,7 @@ const getAccountHoldingsHandler: RequestHandler = async (req, res) => {
     return;
   }
   if (rows[0].type !== 'portfolio') {
-    res.status(400).json({ error: 'Account is not a portfolio' });
+    res.status(400).json({ error: 'ACCOUNT_NOT_PORTFOLIO' });
     return;
   }
 
@@ -337,7 +337,7 @@ const deleteAccount: RequestHandler = async (req, res) => {
 
   const txCount = getTransactionCount(sqlite, id);
   if (txCount > 0) {
-    res.status(409).json({ error: 'Account has transactions' });
+    res.status(409).json({ error: 'ACCOUNT_HAS_TRANSACTIONS' });
     return;
   }
 
@@ -346,7 +346,7 @@ const deleteAccount: RequestHandler = async (req, res) => {
     .prepare('SELECT COUNT(*) as cnt FROM account WHERE referenceAccount = ?')
     .get(id) as { cnt: number };
   if (refCount.cnt > 0) {
-    res.status(409).json({ error: 'Account is referenced by a portfolio' });
+    res.status(409).json({ error: 'ACCOUNT_REFERENCED_BY_PORTFOLIO' });
     return;
   }
 

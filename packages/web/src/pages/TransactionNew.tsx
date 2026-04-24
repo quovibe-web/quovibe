@@ -52,9 +52,6 @@ export default function TransactionNew() {
         toast.success(tCommon('toasts.transactionCreated'));
         navigate(`/p/${portfolio.id}/transactions`);
       },
-      onError: () => {
-        toast.error(tCommon('toasts.errorSaving'));
-      },
     });
   }
 

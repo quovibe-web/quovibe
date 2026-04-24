@@ -97,8 +97,7 @@ export default function AccountDetail() {
         toast.success(tCommon('toasts.accountDeleted'));
         navigate(`/p/${portfolio.id}/accounts`);
       },
-      onError: (err) => {
-        toast.error((err as Error).message ?? tCommon('toasts.errorDeleting'));
+      onError: () => {
         setShowDeleteDialog(false);
       },
     });
@@ -114,9 +113,6 @@ export default function AccountDetail() {
       onSuccess: () => {
         toast.success(tCommon('toasts.transactionCreated'));
         setNewSheetOpen(false);
-      },
-      onError: (err) => {
-        toast.error((err as Error).message ?? tCommon('toasts.errorDeleting'));
       },
     });
   }

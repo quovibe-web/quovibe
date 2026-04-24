@@ -56,6 +56,54 @@ src/
 - Mutations: always invalidate all related queries in `onSuccess`.
 - Never access `fetch` directly in pages — always use the hooks in `src/api/`.
 
+### Delete mutations — never refetch the deleted id (BUG-63 / BUG-73)
+
+Bare `invalidateQueries({queryKey: ['portfolios', pid, entity]})` is a trap on
+DELETE because query keys are hierarchical: it also matches every child key
+under the deleted id (detail, holdings, transactions, …). If any observer for
+those child keys is still mounted when the mutation lands, React Query refetches
+them against the just-deleted id → 404 → `console.error`. A delete mutation
+MUST do one of the following (pick by where the stale observer lives):
+
+1. **Optimistic-delete + `removeQueries`** — when the observer is driven by
+   list membership (e.g. `AccountsHub` does
+   `useQueries(portfolios.map(p => holdings(p.id)))`). In `onMutate`:
+   `cancelQueries` the entity prefix, `setQueryData` to drop the id from every
+   list variant, then `removeQueries` on the deleted id's prefix. The
+   dependent component re-renders with a shorter list and unmounts the child
+   observer before the DELETE completes. Snapshot + roll back in `onError`.
+   Pattern: `useDeleteAccount` in `src/api/use-accounts.ts`.
+2. **Navigate-first-mutate-second** — when the observer is keyed by a URL
+   param (e.g. `useDashboard(dashboardId)` from `useParams`). Change the URL
+   at the call site BEFORE calling `mutate`. That unmounts the observer
+   synchronously on the next render; by the time `invalidateQueries` fires
+   in `onSuccess`, nothing is subscribed to the deleted id. Pattern:
+   `deleteDashboard` in `src/pages/Dashboard.tsx`.
+
+Either way, keep `invalidateQueries` on the parent prefix in `onSuccess` as
+a consistency safety net — it reconciles the optimistic state with the
+server. What you must not do is leave the optimistic/unmount step out and
+rely on `invalidateQueries` alone; that is exactly the pattern that caused
+BUG-63 (accounts /holdings 404 on delete) and BUG-73 (dashboards detail 404
+on delete).
+
+### Server error translation
+
+The pipeline is documented at the top of `src/api/query-client.ts`. Rules:
+- API routes emit `{ error: 'SCREAMING_SNAKE_CASE' }`; free-text English error
+  strings are forbidden on user-facing routes. Every emitted code must have a
+  `server.<CODE>` key in `locales/en/errors.json` (governance test:
+  `error-translation-coverage.test.ts`). Unreachable codes (URL-tampering UUID
+  failures, generic 500 catch-alls) go in the test's `SKIP_LIST`.
+- Mutations rely on the global toast by default. DO NOT add a local
+  `onError: (err) => toast.error(...)` to a `useMutation` — that double-fires
+  with the global handler. The sanctioned escape hatch is
+  `meta: { suppressGlobalErrorToast: true }` on the mutation, used only when
+  the call site owns a better local UX (inline Alert, or a specialized toast).
+- At `suppressGlobalErrorToast` call sites, use `resolveErrorMessage(err)`
+  from `@/api/query-client` — never pass `err.message` through directly, since
+  on an `ApiError` that's the raw wire code (e.g. `DEMO_SOURCE_MISSING`).
+
 ## Routing
 - `createBrowserRouter` in `src/router.tsx`.
 - Main layout: `<Shell>` (Sidebar + TopBar + `<Outlet>`).

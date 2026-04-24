@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { useScopedApi } from './use-scoped-api';
 import type { AccountListItem, TransactionListItem, AccountHoldingsResponse } from './types';
 
 export const accountsKeys = {
+  prefix: (pid: string) => ['portfolios', pid, 'accounts'] as const,
   all: (pid: string, includeRetired = false) =>
     ['portfolios', pid, 'accounts', { includeRetired }] as const,
   detail: (pid: string, id: string) =>
@@ -67,8 +67,35 @@ export function useDeleteAccount() {
   return useMutation({
     mutationFn: (id: string) =>
       api.fetch<void>(`/api/accounts/${id}`, { method: 'DELETE' }),
+    // BUG-63 Leg 2: without optimistic removal + removeQueries, the post-DELETE
+    // invalidateQueries on the accounts prefix also invalidates the deleted id's
+    // /holdings|/transactions queries (still mounted in AccountsHub's useQueries
+    // until the list refetch lands), which refetch against the just-deleted id
+    // and emit a 404 console.error. We strip the id from every list variant
+    // here so AccountsHub's `portfolios.map(p => holdings(p.id))` shrinks on the
+    // next render (unmounting the observer), then evict all child caches under
+    // the deleted id's prefix so they can't re-subscribe.
+    onMutate: async (id: string) => {
+      const pid = api.portfolioId;
+      await qc.cancelQueries({ queryKey: accountsKeys.prefix(pid) });
+      const snapshots = qc.getQueriesData<AccountListItem[]>({ queryKey: accountsKeys.prefix(pid) });
+      for (const [key, data] of snapshots) {
+        if (Array.isArray(data)) {
+          qc.setQueryData(key, data.filter((a) => a.id !== id));
+        }
+      }
+      qc.removeQueries({ queryKey: accountsKeys.detail(pid, id) });
+      return { snapshots };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.snapshots) {
+        for (const [key, data] of ctx.snapshots) {
+          qc.setQueryData(key, data);
+        }
+      }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'accounts'] });
+      qc.invalidateQueries({ queryKey: accountsKeys.prefix(api.portfolioId) });
     },
   });
 }
@@ -96,10 +123,6 @@ export function useUpdateAccountLogo() {
       api.fetch(`/api/accounts/${id}/logo`, { method: 'PUT', body: JSON.stringify({ logoUrl }) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'accounts'] });
-    },
-    onError: (err: Error) => {
-      console.error('[useUpdateAccountLogo] failed:', err.message);
-      toast.error(`Logo upload failed: ${err.message}`);
     },
   });
 }

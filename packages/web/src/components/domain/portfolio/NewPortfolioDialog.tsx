@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCreatePortfolio } from '@/api/use-portfolios';
+import { isApiError, resolveErrorMessage } from '@/api/query-client';
 import { PortfolioSetupForm } from './PortfolioSetupForm';
 import type { SetupPortfolioInput } from '@quovibe/shared';
 
@@ -45,12 +46,11 @@ export function NewPortfolioDialog({ open, onOpenChange }: Props) {
           navigate(`/p/${r.entry.id}/dashboard`);
         },
         onError: (err) => {
-          const msg = (err as Error).message;
-          if (msg === 'DUPLICATE_NAME') {
+          if (isApiError(err) && err.code === 'DUPLICATE_NAME') {
             toast.error(tErrors('portfolio.duplicateName', { name: attemptedName }));
             return;
           }
-          toast.error(t('errors.createFailed', { msg }));
+          toast.error(t('errors.createFailed', { msg: resolveErrorMessage(err) }));
         },
       },
     );

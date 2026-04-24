@@ -124,7 +124,7 @@ const reorderHandler: RequestHandler = (req, res) => {
   const id = req.params['id'] as string;
   const { direction } = reorderTaxonomySchema.parse(req.body);
   const ok = reorderTaxonomy(sqlite, id, direction);
-  if (!ok) { res.status(400).json({ error: 'Cannot move further' }); return; }
+  if (!ok) { res.status(400).json({ error: 'TAXONOMY_MOVE_AT_BOUNDARY' }); return; }
   res.json({ ok: true });
 };
 

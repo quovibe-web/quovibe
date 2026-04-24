@@ -389,7 +389,6 @@ export default function Transactions() {
         setDeleteTarget(null);
       },
       onError: () => {
-        toast.error(tCommon('toasts.errorDeleting'));
         setDeleteTarget(null);
       },
     });
@@ -407,9 +406,6 @@ export default function Transactions() {
       onSuccess: () => {
         toast.success(tCommon('toasts.transactionCreated'));
         setNewSheetOpen(false);
-      },
-      onError: () => {
-        toast.error(tCommon('toasts.errorSaving'));
       },
     });
   }

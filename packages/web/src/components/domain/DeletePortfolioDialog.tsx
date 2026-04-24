@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useDeletePortfolio, usePortfolioRegistry } from '@/api/use-portfolios';
+import { resolveErrorMessage } from '@/api/query-client';
 import { toast } from 'sonner';
 
 export function DeletePortfolioDialog(props: {
@@ -26,7 +27,7 @@ export function DeletePortfolioDialog(props: {
         navigate(nextDefault ? `/p/${nextDefault}/dashboard` : '/welcome');
         toast.success(t('delete.success'));
       },
-      onError: (err) => toast.error(t('delete.error', { msg: (err as Error).message })),
+      onError: (err) => toast.error(t('delete.error', { msg: resolveErrorMessage(err) })),
     });
   };
   return (

@@ -8,6 +8,7 @@ import {
   usePortfolioRegistry,
   type PortfolioRegistryEntry,
 } from '@/api/use-portfolios';
+import { resolveErrorMessage } from '@/api/query-client';
 import { WelcomeBackground } from '@/components/welcome/WelcomeBackground';
 import { WelcomeTopBar } from '@/components/welcome/WelcomeTopBar';
 import { WelcomeHero } from '@/components/welcome/WelcomeHero';
@@ -49,7 +50,7 @@ export default function Welcome() {
       {
         onSuccess: (r) => navigate(`/p/${r.entry.id}/dashboard`),
         onError: (err) =>
-          toast.error(t('errors.demoFailed', { msg: (err as Error).message })),
+          toast.error(t('errors.demoFailed', { msg: resolveErrorMessage(err) })),
       },
     );
   };

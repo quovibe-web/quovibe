@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useRenamePortfolio } from '@/api/use-portfolios';
+import { isApiError, resolveErrorMessage } from '@/api/query-client';
 import { toast } from 'sonner';
 
 export function RenamePortfolioDialog(props: {
@@ -24,12 +25,11 @@ export function RenamePortfolioDialog(props: {
     rename.mutate({ id: props.id, name: attemptedName }, {
       onSuccess: () => { toast.success(t('rename.success')); props.onOpenChange(false); },
       onError: (err) => {
-        const msg = (err as Error).message;
-        if (msg === 'DUPLICATE_NAME') {
+        if (isApiError(err) && err.code === 'DUPLICATE_NAME') {
           toast.error(tErrors('portfolio.duplicateName', { name: attemptedName }));
           return;
         }
-        toast.error(t('rename.error', { msg }));
+        toast.error(t('rename.error', { msg: resolveErrorMessage(err) }));
       },
     });
   };

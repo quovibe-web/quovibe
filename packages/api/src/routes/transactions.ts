@@ -107,7 +107,7 @@ function enforceAccountTypeGuards(
       const isPortfolioRouting =
         acct.type === 'portfolio' && CASH_ONLY_ROUTED_TYPES.has(input.type);
       if (!isPortfolioRouting && !isTransactionTypeAllowed(accountType, input.type)) {
-        return 'Transaction type not allowed for this account type';
+        return 'TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE';
       }
     }
   }
@@ -126,7 +126,7 @@ function enforceAccountTypeGuards(
     if (crossAcct) {
       const crossAccountType = mapDbAccountType(crossAcct.type);
       if (!isTransactionTypeAllowed(crossAccountType, input.type)) {
-        return 'Transaction type not allowed for destination account type';
+        return 'TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION';
       }
     }
   }

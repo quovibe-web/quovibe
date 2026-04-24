@@ -14,7 +14,7 @@ import type { ApiError } from './fetch';
  * for errors constructed against the "other" copy. The shape-check keeps the
  * handler working across all of those cases.
  */
-function isApiError(err: unknown): err is ApiError {
+export function isApiError(err: unknown): err is ApiError {
   return (
     err instanceof Error &&
     (err as { name?: string }).name === 'ApiError' &&
@@ -45,7 +45,7 @@ declare module '@tanstack/react-query' {
  * `server.*`; see `.claude/rules/xml-import.md` and `.claude/rules/csv-import.md`
  * for the authoritative code list.
  */
-function translateServerCode(err: ApiError): string {
+export function translateServerCode(err: ApiError): string {
   const key = `server.${err.code}`;
   const translated = i18n.t(key, { ns: 'errors', ...(err.details ?? {}) });
   if (translated && translated !== key) return translated;
@@ -61,6 +61,19 @@ function translateServerCode(err: ApiError): string {
     return err.code;
   }
   return i18n.t('mutation.genericFailure', { ns: 'errors' });
+}
+
+/**
+ * Resolve any unknown error to a user-facing string. Use at call sites that
+ * opt out of the global MutationCache toast via `suppressGlobalErrorToast`
+ * and own a localized toast — never pass `err.message` through as-is, because
+ * on an `ApiError` `message` is the raw wire CODE (e.g. `DEMO_SOURCE_MISSING`),
+ * not a readable sentence.
+ */
+export function resolveErrorMessage(err: unknown): string {
+  if (isApiError(err)) return translateServerCode(err);
+  if (err instanceof Error) return err.message;
+  return String(err);
 }
 
 /**

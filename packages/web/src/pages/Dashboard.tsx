@@ -452,16 +452,18 @@ export default function Dashboard() {
 
   function deleteDashboard(id: string) {
     if (dashboards.length <= 1) return;
+    // BUG-73: navigate BEFORE the DELETE so WidgetShell (and its
+    // useDashboard(deletedId) observer, plus DataSeriesDialog/PeriodOverrideDialog
+    // which also subscribe to the same detail key) unmounts before the mutation's
+    // onSuccess invalidateQueries can refetch the detail query against a
+    // no-longer-existent id (→ 404 console.error).
     const nextActiveId = activeDash?.id === id
       ? dashboards.find((d) => d.id !== id)?.id
-      : activeDash?.id;
-    deleteDash.mutate(id, {
-      onSuccess: () => {
-        if (nextActiveId && portfolioId) {
-          navigate(`/p/${portfolioId}/dashboard/${nextActiveId}`);
-        }
-      },
-    });
+      : null;
+    if (nextActiveId && portfolioId) {
+      navigate(`/p/${portfolioId}/dashboard/${nextActiveId}`);
+    }
+    deleteDash.mutate(id);
   }
 
   function commitRename(id: string) {

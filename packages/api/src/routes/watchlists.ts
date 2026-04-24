@@ -225,7 +225,7 @@ const addSecurity: RequestHandler = async (req, res) => {
     .prepare('SELECT 1 FROM watchlist_security WHERE list = ? AND security = ?')
     .get(id, input.securityId);
   if (alreadyIn) {
-    res.status(409).json({ error: 'Security already in watchlist' });
+    res.status(409).json({ error: 'SECURITY_ALREADY_IN_WATCHLIST' });
     return;
   }
 

@@ -13,6 +13,7 @@ import {
 import { usePortfolioRegistry, useCreatePortfolio, useTouchPortfolio } from '@/api/use-portfolios';
 import { portfolioSectionPath } from '@/lib/portfolio-switch-route';
 import { toast } from 'sonner';
+import { resolveErrorMessage } from '@/api/query-client';
 import { Beaker, ChevronDown, Check, Plus } from 'lucide-react';
 
 export function PortfolioSwitcher() {
@@ -55,7 +56,8 @@ export function PortfolioSwitcher() {
       onSuccess: (r) => {
         navigate(`/p/${r.entry.id}/dashboard`);
       },
-      onError: (err) => toast.error(t('errors.demoFailed', { msg: (err as Error).message })),
+      onError: (err) =>
+        toast.error(t('errors.demoFailed', { msg: resolveErrorMessage(err) })),
     });
   };
 
