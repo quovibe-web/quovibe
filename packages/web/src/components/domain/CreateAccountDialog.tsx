@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -56,12 +56,9 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
   const isNewDeposit = refAccountId === NEW_DEPOSIT_SENTINEL;
 
   const { guardedOpenChange, showDialog, setShowDialog, discard } =
-    useUnsavedChangesGuard(isDirty, (nextOpen) => {
-      if (!nextOpen) reset();
-      onOpenChange(nextOpen);
-    });
+    useUnsavedChangesGuard(isDirty, onOpenChange);
 
-  function reset() {
+  const reset = useCallback(() => {
     setName('');
     setType('DEPOSIT');
     setCurrency('EUR');
@@ -71,7 +68,13 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
     setWebsite('');
     setIsDirty(false);
     setError(null);
-  }
+  }, []);
+
+  // Reset form on every close edge — covers Cancel-discard, Save-success,
+  // X button, Escape, outside-click. No reliance on which wrapper fired.
+  useEffect(() => {
+    if (!open) reset();
+  }, [open, reset]);
 
   function normalizeDomain(raw: string): string {
     return raw.trim().replace(/^https?:\/\//, '').replace(/\/$/, '').split('/')[0];
@@ -131,7 +134,6 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
         });
         toast.success(t('toasts.securitiesCreated'));
       }
-      setIsDirty(false);
       onOpenChange(false);
     } catch (err) {
       setError(

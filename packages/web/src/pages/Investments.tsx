@@ -4,7 +4,7 @@ import type { VisibilityState } from '@tanstack/react-table';
 import type { TableLayoutEntry } from '@quovibe/shared';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Briefcase, X } from 'lucide-react';
+import { Briefcase, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/shared/DataTable';
 import { TableToolbar } from '@/components/shared/TableToolbar';
@@ -243,16 +243,18 @@ export default function Investments() {
     return securities.filter(s => heldIds.has(s.id));
   }, [securities, accountFilterId, filterHoldings]);
 
+  const trimmedSearchQuery = searchQuery.trim();
+
   // Client-side search filter (name, ISIN, ticker)
   const filteredSecurities = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = trimmedSearchQuery.toLowerCase();
     if (!q) return accountFiltered;
     return accountFiltered.filter(s =>
       s.name.toLowerCase().includes(q) ||
       (s.isin && s.isin.toLowerCase().includes(q)) ||
       (s.ticker && s.ticker.toLowerCase().includes(q))
     );
-  }, [accountFiltered, searchQuery]);
+  }, [accountFiltered, trimmedSearchQuery]);
 
   // Derived data
   const statementMap = useMemo(() => {
@@ -512,12 +514,26 @@ export default function Investments() {
 
       {/* Securities table or empty state */}
       {filteredSecurities.length === 0 && !tableLoading ? (
-        <EmptyState
-          icon={Briefcase}
-          title={t('empty.title')}
-          description={t('empty.description')}
-          action={<Button onClick={() => setWizardOpen(true)}>{tSecurities('actions.addInstrument')}</Button>}
-        />
+        isEmptyPortfolio ? (
+          <EmptyState
+            icon={Briefcase}
+            title={t('empty.title')}
+            description={t('empty.description')}
+            action={<Button onClick={() => setWizardOpen(true)}>{tSecurities('actions.addInstrument')}</Button>}
+          />
+        ) : trimmedSearchQuery ? (
+          <EmptyState
+            icon={Search}
+            title={t('search.noResults', { query: trimmedSearchQuery })}
+            description={t('search.noResultsHint')}
+          />
+        ) : (
+          <EmptyState
+            icon={Briefcase}
+            title={t('empty.noMatches')}
+            description={t('empty.noMatchesHint')}
+          />
+        )
       ) : (
         <FadeIn>
           <div className={cn(isFetching && !tableLoading && 'opacity-60 transition-opacity duration-200')}>
