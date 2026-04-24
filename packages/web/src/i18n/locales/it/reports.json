@@ -221,7 +221,29 @@
     "editWeightDescription": "Imposta la percentuale di peso obiettivo",
     "assignCategoryDescription": "Seleziona una categoria da assegnare",
     "deleteError": "Errore durante l'eliminazione della tassonomia",
-    "renameDescription": "Inserisci un nuovo nome per questa tassonomia"
+    "renameDescription": "Inserisci un nuovo nome per questa tassonomia",
+    "emptyCategories": {
+      "title": "Questa tassonomia non ha ancora categorie.",
+      "cta": "Aggiungi la prima categoria"
+    },
+    "resetTargets": {
+      "button": "Ripristina obiettivi",
+      "confirmTitle": "Ripristinare gli obiettivi ai valori salvati?",
+      "confirmBody": "Questo sostituisce gli obiettivi correnti con i valori presenti al caricamento della vista.",
+      "confirmAction": "Ripristina"
+    },
+    "deleteCategoryDetailed": {
+      "title": "Eliminare \"{{name}}\"?",
+      "assignments_one": "{{count}} assegnazione verrà rimossa.",
+      "assignments_other": "{{count}} assegnazioni verranno rimosse.",
+      "subcategories_one": "{{count}} sottocategoria verrà spostata al genitore.",
+      "subcategories_other": "{{count}} sottocategorie verranno spostate al genitore.",
+      "empty": "Questa categoria è vuota."
+    },
+    "renormalize": {
+      "checkbox": "Ridistribuisci proporzionalmente i pesi degli elementi interessati",
+      "hint": "I totali esistenti rimangono ai valori pre-eliminazione."
+    }
   },
   "taxonomyUi": {
     "chartMode": {

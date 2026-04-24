@@ -221,7 +221,29 @@
     "editWeightDescription": "Defina a percentagem de peso objetivo",
     "assignCategoryDescription": "Selecione uma categoria para atribuir",
     "deleteError": "Erro ao eliminar a taxonomia",
-    "renameDescription": "Introduza um novo nome para esta taxonomia"
+    "renameDescription": "Introduza um novo nome para esta taxonomia",
+    "emptyCategories": {
+      "title": "Esta taxonomia ainda não tem categorias.",
+      "cta": "Adicionar primeira categoria"
+    },
+    "resetTargets": {
+      "button": "Repor metas",
+      "confirmTitle": "Repor as metas para os valores gravados?",
+      "confirmBody": "Substitui as metas atuais pelos valores existentes no carregamento da vista.",
+      "confirmAction": "Repor"
+    },
+    "deleteCategoryDetailed": {
+      "title": "Eliminar \"{{name}}\"?",
+      "assignments_one": "{{count}} atribuição será removida.",
+      "assignments_other": "{{count}} atribuições serão removidas.",
+      "subcategories_one": "{{count}} subcategoria será movida para o pai.",
+      "subcategories_other": "{{count}} subcategorias serão movidas para o pai.",
+      "empty": "Esta categoria está vazia."
+    },
+    "renormalize": {
+      "checkbox": "Redistribuir proporcionalmente os pesos dos itens afetados",
+      "hint": "Os totais existentes mantêm-se nos valores pré-eliminação."
+    }
   },
   "taxonomyUi": {
     "chartMode": {

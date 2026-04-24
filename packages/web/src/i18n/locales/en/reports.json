@@ -221,7 +221,29 @@
     "editWeightDescription": "Set the target weight percentage",
     "assignCategoryDescription": "Select a category to assign",
     "deleteError": "Error deleting taxonomy",
-    "renameDescription": "Enter a new name for this taxonomy"
+    "renameDescription": "Enter a new name for this taxonomy",
+    "emptyCategories": {
+      "title": "This taxonomy has no categories yet.",
+      "cta": "Add your first category"
+    },
+    "resetTargets": {
+      "button": "Reset targets",
+      "confirmTitle": "Reset targets to saved values?",
+      "confirmBody": "This replaces the current targets with the values that existed when this view was loaded.",
+      "confirmAction": "Reset"
+    },
+    "deleteCategoryDetailed": {
+      "title": "Delete \"{{name}}\"?",
+      "assignments_one": "{{count}} assignment will be removed.",
+      "assignments_other": "{{count}} assignments will be removed.",
+      "subcategories_one": "{{count}} subcategory will be moved to the parent.",
+      "subcategories_other": "{{count}} subcategories will be moved to the parent.",
+      "empty": "This category is empty."
+    },
+    "renormalize": {
+      "checkbox": "Redistribute affected items' weights proportionally",
+      "hint": "Existing totals stay at their pre-delete values."
+    }
   },
   "taxonomyUi": {
     "chartMode": {

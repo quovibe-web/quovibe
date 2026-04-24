@@ -52,10 +52,9 @@ export function getHoldingsByTaxonomy(
     .get(taxonomyId) as { root: string | null } | undefined;
   const rootCategoryUuid = taxonomyRow?.root ?? null;
 
-  // Get taxonomy categories
   const categories = sqlite
     .prepare(
-      `SELECT uuid, name, parent FROM taxonomy_category WHERE taxonomy = ?`,
+      `SELECT uuid, name, parent FROM taxonomy_category WHERE taxonomy = ? ORDER BY rank`,
     )
     .all(taxonomyId) as {
     uuid: string;

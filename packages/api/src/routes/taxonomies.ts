@@ -1,6 +1,7 @@
 import { Router, type Router as RouterType, type RequestHandler } from 'express';
-import { updateAllocationSchema } from '@quovibe/shared';
+import { updateAllocationSchema, updateAllocationsBulkSchema } from '@quovibe/shared';
 import { getSqlite } from '../helpers/request';
+import { CategoryNotInTaxonomyError, updateCategoryAllocationsBulk } from '../services/taxonomy.service';
 
 export const taxonomiesRouter: RouterType = Router();
 
@@ -176,6 +177,28 @@ const updateAllocationHandler: RequestHandler = (req, res) => {
   res.json({ ok: true, allocationSum, allocationSumOk });
 };
 
+// PUT /api/taxonomies/:id/categories/allocations — bulk restore category weights
+const bulkUpdateAllocationsHandler: RequestHandler = (req, res) => {
+  const sqlite = getSqlite(req);
+  const taxonomyId = req.params['id'] as string;
+  const { items } = updateAllocationsBulkSchema.parse(req.body);
+
+  const taxonomy = sqlite.prepare(`SELECT uuid FROM taxonomy WHERE uuid = ?`).get(taxonomyId) as { uuid: string } | undefined;
+  if (!taxonomy) { res.status(404).json({ error: 'Taxonomy not found' }); return; }
+
+  try {
+    updateCategoryAllocationsBulk(sqlite, taxonomyId, items);
+  } catch (e: unknown) {
+    if (e instanceof CategoryNotInTaxonomyError) {
+      res.status(400).json({ error: e.code, details: { id: e.offendingId } });
+      return;
+    }
+    throw e;
+  }
+  res.json({ ok: true });
+};
+
 taxonomiesRouter.get('/', listTaxonomies);
 taxonomiesRouter.get('/:id', getTaxonomy);
+taxonomiesRouter.put('/:id/categories/allocations', bulkUpdateAllocationsHandler);
 taxonomiesRouter.patch('/categories/:id/allocation', updateAllocationHandler);

@@ -72,6 +72,8 @@
     "SECURITY_NO_FEED_CONFIGURED": "This security has no price feed configured. Assign one in the security details to fetch prices.",
     "STREAM_FAILED": "The download was interrupted. Please try again.",
     "TAXONOMY_MOVE_AT_BOUNDARY": "This item is already at the edge and cannot move further in that direction.",
+    "CATEGORY_MOVE_AT_BOUNDARY": "This category is already at the edge of its siblings and cannot move further in that direction.",
+    "CATEGORY_NOT_IN_TAXONOMY": "One of the selected categories does not belong to this taxonomy.",
     "TEMP_FILE_EXPIRED": "The upload expired. Start the import again.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "This transaction type is not allowed for the destination account.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "This transaction type is not allowed for the selected account.",

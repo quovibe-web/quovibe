@@ -114,28 +114,79 @@ export function updateSecurity(
 }
 
 /**
- * Replaces all taxonomy assignments for a security in a single transaction.
+ * Diff-applies the incoming taxonomy assignments for a security in a single
+ * transaction. Preserves primary keys on untouched rows (BUG-88): rows with
+ * unchanged (taxonomyId, categoryId, weight) are skipped; changed weights
+ * UPDATE in place; new keys INSERT; removed keys DELETE (with their
+ * taxonomy_assignment_data cascade). Duplicate incoming keys are summed and
+ * capped at 10000, matching `createAssignment`'s merge semantics.
  */
 export function updateSecurityTaxonomies(
   sqlite: BetterSqlite3.Database,
   securityId: string,
   assignments: Array<{ categoryId: string; taxonomyId: string; weight?: number | null }>,
 ): void {
+  const keyOf = (taxonomyId: string, categoryId: string) => `${taxonomyId}|${categoryId}`;
+
+  const incoming = new Map<string, { taxonomyId: string; categoryId: string; weight: number }>();
+  for (const a of assignments) {
+    const key = keyOf(a.taxonomyId, a.categoryId);
+    const w = a.weight ?? 10000;
+    const existing = incoming.get(key);
+    if (existing) {
+      existing.weight = Math.min(existing.weight + w, 10000);
+    } else {
+      incoming.set(key, { taxonomyId: a.taxonomyId, categoryId: a.categoryId, weight: w });
+    }
+  }
+
   sqlite.transaction(() => {
-    sqlite.prepare(
-      `DELETE FROM taxonomy_assignment_data
-       WHERE assignment IN (SELECT _id FROM taxonomy_assignment WHERE item = ? AND item_type = 'security')`,
-    ).run(securityId);
-    sqlite.prepare(
-      `DELETE FROM taxonomy_assignment WHERE item = ? AND item_type = 'security'`,
-    ).run(securityId);
-    const insert = sqlite.prepare(
+    const existingRows = sqlite
+      .prepare(
+        `SELECT _id, taxonomy, category, weight FROM taxonomy_assignment
+         WHERE item = ? AND item_type = 'security'`,
+      ).all(securityId) as Array<{ _id: number; taxonomy: string; category: string; weight: number }>;
+
+    const existingByKey = new Map<string, { _id: number; weight: number }>();
+    for (const r of existingRows) existingByKey.set(keyOf(r.taxonomy, r.category), { _id: r._id, weight: r.weight });
+
+    const updateWeight = sqlite.prepare(`UPDATE taxonomy_assignment SET weight = ? WHERE _id = ?`);
+    const deleteData = sqlite.prepare(`DELETE FROM taxonomy_assignment_data WHERE assignment = ?`);
+    const deleteRow = sqlite.prepare(`DELETE FROM taxonomy_assignment WHERE _id = ?`);
+    const insertRow = sqlite.prepare(
       `INSERT INTO taxonomy_assignment (item, category, taxonomy, item_type, weight, rank)
        VALUES (?, ?, ?, 'security', ?, ?)`,
     );
-    for (let i = 0; i < assignments.length; i++) {
-      const a = assignments[i];
-      insert.run(securityId, a.categoryId, a.taxonomyId, a.weight ?? 10000, i);
+
+    // Per-category in-memory rank counter for new INSERTs so two same-category
+    // inserts in one transaction don't collide on MAX(rank)+1.
+    const nextRankByCategory = new Map<string, number>();
+    const getNextRank = (categoryId: string): number => {
+      let next = nextRankByCategory.get(categoryId);
+      if (next === undefined) {
+        const row = sqlite.prepare(
+          `SELECT COALESCE(MAX(rank), -1) + 1 AS next FROM taxonomy_assignment WHERE category = ?`,
+        ).get(categoryId) as { next: number };
+        next = row.next;
+      }
+      nextRankByCategory.set(categoryId, next + 1);
+      return next;
+    };
+
+    for (const [key, row] of incoming) {
+      const existing = existingByKey.get(key);
+      if (!existing) {
+        insertRow.run(securityId, row.categoryId, row.taxonomyId, row.weight, getNextRank(row.categoryId));
+      } else if (existing.weight !== row.weight) {
+        updateWeight.run(row.weight, existing._id);
+      }
+    }
+
+    for (const [key, existing] of existingByKey) {
+      if (!incoming.has(key)) {
+        deleteData.run(existing._id);
+        deleteRow.run(existing._id);
+      }
     }
   })();
 }

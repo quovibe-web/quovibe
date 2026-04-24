@@ -221,7 +221,29 @@
     "editWeightDescription": "Zielgewichtung in Prozent festlegen",
     "assignCategoryDescription": "Wählen Sie eine Kategorie zum Zuweisen",
     "deleteError": "Fehler beim Löschen der Klassifizierung",
-    "renameDescription": "Geben Sie einen neuen Namen für diese Klassifizierung ein"
+    "renameDescription": "Geben Sie einen neuen Namen für diese Klassifizierung ein",
+    "emptyCategories": {
+      "title": "Diese Klassifizierung hat noch keine Kategorien.",
+      "cta": "Erste Kategorie hinzufügen"
+    },
+    "resetTargets": {
+      "button": "Ziele zurücksetzen",
+      "confirmTitle": "Ziele auf gespeicherte Werte zurücksetzen?",
+      "confirmBody": "Ersetzt die aktuellen Ziele durch die Werte, die beim Laden der Ansicht vorhanden waren.",
+      "confirmAction": "Zurücksetzen"
+    },
+    "deleteCategoryDetailed": {
+      "title": "„{{name}}“ löschen?",
+      "assignments_one": "{{count}} Zuweisung wird entfernt.",
+      "assignments_other": "{{count}} Zuweisungen werden entfernt.",
+      "subcategories_one": "{{count}} Unterkategorie wird dem übergeordneten Element zugeordnet.",
+      "subcategories_other": "{{count}} Unterkategorien werden dem übergeordneten Element zugeordnet.",
+      "empty": "Diese Kategorie ist leer."
+    },
+    "renormalize": {
+      "checkbox": "Gewichte der betroffenen Elemente proportional neu verteilen",
+      "hint": "Bestehende Summen bleiben auf den Werten vor dem Löschen."
+    }
   },
   "taxonomyUi": {
     "chartMode": {

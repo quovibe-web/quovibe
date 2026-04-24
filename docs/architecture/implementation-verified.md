@@ -26,6 +26,8 @@ must be added here to pass the automated check.
 | `updateAssignment` | taxonomy_assignment | Verified |
 | `deleteAssignment` | taxonomy_assignment, taxonomy_assignment_data | Verified |
 | `reorderTaxonomy` | taxonomy_data | Verified |
+| `reorderCategory` | taxonomy_category | Verified (unit tests) |
+| `updateCategoryAllocationsBulk` | taxonomy_category | Verified |
 
 ## settings.service.ts
 

@@ -72,6 +72,8 @@
     "SECURITY_NO_FEED_CONFIGURED": "Questo titolo non ha una fonte di prezzi configurata. Assegnane una nei dettagli del titolo per scaricare i prezzi.",
     "STREAM_FAILED": "Il download è stato interrotto. Riprova.",
     "TAXONOMY_MOVE_AT_BOUNDARY": "Questo elemento è già al limite e non può spostarsi oltre in quella direzione.",
+    "CATEGORY_MOVE_AT_BOUNDARY": "Questa categoria è già al limite tra i fratelli e non può spostarsi oltre in quella direzione.",
+    "CATEGORY_NOT_IN_TAXONOMY": "Una delle categorie selezionate non appartiene a questa tassonomia.",
     "TEMP_FILE_EXPIRED": "Il caricamento è scaduto. Avvia nuovamente l'importazione.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "Questo tipo di transazione non è consentito per il conto di destinazione.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "Questo tipo di transazione non è consentito per il conto selezionato.",

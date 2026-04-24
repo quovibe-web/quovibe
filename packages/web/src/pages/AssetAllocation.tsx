@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -16,7 +16,7 @@ import {
   type SortingState,
   flexRender,
 } from '@tanstack/react-table';
-import { AlertTriangle, ArrowDown, ArrowUp, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, MoreHorizontal, Plus, TrendingUp, Landmark } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, MoreHorizontal, Plus, RotateCcw, TrendingUp, Landmark } from 'lucide-react';
 import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { useAllocationView, useSaveAllocationView } from '@/api/use-allocation-view';
 import type { AllocationView } from '@quovibe/shared';
@@ -61,6 +61,8 @@ import { RebalancingTable } from '@/components/domain/RebalancingTable';
 import { AssignCategoryDialog } from '@/components/domain/AssignCategoryDialog';
 import { CategoryNameDialog } from '@/components/domain/CategoryNameDialog';
 import { MoveCategoryDialog } from '@/components/domain/MoveCategoryDialog';
+import { DeleteCategoryDialog } from '@/components/domain/DeleteCategoryDialog';
+import { buildCascadeMap, findCategoryInTree, flattenCategoryWeights } from '@/lib/taxonomy-cascade';
 import { WeightEditDialog } from '@/components/domain/WeightEditDialog';
 import { ColorPaletteContent } from '@/components/domain/CategoryColorPicker';
 import { useTaxonomies } from '@/api/use-taxonomies';
@@ -68,10 +70,10 @@ import { useTaxonomyTree } from '@/api/use-taxonomy-tree';
 import { useSecurities } from '@/api/use-securities';
 import { useAccounts } from '@/api/use-accounts';
 import { useAssetAllocation } from '@/api/use-reports';
-import { useRebalancing, useUpdateAllocation } from '@/api/use-rebalancing';
+import { useRebalancing, useUpdateAllocation, useBulkUpdateAllocations } from '@/api/use-rebalancing';
 import {
   useCreateCategory, useUpdateCategory, useDeleteCategory,
-  useDeleteAssignment, useUpdateAssignment,
+  useDeleteAssignment, useUpdateAssignment, useReorderCategory,
 } from '@/api/use-taxonomy-mutations';
 import { formatPercentage } from '@/lib/formatters';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -240,6 +242,8 @@ function buildTree(
 
 function CategoryMenu({
   taxonomyId, categoryId, categoryName, categoryColor, parentId, usedColors,
+  canMoveUp = false, canMoveDown = false, canReorder = true,
+  cascade = { assignments: 0, subcategories: 0 },
 }: {
   taxonomyId: string;
   categoryId: string;
@@ -247,11 +251,16 @@ function CategoryMenu({
   categoryColor: string | null;
   parentId: string | null;
   usedColors?: Set<string>;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  canReorder?: boolean;
+  cascade?: { assignments: number; subcategories: number };
 }) {
   const { t } = useTranslation('reports');
   const createCategory = useCreateCategory(taxonomyId);
   const updateCategory = useUpdateCategory(taxonomyId);
   const deleteCategory = useDeleteCategory(taxonomyId);
+  const reorderCategory = useReorderCategory(taxonomyId);
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState(categoryName);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
@@ -317,6 +326,20 @@ function CategoryMenu({
           <DropdownMenuItem onClick={() => setMoveDialog(true)}>
             {t('taxonomyManagement.moveCategory')}
           </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={!canReorder || !canMoveUp}
+            onClick={() => reorderCategory.mutate({ catId: categoryId, direction: 'up' })}
+          >
+            <ArrowUp size={14} className="mr-2" />
+            {t('taxonomyManagement.moveUp')}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={!canReorder || !canMoveDown}
+            onClick={() => reorderCategory.mutate({ catId: categoryId, direction: 'down' })}
+          >
+            <ArrowDown size={14} className="mr-2" />
+            {t('taxonomyManagement.moveDown')}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
@@ -326,29 +349,17 @@ function CategoryMenu({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <AlertDialog open={confirmDelete} onOpenChange={(open) => { if (!open) setConfirmDelete(false); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('taxonomyManagement.deleteCategory')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('taxonomyManagement.deleteCategoryConfirm')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                deleteCategory.mutate(categoryId);
-                setConfirmDelete(false);
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={deleteCategory.isPending}
-            >
-              {deleteCategory.isPending ? t('common:deleting') : t('common:delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteCategoryDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        categoryName={categoryName}
+        cascade={cascade}
+        onConfirm={({ renormalize }) => {
+          deleteCategory.mutate({ catId: categoryId, renormalize });
+          setConfirmDelete(false);
+        }}
+        isPending={deleteCategory.isPending}
+      />
       <CategoryNameDialog
         open={addSubDialog}
         onOpenChange={setAddSubDialog}
@@ -565,7 +576,19 @@ function computeDrift(row: TreeItem): number {
   return actualPct - targetPct;
 }
 
-function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategoryId, usedColors, date }: {
+function buildSiblingStats(rows: TreeItem[] | undefined, out: Map<string, { index: number; count: number }> = new Map()): Map<string, { index: number; count: number }> {
+  if (!rows) return out;
+  const categorySiblings = rows.filter((r) => r.nodeType === 'category' && r.categoryId);
+  categorySiblings.forEach((r, i) => {
+    out.set(r.categoryId as string, { index: i, count: categorySiblings.length });
+  });
+  for (const r of rows) {
+    if (r.subRows) buildSiblingStats(r.subRows, out);
+  }
+  return out;
+}
+
+function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategoryId, usedColors, date, resetTargets }: {
   data: TreeItem[];
   taxonomyId: string;
   taxonomyName: string;
@@ -573,6 +596,7 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
   highlightedCategoryId?: string | null;
   usedColors?: Set<string>;
   date: string;
+  resetTargets?: { canReset: boolean; onReset: () => void; isPending: boolean };
 }) {
   const { t } = useTranslation('reports');
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -583,10 +607,17 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
   const ctxCreateCategory = useCreateCategory(taxonomyId);
   const ctxUpdateCategory = useUpdateCategory(taxonomyId);
   const ctxDeleteCategory = useDeleteCategory(taxonomyId);
+  const ctxReorderCategory = useReorderCategory(taxonomyId);
   const ctxDeleteAssignment = useDeleteAssignment(taxonomyId);
   const ctxUpdateAssignment = useUpdateAssignment(taxonomyId);
+
+  const siblingStats = useMemo(() => buildSiblingStats(data), [data]);
+
+  const { data: taxonomyTreeForCtx } = useTaxonomyTree(taxonomyId);
+  const cascadeMap = useMemo(() => buildCascadeMap(taxonomyTreeForCtx?.categories), [taxonomyTreeForCtx]);
   const [ctxMoveTarget, setCtxMoveTarget] = useState<{ assignmentId: number; itemId: string; itemType: 'security' | 'account'; categoryId: string } | null>(null);
   const [ctxDeleteTarget, setCtxDeleteTarget] = useState<string | null>(null);
+  const [resetConfirm, setResetConfirm] = useState(false);
   const [nameDialog, setNameDialog] = useState<{ open: boolean; mode: 'add' | 'addSub' | 'rename'; parentId?: string; catId?: string; defaultValue?: string }>({ open: false, mode: 'add' });
   const [moveCategoryTarget, setMoveCategoryTarget] = useState<{ categoryId: string; name: string; parentId: string | null } | null>(null);
   const [weightDialog, setWeightDialog] = useState<{ open: boolean; assignmentId: number; weight: number | null }>({ open: false, assignmentId: 0, weight: null });
@@ -774,6 +805,8 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
       cell: ({ row }) => {
         if (row.original.id === UNCLASSIFIED_ID || row.original.id.startsWith(UNCLASSIFIED_CHILD_PREFIX)) return null;
         if (row.original.nodeType === 'category' && row.original.categoryId) {
+          const stats = siblingStats.get(row.original.categoryId);
+          const canReorder = sorting.length === 0;
           return (
             <CategoryMenu
               taxonomyId={taxonomyId}
@@ -782,6 +815,10 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
               categoryColor={row.original.color ?? null}
               parentId={row.original.parentId ?? null}
               usedColors={usedColors}
+              canMoveUp={stats ? stats.index > 0 : false}
+              canMoveDown={stats ? stats.index < stats.count - 1 : false}
+              canReorder={canReorder}
+              cascade={cascadeMap.get(row.original.categoryId)}
             />
           );
         }
@@ -799,7 +836,7 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
         return null;
       },
     },
-  ], [t, taxonomyId, usedColors, date]);
+  ], [t, taxonomyId, usedColors, date, siblingStats, sorting, cascadeMap]);
 
   const table = useReactTable<TreeItem>({
     data,
@@ -826,16 +863,26 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
         {t('assetAllocation.collapseAll')}
       </Button>
       <div className="flex-1" />
-      {rootId && (
+      {resetTargets?.canReset && (
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          onClick={() => setNameDialog({ open: true, mode: 'add', parentId: rootId })}
+          onClick={() => setResetConfirm(true)}
+          disabled={resetTargets.isPending}
         >
-          <Plus size={14} className="mr-1" />
-          {t('taxonomyManagement.addCategory')}
+          <RotateCcw size={14} className="mr-1" />
+          {t('taxonomyManagement.resetTargets.button')}
         </Button>
       )}
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={!rootId}
+        onClick={() => rootId && setNameDialog({ open: true, mode: 'add', parentId: rootId })}
+      >
+        <Plus size={14} className="mr-1" />
+        {t('taxonomyManagement.addCategory')}
+      </Button>
     </div>
     <Table>
       <TableHeader>
@@ -901,6 +948,23 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
             </ContextMenuContent>
           </ContextMenu>
         )}
+        {rootExpanded && rootId && table.getRowModel().rows.length === 0 && (
+          <TableRow>
+            <TableCell colSpan={9}>
+              <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
+                <p className="text-sm text-muted-foreground">{t('taxonomyManagement.emptyCategories.title')}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setNameDialog({ open: true, mode: 'add', parentId: rootId })}
+                >
+                  <Plus size={14} className="mr-1" />
+                  {t('taxonomyManagement.emptyCategories.cta')}
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        )}
         {rootExpanded && table.getRowModel().rows.map((row) => {
           const isHighlighted = highlightedCategoryId != null &&
             row.original.nodeType === 'category' &&
@@ -937,6 +1001,30 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
                   <ContextMenuItem onClick={() => setMoveCategoryTarget({ categoryId: row.original.categoryId!, name: row.original.name, parentId: row.original.parentId ?? null })}>
                     {t('taxonomyManagement.moveCategory')}
                   </ContextMenuItem>
+                  {(() => {
+                    const stats = siblingStats.get(row.original.categoryId!);
+                    const canReorder = sorting.length === 0;
+                    const upEnabled = canReorder && !!stats && stats.index > 0;
+                    const downEnabled = canReorder && !!stats && stats.index < stats.count - 1;
+                    return (
+                      <>
+                        <ContextMenuItem
+                          disabled={!upEnabled}
+                          onClick={() => ctxReorderCategory.mutate({ catId: row.original.categoryId!, direction: 'up' })}
+                        >
+                          <ArrowUp size={14} className="mr-2" />
+                          {t('taxonomyManagement.moveUp')}
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          disabled={!downEnabled}
+                          onClick={() => ctxReorderCategory.mutate({ catId: row.original.categoryId!, direction: 'down' })}
+                        >
+                          <ArrowDown size={14} className="mr-2" />
+                          {t('taxonomyManagement.moveDown')}
+                        </ContextMenuItem>
+                      </>
+                    );
+                  })()}
                   <ContextMenuSeparator />
                   <ContextMenuItem
                     className="text-destructive focus:text-destructive"
@@ -997,30 +1085,43 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
       />
     )}
 
-    {/* Context menu delete confirmation */}
-    <AlertDialog open={ctxDeleteTarget !== null} onOpenChange={(open) => { if (!open) setCtxDeleteTarget(null); }}>
+    {/* Reset-targets confirmation */}
+    <AlertDialog open={resetConfirm} onOpenChange={(open) => { if (!open) setResetConfirm(false); }}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{t('taxonomyManagement.deleteCategory')}</AlertDialogTitle>
+          <AlertDialogTitle>{t('taxonomyManagement.resetTargets.confirmTitle')}</AlertDialogTitle>
           <AlertDialogDescription>
-            {t('taxonomyManagement.deleteCategoryConfirm')}
+            {t('taxonomyManagement.resetTargets.confirmBody')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
           <AlertDialogAction
             onClick={() => {
-              if (ctxDeleteTarget) ctxDeleteCategory.mutate(ctxDeleteTarget);
-              setCtxDeleteTarget(null);
+              resetTargets?.onReset();
+              setResetConfirm(false);
             }}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            disabled={ctxDeleteCategory.isPending}
+            disabled={!resetTargets || resetTargets.isPending}
           >
-            {ctxDeleteCategory.isPending ? t('common:deleting') : t('common:delete')}
+            {resetTargets?.isPending ? t('common:saving') : t('taxonomyManagement.resetTargets.confirmAction')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    {ctxDeleteTarget && (
+      <DeleteCategoryDialog
+        open
+        onOpenChange={(open) => { if (!open) setCtxDeleteTarget(null); }}
+        categoryName={findCategoryInTree(taxonomyTreeForCtx?.categories, ctxDeleteTarget)?.name ?? ''}
+        cascade={cascadeMap.get(ctxDeleteTarget) ?? { assignments: 0, subcategories: 0 }}
+        onConfirm={({ renormalize }) => {
+          ctxDeleteCategory.mutate({ catId: ctxDeleteTarget, renormalize });
+          setCtxDeleteTarget(null);
+        }}
+        isPending={ctxDeleteCategory.isPending}
+      />
+    )}
 
     {/* Category name dialog (add / add sub / rename) */}
     <CategoryNameDialog
@@ -1100,6 +1201,35 @@ function TaxonomySection({
     viewMode === 'rebalancing' ? taxonomy.id : undefined,
     date,
   );
+  const bulkAllocationMutation = useBulkUpdateAllocations(taxonomy.id, date);
+
+  // Reset-to-null on taxonomy change so the next tree load captures a fresh snapshot.
+  const [targetSnapshot, setTargetSnapshot] = useState<Map<string, number> | null>(null);
+  useEffect(() => { setTargetSnapshot(null); }, [taxonomy.id]);
+
+  const currentWeights = useMemo(
+    () => flattenCategoryWeights(taxonomyTree?.categories),
+    [taxonomyTree],
+  );
+
+  useEffect(() => {
+    if (targetSnapshot || currentWeights.size === 0) return;
+    setTargetSnapshot(new Map(currentWeights));
+  }, [currentWeights, targetSnapshot]);
+
+  const hasTargetDrift = useMemo(() => {
+    if (!targetSnapshot || currentWeights.size === 0) return false;
+    for (const [id, w] of currentWeights) {
+      if (targetSnapshot.get(id) !== w) return true;
+    }
+    return false;
+  }, [targetSnapshot, currentWeights]);
+
+  const handleResetTargets = useCallback(() => {
+    if (!targetSnapshot) return;
+    const items = Array.from(targetSnapshot.entries()).map(([id, allocation]) => ({ id, allocation }));
+    bulkAllocationMutation.mutate(items);
+  }, [targetSnapshot, bulkAllocationMutation]);
 
   const allItems = data?.items ?? [];
   const filteredItems = useMemo(() => {
@@ -1248,8 +1378,6 @@ function TaxonomySection({
           <p className="text-sm text-destructive">
             {t('assetAllocation.error')} {error instanceof Error ? error.message : t('assetAllocation.loadFailed')}
           </p>
-        ) : allItems.length === 0 ? (
-          <p className="text-muted-foreground text-sm">{t('assetAllocation.noData')}</p>
         ) : (
           <div className={cn('space-y-6', isRefetching && 'opacity-60 transition-opacity duration-200')}>
             <div className={cn(
@@ -1276,7 +1404,7 @@ function TaxonomySection({
                       {t('taxonomyManagement.totalValue')}
                     </div>
                     <div className="text-lg font-medium">
-                      <CurrencyDisplay value={parseFloat(data!.totalMarketValue)} />
+                      <CurrencyDisplay value={parseFloat(data?.totalMarketValue ?? '0')} />
                     </div>
                   </div>
                   <div className="bg-secondary rounded-lg px-4 py-3">
@@ -1314,11 +1442,16 @@ function TaxonomySection({
               highlightedCategoryId={highlightedCategoryId}
               usedColors={usedColors}
               date={date}
+              resetTargets={{
+                canReset: !!targetSnapshot && hasTargetDrift,
+                onReset: handleResetTargets,
+                isPending: bulkAllocationMutation.isPending,
+              }}
             />
             <p className="text-sm text-muted-foreground text-right">
               {t('assetAllocation.total')}{' '}
               <CurrencyDisplay
-                value={parseFloat(data!.totalMarketValue)}
+                value={parseFloat(data?.totalMarketValue ?? '0')}
                 className="font-medium text-foreground"
               />
             </p>

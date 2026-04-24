@@ -2,12 +2,12 @@ import { Router, type Router as RouterType, type RequestHandler } from 'express'
 import { getSqlite } from '../helpers/request';
 import {
   createTaxonomySchema, renameTaxonomySchema, reorderTaxonomySchema,
-  createCategorySchema, updateCategorySchema,
+  createCategorySchema, updateCategorySchema, reorderCategorySchema,
   createAssignmentSchema, updateAssignmentSchema,
 } from '@quovibe/shared';
 import {
   createTaxonomy, deleteTaxonomy, renameTaxonomy, reorderTaxonomy,
-  createCategory, updateCategory, deleteCategory,
+  createCategory, updateCategory, deleteCategory, reorderCategory,
   createAssignment, updateAssignment, deleteAssignment,
 } from '../services/taxonomy.service';
 
@@ -72,12 +72,13 @@ const updateCategoryHandler: RequestHandler = (req, res) => {
   }
 };
 
-// DELETE /api/taxonomies/:id/categories/:catId
+// DELETE /api/taxonomies/:id/categories/:catId?renormalize=true
 const deleteCategoryHandler: RequestHandler = (req, res) => {
   const sqlite = getSqlite(req);
   const taxonomyId = req.params['id'] as string;
   const catId = req.params['catId'] as string;
-  const ok = deleteCategory(sqlite, taxonomyId, catId);
+  const renormalize = req.query['renormalize'] === 'true';
+  const ok = deleteCategory(sqlite, taxonomyId, catId, { renormalize });
   if (!ok) { res.status(404).json({ error: 'Category not found' }); return; }
   res.json({ ok: true });
 };
@@ -128,11 +129,24 @@ const reorderHandler: RequestHandler = (req, res) => {
   res.json({ ok: true });
 };
 
+// PATCH /api/taxonomies/:id/categories/:catId/reorder
+const reorderCategoryHandler: RequestHandler = (req, res) => {
+  const sqlite = getSqlite(req);
+  const taxonomyId = req.params['id'] as string;
+  const catId = req.params['catId'] as string;
+  const { direction } = reorderCategorySchema.parse(req.body);
+  const ok = reorderCategory(sqlite, taxonomyId, catId, direction);
+  if (!ok) { res.status(400).json({ error: 'CATEGORY_MOVE_AT_BOUNDARY' }); return; }
+  res.json({ ok: true });
+};
+
 taxonomyWriteRouter.post('/', createHandler);
 taxonomyWriteRouter.patch('/:id/reorder', reorderHandler);
 taxonomyWriteRouter.patch('/:id', renameHandler);
 taxonomyWriteRouter.delete('/:id', deleteHandler);
 taxonomyWriteRouter.post('/:id/categories', createCategoryHandler);
+// Register :catId/reorder BEFORE the :catId PATCH so Express matches the more specific route first.
+taxonomyWriteRouter.patch('/:id/categories/:catId/reorder', reorderCategoryHandler);
 taxonomyWriteRouter.patch('/:id/categories/:catId', updateCategoryHandler);
 taxonomyWriteRouter.delete('/:id/categories/:catId', deleteCategoryHandler);
 taxonomyWriteRouter.post('/:id/assignments', createAssignmentHandler);

@@ -74,8 +74,28 @@ export function useDeleteCategory(taxonomyId: string) {
   const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (catId: string) =>
-      api.fetch<{ ok: boolean }>(`/api/taxonomies/${taxonomyId}/categories/${catId}`, { method: 'DELETE' }),
+    mutationFn: ({ catId, renormalize }: { catId: string; renormalize?: boolean }) => {
+      const qs = renormalize ? '?renormalize=true' : '';
+      return api.fetch<{ ok: boolean }>(`/api/taxonomies/${taxonomyId}/categories/${catId}${qs}`, { method: 'DELETE' });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: taxonomyKeys.tree(api.portfolioId, taxonomyId) });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'reports'] });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'rebalancing', taxonomyId] });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'securities'] });
+    },
+  });
+}
+
+export function useReorderCategory(taxonomyId: string) {
+  const api = useScopedApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ catId, direction }: { catId: string; direction: 'up' | 'down' }) =>
+      api.fetch<{ ok: boolean }>(`/api/taxonomies/${taxonomyId}/categories/${catId}/reorder`, {
+        method: 'PATCH',
+        body: JSON.stringify({ direction }),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: taxonomyKeys.tree(api.portfolioId, taxonomyId) });
       qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'reports'] });

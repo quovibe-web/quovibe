@@ -72,6 +72,8 @@
     "SECURITY_NO_FEED_CONFIGURED": "Este valor no tiene una fuente de precios configurada. Asigne una en los detalles del valor para obtener los precios.",
     "STREAM_FAILED": "La descarga se interrumpió. Inténtelo de nuevo.",
     "TAXONOMY_MOVE_AT_BOUNDARY": "Este elemento ya está en el borde y no puede moverse más en esa dirección.",
+    "CATEGORY_MOVE_AT_BOUNDARY": "Esta categoría ya está en el borde entre sus hermanas y no puede moverse más en esa dirección.",
+    "CATEGORY_NOT_IN_TAXONOMY": "Una de las categorías seleccionadas no pertenece a esta taxonomía.",
     "TEMP_FILE_EXPIRED": "La carga expiró. Reinicie la importación.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "Este tipo de transacción no está permitido para la cuenta de destino.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "Este tipo de transacción no está permitido para la cuenta seleccionada.",

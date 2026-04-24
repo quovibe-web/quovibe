@@ -72,6 +72,8 @@
     "SECURITY_NO_FEED_CONFIGURED": "Dla tego papieru wartościowego nie skonfigurowano źródła cen. Przypisz je w szczegółach papieru wartościowego, aby pobierać ceny.",
     "STREAM_FAILED": "Pobieranie zostało przerwane. Spróbuj ponownie.",
     "TAXONOMY_MOVE_AT_BOUNDARY": "Ten element jest już na skraju i nie można go przesunąć dalej w tym kierunku.",
+    "CATEGORY_MOVE_AT_BOUNDARY": "Ta kategoria jest już na skraju swoich sąsiadów i nie można jej przesunąć dalej w tym kierunku.",
+    "CATEGORY_NOT_IN_TAXONOMY": "Jedna z wybranych kategorii nie należy do tej klasyfikacji.",
     "TEMP_FILE_EXPIRED": "Przesyłanie wygasło. Rozpocznij import ponownie.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "Ten typ transakcji nie jest dozwolony dla rachunku docelowego.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "Ten typ transakcji nie jest dozwolony dla wybranego rachunku.",

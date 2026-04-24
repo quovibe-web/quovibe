@@ -221,7 +221,29 @@
     "editWeightDescription": "Définir le pourcentage de pondération cible",
     "assignCategoryDescription": "Sélectionnez une catégorie à attribuer",
     "deleteError": "Erreur lors de la suppression de la taxonomie",
-    "renameDescription": "Saisissez un nouveau nom pour cette taxonomie"
+    "renameDescription": "Saisissez un nouveau nom pour cette taxonomie",
+    "emptyCategories": {
+      "title": "Cette taxonomie n'a pas encore de catégories.",
+      "cta": "Ajouter la première catégorie"
+    },
+    "resetTargets": {
+      "button": "Réinitialiser les cibles",
+      "confirmTitle": "Réinitialiser les cibles aux valeurs enregistrées ?",
+      "confirmBody": "Remplace les cibles actuelles par les valeurs présentes au chargement de la vue.",
+      "confirmAction": "Réinitialiser"
+    },
+    "deleteCategoryDetailed": {
+      "title": "Supprimer « {{name}} » ?",
+      "assignments_one": "{{count}} affectation sera supprimée.",
+      "assignments_other": "{{count}} affectations seront supprimées.",
+      "subcategories_one": "{{count}} sous-catégorie sera déplacée vers le parent.",
+      "subcategories_other": "{{count}} sous-catégories seront déplacées vers le parent.",
+      "empty": "Cette catégorie est vide."
+    },
+    "renormalize": {
+      "checkbox": "Redistribuer proportionnellement les poids des éléments concernés",
+      "hint": "Les totaux existants restent aux valeurs d'avant suppression."
+    }
   },
   "taxonomyUi": {
     "chartMode": {

@@ -72,6 +72,8 @@
     "SECURITY_NO_FEED_CONFIGURED": "Voor dit effect is geen koersbron geconfigureerd. Wijs er een toe in de effectdetails om koersen op te halen.",
     "STREAM_FAILED": "Het downloaden is onderbroken. Probeer het opnieuw.",
     "TAXONOMY_MOVE_AT_BOUNDARY": "Dit item bevindt zich al aan de rand en kan niet verder in die richting worden verplaatst.",
+    "CATEGORY_MOVE_AT_BOUNDARY": "Deze categorie bevindt zich al aan de rand van haar broers en zussen en kan niet verder in die richting worden verplaatst.",
+    "CATEGORY_NOT_IN_TAXONOMY": "Een van de geselecteerde categorieën behoort niet tot deze classificatie.",
     "TEMP_FILE_EXPIRED": "De upload is verlopen. Start de import opnieuw.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "Dit transactietype is niet toegestaan voor de doelrekening.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "Dit transactietype is niet toegestaan voor de geselecteerde rekening.",

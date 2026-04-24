@@ -72,6 +72,8 @@
     "SECURITY_NO_FEED_CONFIGURED": "Ce titre n'a pas de flux de prix configuré. Attribuez-en un dans les détails du titre pour récupérer les prix.",
     "STREAM_FAILED": "Le téléchargement a été interrompu. Veuillez réessayer.",
     "TAXONOMY_MOVE_AT_BOUNDARY": "Cet élément est déjà en bordure et ne peut plus être déplacé dans cette direction.",
+    "CATEGORY_MOVE_AT_BOUNDARY": "Cette catégorie est déjà à la limite de ses pairs et ne peut plus être déplacée dans cette direction.",
+    "CATEGORY_NOT_IN_TAXONOMY": "L'une des catégories sélectionnées n'appartient pas à cette taxonomie.",
     "TEMP_FILE_EXPIRED": "Le chargement a expiré. Relancez l'import.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "Ce type de transaction n'est pas autorisé pour le compte de destination.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "Ce type de transaction n'est pas autorisé pour le compte sélectionné.",

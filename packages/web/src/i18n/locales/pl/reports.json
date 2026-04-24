@@ -223,7 +223,33 @@
     "editWeightDescription": "Ustaw docelowy procent wagi",
     "assignCategoryDescription": "Wybierz kategorię do przypisania",
     "deleteError": "Błąd podczas usuwania klasyfikacji",
-    "renameDescription": "Wprowadź nową nazwę dla tej klasyfikacji"
+    "renameDescription": "Wprowadź nową nazwę dla tej klasyfikacji",
+    "emptyCategories": {
+      "title": "Ta klasyfikacja nie ma jeszcze kategorii.",
+      "cta": "Dodaj pierwszą kategorię"
+    },
+    "resetTargets": {
+      "button": "Zresetuj cele",
+      "confirmTitle": "Zresetować cele do zapisanych wartości?",
+      "confirmBody": "Zastępuje bieżące cele wartościami obecnymi w momencie wczytania widoku.",
+      "confirmAction": "Zresetuj"
+    },
+    "deleteCategoryDetailed": {
+      "title": "Usunąć \"{{name}}\"?",
+      "assignments_one": "Zostanie usunięte {{count}} przypisanie.",
+      "assignments_few": "Zostaną usunięte {{count}} przypisania.",
+      "assignments_many": "Zostanie usuniętych {{count}} przypisań.",
+      "assignments_other": "Zostanie usuniętych {{count}} przypisań.",
+      "subcategories_one": "{{count}} podkategoria zostanie przeniesiona do kategorii nadrzędnej.",
+      "subcategories_few": "{{count}} podkategorie zostaną przeniesione do kategorii nadrzędnej.",
+      "subcategories_many": "{{count}} podkategorii zostanie przeniesionych do kategorii nadrzędnej.",
+      "subcategories_other": "{{count}} podkategorii zostanie przeniesionych do kategorii nadrzędnej.",
+      "empty": "Ta kategoria jest pusta."
+    },
+    "renormalize": {
+      "checkbox": "Proporcjonalnie rozłóż wagi dotkniętych elementów",
+      "hint": "Istniejące sumy pozostają na wartościach sprzed usunięcia."
+    }
   },
   "taxonomyUi": {
     "chartMode": {

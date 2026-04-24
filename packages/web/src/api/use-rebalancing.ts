@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useScopedApi } from './use-scoped-api';
+import { taxonomyKeys } from './use-taxonomies';
 import type { RebalancingResponse } from './types';
 
 export const rebalancingKeys = {
@@ -33,8 +34,26 @@ export function useUpdateAllocation(taxonomyId: string | undefined, date: string
     onSuccess: () => {
       if (taxonomyId) {
         qc.invalidateQueries({ queryKey: rebalancingKeys.detail(api.portfolioId, taxonomyId, date) });
-        // Also invalidate the taxonomy tree cache (allocation = category weight)
-        qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'taxonomies', taxonomyId] });
+        qc.invalidateQueries({ queryKey: taxonomyKeys.tree(api.portfolioId, taxonomyId) });
+      }
+    },
+  });
+}
+
+export function useBulkUpdateAllocations(taxonomyId: string | undefined, date: string) {
+  const api = useScopedApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (items: Array<{ id: string; allocation: number }>) =>
+      api.fetch<{ ok: boolean }>(`/api/taxonomies/${taxonomyId}/categories/allocations`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      }),
+    onSuccess: () => {
+      if (taxonomyId) {
+        qc.invalidateQueries({ queryKey: rebalancingKeys.detail(api.portfolioId, taxonomyId, date) });
+        qc.invalidateQueries({ queryKey: taxonomyKeys.tree(api.portfolioId, taxonomyId) });
       }
     },
   });

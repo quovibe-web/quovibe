@@ -47,8 +47,19 @@ export const reorderTaxonomySchema = z.object({
   direction: z.enum(['up', 'down']),
 });
 
+export const reorderCategorySchema = z.object({
+  direction: z.enum(['up', 'down']),
+});
+
 export const updateAllocationSchema = z.object({
   allocation: z.number().min(0).max(10000),
+});
+
+export const updateAllocationsBulkSchema = z.object({
+  items: z.array(z.object({
+    id: z.string().min(1),
+    allocation: z.number().int().min(0).max(10000),
+  })).min(1).max(500),
 });
 
 export type CreateTaxonomyInput = z.infer<typeof createTaxonomySchema>;
@@ -57,4 +68,6 @@ export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 export type CreateAssignmentInput = z.infer<typeof createAssignmentSchema>;
 export type UpdateAssignmentInput = z.infer<typeof updateAssignmentSchema>;
+export type ReorderCategoryInput = z.infer<typeof reorderCategorySchema>;
 export type UpdateAllocationInput = z.infer<typeof updateAllocationSchema>;
+export type UpdateAllocationsBulkInput = z.infer<typeof updateAllocationsBulkSchema>;
