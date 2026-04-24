@@ -11,7 +11,7 @@ export type DataSeriesValue =
   | { type: 'taxonomy'; taxonomyId: string; categoryId?: string }
   | { type: 'security'; securityId: string };
 
-export type WidgetCategory = 'performance' | 'reports' | 'chart' | 'risk' | 'info';
+export type WidgetCategory = 'performance' | 'chart' | 'risk' | 'info';
 
 /** Per-widget period override. Stores a semantic definition + resolved dates. */
 export interface ReportingPeriodOverride {

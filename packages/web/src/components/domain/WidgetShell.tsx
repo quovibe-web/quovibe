@@ -15,6 +15,16 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Check } from 'lucide-react';
 import type { WidgetDefBase } from '@quovibe/shared';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
@@ -89,6 +99,7 @@ export function WidgetShell({
   const [dataSeriesOpen, setDataSeriesOpen] = useState(false);
   const [periodDialogOpen, setPeriodDialogOpen] = useState(false);
   const [optionsDialogOpen, setOptionsDialogOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const { data: dashboard } = useDashboard(dashboardId);
   const updateDashboard = useUpdateDashboard();
 
@@ -274,7 +285,7 @@ export function WidgetShell({
                   </DropdownMenuSub>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+                <DropdownMenuItem variant="destructive" onSelect={() => setDeleteConfirmOpen(true)}>
                   {t('deleteWidget')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -322,6 +333,22 @@ export function WidgetShell({
           }}
         />
       )}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('deleteWidgetConfirm')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('deleteWidgetConfirmDesc', { name: title })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('cancel', { ns: 'common' })}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={onDelete}>
+              {t('deleteWidget')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

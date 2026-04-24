@@ -23,7 +23,6 @@ interface WidgetCatalogDialogProps {
 const CATEGORIES: Array<WidgetCategory | 'all'> = [
   'all',
   'performance',
-  'reports',
   'chart',
   'risk',
   'info',
@@ -180,7 +179,7 @@ export function WidgetCatalogDialog({ open, onClose, onAdd }: WidgetCatalogDialo
 
           {/* Right column — Preview panel */}
           <div className="hidden sm:flex flex-col h-full w-56 shrink-0 border-l border-border p-4">
-            {selectedDef ? (
+            {selectedDef && (
               <>
                 {/* Top: category + title */}
                 <div>
@@ -211,12 +210,6 @@ export function WidgetCatalogDialog({ open, onClose, onAdd }: WidgetCatalogDialo
                   {t('catalog.addToDashboard')}
                 </Button>
               </>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-sm text-muted-foreground">
-                  {t('catalog.noResults')}
-                </p>
-              </div>
             )}
           </div>
         </div>
