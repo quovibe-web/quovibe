@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useScopedApi } from '@/api/use-scoped-api';
 import { useAddWatchlistSecurity } from '@/api/use-watchlists';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -84,6 +84,9 @@ export function AddSecurityToWatchlistDialog({ open, onOpenChange, watchlistId, 
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{t('addDialog.title')}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {t('addDialog.description')}
+          </DialogDescription>
         </DialogHeader>
 
         <Input

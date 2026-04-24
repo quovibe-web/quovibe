@@ -1,10 +1,40 @@
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import type BetterSqlite3 from 'better-sqlite3';
 import { eq } from 'drizzle-orm';
+import { simpleReturn } from '@quovibe/engine';
 import { watchlists } from '../db/schema';
 import { safeDecimal } from './unit-conversion';
 
 type DrizzleDb = BetterSQLite3Database<Record<string, unknown>>;
+
+export interface WatchlistPeriodChange {
+  value: number;
+  asOf: string;
+}
+
+/**
+ * Fractional simple return from `historicalRaw` → `currentRaw`, or null when
+ * either input is missing. Raw values are ppxml2db integers (× 10^8). Delegates
+ * the decimal arithmetic to engine `simpleReturn` so the watchlist "change"
+ * semantics stay consistent with every other performance surface.
+ */
+export function computePeriodChange(
+  currentRaw: number | null,
+  historicalRaw: number | null,
+  historicalDate: string | null,
+): WatchlistPeriodChange | null {
+  if (
+    currentRaw == null ||
+    historicalRaw == null ||
+    historicalRaw === 0 ||
+    historicalDate == null
+  ) {
+    return null;
+  }
+  const current = safeDecimal(currentRaw).div(1e8);
+  const historical = safeDecimal(historicalRaw).div(1e8);
+  return { value: simpleReturn(current, historical).toNumber(), asOf: historicalDate };
+}
 
 export async function updateWatchlistName(
   db: DrizzleDb,

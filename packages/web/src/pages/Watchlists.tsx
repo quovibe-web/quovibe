@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -60,7 +60,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
-import { formatDate } from '@/lib/formatters';
+import { DataTable, type ColumnVisibilityGroup } from '@/components/shared/DataTable';
+import { textColumnMeta, currencyColumnMeta, percentColumnMeta, dateColumnMeta } from '@/lib/column-factories';
+import { formatDate, formatPercentage } from '@/lib/formatters';
+import { usePrivacy } from '@/context/privacy-context';
+import { COLORS } from '@/lib/colors';
+import type { ColumnDef, VisibilityState } from '@tanstack/react-table';
 import {
   useWatchlists,
   useCreateWatchlist,
@@ -71,6 +76,8 @@ import {
   useRemoveWatchlistSecurity,
   useAddWatchlistSecurity,
   type Watchlist,
+  type WatchlistSecurity,
+  type WatchlistPeriodChange,
 } from '@/api/use-watchlists';
 import { AddSecurityToWatchlistDialog } from '@/components/domain/AddSecurityToWatchlistDialog';
 import { AddInstrumentDialog } from '@/components/domain/AddInstrumentDialog';
@@ -257,6 +264,25 @@ function SortableTab({
 // Watchlists page
 // ---------------------------------------------------------------------------
 
+const DEFAULT_WATCHLIST_COLUMN_VISIBILITY: VisibilityState = {
+  currency: false,
+  lastQuote: false,
+};
+
+/** Signed percent cell, colored + privacy-aware. Value is a fractional return. */
+function ChangeCell({ change }: { change: WatchlistPeriodChange | null }) {
+  const { isPrivate } = usePrivacy();
+  if (!change) return <span className="text-muted-foreground">—</span>;
+  return (
+    <span
+      className="font-medium"
+      style={{ color: !isPrivate && change.value >= 0 ? COLORS.profit : COLORS.loss }}
+    >
+      {isPrivate ? '••••••' : formatPercentage(change.value)}
+    </span>
+  );
+}
+
 export default function Watchlists() {
   useDocumentTitle('Watchlists');
   const { t } = useTranslation('watchlists');
@@ -317,6 +343,147 @@ export default function Watchlists() {
 
   const canSort = sortedWatchlists.length > 1; // native-ok
 
+  // ---- Table columns + visibility groups ----
+
+  // Ref for activeWatchlist so the actions-cell onClick sees the current tab
+  // without rebuilding the entire column array on every tab switch.
+  const activeWatchlistRef = useRef(activeWatchlist);
+  activeWatchlistRef.current = activeWatchlist;
+
+  const watchlistColumns = useMemo(() => {
+    const changePeriods: Array<{ id: 'change1d' | 'change1w' | 'change1m' | 'change1y'; priority: 'high' | 'medium' }> = [
+      { id: 'change1d', priority: 'high' },
+      { id: 'change1w', priority: 'medium' },
+      { id: 'change1m', priority: 'medium' },
+      { id: 'change1y', priority: 'medium' },
+    ];
+    const changeColumns: ColumnDef<WatchlistSecurity>[] = changePeriods.map(({ id, priority }) => ({
+      id,
+      accessorFn: (row) => row[id]?.value ?? null,
+      ...percentColumnMeta({ priority }),
+      header: t(`table.${id}`),
+      size: 90,
+      minSize: 70,
+      maxSize: 140,
+      enableSorting: true,
+      cell: ({ row }) => <div className="text-right"><ChangeCell change={row.original[id]} /></div>,
+    }));
+
+    const cols: ColumnDef<WatchlistSecurity>[] = [
+      {
+        accessorKey: 'name',
+        ...textColumnMeta({ priority: 'high' }),
+        header: t('table.name'),
+        size: 260,
+        minSize: 160,
+        maxSize: 500,
+        enableSorting: true,
+        meta: { align: 'left', dataType: 'text', sticky: 'left', priority: 'high' },
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3 min-w-0">
+            <SecurityAvatar name={row.original.name} logoUrl={row.original.logoUrl} size="sm" rounded="full" />
+            <div className="min-w-0">
+              <div className="font-medium truncate">{row.original.name}</div>
+              {row.original.isin && (
+                <div className="text-xs text-muted-foreground truncate">{row.original.isin}</div>
+              )}
+            </div>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'ticker',
+        ...textColumnMeta({ priority: 'medium' }),
+        header: t('table.ticker'),
+        size: 90,
+        minSize: 70,
+        maxSize: 140,
+        enableSorting: true,
+        cell: ({ getValue }) => <span className="text-muted-foreground">{getValue<string | null>() ?? '—'}</span>,
+      },
+      {
+        id: 'price',
+        accessorFn: (row) => row.latestPrice,
+        ...currencyColumnMeta({ priority: 'high' }),
+        header: t('table.price'),
+        size: 120,
+        minSize: 90,
+        maxSize: 180,
+        enableSorting: true,
+        cell: ({ row }) => row.original.latestPrice != null
+          ? <div className="text-right"><CurrencyDisplay value={row.original.latestPrice} currency={row.original.currency} /></div>
+          : <div className="text-right text-muted-foreground">—</div>,
+      },
+      ...changeColumns,
+      {
+        accessorKey: 'currency',
+        ...textColumnMeta({ priority: 'low' }),
+        header: t('table.currency'),
+        size: 80,
+        minSize: 60,
+        maxSize: 120,
+        enableSorting: true,
+        cell: ({ getValue }) => <span className="text-muted-foreground">{getValue<string>()}</span>,
+      },
+      {
+        id: 'lastQuote',
+        accessorFn: (row) => row.latestPriceDate,
+        ...dateColumnMeta({ priority: 'low' }),
+        header: t('table.lastQuote'),
+        size: 120,
+        minSize: 90,
+        maxSize: 160,
+        enableSorting: true,
+        cell: ({ row }) => row.original.latestPriceDate
+          ? <span className="text-muted-foreground">{formatDate(row.original.latestPriceDate)}</span>
+          : <span className="text-[var(--qv-warning)] text-xs">{t('table.noQuotes')}</span>,
+      },
+      {
+        id: 'actions',
+        header: '',
+        size: 48,
+        minSize: 48,
+        maxSize: 48,
+        enableSorting: false,
+        meta: { sticky: 'right', locked: true },
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
+                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} onCloseAutoFocus={(e) => e.preventDefault()}>
+              <DropdownMenuItem onClick={() => { setEditSecurityId(row.original.id); setEditSection(undefined); }}>
+                {t('actions.editSecurity')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/p/${portfolio.id}/investments/${row.original.id}`)}>
+                {t('actions.viewDetails')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => {
+                  const wl = activeWatchlistRef.current;
+                  if (wl) removeSecurity({ watchlistId: wl.id, securityId: row.original.id });
+                }}
+              >
+                {t('actions.removeFromWatchlist')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ];
+    return cols;
+  }, [t, navigate, portfolio.id, removeSecurity]);
+
+  const watchlistColumnGroups = useMemo<ColumnVisibilityGroup[]>(() => [
+    { label: t('columnGroups.identity'), columns: ['name', 'ticker', 'currency'] },
+    { label: t('columnGroups.performance'), columns: ['price', 'change1d', 'change1w', 'change1m', 'change1y'] },
+    { label: t('columnGroups.meta'), columns: ['lastQuote'] },
+  ], [t]);
+
   // ---- Tab actions ----
 
   function switchTab(id: number) {
@@ -371,11 +538,6 @@ export default function Watchlists() {
     if (oldIdx === -1 || newIdx === -1) return;
     const reordered = arrayMove(sortedWatchlists, oldIdx, newIdx);
     reorderWatchlists(reordered.map((w) => w.id));
-  }
-
-  function handleRemoveSecurity(securityId: string) {
-    if (!activeWatchlist) return;
-    removeSecurity({ watchlistId: activeWatchlist.id, securityId });
   }
 
   function handleCreateNew() {
@@ -441,13 +603,6 @@ export default function Watchlists() {
     );
   }
 
-  function computeChange(latestPrice: number | null, previousClose: number | null): { value: number; formatted: string } | null {
-    if (latestPrice == null || previousClose == null || previousClose === 0) return null; // native-ok
-    const change = ((latestPrice - previousClose) / previousClose) * 100; // native-ok
-    const sign = change >= 0 ? '+' : ''; // native-ok
-    return { value: change, formatted: `${sign}${change.toFixed(2)}%` }; // native-ok
-  }
-
   function renderSecuritiesTable() {
     if (!activeWatchlist) return null;
 
@@ -468,118 +623,24 @@ export default function Watchlists() {
     }
 
     return (
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left">
-              <th className="py-3 px-4 font-medium text-muted-foreground">{t('table.name')}</th>
-              <th className="py-3 px-4 font-medium text-muted-foreground">{t('table.ticker')}</th>
-              <th className="py-3 px-4 font-medium text-muted-foreground text-right">{t('table.price')}</th>
-              <th className="py-3 px-4 font-medium text-muted-foreground text-right">{t('table.change')}</th>
-              <th className="py-3 px-4 font-medium text-muted-foreground">{t('table.currency')}</th>
-              <th className="py-3 px-4 font-medium text-muted-foreground">{t('table.lastQuote')}</th>
-              <th className="py-3 px-4 font-medium text-muted-foreground w-10" />
-            </tr>
-          </thead>
-          <tbody>
-            {filteredSecurities.map((sec) => {
-              const change = computeChange(sec.latestPrice, sec.previousClose);
-              return (
-                <tr
-                  key={sec.id}
-                  className="border-b border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => navigate(`/p/${portfolio.id}/investments/${sec.id}`)}
-                >
-                  {/* Name */}
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <SecurityAvatar name={sec.name} logoUrl={sec.logoUrl} size="md" rounded="full" />
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{sec.name}</div>
-                        {sec.isin && (
-                          <div className="text-xs text-muted-foreground">{sec.isin}</div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  {/* Ticker */}
-                  <td className="py-3 px-4 text-muted-foreground">
-                    {sec.ticker ?? '\u2014'}
-                  </td>
-                  {/* Price */}
-                  <td className="py-3 px-4 text-right">
-                    {sec.latestPrice != null ? (
-                      <CurrencyDisplay value={sec.latestPrice} currency={sec.currency} />
-                    ) : (
-                      <span className="text-muted-foreground">{'\u2014'}</span>
-                    )}
-                  </td>
-                  {/* Change */}
-                  <td className="py-3 px-4 text-right">
-                    {change ? (
-                      <span
-                        className={cn(
-                          'font-medium',
-                          change.value >= 0 ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]', // native-ok
-                        )}
-                      >
-                        {change.formatted}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">{'\u2014'}</span>
-                    )}
-                  </td>
-                  {/* Currency */}
-                  <td className="py-3 px-4 text-muted-foreground">
-                    {sec.currency}
-                  </td>
-                  {/* Last Quote */}
-                  <td className="py-3 px-4">
-                    {sec.latestPriceDate ? (
-                      <span className="text-muted-foreground">{formatDate(sec.latestPriceDate)}</span>
-                    ) : (
-                      <span className="text-[var(--qv-warning)] text-xs">{t('table.noQuotes')}</span>
-                    )}
-                  </td>
-                  {/* Actions */}
-                  <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                          <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => {
-                          setEditSecurityId(sec.id);
-                          setEditSection(undefined);
-                        }}>
-                          {t('actions.editSecurity')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => navigate(`/p/${portfolio.id}/investments/${sec.id}`)}>
-                          {t('actions.viewDetails')}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onSelect={() => handleRemoveSecurity(sec.id)}
-                        >
-                          {t('actions.removeFromWatchlist')}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <>
+        <DataTable
+          columns={watchlistColumns}
+          data={filteredSecurities}
+          tableId="watchlists"
+          defaultSorting={[]}
+          defaultColumnVisibility={DEFAULT_WATCHLIST_COLUMN_VISIBILITY}
+          enableColumnVisibility
+          columnVisibilityGroups={watchlistColumnGroups}
+          onRowClick={(row) => navigate(`/p/${portfolio.id}/investments/${row.id}`)}
+          enableExport
+        />
         {filteredSecurities.length === 0 && searchQuery.trim() && ( // native-ok
           <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
             {t('addDialog.noResults')}
           </div>
         )}
-      </div>
+      </>
     );
   }
 
@@ -674,8 +735,8 @@ export default function Watchlists() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>{t('tabs.new')}</DialogTitle>
-            <DialogDescription className="sr-only">
-              {t('empty.description')}
+            <DialogDescription>
+              {t('tabs.newDescription')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1">

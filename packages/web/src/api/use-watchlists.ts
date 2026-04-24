@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useScopedApi } from './use-scoped-api';
 
+export interface WatchlistPeriodChange {
+  value: number;
+  asOf: string;
+}
+
 export interface WatchlistSecurity {
   id: string;
   name: string;
@@ -11,6 +16,10 @@ export interface WatchlistSecurity {
   latestPriceDate: string | null;
   previousClose: number | null;
   logoUrl: string | null;
+  change1d: WatchlistPeriodChange | null;
+  change1w: WatchlistPeriodChange | null;
+  change1m: WatchlistPeriodChange | null;
+  change1y: WatchlistPeriodChange | null;
 }
 
 export interface Watchlist {
