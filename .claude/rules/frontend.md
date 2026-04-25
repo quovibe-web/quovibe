@@ -138,6 +138,48 @@ The pipeline is documented at the top of `src/api/query-client.ts`. Rules:
 - Form errors: inline alert() or error messages adjacent to the field — no toast.
 - Skeleton/loading: use the existing `*Skeleton` components.
 
+### Form pattern (canonical) — RHF + zodResolver + shadcn FormField
+
+Any form with more than one user-input field MUST use this stack. The
+plain-`useState` shape (manual `handleSubmit` validation, top-of-form Alert,
+no per-field error rendering, no Save-disabled gate) is the bug class that
+produced BUG-110 + BUG-115; do not re-introduce it.
+
+Required wiring:
+
+1. `useForm<Shape>({ resolver: zodResolver(schema), mode: 'onBlur',
+   reValidateMode: 'onChange', defaultValues })` — `mode: 'onBlur'` triggers
+   per-field validation as the user moves between fields; `reValidateMode`
+   clears errors as they're fixed.
+2. Wrap each field in `<FormField>/<FormItem>/<FormLabel>/<FormControl>/<FormMessage>`
+   from `@/components/ui/form` (the shadcn integration). `FormControl` injects
+   `aria-invalid` + `aria-describedby` automatically; `FormMessage` renders the
+   schema's error message under the field with `id={formMessageId}`.
+3. Submit button gates on `disabled={!form.formState.isValid || form.formState.isSubmitting}`
+   (the existing `<SubmitButton>` already supports `disabled`). Save MUST be
+   disabled while the form is invalid — do not rely on click + Zod 400 from
+   the server as the only feedback channel.
+4. Schema messages MUST be i18n keys (translated at the schema level via a
+   `t` injected at build time, OR by overriding FormMessage to call
+   `t(error.message)` at render). Either pattern is acceptable; pick one per
+   form and stick with it.
+5. For dynamic schemas (cross-field constraints like cross-currency
+   `fxRate`): build the schema with `useMemo([deps])` and route it through
+   a stable resolver that reads from a `useRef`. Sync the ref **synchronously
+   in render** (`if (ref.current !== schema) ref.current = schema;`) so RHF's
+   eager-on-mount validation pass sees the real schema; use `useEffect` only
+   to call `form.trigger()` after rebuilds.
+
+Exemplars:
+- `packages/web/src/components/domain/TransactionForm.tsx` — canonical full
+  form (12 fields, dynamic schema, FormField wrapping, Save gate).
+- `packages/web/src/components/domain/portfolio/PortfolioSetupForm.tsx` —
+  smaller form with `useFieldArray` + nested errors.
+
+Pure form-side schemas live next to the component as `*-form.schema.ts` and
+have their own vitest coverage; they are NOT in `@quovibe/shared` (which is
+wire-schema territory and must remain I/O- and view-free).
+
 ## Themes and Colors
 - Tailwind v4 with CSS custom properties in `globals.css`.
 - **Muted indigo palette** — primary is `--color-primary` (hsl 225°), accent is `--color-chart-5` (hsl 245°). Legacy cyan/violet/gradient vars and utility classes have been removed.

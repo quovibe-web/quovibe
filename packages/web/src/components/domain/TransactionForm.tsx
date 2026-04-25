@@ -1,4 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useId } from 'react';
+import { useForm, useWatch, type Resolver } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
 import { AccountAvatar } from '@/components/shared/AccountAvatar';
 import { format, parse, isValid } from 'date-fns';
@@ -11,8 +13,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -21,6 +21,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { useAccounts } from '@/api/use-accounts';
 import { useSecurities } from '@/api/use-securities';
 import { useFxRate } from '@/api/use-fx';
@@ -28,6 +36,10 @@ import { computeFxAmounts } from '@/lib/fx-utils';
 import { AddInstrumentDialog } from '@/components/domain/AddInstrumentDialog';
 import { SecurityEditor } from '@/components/domain/SecurityEditor';
 import { getDateLocale } from '@/lib/formatters';
+import {
+  buildTransactionFormSchema,
+  type TransactionFormShape,
+} from './transaction-form.schema';
 
 interface FieldConfig {
   security: 'required' | 'optional' | false;
@@ -41,7 +53,6 @@ interface FieldConfig {
   note: boolean;
 }
 
-// Transaction types that require a portfolio (securities) account
 const PORTFOLIO_ONLY_TYPES = new Set([
   TransactionType.BUY,
   TransactionType.SELL,
@@ -50,10 +61,8 @@ const PORTFOLIO_ONLY_TYPES = new Set([
   TransactionType.SECURITY_TRANSFER,
 ]);
 
-// Transaction types that use a portfolio + deposit (cash) cross-account
 const BUY_SELL_TYPES = new Set([TransactionType.BUY, TransactionType.SELL]);
 
-// Transaction types that only apply to deposit (cash) accounts
 const CASH_ONLY_TYPES = new Set([
   TransactionType.DEPOSIT,
   TransactionType.REMOVAL,
@@ -113,10 +122,39 @@ interface TransactionFormProps {
   formRef?: React.Ref<HTMLFormElement>;
 }
 
-export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, preselectedAccountId, hideSubmitButton, formRef }: TransactionFormProps) {
+function defaultFormValues(
+  type: TransactionType,
+  initialValues: Partial<TransactionFormValues> | undefined,
+  preselectedAccountId: string | undefined,
+): TransactionFormShape {
+  return {
+    type,
+    securityId: initialValues?.securityId ?? '',
+    accountId: initialValues?.accountId ?? preselectedAccountId ?? '',
+    crossAccountId: initialValues?.crossAccountId ?? '',
+    shares: initialValues?.shares ?? '',
+    amount: initialValues?.amount ?? '',
+    price: initialValues?.price ?? '',
+    fees: initialValues?.fees ?? '',
+    taxes: initialValues?.taxes ?? '',
+    fxRate: initialValues?.fxRate ?? '',
+    feesFx: initialValues?.feesFx ?? '',
+    taxesFx: initialValues?.taxesFx ?? '',
+    note: initialValues?.note ?? '',
+  };
+}
+
+export function TransactionForm({
+  type,
+  initialValues,
+  onSubmit,
+  isSubmitting,
+  preselectedAccountId,
+  hideSubmitButton,
+  formRef,
+}: TransactionFormProps) {
   const { t } = useTranslation('transactions');
   const cfg = FIELD_CONFIG[type];
-  // Per-instance prefix so two mounted TransactionForms (edit + new) never collide on element ids.
   const uid = useId();
   const fieldId = (name: string) => `${uid}-${name}`;
   const { data: accounts = [] } = useAccounts();
@@ -124,64 +162,64 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
   const [addInstrumentOpen, setAddInstrumentOpen] = useState(false);
   const [createEmptyOpen, setCreateEmptyOpen] = useState(false);
 
-  const filteredAccounts = useMemo(() => {
-    if (PORTFOLIO_ONLY_TYPES.has(type)) return accounts.filter(a => a.type === 'portfolio');
-    if (CASH_ONLY_TYPES.has(type)) return accounts.filter(a => a.type === 'account');
-    // BUG-04: TRANSFER_BETWEEN_ACCOUNTS source must be a deposit (cash) account,
-    // not a portfolio — the server rejects the portfolio case, but restricting
-    // the dropdown keeps the UI honest with the backend invariant.
-    if (type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS) return accounts.filter(a => a.type === 'account');
-    return accounts;
-  }, [accounts, type]);
-
+  // Date / time stay outside RHF — calendar popover + locale parsing is local
+  // state, not a validated form field. They are merged into the wire payload
+  // on submit.
   const [date, setDate] = useState<Date>(
-    initialValues?.date ? new Date(initialValues.date) : new Date()
+    initialValues?.date ? new Date(initialValues.date) : new Date(),
   );
   const [dateText, setDateText] = useState<string>(() =>
-    format(initialValues?.date ? new Date(initialValues.date) : new Date(), 'P', { locale: getDateLocale() })
+    format(initialValues?.date ? new Date(initialValues.date) : new Date(), 'P', { locale: getDateLocale() }),
   );
   const dateInputRef = useRef<HTMLInputElement>(null);
   const [time, setTime] = useState<string>(
     initialValues?.date && initialValues.date.length > 10
       ? initialValues.date.slice(11, 16)
-      : '00:00'
+      : '00:00',
   );
   const [calOpen, setCalOpen] = useState(false);
-  const [fields, setFields] = useState<Omit<TransactionFormValues, 'date' | 'type'>>({
-    securityId: initialValues?.securityId ?? '',
-    shares: initialValues?.shares ?? '',
-    amount: initialValues?.amount ?? '',
-    price: initialValues?.price ?? '',
-    fees: initialValues?.fees ?? '',
-    taxes: initialValues?.taxes ?? '',
-    accountId: initialValues?.accountId ?? preselectedAccountId ?? '',
-    crossAccountId: initialValues?.crossAccountId ?? '',
-    note: initialValues?.note ?? '',
+
+  const filteredAccounts = useMemo(() => {
+    if (PORTFOLIO_ONLY_TYPES.has(type)) return accounts.filter(a => a.type === 'portfolio');
+    if (CASH_ONLY_TYPES.has(type)) return accounts.filter(a => a.type === 'account');
+    // BUG-04 UI alignment: TRANSFER_BETWEEN_ACCOUNTS source is deposit, not portfolio.
+    if (type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS) return accounts.filter(a => a.type === 'account');
+    return accounts;
+  }, [accounts, type]);
+
+  // The form schema depends on isCrossCurrency, which is derived from form
+  // state — useForm's `resolver` is bound at creation, so we route through a
+  // stable resolver that reads the latest schema from a ref. The schema-rebuild
+  // useEffect below calls form.trigger() to re-validate against the new rules.
+  const schemaRef = useRef<ReturnType<typeof buildTransactionFormSchema> | null>(null);
+  const stableResolver = useMemo<Resolver<TransactionFormShape>>(
+    () => async (values, context, options) => {
+      if (!schemaRef.current) {
+        return { values, errors: {} };
+      }
+      return zodResolver(schemaRef.current)(values, context, options);
+    },
+    [],
+  );
+
+  const form = useForm<TransactionFormShape>({
+    defaultValues: defaultFormValues(type, initialValues, preselectedAccountId),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+    resolver: stableResolver,
   });
 
-  // Inline validation state: which field is invalid + localized message. Cleared on any edit.
-  type InvalidField =
-    | 'security' | 'accountId' | 'crossAccountId'
-    | 'shares' | 'price' | 'amount' | 'fees' | 'taxes'
-    | 'fxRate' | 'feesFx' | 'taxesFx';
-  const [errorField, setErrorField] = useState<InvalidField | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const watchedAccountId = useWatch({ control: form.control, name: 'accountId' }) ?? '';
+  const watchedCrossAccountId = useWatch({ control: form.control, name: 'crossAccountId' }) ?? '';
+  const watchedSecurityId = useWatch({ control: form.control, name: 'securityId' }) ?? '';
+  const watchedFxRate = useWatch({ control: form.control, name: 'fxRate' }) ?? '';
+  const watchedShares = useWatch({ control: form.control, name: 'shares' }) ?? '';
+  const watchedPrice = useWatch({ control: form.control, name: 'price' }) ?? '';
+  const watchedFees = useWatch({ control: form.control, name: 'fees' }) ?? '';
+  const watchedTaxes = useWatch({ control: form.control, name: 'taxes' }) ?? '';
+  const watchedFeesFx = useWatch({ control: form.control, name: 'feesFx' }) ?? '';
+  const watchedTaxesFx = useWatch({ control: form.control, name: 'taxesFx' }) ?? '';
 
-  function set(key: keyof typeof fields, value: string) {
-    setFields((prev) => ({ ...prev, [key]: value }));
-    if (errorField) { setErrorField(null); setErrorMessage(null); }
-  }
-
-  // Reject "-" / "-1.23" / "1e-3 parses < 0" etc. Treat empty string as not-negative.
-  function isNegative(v: string | undefined): boolean {
-    if (!v) return false;
-    const n = parseFloat(v);
-    return !isNaN(n) && n < 0;
-  }
-
-  // Cross-account dropdown: SECURITY_TRANSFER → portfolio, TRANSFER_BETWEEN_ACCOUNTS / BUY / SELL → deposit.
-  // BUG-01: for transfer types, exclude the already-selected source so the user cannot pick the same
-  // account on both sides (server also rejects this via the Zod schema).
   const filteredCrossAccounts = useMemo(() => {
     let base: typeof accounts;
     if (type === TransactionType.SECURITY_TRANSFER) base = accounts.filter(a => a.type === 'portfolio');
@@ -190,41 +228,50 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
     else base = accounts;
     if (
       (type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS || type === TransactionType.SECURITY_TRANSFER) &&
-      fields.accountId
+      watchedAccountId
     ) {
-      return base.filter(a => a.id !== fields.accountId);
+      return base.filter(a => a.id !== watchedAccountId);
     }
     return base;
-  }, [accounts, type, fields.accountId]);
+  }, [accounts, type, watchedAccountId]);
 
-  // Auto-populate crossAccountId from the portfolio's referenceAccount on BUY/SELL
-  useEffect(() => {
-    if (!BUY_SELL_TYPES.has(type)) return;
-    if (fields.crossAccountId) return; // already set
-    const portfolio = accounts.find(a => a.id === fields.accountId);
-    if (portfolio?.referenceAccountId) {
-      set('crossAccountId', portfolio.referenceAccountId);
-    }
-  }, [fields.accountId, fields.crossAccountId, accounts, type]);
-
-  // BUG-01 UX: if the user picks a source that matches the already-selected cross,
-  // clear the now-stale cross so the dropdown doesn't silently keep a value that
-  // has been filtered out of its options.
-  useEffect(() => {
-    if (type !== TransactionType.TRANSFER_BETWEEN_ACCOUNTS && type !== TransactionType.SECURITY_TRANSFER) return;
-    if (fields.accountId && fields.accountId === fields.crossAccountId) {
-      set('crossAccountId', '');
-    }
-  }, [fields.accountId, fields.crossAccountId, type]);
-
-  // Detect cross-currency: compare security currency vs cash account currency
-  const selectedSecurity = securities.find(s => s.id === fields.securityId);
-  const selectedCashAccount = filteredCrossAccounts.find(a => a.id === fields.crossAccountId);
+  const selectedSecurity = securities.find(s => s.id === watchedSecurityId);
+  const selectedCashAccount = filteredCrossAccounts.find(a => a.id === watchedCrossAccountId);
   const securityCurrency = selectedSecurity?.currency ?? null;
   const cashCurrency = selectedCashAccount?.currency ?? null;
   const isCrossCurrency = !!(securityCurrency && cashCurrency && securityCurrency !== cashCurrency);
 
-  // Fetch exchange rate when cross-currency (deposit->security convention)
+  // Schema rebuild — re-evaluated when type, isCrossCurrency, or active language
+  // changes. Save gate (`formState.isValid`) uses this resolver.
+  const formSchema = useMemo(
+    () => buildTransactionFormSchema(
+      {
+        type,
+        isCrossCurrency,
+        showsCrossAccount: cfg.crossAccountId,
+        showsAmount: cfg.amount,
+        showsShares: cfg.shares,
+        showsPrice: cfg.price,
+        showsFees: cfg.fees,
+        showsTaxes: cfg.taxes,
+      },
+      (k) => t(k),
+    ),
+    [type, isCrossCurrency, cfg, t],
+  );
+
+  // Sync schemaRef synchronously during render so the first validation pass
+  // (RHF's eager isValid computation on mount with a resolver) sees the real
+  // schema — without this, Save would briefly enable on first paint with a
+  // permissive resolver. The useEffect handles re-validation on subsequent
+  // schema changes (isCrossCurrency flip, language switch, etc.).
+  if (schemaRef.current !== formSchema) {
+    schemaRef.current = formSchema;
+  }
+  useEffect(() => {
+    void form.trigger();
+  }, [formSchema, form]);
+
   const fxDateStr = format(date, 'yyyy-MM-dd');
   const { data: fxData } = useFxRate(
     isCrossCurrency ? cashCurrency : null,
@@ -232,498 +279,461 @@ export function TransactionForm({ type, initialValues, onSubmit, isSubmitting, p
     isCrossCurrency ? fxDateStr : null,
   );
 
-  // Auto-fill fxRate from API; intentionally omits fields.fxRate from deps to avoid overwriting user edits
+  // Auto-populate crossAccountId from the portfolio's referenceAccount on BUY/SELL.
   useEffect(() => {
-    if (isCrossCurrency && fxData?.rate && !fields.fxRate) {
-      set('fxRate', fxData.rate);
+    if (!BUY_SELL_TYPES.has(type)) return;
+    if (watchedCrossAccountId) return;
+    const portfolio = accounts.find(a => a.id === watchedAccountId);
+    if (portfolio?.referenceAccountId) {
+      form.setValue('crossAccountId', portfolio.referenceAccountId, { shouldValidate: true });
+    }
+  }, [watchedAccountId, watchedCrossAccountId, accounts, type, form]);
+
+  // BUG-01 UX: clear stale crossAccountId when source changes to match it.
+  useEffect(() => {
+    if (type !== TransactionType.TRANSFER_BETWEEN_ACCOUNTS && type !== TransactionType.SECURITY_TRANSFER) return;
+    if (watchedAccountId && watchedAccountId === watchedCrossAccountId) {
+      form.setValue('crossAccountId', '', { shouldValidate: true });
+    }
+  }, [watchedAccountId, watchedCrossAccountId, type, form]);
+
+  // Auto-fill fxRate from API; intentionally omits watchedFxRate from deps to
+  // avoid clobbering user edits.
+  useEffect(() => {
+    if (isCrossCurrency && fxData?.rate && !watchedFxRate) {
+      form.setValue('fxRate', fxData.rate, { shouldValidate: true });
     }
   }, [fxData?.rate, isCrossCurrency]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Computed FX amounts
-  const fxRateVal = fields.fxRate ? parseFloat(fields.fxRate) : 0;
-  const grossSecurity = (parseFloat(fields.shares || '0') || 0) * (parseFloat(fields.price || '0') || 0);
-  const feesFxNum = parseFloat(fields.feesFx || '0') || 0;
-  const taxesFxNum = parseFloat(fields.taxesFx || '0') || 0;
+  const fxRateVal = watchedFxRate ? parseFloat(watchedFxRate) : 0;
+  const grossSecurity = (parseFloat(watchedShares || '0') || 0) * (parseFloat(watchedPrice || '0') || 0);
+  const feesFxNum = parseFloat(watchedFeesFx || '0') || 0;
+  const taxesFxNum = parseFloat(watchedTaxesFx || '0') || 0;
   const fx = computeFxAmounts({
     isCrossCurrency, fxRate: fxRateVal, grossSecurity,
     feesFx: feesFxNum, taxesFx: taxesFxNum,
-    feesDeposit: parseFloat(fields.fees || '0') || 0,
-    taxesDeposit: parseFloat(fields.taxes || '0') || 0,
+    feesDeposit: parseFloat(watchedFees || '0') || 0,
+    taxesDeposit: parseFloat(watchedTaxes || '0') || 0,
   });
 
   function handleInstrumentCreated(id: string) {
     setAddInstrumentOpen(false);
     setCreateEmptyOpen(false);
-    set('securityId', id);
+    form.setValue('securityId', id, { shouldValidate: true });
   }
 
-  function fail(field: InvalidField, key: string) {
-    setErrorField(field);
-    setErrorMessage(t(key));
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    // Required field validation
-    if (cfg.security === 'required' && !fields.securityId) { fail('security', 'validation.securityRequired'); return; }
-    if (cfg.shares && !fields.shares) { fail('shares', 'validation.sharesRequired'); return; }
-    if ((cfg.amount || cfg.price) && !fields.amount && !fields.price) {
-      fail(cfg.amount ? 'amount' : 'price', 'validation.amountRequired');
-      return;
-    }
-    if (cfg.accountId && !fields.accountId) { fail('accountId', 'validation.accountRequired'); return; }
-    if (cfg.crossAccountId && !fields.crossAccountId) { fail('crossAccountId', 'validation.targetRequired'); return; }
-
-    // BUG-10: reject negative numeric inputs on visible-for-type fields. The server already
-    // rejects these, but without client-side feedback the user saw a silent save failure.
-    if (cfg.shares && isNegative(fields.shares)) { fail('shares', 'validation.sharesMustBePositive'); return; }
-    if (cfg.price && isNegative(fields.price)) { fail('price', 'validation.priceMustBePositive'); return; }
-    if (cfg.amount && isNegative(fields.amount)) { fail('amount', 'validation.amountMustBePositive'); return; }
-    if (cfg.fees && isNegative(fields.fees)) { fail('fees', 'validation.feesMustBeNonNegative'); return; }
-    if (cfg.taxes && isNegative(fields.taxes)) { fail('taxes', 'validation.taxesMustBeNonNegative'); return; }
-    if (isCrossCurrency) {
-      if (isNegative(fields.fxRate)) { fail('fxRate', 'validation.fxRateMustBePositive'); return; }
-      if (isNegative(fields.feesFx)) { fail('feesFx', 'validation.feesMustBeNonNegative'); return; }
-      if (isNegative(fields.taxesFx)) { fail('taxesFx', 'validation.taxesMustBeNonNegative'); return; }
-    }
-
-    setErrorField(null);
-    setErrorMessage(null);
-
+  const handleFormSubmit = form.handleSubmit((values) => {
     const fxFields: Partial<TransactionFormValues> = {};
-    if (isCrossCurrency && fields.fxRate) {
-      fxFields.fxRate = fields.fxRate;
+    if (isCrossCurrency && values.fxRate) {
+      fxFields.fxRate = values.fxRate;
       fxFields.fxCurrencyCode = securityCurrency ?? undefined;
       fxFields.currencyCode = cashCurrency ?? undefined;
+      if (values.feesFx) fxFields.feesFx = values.feesFx;
+      if (values.taxesFx) fxFields.taxesFx = values.taxesFx;
     }
-
     onSubmit({
       type,
       date: format(date, 'yyyy-MM-dd') + 'T' + time,
-      ...fields,
+      securityId: values.securityId || undefined,
+      accountId: values.accountId || undefined,
+      crossAccountId: values.crossAccountId || undefined,
+      shares: values.shares,
+      amount: values.amount,
+      price: values.price,
+      fees: values.fees,
+      taxes: values.taxes,
+      note: values.note,
       ...fxFields,
     });
-  }
+  });
 
   const showSharesAndPrice = cfg.shares && cfg.price;
   const showFeesAndTaxes = cfg.fees && cfg.taxes;
+  const saveDisabled = !form.formState.isValid || !!isSubmitting;
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="space-y-3" noValidate>
-      {/* Inline validation error (BUG-14). Rendered above all fields so it is visible
-          after scroll-to-top; aria-live=polite so screen readers announce on change. */}
-      {errorMessage && (
-        <Alert variant="destructive" aria-live="polite">
-          <AlertCircle />
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Date & Time */}
-      <div className="space-y-1">
-        <Label htmlFor={fieldId('date')}>{t('form.dateTime')}</Label>
-        <div className="flex gap-2">
-          <Popover open={calOpen} onOpenChange={setCalOpen}>
-            <div className="relative flex-1">
-              <Input
-                id={fieldId('date')}
-                ref={dateInputRef}
-                value={dateText}
-                onChange={(e) => {
-                  setDateText(e.target.value);
-                  const locale = getDateLocale();
-                  const parsed = parse(e.target.value, 'P', new Date(), { locale });
-                  if (isValid(parsed) && parsed.getFullYear() >= 1900 && parsed.getFullYear() <= 2100) {
-                    setDate(parsed);
-                  }
-                }}
-                onBlur={() => {
-                  setDateText(format(date, 'P', { locale: getDateLocale() }));
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
+    <Form {...form}>
+      <form ref={formRef} onSubmit={handleFormSubmit} className="space-y-3" noValidate>
+        {/* Date & Time */}
+        <div className="space-y-1">
+          <Label htmlFor={fieldId('date')}>{t('form.dateTime')}</Label>
+          <div className="flex gap-2">
+            <Popover open={calOpen} onOpenChange={setCalOpen}>
+              <div className="relative flex-1">
+                <Input
+                  id={fieldId('date')}
+                  ref={dateInputRef}
+                  value={dateText}
+                  onChange={(e) => {
+                    setDateText(e.target.value);
+                    const locale = getDateLocale();
+                    const parsed = parse(e.target.value, 'P', new Date(), { locale });
+                    if (isValid(parsed) && parsed.getFullYear() >= 1900 && parsed.getFullYear() <= 2100) {
+                      setDate(parsed);
+                    }
+                  }}
+                  onBlur={() => {
                     setDateText(format(date, 'P', { locale: getDateLocale() }));
-                    dateInputRef.current?.blur();
-                  }
-                }}
-                className="pr-9"
-                placeholder={format(new Date(), 'P', { locale: getDateLocale() })}
-              />
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full w-9 rounded-l-none"
-                  type="button"
-                  aria-label={t('form.openCalendar')}
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      setDateText(format(date, 'P', { locale: getDateLocale() }));
+                      dateInputRef.current?.blur();
+                    }
+                  }}
+                  className="pr-9"
+                  placeholder={format(new Date(), 'P', { locale: getDateLocale() })}
+                />
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full w-9 rounded-l-none"
+                    type="button"
+                    aria-label={t('form.openCalendar')}
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+              </div>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={(d) => {
+                    if (d) {
+                      setDate(d);
+                      setDateText(format(d, 'P', { locale: getDateLocale() }));
+                      setCalOpen(false);
+                    }
+                  }}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            <Input
+              id={fieldId('time')}
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-28"
+              aria-label={t('form.time')}
+            />
+          </div>
+        </div>
+
+        {/* Security */}
+        {cfg.security !== false && (
+          <FormField
+            control={form.control}
+            name="securityId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor={fieldId('security')}>
+                  {t('form.security')} {cfg.security === 'optional' ? t('common:optional') : ''}
+                </FormLabel>
+                <Select
+                  value={field.value ?? ''}
+                  onValueChange={(v) => {
+                    if (v === '__create_new__') {
+                      setAddInstrumentOpen(true);
+                      return;
+                    }
+                    field.onChange(v);
+                  }}
                 >
-                  <CalendarIcon className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-            </div>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={(d) => {
-                  if (d) {
-                    setDate(d);
-                    setDateText(format(d, 'P', { locale: getDateLocale() }));
-                    setCalOpen(false);
-                  }
-                }}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          <Input
-            id={fieldId('time')}
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="w-28"
-            aria-label={t('form.time')}
+                  <FormControl>
+                    <SelectTrigger id={fieldId('security')} onBlur={field.onBlur}>
+                      <SelectValue placeholder={t('form.selectSecurity')} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {securities.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        <div className="flex items-center gap-2">
+                          <SecurityAvatar name={s.name ?? ''} logoUrl={s.logoUrl} size="xs" />
+                          <span>{s.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                    {securities.length > 0 && <Separator className="my-1" />}
+                    <SelectItem value="__create_new__" className="text-primary font-medium">
+                      {t('form.createNewInstrument')}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-      </div>
+        )}
 
-      {/* Security */}
-      {cfg.security !== false && (
-        <div className="space-y-1">
-          <Label htmlFor={fieldId('security')}>{t('form.security')} {cfg.security === 'optional' ? t('common:optional') : ''}</Label>
-          <Select value={fields.securityId} onValueChange={(v) => {
-            if (v === '__create_new__') {
-              setAddInstrumentOpen(true);
-              return;
-            }
-            set('securityId', v);
-          }}>
-            <SelectTrigger id={fieldId('security')} aria-invalid={errorField === 'security' || undefined}>
-              <SelectValue placeholder={t('form.selectSecurity')} />
-            </SelectTrigger>
-            <SelectContent>
-              {securities.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  <div className="flex items-center gap-2">
-                    <SecurityAvatar name={s.name ?? ''} logoUrl={s.logoUrl} size="xs" />
-                    <span>{s.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-              {securities.length > 0 && <Separator className="my-1" />}
-              <SelectItem value="__create_new__" className="text-primary font-medium">
-                {t('form.createNewInstrument')}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Account */}
-      {cfg.accountId && (
-        <div className="space-y-1">
-          <Label htmlFor={fieldId('accountId')}>
-            {BUY_SELL_TYPES.has(type)
-              ? t('form.securitiesAccount')
-              : cfg.crossAccountId
-                ? t('form.fromAccount')
-                : t('form.account')}
-          </Label>
-          <Select
-            value={fields.accountId}
-            onValueChange={(v) => set('accountId', v)}
-            disabled={!!preselectedAccountId}
-          >
-            <SelectTrigger id={fieldId('accountId')} aria-invalid={errorField === 'accountId' || undefined}>
-              <SelectValue placeholder={t('form.selectAccount')} />
-            </SelectTrigger>
-            <SelectContent>
-              {filteredAccounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  <div className="flex items-center gap-2">
-                    <AccountAvatar name={a.name} logoUrl={a.logoUrl} size="xs" />
-                    <span>{a.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Cross Account */}
-      {cfg.crossAccountId && (
-        <div className="space-y-1">
-          <Label htmlFor={fieldId('crossAccountId')}>
-            {BUY_SELL_TYPES.has(type) ? t('form.cashAccount') : t('form.toAccount')}
-          </Label>
-          <Select value={fields.crossAccountId} onValueChange={(v) => set('crossAccountId', v)}>
-            <SelectTrigger id={fieldId('crossAccountId')} aria-invalid={errorField === 'crossAccountId' || undefined}>
-              <SelectValue placeholder={t('form.selectAccount')} />
-            </SelectTrigger>
-            <SelectContent>
-              {filteredCrossAccounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  <div className="flex items-center gap-2">
-                    <AccountAvatar name={a.name} logoUrl={a.logoUrl} size="xs" />
-                    <span>{a.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Shares + Price side-by-side when both visible */}
-      {showSharesAndPrice ? (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label htmlFor={fieldId('shares')}>{t('columns.shares')}</Label>
-            <Input
-              id={fieldId('shares')}
-              type="number"
-              step="any"
-              min="0"
-              value={fields.shares}
-              onChange={(e) => set('shares', e.target.value)}
-              placeholder="0.00"
-              aria-invalid={errorField === 'shares' || undefined}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor={fieldId('price')}>{t('form.pricePerShare')}</Label>
-            <Input
-              id={fieldId('price')}
-              type="number"
-              step="any"
-              min="0"
-              value={fields.price}
-              onChange={(e) => set('price', e.target.value)}
-              placeholder="0.00"
-              aria-invalid={errorField === 'price' || undefined}
-            />
-          </div>
-        </div>
-      ) : (
-        <>
-          {cfg.shares && (
-            <div className="space-y-1">
-              <Label htmlFor={fieldId('shares')}>{t('columns.shares')}</Label>
-              <Input
-                id={fieldId('shares')}
-                type="number"
-                step="any"
-                min="0"
-                value={fields.shares}
-                onChange={(e) => set('shares', e.target.value)}
-                placeholder="0.00"
-                aria-invalid={errorField === 'shares' || undefined}
-              />
-            </div>
-          )}
-          {cfg.price && (
-            <div className="space-y-1">
-              <Label htmlFor={fieldId('price')}>{t('form.pricePerShare')}</Label>
-              <Input
-                id={fieldId('price')}
-                type="number"
-                step="any"
-                min="0"
-                value={fields.price}
-                onChange={(e) => set('price', e.target.value)}
-                placeholder="0.00"
-                aria-invalid={errorField === 'price' || undefined}
-              />
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Amount */}
-      {cfg.amount && (
-        <div className="space-y-1">
-          <Label htmlFor={fieldId('amount')}>{t('form.amount')}</Label>
-          <Input
-            id={fieldId('amount')}
-            type="number"
-            step="any"
-            min="0"
-            value={fields.amount}
-            onChange={(e) => set('amount', e.target.value)}
-            placeholder="0.00"
-            aria-invalid={errorField === 'amount' || undefined}
+        {/* Account */}
+        {cfg.accountId && (
+          <FormField
+            control={form.control}
+            name="accountId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor={fieldId('accountId')}>
+                  {BUY_SELL_TYPES.has(type)
+                    ? t('form.securitiesAccount')
+                    : cfg.crossAccountId
+                      ? t('form.fromAccount')
+                      : t('form.account')}
+                </FormLabel>
+                <Select
+                  value={field.value ?? ''}
+                  onValueChange={field.onChange}
+                  disabled={!!preselectedAccountId}
+                >
+                  <FormControl>
+                    <SelectTrigger id={fieldId('accountId')} onBlur={field.onBlur}>
+                      <SelectValue placeholder={t('form.selectAccount')} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {filteredAccounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        <div className="flex items-center gap-2">
+                          <AccountAvatar name={a.name} logoUrl={a.logoUrl} size="xs" />
+                          <span>{a.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-      )}
+        )}
 
-      {/* Fees + Taxes side-by-side when both visible (hidden when FX section is showing) */}
-      {!(BUY_SELL_TYPES.has(type) && isCrossCurrency) && (
-        <>
-          {showFeesAndTaxes ? (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor={fieldId('fees')}>{t('form.feesOptional')}</Label>
-                <Input
-                  id={fieldId('fees')}
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={fields.fees}
-                  onChange={(e) => set('fees', e.target.value)}
-                  placeholder="0.00"
-                  aria-invalid={errorField === 'fees' || undefined}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor={fieldId('taxes')}>{t('form.taxesOptional')}</Label>
-                <Input
-                  id={fieldId('taxes')}
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={fields.taxes}
-                  onChange={(e) => set('taxes', e.target.value)}
-                  placeholder="0.00"
-                  aria-invalid={errorField === 'taxes' || undefined}
-                />
-              </div>
-            </div>
-          ) : (
-            <>
-              {cfg.fees && (
-                <div className="space-y-1">
-                  <Label htmlFor={fieldId('fees')}>{t('form.feesOptional')}</Label>
-                  <Input
-                    id={fieldId('fees')}
-                    type="number"
-                    step="any"
-                    min="0"
-                    value={fields.fees}
-                    onChange={(e) => set('fees', e.target.value)}
-                    placeholder="0.00"
-                    aria-invalid={errorField === 'fees' || undefined}
-                  />
-                </div>
-              )}
-              {cfg.taxes && (
-                <div className="space-y-1">
-                  <Label htmlFor={fieldId('taxes')}>{t('form.taxesOptional')}</Label>
-                  <Input
-                    id={fieldId('taxes')}
-                    type="number"
-                    step="any"
-                    min="0"
-                    value={fields.taxes}
-                    onChange={(e) => set('taxes', e.target.value)}
-                    placeholder="0.00"
-                    aria-invalid={errorField === 'taxes' || undefined}
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </>
-      )}
+        {/* Cross Account */}
+        {cfg.crossAccountId && (
+          <FormField
+            control={form.control}
+            name="crossAccountId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor={fieldId('crossAccountId')}>
+                  {BUY_SELL_TYPES.has(type) ? t('form.cashAccount') : t('form.toAccount')}
+                </FormLabel>
+                <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger id={fieldId('crossAccountId')} onBlur={field.onBlur}>
+                      <SelectValue placeholder={t('form.selectAccount')} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {filteredCrossAccounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        <div className="flex items-center gap-2">
+                          <AccountAvatar name={a.name} logoUrl={a.logoUrl} size="xs" />
+                          <span>{a.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
-      {/* FX Section — cross-currency BUY/SELL only */}
-      {BUY_SELL_TYPES.has(type) && isCrossCurrency && (
-        <div className="rounded-md border bg-muted/30 p-3 space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
-              {t('form.grossInSecurityCcy', { ccy: securityCurrency })}
-            </span>
-            <span className="font-medium">{grossSecurity.toFixed(2)} {securityCurrency}</span>
+        {/* Shares + Price */}
+        {showSharesAndPrice ? (
+          <div className="grid grid-cols-2 gap-3">
+            <NumericField form={form} name="shares" label={t('columns.shares')} fieldId={fieldId('shares')} />
+            <NumericField form={form} name="price" label={t('form.pricePerShare')} fieldId={fieldId('price')} />
           </div>
+        ) : (
+          <>
+            {cfg.shares && (
+              <NumericField form={form} name="shares" label={t('columns.shares')} fieldId={fieldId('shares')} />
+            )}
+            {cfg.price && (
+              <NumericField form={form} name="price" label={t('form.pricePerShare')} fieldId={fieldId('price')} />
+            )}
+          </>
+        )}
 
-          <div className="space-y-1">
-            <Label htmlFor={fieldId('fxRate')}>{t('form.exchangeRate')} ({cashCurrency}/{securityCurrency})</Label>
-            <Input
-              id={fieldId('fxRate')}
-              type="number"
-              step="any"
-              min="0"
-              value={fields.fxRate ?? ''}
-              onChange={(e) => set('fxRate', e.target.value)}
+        {/* Amount */}
+        {cfg.amount && (
+          <NumericField form={form} name="amount" label={t('form.amount')} fieldId={fieldId('amount')} />
+        )}
+
+        {/* Fees + Taxes (hidden when FX section is showing) */}
+        {!(BUY_SELL_TYPES.has(type) && isCrossCurrency) && (
+          <>
+            {showFeesAndTaxes ? (
+              <div className="grid grid-cols-2 gap-3">
+                <NumericField form={form} name="fees" label={t('form.feesOptional')} fieldId={fieldId('fees')} />
+                <NumericField form={form} name="taxes" label={t('form.taxesOptional')} fieldId={fieldId('taxes')} />
+              </div>
+            ) : (
+              <>
+                {cfg.fees && (
+                  <NumericField form={form} name="fees" label={t('form.feesOptional')} fieldId={fieldId('fees')} />
+                )}
+                {cfg.taxes && (
+                  <NumericField form={form} name="taxes" label={t('form.taxesOptional')} fieldId={fieldId('taxes')} />
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {/* FX Section — cross-currency BUY/SELL only */}
+        {BUY_SELL_TYPES.has(type) && isCrossCurrency && (
+          <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                {t('form.grossInSecurityCcy', { ccy: securityCurrency })}
+              </span>
+              <span className="font-medium">{grossSecurity.toFixed(2)} {securityCurrency}</span>
+            </div>
+
+            <NumericField
+              form={form}
+              name="fxRate"
+              label={`${t('form.exchangeRate')} (${cashCurrency}/${securityCurrency})`}
+              fieldId={fieldId('fxRate')}
               placeholder={t('form.fxRatePlaceholder')}
-              aria-invalid={errorField === 'fxRate' || undefined}
             />
-          </div>
 
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
-              {t('form.convertedGross', { ccy: cashCurrency })}
-            </span>
-            <span className="font-medium">{fx.grossDeposit.toFixed(2)} {cashCurrency}</span>
-          </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                {t('form.convertedGross', { ccy: cashCurrency })}
+              </span>
+              <span className="font-medium">{fx.grossDeposit.toFixed(2)} {cashCurrency}</span>
+            </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor={fieldId('feesFx')}>{t('form.feesInCcy', { ccy: securityCurrency })}</Label>
-              <Input id={fieldId('feesFx')} type="number" step="any" min="0" value={fields.feesFx ?? ''} onChange={(e) => set('feesFx', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'feesFx' || undefined} />
+            <div className="grid grid-cols-2 gap-3">
+              <NumericField
+                form={form}
+                name="feesFx"
+                label={t('form.feesInCcy', { ccy: securityCurrency })}
+                fieldId={fieldId('feesFx')}
+              />
+              <NumericField
+                form={form}
+                name="fees"
+                label={t('form.feesInCcy', { ccy: cashCurrency })}
+                fieldId={fieldId('fees-fx')}
+              />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor={fieldId('fees')}>{t('form.feesInCcy', { ccy: cashCurrency })}</Label>
-              <Input id={fieldId('fees')} type="number" step="any" min="0" value={fields.fees ?? ''} onChange={(e) => set('fees', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'fees' || undefined} />
+
+            <div className="grid grid-cols-2 gap-3">
+              <NumericField
+                form={form}
+                name="taxesFx"
+                label={t('form.taxesInCcy', { ccy: securityCurrency })}
+                fieldId={fieldId('taxesFx')}
+              />
+              <NumericField
+                form={form}
+                name="taxes"
+                label={t('form.taxesInCcy', { ccy: cashCurrency })}
+                fieldId={fieldId('taxes-fx')}
+              />
             </div>
           </div>
+        )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor={fieldId('taxesFx')}>{t('form.taxesInCcy', { ccy: securityCurrency })}</Label>
-              <Input id={fieldId('taxesFx')} type="number" step="any" min="0" value={fields.taxesFx ?? ''} onChange={(e) => set('taxesFx', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'taxesFx' || undefined} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor={fieldId('taxes')}>{t('form.taxesInCcy', { ccy: cashCurrency })}</Label>
-              <Input id={fieldId('taxes')} type="number" step="any" min="0" value={fields.taxes ?? ''} onChange={(e) => set('taxes', e.target.value)} placeholder="0.00" aria-invalid={errorField === 'taxes' || undefined} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Note */}
-      {cfg.note && (
-        <div className="space-y-1">
-          <Label htmlFor={fieldId('note')}>{t('form.noteOptional')}</Label>
-          <Input
-            id={fieldId('note')}
-            value={fields.note}
-            onChange={(e) => set('note', e.target.value)}
-            placeholder={t('form.noteOptionalPlaceholder')}
+        {/* Note */}
+        {cfg.note && (
+          <FormField
+            control={form.control}
+            name="note"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor={fieldId('note')}>{t('form.noteOptional')}</FormLabel>
+                <FormControl>
+                  <Input
+                    id={fieldId('note')}
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder={t('form.noteOptionalPlaceholder')}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-      )}
+        )}
 
-      {!hideSubmitButton && (
-        <SubmitButton type="submit" mutation={{ isPending: !!isSubmitting }}>
-          {t('common:save')}
-        </SubmitButton>
-      )}
+        {!hideSubmitButton && (
+          <SubmitButton
+            type="submit"
+            mutation={{ isPending: !!isSubmitting }}
+            disabled={saveDisabled}
+          >
+            {t('common:save')}
+          </SubmitButton>
+        )}
 
-      {/* Add Instrument Dialog — opened from security selector */}
-      {cfg.security !== false && (
-        <>
-          <AddInstrumentDialog
-            open={addInstrumentOpen}
-            onOpenChange={setAddInstrumentOpen}
-            onCreated={handleInstrumentCreated}
-            onCreateEmpty={() => {
-              setAddInstrumentOpen(false);
-              setCreateEmptyOpen(true);
-            }}
-          />
-          {createEmptyOpen && (
-            <SecurityEditor
-              mode="create"
-              open={createEmptyOpen}
-              onOpenChange={(open) => { if (!open) setCreateEmptyOpen(false); }}
+        {/* Add Instrument Dialog — opened from security selector */}
+        {cfg.security !== false && (
+          <>
+            <AddInstrumentDialog
+              open={addInstrumentOpen}
+              onOpenChange={setAddInstrumentOpen}
               onCreated={handleInstrumentCreated}
+              onCreateEmpty={() => {
+                setAddInstrumentOpen(false);
+                setCreateEmptyOpen(true);
+              }}
             />
-          )}
-        </>
+            {createEmptyOpen && (
+              <SecurityEditor
+                mode="create"
+                open={createEmptyOpen}
+                onOpenChange={(open) => { if (!open) setCreateEmptyOpen(false); }}
+                onCreated={handleInstrumentCreated}
+              />
+            )}
+          </>
+        )}
+      </form>
+    </Form>
+  );
+}
+
+interface NumericFieldProps {
+  form: ReturnType<typeof useForm<TransactionFormShape>>;
+  name: keyof TransactionFormShape;
+  label: string;
+  fieldId: string;
+  placeholder?: string;
+}
+
+function NumericField({ form, name, label, fieldId, placeholder = '0.00' }: NumericFieldProps) {
+  return (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel htmlFor={fieldId}>{label}</FormLabel>
+          <FormControl>
+            <Input
+              id={fieldId}
+              type="number"
+              step="any"
+              min="0"
+              value={(field.value as string) ?? ''}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              placeholder={placeholder}
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
       )}
-    </form>
+    />
   );
 }
