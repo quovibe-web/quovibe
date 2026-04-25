@@ -75,6 +75,7 @@
     "CATEGORY_MOVE_AT_BOUNDARY": "Esta categoría ya está en el borde entre sus hermanas y no puede moverse más en esa dirección.",
     "CATEGORY_NOT_IN_TAXONOMY": "Una de las categorías seleccionadas no pertenece a esta taxonomía.",
     "TEMP_FILE_EXPIRED": "La carga expiró. Reinicie la importación.",
+    "FX_RATE_REQUIRED": "Se requiere un tipo de cambio cuando las divisas de origen y destino son distintas.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "Este tipo de transacción no está permitido para la cuenta de destino.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "Este tipo de transacción no está permitido para la cuenta seleccionada.",
     "Validation error": "Entrada no válida. Verifique los campos e inténtelo de nuevo.",

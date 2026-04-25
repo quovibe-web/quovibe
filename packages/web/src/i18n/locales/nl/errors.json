@@ -75,6 +75,7 @@
     "CATEGORY_MOVE_AT_BOUNDARY": "Deze categorie bevindt zich al aan de rand van haar broers en zussen en kan niet verder in die richting worden verplaatst.",
     "CATEGORY_NOT_IN_TAXONOMY": "Een van de geselecteerde categorieën behoort niet tot deze classificatie.",
     "TEMP_FILE_EXPIRED": "De upload is verlopen. Start de import opnieuw.",
+    "FX_RATE_REQUIRED": "Een wisselkoers is vereist wanneer de bron- en doelvaluta verschillen.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "Dit transactietype is niet toegestaan voor de doelrekening.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "Dit transactietype is niet toegestaan voor de geselecteerde rekening.",
     "Validation error": "Ongeldige invoer. Controleer de velden en probeer het opnieuw.",

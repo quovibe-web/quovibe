@@ -75,6 +75,7 @@
     "CATEGORY_MOVE_AT_BOUNDARY": "This category is already at the edge of its siblings and cannot move further in that direction.",
     "CATEGORY_NOT_IN_TAXONOMY": "One of the selected categories does not belong to this taxonomy.",
     "TEMP_FILE_EXPIRED": "The upload expired. Start the import again.",
+    "FX_RATE_REQUIRED": "An FX rate is required when source and destination currencies differ.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "This transaction type is not allowed for the destination account.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "This transaction type is not allowed for the selected account.",
     "Validation error": "Invalid input. Check the fields and try again.",

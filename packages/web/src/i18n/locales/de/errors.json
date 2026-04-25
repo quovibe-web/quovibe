@@ -75,6 +75,7 @@
     "CATEGORY_MOVE_AT_BOUNDARY": "Diese Kategorie befindet sich bereits am Rand ihrer Geschwister und kann nicht weiter in diese Richtung verschoben werden.",
     "CATEGORY_NOT_IN_TAXONOMY": "Eine der ausgewählten Kategorien gehört nicht zu dieser Klassifizierung.",
     "TEMP_FILE_EXPIRED": "Der Upload ist abgelaufen. Starten Sie den Import erneut.",
+    "FX_RATE_REQUIRED": "Ein Wechselkurs ist erforderlich, wenn Ausgangs- und Zielwährung unterschiedlich sind.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "Dieser Transaktionstyp ist für das Zielkonto nicht zulässig.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "Dieser Transaktionstyp ist für das ausgewählte Konto nicht zulässig.",
     "Validation error": "Ungültige Eingabe. Überprüfen Sie die Felder und versuchen Sie es erneut.",

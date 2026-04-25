@@ -1,13 +1,10 @@
 import { z } from 'zod';
 import { TransactionType } from '../enums';
-import { PRICED_SHARE_TYPES } from '../transaction-gating';
-
-const CASH_TYPES = new Set<TransactionType>([
-  TransactionType.DEPOSIT, TransactionType.REMOVAL,
-  TransactionType.DIVIDEND, TransactionType.INTEREST, TransactionType.INTEREST_CHARGE,
-  TransactionType.FEES, TransactionType.FEES_REFUND,
-  TransactionType.TAXES, TransactionType.TAX_REFUND,
-]);
+import {
+  AMOUNT_REQUIRED_TYPES,
+  PRICED_SHARE_TYPES,
+  SECURITY_REQUIRED_TYPES,
+} from '../transaction-gating';
 
 const CROSS_ACCOUNT_DISTINCT_TYPES = new Set<TransactionType>([
   TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
@@ -38,7 +35,19 @@ export const createTransactionSchema = z.object({
       path: ['shares'],
     });
   }
-  if ((CASH_TYPES.has(data.type) || PRICED_SHARE_TYPES.has(data.type)) && data.amount <= 0) {
+  // BUG-106: PRICED_SHARE_TYPES + DIVIDEND must carry a securityId. Schema-only
+  // gate; service-layer FK constraint would otherwise fire as 500/foreign-key.
+  if (SECURITY_REQUIRED_TYPES.has(data.type) && !data.securityId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'securityId is required for this transaction type',
+      path: ['securityId'],
+    });
+  }
+  // BUG-113: SECURITY_TRANSFER, DELIVERY_INBOUND, DELIVERY_OUTBOUND record share
+  // moves with no cash component (ppxml2db convention) — they are excluded from
+  // AMOUNT_REQUIRED_TYPES and may carry `amount = 0`.
+  if (AMOUNT_REQUIRED_TYPES.has(data.type) && data.amount <= 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'amount must be greater than 0 for this transaction type',

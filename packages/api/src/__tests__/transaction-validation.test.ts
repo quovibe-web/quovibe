@@ -262,4 +262,250 @@ describe('transaction write validation', () => {
     const list = await request(app).get(`/api/p/${pid}/transactions?account=${accts.depositA}`);
     expect(list.body.total).toBe(1);
   });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // BUG-106: securityId required for security-bearing types
+  // ────────────────────────────────────────────────────────────────────────
+  it('BUG-106: BUY without securityId returns 400', async () => {
+    const { app, pid, accts } = await makePortfolio();
+    const r = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'BUY',
+      amount: 100,
+      shares: 1,
+      currencyCode: 'EUR',
+      accountId: accts.portfolioA,
+    });
+    expect(r.status).toBe(400);
+  });
+
+  it('BUG-106: DIVIDEND without securityId returns 400', async () => {
+    const { app, pid, accts } = await makePortfolio();
+    const r = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'DIVIDEND',
+      amount: 5,
+      currencyCode: 'EUR',
+      accountId: accts.depositA,
+    });
+    expect(r.status).toBe(400);
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // BUG-107: BUY/SELL routed to deposit accountId
+  // ────────────────────────────────────────────────────────────────────────
+  it('BUG-107: BUY with a deposit accountId returns 422 TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE', async () => {
+    const { app, pid, accts } = await makePortfolio();
+    const secId = randomUUID();
+    const h = acquirePortfolioDb(pid);
+    try {
+      h.sqlite.prepare(
+        `INSERT INTO security (_id, uuid, name, currency, updatedAt)
+         VALUES (300, ?, 'ACME', 'EUR', '2026-01-01T00:00:00Z')`,
+      ).run(secId);
+    } finally {
+      releasePortfolioDb(pid);
+    }
+    // The bug is that BUY accepts a deposit `accountId`. Don't pass crossAccountId
+    // here — that would test a transfer-shaped payload, not the BUY/SELL source rule.
+    const r = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'BUY',
+      amount: 100,
+      shares: 1,
+      securityId: secId,
+      currencyCode: 'EUR',
+      accountId: accts.depositA,
+    });
+    expect(r.status).toBe(422);
+    expect(r.body.error).toBe('TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE');
+  });
+
+  it('BUG-107: SELL with a deposit accountId returns 422', async () => {
+    const { app, pid, accts } = await makePortfolio();
+    const secId = randomUUID();
+    const h = acquirePortfolioDb(pid);
+    try {
+      h.sqlite.prepare(
+        `INSERT INTO security (_id, uuid, name, currency, updatedAt)
+         VALUES (301, ?, 'ACME', 'EUR', '2026-01-01T00:00:00Z')`,
+      ).run(secId);
+    } finally {
+      releasePortfolioDb(pid);
+    }
+    const r = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'SELL',
+      amount: 100,
+      shares: 1,
+      securityId: secId,
+      currencyCode: 'EUR',
+      accountId: accts.depositA,
+    });
+    expect(r.status).toBe(422);
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // BUG-111: cross-currency TRANSFER_BETWEEN_ACCOUNTS without fxRate
+  // ────────────────────────────────────────────────────────────────────────
+  it('BUG-111: TRANSFER_BETWEEN_ACCOUNTS cross-currency without fxRate returns 400 FX_RATE_REQUIRED', async () => {
+    const { app, pid, accts } = await makePortfolio();
+    // Add a USD deposit alongside the EUR deposits.
+    const usdId = randomUUID();
+    const h = acquirePortfolioDb(pid);
+    try {
+      h.sqlite.prepare(
+        `INSERT INTO account (_id, uuid, name, currency, type, updatedAt, _xmlid, _order, referenceAccount)
+         VALUES (?, ?, 'USD Cash', 'USD', 'account', '2026-01-01T00:00:00Z', ?, ?, ?)`,
+      ).run(105, usdId, 4, 4, null);
+    } finally {
+      releasePortfolioDb(pid);
+    }
+
+    const r = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'TRANSFER_BETWEEN_ACCOUNTS',
+      amount: 100,
+      currencyCode: 'EUR',
+      accountId: accts.depositA,
+      crossAccountId: usdId,
+    });
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe('FX_RATE_REQUIRED');
+
+    // Same payload + fxRate succeeds.
+    const ok = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'TRANSFER_BETWEEN_ACCOUNTS',
+      amount: 100,
+      currencyCode: 'EUR',
+      accountId: accts.depositA,
+      crossAccountId: usdId,
+      fxRate: 1.10,
+    });
+    expect(ok.status).toBe(201);
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // BUG-112: cross-currency BUY without fxRate
+  // ────────────────────────────────────────────────────────────────────────
+  it('BUG-112: BUY cross-currency without fxRate returns 400 FX_RATE_REQUIRED', async () => {
+    const { app, pid, accts } = await makePortfolio();
+    const usdSecId = randomUUID();
+    const usdCashId = randomUUID();
+    const h = acquirePortfolioDb(pid);
+    try {
+      h.sqlite.prepare(
+        `INSERT INTO security (_id, uuid, name, currency, updatedAt)
+         VALUES (310, ?, 'USD-SEC', 'USD', '2026-01-01T00:00:00Z')`,
+      ).run(usdSecId);
+      h.sqlite.prepare(
+        `INSERT INTO account (_id, uuid, name, currency, type, updatedAt, _xmlid, _order, referenceAccount)
+         VALUES (?, ?, 'USD Cash 2', 'USD', 'account', '2026-01-01T00:00:00Z', ?, ?, ?)`,
+      ).run(106, usdCashId, 5, 5, null);
+    } finally {
+      releasePortfolioDb(pid);
+    }
+
+    // EUR portfolio (referenceAccount = EUR depositA) buying a USD security.
+    const r = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'BUY',
+      amount: 100,
+      shares: 1,
+      securityId: usdSecId,
+      currencyCode: 'USD',
+      accountId: accts.portfolioA,
+    });
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe('FX_RATE_REQUIRED');
+
+    // With fxRate set on the wire, the route gate clears AND the service's
+    // FX-fetch branch (transaction.service.ts ~L399) is skipped — so this
+    // 201 doesn't depend on a populated vf_exchange_rate cache.
+    const ok = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'BUY',
+      amount: 100,
+      shares: 1,
+      securityId: usdSecId,
+      currencyCode: 'USD',
+      accountId: accts.portfolioA,
+      fxRate: 1.10,
+    });
+    expect(ok.status).toBe(201);
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // BUG-113: amount=0 allowed for share-only types
+  // ────────────────────────────────────────────────────────────────────────
+  it('BUG-113: SECURITY_TRANSFER with amount=0 succeeds', async () => {
+    const { app, pid, accts } = await makePortfolio();
+    const secId = randomUUID();
+    const h = acquirePortfolioDb(pid);
+    try {
+      h.sqlite.prepare(
+        `INSERT INTO security (_id, uuid, name, currency, updatedAt)
+         VALUES (320, ?, 'ACME', 'EUR', '2026-01-01T00:00:00Z')`,
+      ).run(secId);
+    } finally {
+      releasePortfolioDb(pid);
+    }
+    const r = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'SECURITY_TRANSFER',
+      amount: 0,
+      shares: 10,
+      securityId: secId,
+      accountId: accts.portfolioA,
+      crossAccountId: accts.portfolioB,
+    });
+    expect(r.status, `expected 201, got ${r.status} ${JSON.stringify(r.body)}`).toBe(201);
+  });
+
+  it('BUG-113: DELIVERY_INBOUND with amount=0 succeeds', async () => {
+    const { app, pid, accts } = await makePortfolio();
+    const secId = randomUUID();
+    const h = acquirePortfolioDb(pid);
+    try {
+      h.sqlite.prepare(
+        `INSERT INTO security (_id, uuid, name, currency, updatedAt)
+         VALUES (321, ?, 'ACME', 'EUR', '2026-01-01T00:00:00Z')`,
+      ).run(secId);
+    } finally {
+      releasePortfolioDb(pid);
+    }
+    const r = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'DELIVERY_INBOUND',
+      amount: 0,
+      shares: 10,
+      securityId: secId,
+      accountId: accts.portfolioA,
+    });
+    expect(r.status, `expected 201, got ${r.status} ${JSON.stringify(r.body)}`).toBe(201);
+  });
+
+  it('BUG-113: DELIVERY_OUTBOUND with amount=0 succeeds', async () => {
+    const { app, pid, accts } = await makePortfolio();
+    const secId = randomUUID();
+    const h = acquirePortfolioDb(pid);
+    try {
+      h.sqlite.prepare(
+        `INSERT INTO security (_id, uuid, name, currency, updatedAt)
+         VALUES (322, ?, 'ACME', 'EUR', '2026-01-01T00:00:00Z')`,
+      ).run(secId);
+    } finally {
+      releasePortfolioDb(pid);
+    }
+    const r = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'DELIVERY_OUTBOUND',
+      amount: 0,
+      shares: 10,
+      securityId: secId,
+      accountId: accts.portfolioA,
+    });
+    expect(r.status, `expected 201, got ${r.status} ${JSON.stringify(r.body)}`).toBe(201);
+  });
 });

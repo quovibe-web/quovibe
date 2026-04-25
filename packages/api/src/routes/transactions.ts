@@ -1,6 +1,6 @@
 import { Router, type Router as RouterType } from 'express';
 import type { RequestHandler } from 'express';
-import { createTransactionSchema, AccountType, isTransactionTypeAllowed, CASH_ONLY_ROUTED_TYPES, TransactionType } from '@quovibe/shared';
+import { createTransactionSchema, AccountType, isTransactionTypeAllowed, CASH_ONLY_ROUTED_TYPES, CROSS_CURRENCY_FX_TYPES, TransactionType } from '@quovibe/shared';
 import * as transactionService from '../services/transaction.service';
 import { getDb, getSqlite } from '../helpers/request';
 import { convertTransactionFromDb, convertAmountFromDb } from '../services/unit-conversion';
@@ -134,13 +134,89 @@ function enforceAccountTypeGuards(
   return null;
 }
 
+// BUG-111 + BUG-112: cross-currency cashflow legs MUST carry an explicit
+// `fxRate` on the wire payload. The schema layer cannot enforce this — it would
+// need to read `account.currency` and `security.currency`, which lives outside
+// `@quovibe/shared`. Run AFTER `enforceAccountTypeGuards` so a 422 takes
+// precedence over a 400 (account-type errors are more actionable).
+//
+// Returns the wire error code (`'FX_RATE_REQUIRED'`) on rejection or `null`.
+function enforceCrossCurrencyFxRate(
+  sqlite: ReturnType<typeof getSqlite>,
+  input: ReturnType<typeof createTransactionSchema.parse>,
+): string | null {
+  if (!CROSS_CURRENCY_FX_TYPES.has(input.type)) return null;
+  const hasFx = input.fxRate != null && input.fxRate > 0;
+  if (hasFx) return null;
+
+  const fetchCurrency = (uuid: string): string | null => {
+    const row = sqlite
+      .prepare('SELECT currency FROM account WHERE uuid = ?')
+      .get(uuid) as { currency: string } | undefined;
+    return row?.currency ?? null;
+  };
+
+  // Precondition: enforceAccountTypeGuards already rejected portfolio
+  // accountId for TRANSFER_BETWEEN_ACCOUNTS, so input.accountId is a deposit
+  // by the time we reach this branch and `account.currency` is meaningful.
+  if (
+    input.type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS &&
+    input.crossAccountId
+  ) {
+    const src = fetchCurrency(input.accountId);
+    const dst = fetchCurrency(input.crossAccountId);
+    if (src && dst && src !== dst) return 'FX_RATE_REQUIRED';
+    return null;
+  }
+
+  if (
+    (input.type === TransactionType.BUY || input.type === TransactionType.SELL) &&
+    input.securityId
+  ) {
+    // Resolve the cash side: explicit `crossAccountId`, else the portfolio's
+    // `referenceAccount`. If neither resolves, fall through silently — the
+    // service will raise a clearer downstream error.
+    let cashAccountId = input.crossAccountId ?? null;
+    if (!cashAccountId) {
+      const ref = sqlite
+        .prepare(
+          "SELECT referenceAccount FROM account WHERE uuid = ? AND type = 'portfolio'",
+        )
+        .get(input.accountId) as { referenceAccount: string | null } | undefined;
+      cashAccountId = ref?.referenceAccount ?? null;
+    }
+    if (!cashAccountId) return null;
+
+    const cashCcy = fetchCurrency(cashAccountId);
+    const sec = sqlite
+      .prepare('SELECT currency FROM security WHERE uuid = ?')
+      .get(input.securityId) as { currency: string } | undefined;
+    if (cashCcy && sec?.currency && cashCcy !== sec.currency) {
+      return 'FX_RATE_REQUIRED';
+    }
+  }
+
+  return null;
+}
+
 export const transactionsRouter: RouterType = Router();
+
+// Hard ceiling on `limit=all` to prevent accidental unbounded reads
+// (e.g. a runaway export request). 100000 covers every real personal
+// portfolio; rows beyond this are silently truncated.
+const EXPORT_HARD_CEILING = 100000;
 
 const listTransactions: RequestHandler = (req, res) => {
   const sqlite = getSqlite(req);
   const page = Math.max(1, parseInt(req.query.page as string || '1', 10));
-  const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string || '50', 10)));
-  const offset = (page - 1) * limit;
+  // `limit=all` bypasses paging for CSV export; capped server-side at
+  // EXPORT_HARD_CEILING. Any other value clamps to [1, 100] as before.
+  const limitParam = req.query.limit as string | undefined;
+  const isUnbounded = limitParam === 'all';
+  const limit = isUnbounded
+    ? EXPORT_HARD_CEILING
+    : Math.max(1, Math.min(100, parseInt(limitParam || '50', 10)));
+  const offset = isUnbounded ? 0 : (page - 1) * limit;
 
   const conditions: string[] = ['1=1'];
   const params: unknown[] = [];
@@ -314,6 +390,12 @@ const createTransaction: RequestHandler = (req, res) => {
     return;
   }
 
+  const fxGuard = enforceCrossCurrencyFxRate(sqlite, input);
+  if (fxGuard) {
+    res.status(400).json({ error: fxGuard });
+    return;
+  }
+
   const id = transactionService.createTransaction(db, sqlite, input);
   const row = sqlite.prepare('SELECT * FROM xact WHERE uuid = ?').get(id) as
     | Record<string, unknown>
@@ -348,6 +430,12 @@ const updateTransaction: RequestHandler = (req, res) => {
   const guardResult = enforceAccountTypeGuards(sqlite, input);
   if (guardResult) {
     res.status(422).json({ error: guardResult });
+    return;
+  }
+
+  const fxGuard = enforceCrossCurrencyFxRate(sqlite, input);
+  if (fxGuard) {
+    res.status(400).json({ error: fxGuard });
     return;
   }
 
