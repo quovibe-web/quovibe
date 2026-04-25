@@ -508,4 +508,150 @@ describe('transaction write validation', () => {
     });
     expect(r.status, `expected 201, got ${r.status} ${JSON.stringify(r.body)}`).toBe(201);
   });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // BUG-108: unknown FK refs surface as structured 400, not raw 500 + leak
+  // ────────────────────────────────────────────────────────────────────────
+  const BOGUS_UUID = '00000000-0000-0000-0000-000000000000';
+
+  function assertNoFkLeak(body: unknown): void {
+    expect(JSON.stringify(body)).not.toMatch(/FOREIGN KEY/i);
+  }
+
+  it('BUG-108: POST DEPOSIT with bogus accountId returns 400 ACCOUNT_NOT_FOUND', async () => {
+    const { app, pid } = await makePortfolio();
+    const r = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'DEPOSIT',
+      amount: 50,
+      currencyCode: 'EUR',
+      accountId: BOGUS_UUID,
+    });
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe('ACCOUNT_NOT_FOUND');
+    assertNoFkLeak(r.body);
+  });
+
+  it('BUG-108: POST TRANSFER_BETWEEN_ACCOUNTS with bogus crossAccountId returns 400 ACCOUNT_NOT_FOUND', async () => {
+    const { app, pid, accts } = await makePortfolio();
+    const r = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'TRANSFER_BETWEEN_ACCOUNTS',
+      amount: 100,
+      currencyCode: 'EUR',
+      accountId: accts.depositA,
+      crossAccountId: BOGUS_UUID,
+    });
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe('ACCOUNT_NOT_FOUND');
+    assertNoFkLeak(r.body);
+  });
+
+  it('BUG-108: POST BUY with bogus securityId returns 400 SECURITY_NOT_FOUND', async () => {
+    const { app, pid, accts } = await makePortfolio();
+    const r = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'BUY',
+      amount: 100,
+      shares: 1,
+      currencyCode: 'EUR',
+      accountId: accts.portfolioA,
+      securityId: BOGUS_UUID,
+    });
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe('SECURITY_NOT_FOUND');
+    assertNoFkLeak(r.body);
+  });
+
+  it('BUG-108: PUT with bogus accountId returns 400 ACCOUNT_NOT_FOUND', async () => {
+    const { app, pid, accts } = await makePortfolio();
+    const created = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'DEPOSIT',
+      amount: 50,
+      currencyCode: 'EUR',
+      accountId: accts.depositA,
+    });
+    expect(created.status).toBe(201);
+    const txId = created.body.uuid;
+
+    const r = await request(app).put(`/api/p/${pid}/transactions/${txId}`).send({
+      date: '2026-01-01',
+      type: 'DEPOSIT',
+      amount: 50,
+      currencyCode: 'EUR',
+      accountId: BOGUS_UUID,
+    });
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe('ACCOUNT_NOT_FOUND');
+    assertNoFkLeak(r.body);
+  });
+
+  it('BUG-108: PUT with bogus securityId returns 400 SECURITY_NOT_FOUND', async () => {
+    const { app, pid, accts } = await makePortfolio();
+    const secId = randomUUID();
+    const h = acquirePortfolioDb(pid);
+    try {
+      h.sqlite.prepare(
+        `INSERT INTO security (_id, uuid, name, currency, updatedAt)
+         VALUES (330, ?, 'ACME', 'EUR', '2026-01-01T00:00:00Z')`,
+      ).run(secId);
+    } finally {
+      releasePortfolioDb(pid);
+    }
+    const created = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'BUY',
+      amount: 100,
+      shares: 1,
+      currencyCode: 'EUR',
+      accountId: accts.portfolioA,
+      securityId: secId,
+    });
+    expect(created.status).toBe(201);
+    const txId = created.body.uuid;
+
+    const r = await request(app).put(`/api/p/${pid}/transactions/${txId}`).send({
+      date: '2026-01-01',
+      type: 'BUY',
+      amount: 100,
+      shares: 1,
+      currencyCode: 'EUR',
+      accountId: accts.portfolioA,
+      securityId: BOGUS_UUID,
+    });
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe('SECURITY_NOT_FOUND');
+    assertNoFkLeak(r.body);
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // BUG-109: URL-target not found is structured 404 TRANSACTION_NOT_FOUND
+  // ────────────────────────────────────────────────────────────────────────
+  it('BUG-109: GET unknown :id returns 404 TRANSACTION_NOT_FOUND', async () => {
+    const { app, pid } = await makePortfolio();
+    const r = await request(app).get(`/api/p/${pid}/transactions/${BOGUS_UUID}`);
+    expect(r.status).toBe(404);
+    expect(r.body.error).toBe('TRANSACTION_NOT_FOUND');
+  });
+
+  it('BUG-109: PUT unknown :id returns 404 TRANSACTION_NOT_FOUND', async () => {
+    const { app, pid, accts } = await makePortfolio();
+    const r = await request(app).put(`/api/p/${pid}/transactions/${BOGUS_UUID}`).send({
+      date: '2026-01-01',
+      type: 'DEPOSIT',
+      amount: 50,
+      currencyCode: 'EUR',
+      accountId: accts.depositA,
+    });
+    expect(r.status).toBe(404);
+    expect(r.body.error).toBe('TRANSACTION_NOT_FOUND');
+  });
+
+  it('BUG-109: DELETE unknown :id returns 404 TRANSACTION_NOT_FOUND', async () => {
+    const { app, pid } = await makePortfolio();
+    const r = await request(app).delete(`/api/p/${pid}/transactions/${BOGUS_UUID}`);
+    expect(r.status).toBe(404);
+    expect(r.body.error).toBe('TRANSACTION_NOT_FOUND');
+  });
 });

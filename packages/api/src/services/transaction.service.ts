@@ -6,6 +6,26 @@ import type { CreateTransactionInput } from '@quovibe/shared';
 import { convertTransactionToDb } from './unit-conversion';
 import { getRate } from './fx.service';
 
+// BUG-108: typed service-layer error so route handlers map FK misses to
+// 400 ACCOUNT_NOT_FOUND / SECURITY_NOT_FOUND instead of leaking the raw
+// SQLite "FOREIGN KEY constraint failed" via the global 500 handler.
+export class TransactionServiceError extends Error {
+  constructor(public readonly code: string, message?: string) {
+    super(message ?? code);
+    this.name = 'TransactionServiceError';
+  }
+}
+
+function assertAccountExists(sqlite: BetterSqlite3.Database, id: string): void {
+  const row = sqlite.prepare('SELECT 1 FROM account WHERE uuid = ?').get(id);
+  if (!row) throw new TransactionServiceError('ACCOUNT_NOT_FOUND');
+}
+
+function assertSecurityExists(sqlite: BetterSqlite3.Database, id: string): void {
+  const row = sqlite.prepare('SELECT 1 FROM security WHERE uuid = ?').get(id);
+  if (!row) throw new TransactionServiceError('SECURITY_NOT_FOUND');
+}
+
 type UnitType = 'FEE' | 'TAX' | 'FOREX';
 
 // ppxml2db convention (see docs/pp-reference/calculation-model.md Section 2):
@@ -354,6 +374,12 @@ export function createTransaction(
   const xactId = uuidv4();
 
   const doCreate = sqlite.transaction(() => {
+    // BUG-108: pre-validate FK refs so unknown UUIDs surface as structured
+    // 400s instead of leaking raw "FOREIGN KEY constraint failed" at INSERT.
+    if (input.accountId) assertAccountExists(sqlite, input.accountId);
+    if (input.crossAccountId) assertAccountExists(sqlite, input.crossAccountId);
+    if (input.securityId) assertSecurityExists(sqlite, input.securityId);
+
     const { shares: sharesDb } = convertTransactionToDb({
       shares: input.shares != null ? new Decimal(input.shares) : null,
     });
@@ -565,6 +591,11 @@ export function updateTransaction(
   input: CreateTransactionInput,
 ): string {
   const doUpdate = sqlite.transaction(() => {
+    // BUG-108: pre-validate FK refs (see createTransaction for rationale).
+    if (input.accountId) assertAccountExists(sqlite, input.accountId);
+    if (input.crossAccountId) assertAccountExists(sqlite, input.crossAccountId);
+    if (input.securityId) assertSecurityExists(sqlite, input.securityId);
+
     const { shares: sharesDb } = convertTransactionToDb({
       shares: input.shares != null ? new Decimal(input.shares) : null,
     });

@@ -28,6 +28,7 @@
   },
   "server": {
     "ACCOUNT_HAS_TRANSACTIONS": "Deze rekening heeft transacties en kan niet worden verwijderd. Verwijder of verplaats eerst de transacties.",
+    "ACCOUNT_NOT_FOUND": "De geselecteerde rekening bestaat niet meer. Laad opnieuw en probeer het opnieuw.",
     "ACCOUNT_NOT_PORTFOLIO": "Deze bewerking is alleen beschikbaar voor effectenrekeningen.",
     "ACCOUNT_QUERY_FAILED": "Kan rekeningen niet uit het back-upbestand lezen. Het bestand is mogelijk beschadigd of geproduceerd door een andere versie.",
     "ACCOUNT_REFERENCED_BY_PORTFOLIO": "Deze rekening wordt gebruikt als referentie-kasrekening van een portefeuille en kan niet worden verwijderd. Wijzig eerst de referentierekening van de portefeuille.",
@@ -71,6 +72,7 @@
     "PORTFOLIO_NOT_FOUND": "Portefeuille niet gevonden.",
     "SECURITY_ALREADY_IN_WATCHLIST": "Dit effect staat al op de watchlist.",
     "SECURITY_NO_FEED_CONFIGURED": "Voor dit effect is geen koersbron geconfigureerd. Wijs er een toe in de effectdetails om koersen op te halen.",
+    "SECURITY_NOT_FOUND": "Het geselecteerde effect bestaat niet meer. Laad opnieuw en probeer het opnieuw.",
     "STREAM_FAILED": "Het downloaden is onderbroken. Probeer het opnieuw.",
     "TAXONOMY_MOVE_AT_BOUNDARY": "Dit item bevindt zich al aan de rand en kan niet verder in die richting worden verplaatst.",
     "CATEGORY_MOVE_AT_BOUNDARY": "Deze categorie bevindt zich al aan de rand van haar broers en zussen en kan niet verder in die richting worden verplaatst.",
@@ -79,6 +81,7 @@
     "FX_RATE_REQUIRED": "Een wisselkoers is vereist wanneer de bron- en doelvaluta verschillen.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "Dit transactietype is niet toegestaan voor de doelrekening.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "Dit transactietype is niet toegestaan voor de geselecteerde rekening.",
+    "TRANSACTION_NOT_FOUND": "Deze transactie bestaat niet meer. Mogelijk is deze verwijderd.",
     "Validation error": "Ongeldige invoer. Controleer de velden en probeer het opnieuw.",
     "security_has_transactions": "Verwijderen niet mogelijk — {{count}} transacties zijn gekoppeld aan dit effect. Verwijder of herwijs ze eerst toe."
   }

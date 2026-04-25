@@ -28,6 +28,7 @@
   },
   "server": {
     "ACCOUNT_HAS_TRANSACTIONS": "This account has transactions and cannot be deleted. Delete or move the transactions first.",
+    "ACCOUNT_NOT_FOUND": "The selected account no longer exists. Reload and try again.",
     "ACCOUNT_NOT_PORTFOLIO": "This operation is only available on securities accounts.",
     "ACCOUNT_QUERY_FAILED": "Could not read accounts from the backup file. It may be damaged or produced by a different version.",
     "ACCOUNT_REFERENCED_BY_PORTFOLIO": "This account is used as a portfolio's reference cash account and cannot be deleted. Change the portfolio's reference account first.",
@@ -71,6 +72,7 @@
     "PORTFOLIO_NOT_FOUND": "Portfolio not found.",
     "SECURITY_ALREADY_IN_WATCHLIST": "This security is already on the watchlist.",
     "SECURITY_NO_FEED_CONFIGURED": "This security has no price feed configured. Assign one in the security details to fetch prices.",
+    "SECURITY_NOT_FOUND": "The selected security no longer exists. Reload and try again.",
     "STREAM_FAILED": "The download was interrupted. Please try again.",
     "TAXONOMY_MOVE_AT_BOUNDARY": "This item is already at the edge and cannot move further in that direction.",
     "CATEGORY_MOVE_AT_BOUNDARY": "This category is already at the edge of its siblings and cannot move further in that direction.",
@@ -79,6 +81,7 @@
     "FX_RATE_REQUIRED": "An FX rate is required when source and destination currencies differ.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "This transaction type is not allowed for the destination account.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "This transaction type is not allowed for the selected account.",
+    "TRANSACTION_NOT_FOUND": "This transaction no longer exists. It may have been deleted.",
     "Validation error": "Invalid input. Check the fields and try again.",
     "security_has_transactions": "Cannot delete — {{count}} transactions are linked to this security. Delete or reassign them first."
   }

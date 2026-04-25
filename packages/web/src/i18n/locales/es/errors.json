@@ -28,6 +28,7 @@
   },
   "server": {
     "ACCOUNT_HAS_TRANSACTIONS": "Esta cuenta tiene transacciones y no puede eliminarse. Elimine o mueva las transacciones primero.",
+    "ACCOUNT_NOT_FOUND": "La cuenta seleccionada ya no existe. Recargue e inténtelo de nuevo.",
     "ACCOUNT_NOT_PORTFOLIO": "Esta operación solo está disponible en cuentas de valores.",
     "ACCOUNT_QUERY_FAILED": "No se pudieron leer las cuentas desde el archivo de respaldo. Puede estar dañado o haber sido generado por una versión diferente.",
     "ACCOUNT_REFERENCED_BY_PORTFOLIO": "Esta cuenta es la cuenta de efectivo de referencia de un portafolio y no puede eliminarse. Cambie primero la cuenta de referencia del portafolio.",
@@ -71,6 +72,7 @@
     "PORTFOLIO_NOT_FOUND": "Portafolio no encontrado.",
     "SECURITY_ALREADY_IN_WATCHLIST": "Este valor ya está en la lista de seguimiento.",
     "SECURITY_NO_FEED_CONFIGURED": "Este valor no tiene una fuente de precios configurada. Asigne una en los detalles del valor para obtener los precios.",
+    "SECURITY_NOT_FOUND": "El valor seleccionado ya no existe. Recargue e inténtelo de nuevo.",
     "STREAM_FAILED": "La descarga se interrumpió. Inténtelo de nuevo.",
     "TAXONOMY_MOVE_AT_BOUNDARY": "Este elemento ya está en el borde y no puede moverse más en esa dirección.",
     "CATEGORY_MOVE_AT_BOUNDARY": "Esta categoría ya está en el borde entre sus hermanas y no puede moverse más en esa dirección.",
@@ -79,6 +81,7 @@
     "FX_RATE_REQUIRED": "Se requiere un tipo de cambio cuando las divisas de origen y destino son distintas.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "Este tipo de transacción no está permitido para la cuenta de destino.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "Este tipo de transacción no está permitido para la cuenta seleccionada.",
+    "TRANSACTION_NOT_FOUND": "Esta transacción ya no existe. Puede haber sido eliminada.",
     "Validation error": "Entrada no válida. Verifique los campos e inténtelo de nuevo.",
     "security_has_transactions": "No se puede eliminar — {{count}} transacciones están vinculadas a este valor. Elimínelas o reasígnelas primero."
   }

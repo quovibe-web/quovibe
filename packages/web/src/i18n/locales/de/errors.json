@@ -28,6 +28,7 @@
   },
   "server": {
     "ACCOUNT_HAS_TRANSACTIONS": "Dieses Konto hat Transaktionen und kann nicht gelöscht werden. Löschen oder verschieben Sie zuerst die Transaktionen.",
+    "ACCOUNT_NOT_FOUND": "Das ausgewählte Konto existiert nicht mehr. Laden Sie neu und versuchen Sie es erneut.",
     "ACCOUNT_NOT_PORTFOLIO": "Diese Aktion ist nur für Wertpapierdepots verfügbar.",
     "ACCOUNT_QUERY_FAILED": "Die Konten konnten nicht aus der Sicherungsdatei gelesen werden. Die Datei ist möglicherweise beschädigt oder stammt aus einer anderen Version.",
     "ACCOUNT_REFERENCED_BY_PORTFOLIO": "Dieses Konto ist das Referenz-Bargeldkonto eines Portfolios und kann nicht gelöscht werden. Ändern Sie zuerst das Referenzkonto des Portfolios.",
@@ -71,6 +72,7 @@
     "PORTFOLIO_NOT_FOUND": "Portfolio nicht gefunden.",
     "SECURITY_ALREADY_IN_WATCHLIST": "Dieses Wertpapier ist bereits auf der Watchlist.",
     "SECURITY_NO_FEED_CONFIGURED": "Für dieses Wertpapier ist kein Kursfeed konfiguriert. Weisen Sie einen in den Wertpapierdetails zu, um Kurse abzurufen.",
+    "SECURITY_NOT_FOUND": "Das ausgewählte Wertpapier existiert nicht mehr. Laden Sie neu und versuchen Sie es erneut.",
     "STREAM_FAILED": "Der Download wurde unterbrochen. Bitte versuchen Sie es erneut.",
     "TAXONOMY_MOVE_AT_BOUNDARY": "Dieses Element befindet sich bereits am Rand und kann nicht weiter in diese Richtung verschoben werden.",
     "CATEGORY_MOVE_AT_BOUNDARY": "Diese Kategorie befindet sich bereits am Rand ihrer Geschwister und kann nicht weiter in diese Richtung verschoben werden.",
@@ -79,6 +81,7 @@
     "FX_RATE_REQUIRED": "Ein Wechselkurs ist erforderlich, wenn Ausgangs- und Zielwährung unterschiedlich sind.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "Dieser Transaktionstyp ist für das Zielkonto nicht zulässig.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "Dieser Transaktionstyp ist für das ausgewählte Konto nicht zulässig.",
+    "TRANSACTION_NOT_FOUND": "Diese Transaktion existiert nicht mehr. Sie wurde möglicherweise gelöscht.",
     "Validation error": "Ungültige Eingabe. Überprüfen Sie die Felder und versuchen Sie es erneut.",
     "security_has_transactions": "Löschen nicht möglich — {{count}} Transaktionen sind mit diesem Wertpapier verknüpft. Löschen oder ordnen Sie sie zuerst neu zu."
   }

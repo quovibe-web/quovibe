@@ -28,6 +28,7 @@
   },
   "server": {
     "ACCOUNT_HAS_TRANSACTIONS": "Na tym rachunku są transakcje i nie można go usunąć. Najpierw usuń lub przenieś transakcje.",
+    "ACCOUNT_NOT_FOUND": "Wybrany rachunek już nie istnieje. Odśwież i spróbuj ponownie.",
     "ACCOUNT_NOT_PORTFOLIO": "Ta operacja jest dostępna tylko dla rachunków papierów wartościowych.",
     "ACCOUNT_QUERY_FAILED": "Nie udało się odczytać rachunków z pliku kopii zapasowej. Plik może być uszkodzony lub utworzony w innej wersji.",
     "ACCOUNT_REFERENCED_BY_PORTFOLIO": "Ten rachunek jest używany jako referencyjny rachunek gotówkowy portfela i nie można go usunąć. Zmień najpierw rachunek referencyjny portfela.",
@@ -71,6 +72,7 @@
     "PORTFOLIO_NOT_FOUND": "Nie znaleziono portfela.",
     "SECURITY_ALREADY_IN_WATCHLIST": "Ten papier wartościowy jest już na liście obserwowanych.",
     "SECURITY_NO_FEED_CONFIGURED": "Dla tego papieru wartościowego nie skonfigurowano źródła cen. Przypisz je w szczegółach papieru wartościowego, aby pobierać ceny.",
+    "SECURITY_NOT_FOUND": "Wybrany papier wartościowy już nie istnieje. Odśwież i spróbuj ponownie.",
     "STREAM_FAILED": "Pobieranie zostało przerwane. Spróbuj ponownie.",
     "TAXONOMY_MOVE_AT_BOUNDARY": "Ten element jest już na skraju i nie można go przesunąć dalej w tym kierunku.",
     "CATEGORY_MOVE_AT_BOUNDARY": "Ta kategoria jest już na skraju swoich sąsiadów i nie można jej przesunąć dalej w tym kierunku.",
@@ -79,6 +81,7 @@
     "FX_RATE_REQUIRED": "Wymagany jest kurs wymiany, gdy waluty źródłowa i docelowa są różne.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "Ten typ transakcji nie jest dozwolony dla rachunku docelowego.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "Ten typ transakcji nie jest dozwolony dla wybranego rachunku.",
+    "TRANSACTION_NOT_FOUND": "Ta transakcja już nie istnieje. Mogła zostać usunięta.",
     "Validation error": "Nieprawidłowe dane. Sprawdź pola i spróbuj ponownie.",
     "security_has_transactions": "Nie można usunąć — {{count}} transakcji jest powiązanych z tym papierem wartościowym. Najpierw je usuń lub przypisz ponownie."
   }

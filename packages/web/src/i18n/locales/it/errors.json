@@ -28,6 +28,7 @@
   },
   "server": {
     "ACCOUNT_HAS_TRANSACTIONS": "Questo conto ha transazioni e non può essere eliminato. Elimina o sposta prima le transazioni.",
+    "ACCOUNT_NOT_FOUND": "Il conto selezionato non esiste più. Ricarica e riprova.",
     "ACCOUNT_NOT_PORTFOLIO": "Questa operazione è disponibile solo sui conti titoli.",
     "ACCOUNT_QUERY_FAILED": "Impossibile leggere i conti dal file di backup. Potrebbe essere danneggiato o generato da una versione diversa.",
     "ACCOUNT_REFERENCED_BY_PORTFOLIO": "Questo conto è il conto di liquidità di riferimento di un portafoglio e non può essere eliminato. Modifica prima il conto di riferimento del portafoglio.",
@@ -71,6 +72,7 @@
     "PORTFOLIO_NOT_FOUND": "Portafoglio non trovato.",
     "SECURITY_ALREADY_IN_WATCHLIST": "Questo titolo è già nella watchlist.",
     "SECURITY_NO_FEED_CONFIGURED": "Questo titolo non ha una fonte di prezzi configurata. Assegnane una nei dettagli del titolo per scaricare i prezzi.",
+    "SECURITY_NOT_FOUND": "Il titolo selezionato non esiste più. Ricarica e riprova.",
     "STREAM_FAILED": "Il download è stato interrotto. Riprova.",
     "TAXONOMY_MOVE_AT_BOUNDARY": "Questo elemento è già al limite e non può spostarsi oltre in quella direzione.",
     "CATEGORY_MOVE_AT_BOUNDARY": "Questa categoria è già al limite tra i fratelli e non può spostarsi oltre in quella direzione.",
@@ -79,6 +81,7 @@
     "FX_RATE_REQUIRED": "È richiesto un tasso di cambio quando le valute di origine e destinazione sono diverse.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "Questo tipo di transazione non è consentito per il conto di destinazione.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "Questo tipo di transazione non è consentito per il conto selezionato.",
+    "TRANSACTION_NOT_FOUND": "Questa transazione non esiste più. Potrebbe essere stata eliminata.",
     "Validation error": "Dati non validi. Verifica i campi e riprova.",
     "security_has_transactions": "Impossibile eliminare — {{count}} transazioni sono collegate a questo titolo. Eliminale o riassegnale prima."
   }

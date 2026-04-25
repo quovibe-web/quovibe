@@ -28,6 +28,7 @@
   },
   "server": {
     "ACCOUNT_HAS_TRANSACTIONS": "Esta conta tem transações e não pode ser eliminada. Elimine ou mova as transações primeiro.",
+    "ACCOUNT_NOT_FOUND": "A conta selecionada já não existe. Recarregue e tente novamente.",
     "ACCOUNT_NOT_PORTFOLIO": "Esta operação só está disponível em contas de títulos.",
     "ACCOUNT_QUERY_FAILED": "Não foi possível ler as contas do ficheiro de cópia de segurança. Pode estar danificado ou ter sido produzido por uma versão diferente.",
     "ACCOUNT_REFERENCED_BY_PORTFOLIO": "Esta conta é a conta de liquidez de referência de um portfólio e não pode ser eliminada. Altere primeiro a conta de referência do portfólio.",
@@ -71,6 +72,7 @@
     "PORTFOLIO_NOT_FOUND": "Portfólio não encontrado.",
     "SECURITY_ALREADY_IN_WATCHLIST": "Este título já está na lista de acompanhamento.",
     "SECURITY_NO_FEED_CONFIGURED": "Este título não tem uma fonte de preços configurada. Atribua uma nos detalhes do título para obter preços.",
+    "SECURITY_NOT_FOUND": "O título selecionado já não existe. Recarregue e tente novamente.",
     "STREAM_FAILED": "O download foi interrompido. Tente novamente.",
     "TAXONOMY_MOVE_AT_BOUNDARY": "Este item já está no limite e não pode avançar mais nessa direção.",
     "CATEGORY_MOVE_AT_BOUNDARY": "Esta categoria já está no limite das suas irmãs e não pode avançar mais nessa direção.",
@@ -79,6 +81,7 @@
     "FX_RATE_REQUIRED": "É necessária uma taxa de câmbio quando as moedas de origem e destino são diferentes.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION": "Este tipo de transação não é permitido para a conta de destino.",
     "TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE": "Este tipo de transação não é permitido para a conta selecionada.",
+    "TRANSACTION_NOT_FOUND": "Esta transação já não existe. Pode ter sido eliminada.",
     "Validation error": "Entrada inválida. Verifique os campos e tente novamente.",
     "security_has_transactions": "Não é possível eliminar — {{count}} transações estão associadas a este título. Elimine-as ou reatribua-as primeiro."
   }

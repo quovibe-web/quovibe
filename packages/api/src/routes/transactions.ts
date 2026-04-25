@@ -1,5 +1,5 @@
 import { Router, type Router as RouterType } from 'express';
-import type { RequestHandler } from 'express';
+import type { RequestHandler, Response } from 'express';
 import { createTransactionSchema, AccountType, isTransactionTypeAllowed, CASH_ONLY_ROUTED_TYPES, CROSS_CURRENCY_FX_TYPES, TransactionType } from '@quovibe/shared';
 import * as transactionService from '../services/transaction.service';
 import { getDb, getSqlite } from '../helpers/request';
@@ -199,6 +199,16 @@ function enforceCrossCurrencyFxRate(
   return null;
 }
 
+// BUG-108: route-side mapper for service-layer FK pre-validation throws.
+// Returns true if the error was handled (response written), false otherwise.
+function handleTransactionServiceError(res: Response, err: unknown): boolean {
+  if (err instanceof transactionService.TransactionServiceError) {
+    res.status(400).json({ error: err.code });
+    return true;
+  }
+  return false;
+}
+
 export const transactionsRouter: RouterType = Router();
 
 // Hard ceiling on `limit=all` to prevent accidental unbounded reads
@@ -396,7 +406,13 @@ const createTransaction: RequestHandler = (req, res) => {
     return;
   }
 
-  const id = transactionService.createTransaction(db, sqlite, input);
+  let id: string;
+  try {
+    id = transactionService.createTransaction(db, sqlite, input);
+  } catch (err) {
+    if (handleTransactionServiceError(res, err)) return;
+    throw err;
+  }
   const row = sqlite.prepare('SELECT * FROM xact WHERE uuid = ?').get(id) as
     | Record<string, unknown>
     | undefined;
@@ -423,7 +439,7 @@ const updateTransaction: RequestHandler = (req, res) => {
 
   const existing = sqlite.prepare('SELECT uuid FROM xact WHERE uuid = ?').get(id);
   if (!existing) {
-    res.status(404).json({ error: 'Transaction not found' });
+    res.status(404).json({ error: 'TRANSACTION_NOT_FOUND' });
     return;
   }
 
@@ -439,7 +455,12 @@ const updateTransaction: RequestHandler = (req, res) => {
     return;
   }
 
-  transactionService.updateTransaction(db, sqlite, id, input);
+  try {
+    transactionService.updateTransaction(db, sqlite, id, input);
+  } catch (err) {
+    if (handleTransactionServiceError(res, err)) return;
+    throw err;
+  }
   const row = sqlite.prepare('SELECT * FROM xact WHERE uuid = ?').get(id) as
     | Record<string, unknown>
     | undefined;
@@ -465,7 +486,7 @@ const deleteTransaction: RequestHandler = (req, res) => {
 
   const existing = sqlite.prepare('SELECT uuid FROM xact WHERE uuid = ?').get(id);
   if (!existing) {
-    res.status(404).json({ error: 'Transaction not found' });
+    res.status(404).json({ error: 'TRANSACTION_NOT_FOUND' });
     return;
   }
 
@@ -500,7 +521,7 @@ const getTransaction: RequestHandler = (req, res) => {
     .get(id) as Record<string, unknown> | undefined;
 
   if (!row) {
-    res.status(404).json({ error: 'Transaction not found' });
+    res.status(404).json({ error: 'TRANSACTION_NOT_FOUND' });
     return;
   }
 
