@@ -117,6 +117,24 @@ const DUAL_ENTRY_TYPES = new Set<TransactionType>([
 
 const BUY_SELL_TYPES = new Set<TransactionType>([TransactionType.BUY, TransactionType.SELL]);
 
+// Resolves the destination account for the dual-entry counterpart row.
+// BUY/SELL fall back to the source portfolio's `referenceAccount` when the
+// caller omits `crossAccountId`; transfers always require an explicit cross
+// account. The dedupe SELECT and the dual-entry insert MUST agree on this
+// resolution, otherwise back-to-back parallel POSTs that omit
+// `crossAccountId` bind NULL on the dedupe side while the persisted
+// `xact_cross_entry.to_acc` carries the resolved deposit uuid.
+function resolveDualEntryDestAccount(
+  type: TransactionType,
+  crossAccountId: string | null | undefined,
+  acctRow: { referenceAccount: string | null } | undefined,
+): string | null {
+  if (BUY_SELL_TYPES.has(type)) {
+    return crossAccountId ?? acctRow?.referenceAccount ?? null;
+  }
+  return crossAccountId ?? null;
+}
+
 // BUG-50: short-window natural-key dedupe for POST /transactions.
 // Catches in-flight races (5-parallel POST, double-click, multi-tab resubmit,
 // browser-back resubmit) without blocking legitimate duplicates entered more
@@ -455,24 +473,29 @@ export function createTransaction(
     const feesDb = Math.round(parseFloat(new Decimal(totalFees).times(100).toPrecision(15)));
     const taxesDb = Math.round(parseFloat(new Decimal(totalTaxes).times(100).toPrecision(15)));
 
-    // BUG-50: natural-key dedupe. If an identical row was persisted within the
-    // last DEDUPE_WINDOW_MS, short-circuit and return its uuid instead of
-    // inserting a second copy. SQLite `IS` is NULL-safe, so a null security
-    // matches another null-security row. Dual-entry side effects (cash-side
-    // row, cross_entry, units) are skipped because the earlier create already
-    // produced them; the caller reads back the existing source row and sees a
-    // byte-identical 201 response.
+    // Natural-key dedupe within DEDUPE_WINDOW_MS. The `acctype` and
+    // `xact_cross_entry.to_acc` discriminators are required because three
+    // enum-form types collapse onto DB-form `TRANSFER_OUT` (see
+    // TYPE_MAP_TO_PPXML2DB above) — keying on `xact.type` alone silently
+    // swallows back-to-back POSTs of distinct logical types. SQLite `IS` is
+    // NULL-safe so non-dual-entry types match each other on both sides as
+    // NULL.
+    const dedupeCrossAcc = resolveDualEntryDestAccount(input.type, input.crossAccountId, acctRow);
     const windowCutoff = new Date(Date.now() - DEDUPE_WINDOW_MS).toISOString();
     const dupe = sqlite
       .prepare(
-        `SELECT uuid FROM xact
-         WHERE account = ?
-           AND date = ?
-           AND type = ?
-           AND amount = ?
-           AND shares = ?
-           AND security IS ?
-           AND updatedAt >= ?
+        `SELECT x.uuid FROM xact x
+         LEFT JOIN xact_cross_entry ce
+           ON ce.from_xact = x.uuid AND ce.from_xact != ce.to_xact
+         WHERE x.account = ?
+           AND x.date = ?
+           AND x.type = ?
+           AND x.amount = ?
+           AND x.shares = ?
+           AND x.security IS ?
+           AND x.acctype IS ?
+           AND ce.to_acc IS ?
+           AND x.updatedAt >= ?
          LIMIT 1`,
       )
       .get(
@@ -482,6 +505,8 @@ export function createTransaction(
         fromAmount,
         fromShares,
         input.securityId ?? null,
+        resolved.acctype ?? null,
+        dedupeCrossAcc,
         windowCutoff,
       ) as { uuid: string } | undefined;
     if (dupe) return dupe.uuid;
@@ -528,9 +553,7 @@ export function createTransaction(
       // (GAP-02 extends this const for SECURITY_TRANSFER in this same block)
 
       // BUY/SELL → crossAccountId overrides referenceAccount; transfers → dest is crossAccountId
-      const destAccountId = BUY_SELL_TYPES.has(input.type)
-        ? (input.crossAccountId ?? acctRow?.referenceAccount ?? null)
-        : (input.crossAccountId ?? null);
+      const destAccountId = resolveDualEntryDestAccount(input.type, input.crossAccountId, acctRow);
 
       if (destAccountId) {
         destXactId = uuidv4();
@@ -701,9 +724,7 @@ export function updateTransaction(
         : toDbType(input.type);
 
       // BUY/SELL → crossAccountId overrides referenceAccount; transfers → dest is crossAccountId
-      const destAccountId = BUY_SELL_TYPES.has(input.type)
-        ? (input.crossAccountId ?? acctRow?.referenceAccount ?? null)
-        : (input.crossAccountId ?? null);
+      const destAccountId = resolveDualEntryDestAccount(input.type, input.crossAccountId, acctRow);
 
       if (DUAL_ENTRY_TYPES.has(input.type) && !BUY_SELL_TYPES.has(input.type) && !destAccountId) {
         const err = new Error('crossAccountId is required for transfer types') as Error & { statusCode: number };

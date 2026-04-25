@@ -44,7 +44,7 @@ export default function TransactionNew() {
     preType && availableTypes.includes(preType) ? preType : availableTypes[0];
 
   const [type, setType] = useState<TransactionType>(initialType);
-  const { mutate, isPending } = useCreateTransaction();
+  const { mutate, isPending, error } = useCreateTransaction();
 
   function handleSubmit(values: TransactionFormValues) {
     mutate(preparePayload(values), {
@@ -84,6 +84,7 @@ export default function TransactionNew() {
             onSubmit={handleSubmit}
             isSubmitting={isPending}
             preselectedAccountId={preAccountId}
+            serverError={error}
           />
         </CardContent>
       </Card>

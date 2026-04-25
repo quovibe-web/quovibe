@@ -644,6 +644,7 @@ export default function Transactions() {
               isSubmitting={createMutation.isPending}
               hideSubmitButton
               formRef={newTxFormRef}
+              serverError={createMutation.error}
             />
           </ScrollArea>
           <SheetFooter className="border-t px-4 py-3 flex-row justify-end gap-2">

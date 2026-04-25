@@ -41,6 +41,7 @@ import {
   buildTransactionFormSchema,
   type TransactionFormShape,
 } from './transaction-form.schema';
+import { extractServerFieldErrors } from './transaction-server-error';
 
 interface FieldConfig {
   security: 'required' | 'optional' | false;
@@ -109,6 +110,11 @@ interface TransactionFormProps {
   preselectedAccountId?: string;
   hideSubmitButton?: boolean;
   formRef?: React.Ref<HTMLFormElement>;
+  // The mutation error from `useCreateTransaction` / `useUpdateTransaction`,
+  // passed through verbatim. The form parses field-tagged Zod issues out of
+  // it and surfaces them inline via `<FormMessage>`. Generic non-field codes
+  // are NOT consumed here — the global MutationCache toast still handles them.
+  serverError?: unknown;
 }
 
 function defaultFormValues(
@@ -141,6 +147,7 @@ export function TransactionForm({
   preselectedAccountId,
   hideSubmitButton,
   formRef,
+  serverError,
 }: TransactionFormProps) {
   const { t, i18n } = useTranslation('transactions');
   const cfg = FIELD_CONFIG[type];
@@ -198,6 +205,19 @@ export function TransactionForm({
     reValidateMode: 'onChange',
     resolver: stableResolver,
   });
+
+  // Surface server-side Zod field errors as inline `<FormMessage>` on the
+  // offending field. Without this, route-layer 400s (cross-currency
+  // `fxRate` gate, post-Zod schema fixes that diverge from the client
+  // schema, etc.) are visible only as a global toast — the user has to
+  // map a sentence back to a field. RHF's onChange revalidate clears the
+  // server-flagged error as soon as the user touches the field.
+  useEffect(() => {
+    if (!serverError) return;
+    for (const { field, message } of extractServerFieldErrors(serverError)) {
+      form.setError(field, { type: 'server', message });
+    }
+  }, [serverError, form]);
 
   const watchedAccountId = useWatch({ control: form.control, name: 'accountId' }) ?? '';
   const watchedCrossAccountId = useWatch({ control: form.control, name: 'crossAccountId' }) ?? '';

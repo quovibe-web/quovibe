@@ -57,6 +57,34 @@ function seedCashAccount(id: string): string {
   return accountUuid;
 }
 
+function seedSecuritiesAccount(id: string, label: string): string {
+  const accountUuid = randomUUID();
+  const h = acquirePortfolioDb(id);
+  try {
+    h.sqlite.prepare(
+      `INSERT INTO account (_id, uuid, name, currency, type, updatedAt, _xmlid, _order)
+       VALUES (200, ?, ?, NULL, 'portfolio', '2026-01-01T00:00:00Z', 200, 200)`,
+    ).run(accountUuid, label);
+  } finally {
+    releasePortfolioDb(id);
+  }
+  return accountUuid;
+}
+
+function seedSecurity(id: string): string {
+  const securityUuid = randomUUID();
+  const h = acquirePortfolioDb(id);
+  try {
+    h.sqlite.prepare(
+      `INSERT INTO security (_id, uuid, name, currency, isRetired, updatedAt)
+       VALUES (300, ?, 'Test Sec', 'EUR', 0, '2026-01-01T00:00:00Z')`,
+    ).run(securityUuid);
+  } finally {
+    releasePortfolioDb(id);
+  }
+  return securityUuid;
+}
+
 describe('POST /transactions idempotency (BUG-50)', () => {
   it('5 identical parallel POSTs produce exactly 1 row', async () => {
     loadSettings();
@@ -138,5 +166,151 @@ describe('POST /transactions idempotency (BUG-50)', () => {
     const list = await request(app).get(`/api/p/${pid}/transactions?account=${accountUuid}`);
     expect(list.status).toBe(200);
     expect(list.body.total).toBe(2);
+  });
+});
+
+// Regression for BUG-123: the natural-key dedupe must NOT collapse distinct
+// wire-form types whose ppxml2db DB-form encoding is shared. SECURITY_TRANSFER,
+// DELIVERY_OUTBOUND, and the source leg of TRANSFER_BETWEEN_ACCOUNTS all map
+// to `xact.type = 'TRANSFER_OUT'`; before the fix, the dedupe key keyed only
+// on DB-form `type`, so back-to-back distinct-type POSTs against the same
+// security/account within DEDUPE_WINDOW_MS silently swallowed the second
+// insert.
+describe('POST /transactions wire-form-type discriminator (BUG-123)', () => {
+  it('SECURITY_TRANSFER followed by DELIVERY_OUTBOUND within the dedupe window produces distinct rows', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+
+    const rP = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'IDEM3',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
+    expect(rP.status).toBe(201);
+    const pid = rP.body.entry.id;
+
+    const portB = seedSecuritiesAccount(pid, 'Other Securities');
+    const securityId = seedSecurity(pid);
+
+    // Resolve the auto-seeded primary securities account.
+    const accs = await request(app).get(`/api/p/${pid}/securities-accounts`);
+    expect(accs.status).toBe(200);
+    const portA: string = accs.body[0].id;
+
+    const securityTransfer = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'SECURITY_TRANSFER',
+      amount: 0,
+      shares: 1,
+      securityId,
+      accountId: portA,
+      crossAccountId: portB,
+    });
+    expect(securityTransfer.status, JSON.stringify(securityTransfer.body)).toBe(201);
+
+    // Same security/account/shares/amount, no dedupe-window wait.
+    const deliveryOutbound = await request(app).post(`/api/p/${pid}/transactions`).send({
+      date: '2026-01-01',
+      type: 'DELIVERY_OUTBOUND',
+      amount: 0,
+      shares: 1,
+      securityId,
+      accountId: portA,
+    });
+    expect(deliveryOutbound.status, JSON.stringify(deliveryOutbound.body)).toBe(201);
+
+    expect(
+      deliveryOutbound.body.uuid,
+      'BUG-123 regression: DELIVERY_OUTBOUND must not collapse onto preceding SECURITY_TRANSFER',
+    ).not.toBe(securityTransfer.body.uuid);
+
+    const list = await request(app).get(`/api/p/${pid}/transactions?account=${portA}`);
+    expect(list.status).toBe(200);
+    expect(list.body.total, `expected total=2 on portA, got ${list.body.total}`).toBe(2);
+  });
+
+  it('5 identical parallel BUY POSTs without explicit crossAccountId still produce exactly 1 row (BUG-50 BUY/SELL leg)', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+
+    const rP = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'IDEM5',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
+    expect(rP.status).toBe(201);
+    const pid = rP.body.entry.id;
+
+    const securityId = seedSecurity(pid);
+    const accs = await request(app).get(`/api/p/${pid}/securities-accounts`);
+    expect(accs.status).toBe(200);
+    const portA: string = accs.body[0].id;
+
+    // BUY without an explicit `crossAccountId` — the service auto-routes the
+    // cash leg to the portfolio's referenceAccount. The dedupe key MUST
+    // resolve `ce.to_acc` to that same referenceAccount, otherwise a
+    // 5-parallel POST regresses to 5 rows.
+    const body = {
+      date: '2026-01-01',
+      type: 'BUY',
+      amount: 100,
+      shares: 1,
+      currencyCode: 'EUR',
+      securityId,
+      accountId: portA,
+    };
+
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        request(app).post(`/api/p/${pid}/transactions`).send(body),
+      ),
+    );
+    for (const r of results) {
+      expect(r.status, JSON.stringify(r.body)).toBe(201);
+    }
+    const uuids = new Set(results.map(r => r.body.uuid));
+    expect(uuids.size, `expected 1 unique uuid across 5 BUY responses, got ${uuids.size}`).toBe(1);
+  });
+
+  it('two identical SECURITY_TRANSFER POSTs within the dedupe window still collapse (BUG-50 not regressed)', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+
+    const rP = await request(app).post('/api/portfolios').send({
+      source: 'fresh', name: 'IDEM4',
+      baseCurrency: 'EUR',
+      securitiesAccountName: 'Main Securities',
+      primaryDeposit: { name: 'Cash' },
+    });
+    expect(rP.status).toBe(201);
+    const pid = rP.body.entry.id;
+
+    const portB = seedSecuritiesAccount(pid, 'Other Securities');
+    const securityId = seedSecurity(pid);
+
+    const accs = await request(app).get(`/api/p/${pid}/securities-accounts`);
+    expect(accs.status).toBe(200);
+    const portA: string = accs.body[0].id;
+
+    const body = {
+      date: '2026-01-01',
+      type: 'SECURITY_TRANSFER',
+      amount: 0,
+      shares: 1,
+      securityId,
+      accountId: portA,
+      crossAccountId: portB,
+    };
+
+    const a = await request(app).post(`/api/p/${pid}/transactions`).send(body);
+    const b = await request(app).post(`/api/p/${pid}/transactions`).send(body);
+    expect(a.status).toBe(201);
+    expect(b.status).toBe(201);
+    expect(b.body.uuid, 'identical SECURITY_TRANSFERs must still dedupe').toBe(a.body.uuid);
   });
 });

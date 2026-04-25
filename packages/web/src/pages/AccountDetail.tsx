@@ -339,6 +339,7 @@ export default function AccountDetail() {
               hideSubmitButton
               formRef={newTxFormRef}
               preselectedAccountId={id}
+              serverError={createMutation.error}
             />
           </ScrollArea>
           <SheetFooter className="border-t px-4 py-3 flex-row justify-end gap-2">
