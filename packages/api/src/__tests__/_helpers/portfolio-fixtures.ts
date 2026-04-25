@@ -51,6 +51,28 @@ export async function seedFreshPortfolio(): Promise<{ portfolioId: string; app: 
 }
 
 /**
+ * Insert a `type='account'` (cash) row into a portfolio's inner DB and return
+ * its uuid. Distinct name from any auto-seeded primary deposit so the test
+ * fixture is unambiguous on accountId UUID lookups.
+ */
+export async function seedCashAccount(portfolioId: string): Promise<string> {
+  const { acquirePortfolioDb, releasePortfolioDb } = await import('../../services/portfolio-db-pool');
+  const accountUuid = crypto.randomUUID();
+  const h = acquirePortfolioDb(portfolioId);
+  try {
+    h.sqlite
+      .prepare(
+        `INSERT INTO account (_id, uuid, name, currency, type, updatedAt, _xmlid, _order)
+         VALUES (100, ?, 'Test Cash', 'EUR', 'account', '2026-01-01T00:00:00Z', 100, 100)`,
+      )
+      .run(accountUuid);
+  } finally {
+    releasePortfolioDb(portfolioId);
+  }
+  return accountUuid;
+}
+
+/**
  * Simulate the pre-fix "legacy" state: a portfolio whose inner DB has zero
  * rows in `account`. Implemented by creating a fresh portfolio (which now
  * auto-seeds the M3 default layout) and then running an explicit DELETE so

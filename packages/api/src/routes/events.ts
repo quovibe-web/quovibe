@@ -4,13 +4,22 @@ import { EventEmitter } from 'events';
 
 export const eventsRouter: RouterType = Router();
 
-type EventName = 'portfolio.created' | 'portfolio.renamed' | 'portfolio.deleted';
+type EventName =
+  | 'portfolio.created'
+  | 'portfolio.renamed'
+  | 'portfolio.deleted'
+  | 'portfolio.mutated';
 
 const bus = new EventEmitter();
 bus.setMaxListeners(0);                          // many tabs = many listeners, unbounded
 
 export function broadcast(event: EventName, data: unknown): void {
   bus.emit('event', { event, data });
+}
+
+// Test-only accessor. Production code MUST go through `broadcast()`.
+export function _getBus(): EventEmitter {
+  return bus;
 }
 
 const handler: RequestHandler = (req, res) => {

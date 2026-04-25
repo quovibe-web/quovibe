@@ -4,6 +4,7 @@ import cors from 'cors';
 import { reportingPeriodMiddleware } from './middleware/reporting-period';
 import { errorHandler } from './middleware/error-handler';
 import { portfolioContext } from './middleware/portfolio-context';
+import { broadcastMutations } from './middleware/broadcast-mutations';
 import { accountsRouter } from './routes/accounts';
 import { securitiesRouter } from './routes/securities';
 import { transactionsRouter } from './routes/transactions';
@@ -60,6 +61,7 @@ export function createApp(): Express {
 
   // --- portfolio-scoped endpoints, gated by portfolioContext ------------
   app.use('/api/p/:portfolioId', portfolioContext);
+  app.use('/api/p/:portfolioId', broadcastMutations);
   app.use('/api/p/:portfolioId/accounts', accountsRouter);
   app.use('/api/p/:portfolioId/securities', securitiesRouter);
   app.use('/api/p/:portfolioId/transactions', transactionsRouter);
