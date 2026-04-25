@@ -54,6 +54,21 @@ export function useTransactions(
   });
 }
 
+// Imperative one-shot fetch for CSV export. Bypasses pagination via
+// `limit=all` so the export covers the full filtered dataset, not just
+// the page currently in memory (BUG-60).
+export function useExportTransactions() {
+  const api = useScopedApi();
+  return async (filters?: Record<string, unknown>) => {
+    const queryParams = new URLSearchParams({
+      ...(filters as Record<string, string>),
+      limit: 'all',
+    });
+    const result = await api.fetch<TransactionPage>(`/api/transactions?${queryParams}`);
+    return result.data;
+  };
+}
+
 function invalidateAll(qc: ReturnType<typeof useQueryClient>, pid: string) {
   // Invalidate all portfolio-scoped derived data. A single key prefix catches
   // transactions, securities, accounts, performance, reports, holdings, etc.

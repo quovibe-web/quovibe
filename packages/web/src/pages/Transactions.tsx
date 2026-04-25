@@ -44,7 +44,7 @@ import {
 import { DataTable } from '@/components/shared/DataTable';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { SharesDisplay } from '@/components/shared/SharesDisplay';
-import { useTransactions, useDeleteTransaction } from '@/api/use-transactions';
+import { useTransactions, useDeleteTransaction, useExportTransactions } from '@/api/use-transactions';
 import { EditRemovalDialog } from '@/components/domain/EditRemovalDialog';
 import { EditBuyDialog } from '@/components/domain/EditBuyDialog';
 import { EditSellDialog } from '@/components/domain/EditSellDialog';
@@ -298,6 +298,7 @@ export default function Transactions() {
   const createMutation = useCreateTransaction();
 
   const deleteMutation = useDeleteTransaction();
+  const fetchAllTransactions = useExportTransactions();
 
   const columnVisibilityGroups = useMemo<ColumnVisibilityGroup[]>(() => [
     { label: t('columnGroups.core'), columns: ['date', 'type', 'securityName', 'accountName'] },
@@ -564,6 +565,9 @@ export default function Transactions() {
           enableColumnVisibility
           columnVisibilityGroups={columnVisibilityGroups}
           enableExport
+          exportFetcher={() =>
+            fetchAllTransactions(filters) as Promise<TransactionListItem[]>
+          }
         />
         )}
         {!isLoading && transactions.length > 0 && (
