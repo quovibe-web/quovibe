@@ -155,6 +155,18 @@ import ptPortfolioSettings from './locales/pt/portfolioSettings.json';
 import ptUserSettings from './locales/pt/userSettings.json';
 import ptPortfolioSetup from './locales/pt/portfolio-setup.json';
 
+// Drop the language-detector's default key, superseded by `quovibe-language`.
+if (typeof localStorage !== 'undefined') {
+  localStorage.removeItem('i18nextLng');
+}
+
+// Keep `<html lang>` in sync for screen readers and CSS `:lang(…)` selectors.
+i18n.on('languageChanged', (lng) => {
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = lng;
+  }
+});
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
