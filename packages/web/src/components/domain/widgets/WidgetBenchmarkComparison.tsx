@@ -181,13 +181,7 @@ export default function WidgetBenchmarkComparison() {
   const sparklineColor = alpha !== null && alpha >= 0 ? profit : danger;
 
   return (
-    <div
-      className="flex flex-col gap-1 flex-1"
-      style={{
-        filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
-        transition: 'filter 0.2s ease',
-      }}
-    >
+    <div className="flex flex-col gap-1 flex-1">
       {/* Benchmark label */}
       {benchmarkName && (
         <span className="text-xs text-muted-foreground truncate">
@@ -232,7 +226,14 @@ export default function WidgetBenchmarkComparison() {
 
       {/* Mini sparkline */}
       {sparklineData.length > 1 && (
-        <SparklineContainer data={sparklineData} color={sparklineColor} />
+        <div
+          style={{
+            filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
+            transition: 'filter 0.2s ease',
+          }}
+        >
+          <SparklineContainer data={sparklineData} color={sparklineColor} />
+        </div>
       )}
     </div>
   );

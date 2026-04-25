@@ -76,10 +76,7 @@ function HoldingRow({
               style={{ width: `${Math.min(100, weight)}%` }}
             />
           </div>
-          <span
-            className="text-[10px] tabular-nums text-muted-foreground"
-            style={{ filter: isPrivate ? 'blur(6px) saturate(0)' : 'none', transition: 'filter 0.2s' }}
-          >
+          <span className="text-[10px] tabular-nums text-muted-foreground">
             {isPrivate ? '••%' : `${weight.toFixed(1)}%`}
           </span>
         </div>
@@ -93,13 +90,9 @@ function HoldingRow({
       {/* TTWROR */}
       <div
         className="w-[62px] shrink-0 text-right text-[11px] font-semibold tabular-nums overflow-hidden"
-        style={{
-          color: isPrivate ? undefined : ttwrorColor,
-          filter: isPrivate ? 'blur(6px) saturate(0)' : 'none',
-          transition: 'filter 0.2s',
-        }}
+        style={{ color: isPrivate ? undefined : ttwrorColor }}
       >
-        {ttwrorVal === null ? '—' : formatPercentage(ttwrorVal)}
+        {ttwrorVal === null ? '—' : isPrivate ? '••••' : formatPercentage(ttwrorVal)}
       </div>
     </button>
   );
