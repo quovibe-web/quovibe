@@ -11,8 +11,19 @@ const ACC_A = '11111111-1111-1111-1111-111111111111';
 const ACC_B = '22222222-2222-2222-2222-222222222222';
 const SEC = '33333333-3333-3333-3333-333333333333';
 
-function ctx(over: Partial<TransactionFormSchemaContext> = {}): TransactionFormSchemaContext {
-  return {
+interface CtxOverride {
+  type?: TransactionType;
+  isCrossCurrency?: boolean;
+  showsCrossAccount?: boolean;
+  showsAmount?: boolean;
+  showsShares?: boolean;
+  showsPrice?: boolean;
+  showsFees?: boolean;
+  showsTaxes?: boolean;
+}
+
+function ctx(over: CtxOverride = {}): TransactionFormSchemaContext {
+  const merged = {
     type: TransactionType.BUY,
     isCrossCurrency: false,
     showsCrossAccount: true,
@@ -22,6 +33,18 @@ function ctx(over: Partial<TransactionFormSchemaContext> = {}): TransactionFormS
     showsFees: true,
     showsTaxes: true,
     ...over,
+  };
+  return {
+    type: merged.type,
+    isCrossCurrency: merged.isCrossCurrency,
+    fields: {
+      crossAccountId: merged.showsCrossAccount,
+      amount: merged.showsAmount,
+      shares: merged.showsShares,
+      price: merged.showsPrice,
+      fees: merged.showsFees,
+      taxes: merged.showsTaxes,
+    },
   };
 }
 

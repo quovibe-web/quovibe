@@ -7,6 +7,7 @@ import { format, parse, isValid } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { TransactionType } from '@/lib/enums';
+import { CASH_ONLY_ROUTED_TYPES, PRICED_SHARE_TYPES } from '@quovibe/shared';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/shared/SubmitButton';
 import { Input } from '@/components/ui/input';
@@ -53,27 +54,15 @@ interface FieldConfig {
   note: boolean;
 }
 
-const PORTFOLIO_ONLY_TYPES = new Set([
-  TransactionType.BUY,
-  TransactionType.SELL,
-  TransactionType.DELIVERY_INBOUND,
-  TransactionType.DELIVERY_OUTBOUND,
-  TransactionType.SECURITY_TRANSFER,
-]);
+// Transaction types tied to a portfolio (securities) account. Aliases the
+// shared PRICED_SHARE_TYPES set — both name BUY/SELL/DELIVERY_*/SECURITY_TRANSFER.
+const PORTFOLIO_ONLY_TYPES = PRICED_SHARE_TYPES;
 
 const BUY_SELL_TYPES = new Set([TransactionType.BUY, TransactionType.SELL]);
 
-const CASH_ONLY_TYPES = new Set([
-  TransactionType.DEPOSIT,
-  TransactionType.REMOVAL,
-  TransactionType.DIVIDEND,
-  TransactionType.INTEREST,
-  TransactionType.INTEREST_CHARGE,
-  TransactionType.FEES,
-  TransactionType.FEES_REFUND,
-  TransactionType.TAXES,
-  TransactionType.TAX_REFUND,
-]);
+// Cash-only types (deposit account). Aliases the shared
+// CASH_ONLY_ROUTED_TYPES set — same membership.
+const CASH_ONLY_TYPES = CASH_ONLY_ROUTED_TYPES;
 
 const FIELD_CONFIG: Record<TransactionType, FieldConfig> = {
   [TransactionType.BUY]: { security: 'required', shares: true, amount: false, price: true, fees: true, taxes: true, accountId: true, crossAccountId: true, note: true },
@@ -153,7 +142,7 @@ export function TransactionForm({
   hideSubmitButton,
   formRef,
 }: TransactionFormProps) {
-  const { t } = useTranslation('transactions');
+  const { t, i18n } = useTranslation('transactions');
   const cfg = FIELD_CONFIG[type];
   const uid = useId();
   const fieldId = (name: string) => `${uid}-${name}`;
@@ -182,7 +171,8 @@ export function TransactionForm({
   const filteredAccounts = useMemo(() => {
     if (PORTFOLIO_ONLY_TYPES.has(type)) return accounts.filter(a => a.type === 'portfolio');
     if (CASH_ONLY_TYPES.has(type)) return accounts.filter(a => a.type === 'account');
-    // BUG-04 UI alignment: TRANSFER_BETWEEN_ACCOUNTS source is deposit, not portfolio.
+    // TRANSFER_BETWEEN_ACCOUNTS source must be a deposit account — server rejects
+    // a portfolio source, so the dropdown filter mirrors the backend invariant.
     if (type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS) return accounts.filter(a => a.type === 'account');
     return accounts;
   }, [accounts, type]);
@@ -235,40 +225,42 @@ export function TransactionForm({
     return base;
   }, [accounts, type, watchedAccountId]);
 
-  const selectedSecurity = securities.find(s => s.id === watchedSecurityId);
-  const selectedCashAccount = filteredCrossAccounts.find(a => a.id === watchedCrossAccountId);
+  const selectedSecurity = useMemo(
+    () => securities.find(s => s.id === watchedSecurityId),
+    [securities, watchedSecurityId],
+  );
+  const selectedCashAccount = useMemo(
+    () => filteredCrossAccounts.find(a => a.id === watchedCrossAccountId),
+    [filteredCrossAccounts, watchedCrossAccountId],
+  );
   const securityCurrency = selectedSecurity?.currency ?? null;
   const cashCurrency = selectedCashAccount?.currency ?? null;
   const isCrossCurrency = !!(securityCurrency && cashCurrency && securityCurrency !== cashCurrency);
 
-  // Schema rebuild — re-evaluated when type, isCrossCurrency, or active language
-  // changes. Save gate (`formState.isValid`) uses this resolver.
   const formSchema = useMemo(
     () => buildTransactionFormSchema(
-      {
-        type,
-        isCrossCurrency,
-        showsCrossAccount: cfg.crossAccountId,
-        showsAmount: cfg.amount,
-        showsShares: cfg.shares,
-        showsPrice: cfg.price,
-        showsFees: cfg.fees,
-        showsTaxes: cfg.taxes,
-      },
+      { type, isCrossCurrency, fields: cfg },
       (k) => t(k),
     ),
-    [type, isCrossCurrency, cfg, t],
+    // i18n.language (not t) is the stable identity dep — t flickers on HMR/lazy-load.
+    [type, isCrossCurrency, cfg, t, i18n.language], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Sync schemaRef synchronously during render so the first validation pass
   // (RHF's eager isValid computation on mount with a resolver) sees the real
   // schema — without this, Save would briefly enable on first paint with a
-  // permissive resolver. The useEffect handles re-validation on subsequent
-  // schema changes (isCrossCurrency flip, language switch, etc.).
+  // permissive resolver. The useEffect handles re-validation on SUBSEQUENT
+  // schema changes (isCrossCurrency flip, language switch, etc.); skip the
+  // first run to avoid a redundant resolver pass right after mount.
   if (schemaRef.current !== formSchema) {
     schemaRef.current = formSchema;
   }
+  const didMount = useRef(false);
   useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true;
+      return;
+    }
     void form.trigger();
   }, [formSchema, form]);
 
@@ -280,6 +272,9 @@ export function TransactionForm({
   );
 
   // Auto-populate crossAccountId from the portfolio's referenceAccount on BUY/SELL.
+  // shouldValidate=true is required so formState.isValid recomputes — auto-fill
+  // satisfies the last required Select and the Save gate must unstick without
+  // waiting for the user to touch another field.
   useEffect(() => {
     if (!BUY_SELL_TYPES.has(type)) return;
     if (watchedCrossAccountId) return;
@@ -289,7 +284,8 @@ export function TransactionForm({
     }
   }, [watchedAccountId, watchedCrossAccountId, accounts, type, form]);
 
-  // BUG-01 UX: clear stale crossAccountId when source changes to match it.
+  // Clear stale crossAccountId when the source changes to match it — the option
+  // is filtered out of the dropdown but the form value would otherwise persist.
   useEffect(() => {
     if (type !== TransactionType.TRANSFER_BETWEEN_ACCOUNTS && type !== TransactionType.SECURITY_TRANSFER) return;
     if (watchedAccountId && watchedAccountId === watchedCrossAccountId) {
@@ -347,8 +343,6 @@ export function TransactionForm({
     });
   });
 
-  const showSharesAndPrice = cfg.shares && cfg.price;
-  const showFeesAndTaxes = cfg.fees && cfg.taxes;
   const saveDisabled = !form.formState.isValid || !!isSubmitting;
 
   return (
@@ -544,21 +538,10 @@ export function TransactionForm({
         )}
 
         {/* Shares + Price */}
-        {showSharesAndPrice ? (
-          <div className="grid grid-cols-2 gap-3">
-            <NumericField form={form} name="shares" label={t('columns.shares')} fieldId={fieldId('shares')} />
-            <NumericField form={form} name="price" label={t('form.pricePerShare')} fieldId={fieldId('price')} />
-          </div>
-        ) : (
-          <>
-            {cfg.shares && (
-              <NumericField form={form} name="shares" label={t('columns.shares')} fieldId={fieldId('shares')} />
-            )}
-            {cfg.price && (
-              <NumericField form={form} name="price" label={t('form.pricePerShare')} fieldId={fieldId('price')} />
-            )}
-          </>
-        )}
+        <PairOrSolo
+          a={cfg.shares && <NumericField form={form} name="shares" label={t('columns.shares')} fieldId={fieldId('shares')} />}
+          b={cfg.price && <NumericField form={form} name="price" label={t('form.pricePerShare')} fieldId={fieldId('price')} />}
+        />
 
         {/* Amount */}
         {cfg.amount && (
@@ -567,23 +550,10 @@ export function TransactionForm({
 
         {/* Fees + Taxes (hidden when FX section is showing) */}
         {!(BUY_SELL_TYPES.has(type) && isCrossCurrency) && (
-          <>
-            {showFeesAndTaxes ? (
-              <div className="grid grid-cols-2 gap-3">
-                <NumericField form={form} name="fees" label={t('form.feesOptional')} fieldId={fieldId('fees')} />
-                <NumericField form={form} name="taxes" label={t('form.taxesOptional')} fieldId={fieldId('taxes')} />
-              </div>
-            ) : (
-              <>
-                {cfg.fees && (
-                  <NumericField form={form} name="fees" label={t('form.feesOptional')} fieldId={fieldId('fees')} />
-                )}
-                {cfg.taxes && (
-                  <NumericField form={form} name="taxes" label={t('form.taxesOptional')} fieldId={fieldId('taxes')} />
-                )}
-              </>
-            )}
-          </>
+          <PairOrSolo
+            a={cfg.fees && <NumericField form={form} name="fees" label={t('form.feesOptional')} fieldId={fieldId('fees')} />}
+            b={cfg.taxes && <NumericField form={form} name="taxes" label={t('form.taxesOptional')} fieldId={fieldId('taxes')} />}
+          />
         )}
 
         {/* FX Section — cross-currency BUY/SELL only */}
@@ -709,6 +679,11 @@ interface NumericFieldProps {
   label: string;
   fieldId: string;
   placeholder?: string;
+}
+
+function PairOrSolo({ a, b }: { a: React.ReactNode | false; b: React.ReactNode | false }) {
+  if (a && b) return <div className="grid grid-cols-2 gap-3">{a}{b}</div>;
+  return <>{a || null}{b || null}</>;
 }
 
 function NumericField({ form, name, label, fieldId, placeholder = '0.00' }: NumericFieldProps) {

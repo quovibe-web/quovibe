@@ -30,24 +30,28 @@ export type TransactionFormShape = z.infer<typeof transactionFormBaseSchema>;
 
 // Caller contract:
 // - `isCrossCurrency` MUST be derived from the resolved currencies of the
-//   selected account / cross-account / security (e.g. for BUY/SELL: cash-side
-//   account.currency vs security.currency; for TRANSFER_BETWEEN_ACCOUNTS:
-//   source.currency vs dest.currency). Hardcoding `false` silently regresses
-//   BUG-111 / BUG-112 client-side. The wire schema cannot enforce the cross-
-//   currency gate (no DB access in @quovibe/shared); the route layer's
-//   `enforceCrossCurrencyFxRate` is the server-side counterpart.
+//   selected account / cross-account / security. Hardcoding `false` skips
+//   client-side cross-currency FX validation; the wire schema can't enforce it
+//   (no DB access in @quovibe/shared), so `enforceCrossCurrencyFxRate` in the
+//   route layer becomes the only remaining gate.
 // - The `shows*` flags MUST mirror the FIELD_CONFIG entry for the active
 //   transaction type — they tell the schema which fields the user can edit
 //   so hidden fields are never required and never validated.
+// Subset of FIELD_CONFIG that the schema needs. Structural typing means a
+// caller can pass the full FIELD_CONFIG[type] entry directly.
+export interface TransactionFieldVisibility {
+  crossAccountId: boolean;
+  amount: boolean;
+  shares: boolean;
+  price: boolean;
+  fees: boolean;
+  taxes: boolean;
+}
+
 export interface TransactionFormSchemaContext {
   type: TransactionType;
   isCrossCurrency: boolean;
-  showsCrossAccount: boolean;
-  showsAmount: boolean;
-  showsShares: boolean;
-  showsPrice: boolean;
-  showsFees: boolean;
-  showsTaxes: boolean;
+  fields: TransactionFieldVisibility;
 }
 
 export type Translator = (key: string) => string;
@@ -73,185 +77,69 @@ export function buildTransactionFormSchema(
   ctx: TransactionFormSchemaContext,
   t: Translator,
 ) {
-  const {
-    type,
-    isCrossCurrency,
-    showsCrossAccount,
-    showsAmount,
-    showsShares,
-    showsPrice,
-    showsFees,
-    showsTaxes,
-  } = ctx;
+  const { type, isCrossCurrency, fields } = ctx;
   const securityRequired = SECURITY_REQUIRED_TYPES.has(type);
   const amountMustBePositive = AMOUNT_REQUIRED_TYPES.has(type);
   const fxRequiredWhenCross = CROSS_CURRENCY_FX_TYPES.has(type);
 
+  function issue(c: z.RefinementCtx, path: string, key: string) {
+    c.addIssue({ code: z.ZodIssueCode.custom, path: [path], message: t(key) });
+  }
+
+  function requirePositive(c: z.RefinementCtx, path: string, value: string | undefined, requiredKey: string, positiveKey: string) {
+    if (!isPresent(value)) {
+      issue(c, path, requiredKey);
+      return;
+    }
+    const n = parseFiniteNumber(value);
+    if (n == null || n <= 0) issue(c, path, positiveKey);
+  }
+
+  function allowOptionalNonNegative(c: z.RefinementCtx, path: string, value: string | undefined, key: string) {
+    if (!isPresent(value)) return;
+    const n = parseFiniteNumber(value);
+    if (n == null || n < 0) issue(c, path, key);
+  }
+
   return transactionFormBaseSchema.superRefine((data, c) => {
-    if (securityRequired && !isPresent(data.securityId)) {
-      c.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['securityId'],
-        message: t('validation.securityRequired'),
-      });
-    }
-
-    if (!isPresent(data.accountId)) {
-      c.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['accountId'],
-        message: t('validation.accountRequired'),
-      });
-    }
-
-    if (showsCrossAccount && !isPresent(data.crossAccountId)) {
-      c.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['crossAccountId'],
-        message: t('validation.targetRequired'),
-      });
-    }
+    if (securityRequired && !isPresent(data.securityId)) issue(c, 'securityId', 'validation.securityRequired');
+    if (!isPresent(data.accountId)) issue(c, 'accountId', 'validation.accountRequired');
+    if (fields.crossAccountId && !isPresent(data.crossAccountId)) issue(c, 'crossAccountId', 'validation.targetRequired');
     if (
       isPresent(data.accountId) &&
       isPresent(data.crossAccountId) &&
       data.accountId === data.crossAccountId
     ) {
-      c.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['crossAccountId'],
-        message: t('validation.sourceDestMustDiffer'),
-      });
+      issue(c, 'crossAccountId', 'validation.sourceDestMustDiffer');
     }
 
-    if (showsShares) {
-      if (!isPresent(data.shares)) {
-        c.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['shares'],
-          message: t('validation.sharesRequired'),
-        });
-      } else {
-        const n = parseFiniteNumber(data.shares);
-        if (n == null || n <= 0) {
-          c.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['shares'],
-            message: t('validation.sharesMustBePositive'),
-          });
-        }
-      }
+    if (fields.shares) {
+      requirePositive(c, 'shares', data.shares, 'validation.sharesRequired', 'validation.sharesMustBePositive');
     }
 
-    if (showsPrice) {
+    if (fields.price) {
       // BUY/SELL derive amount = shares × price; both must be > 0 to satisfy
       // AMOUNT_REQUIRED_TYPES on the wire. SECURITY_TRANSFER + DELIVERY_*
-      // (BUG-113) accept amount = 0, so price may be empty/0.
+      // accept amount = 0 (ppxml2db share-only convention), so price may be
+      // empty or 0 for those types.
       if (amountMustBePositive) {
-        if (!isPresent(data.price)) {
-          c.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['price'],
-            message: t('validation.priceMustBePositive'),
-          });
-        } else {
-          const n = parseFiniteNumber(data.price);
-          if (n == null || n <= 0) {
-            c.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['price'],
-              message: t('validation.priceMustBePositive'),
-            });
-          }
-        }
-      } else if (isPresent(data.price)) {
-        const n = parseFiniteNumber(data.price);
-        if (n == null || n < 0) {
-          c.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['price'],
-            message: t('validation.priceMustBePositive'),
-          });
-        }
-      }
-    }
-
-    if (showsAmount && amountMustBePositive) {
-      if (!isPresent(data.amount)) {
-        c.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['amount'],
-          message: t('validation.amountRequired'),
-        });
+        requirePositive(c, 'price', data.price, 'validation.priceMustBePositive', 'validation.priceMustBePositive');
       } else {
-        const n = parseFiniteNumber(data.amount);
-        if (n == null || n <= 0) {
-          c.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['amount'],
-            message: t('validation.amountMustBePositive'),
-          });
-        }
+        allowOptionalNonNegative(c, 'price', data.price, 'validation.priceMustBePositive');
       }
     }
 
-    if (showsFees && isPresent(data.fees)) {
-      const n = parseFiniteNumber(data.fees);
-      if (n == null || n < 0) {
-        c.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['fees'],
-          message: t('validation.feesMustBeNonNegative'),
-        });
-      }
+    if (fields.amount && amountMustBePositive) {
+      requirePositive(c, 'amount', data.amount, 'validation.amountRequired', 'validation.amountMustBePositive');
     }
-    if (showsTaxes && isPresent(data.taxes)) {
-      const n = parseFiniteNumber(data.taxes);
-      if (n == null || n < 0) {
-        c.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['taxes'],
-          message: t('validation.taxesMustBeNonNegative'),
-        });
-      }
-    }
+
+    if (fields.fees) allowOptionalNonNegative(c, 'fees', data.fees, 'validation.feesMustBeNonNegative');
+    if (fields.taxes) allowOptionalNonNegative(c, 'taxes', data.taxes, 'validation.taxesMustBeNonNegative');
 
     if (isCrossCurrency && fxRequiredWhenCross) {
-      if (!isPresent(data.fxRate)) {
-        c.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['fxRate'],
-          message: t('validation.fxRateMustBePositive'),
-        });
-      } else {
-        const n = parseFiniteNumber(data.fxRate);
-        if (n == null || n <= 0) {
-          c.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['fxRate'],
-            message: t('validation.fxRateMustBePositive'),
-          });
-        }
-      }
-      if (isPresent(data.feesFx)) {
-        const n = parseFiniteNumber(data.feesFx);
-        if (n == null || n < 0) {
-          c.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['feesFx'],
-            message: t('validation.feesMustBeNonNegative'),
-          });
-        }
-      }
-      if (isPresent(data.taxesFx)) {
-        const n = parseFiniteNumber(data.taxesFx);
-        if (n == null || n < 0) {
-          c.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['taxesFx'],
-            message: t('validation.taxesMustBeNonNegative'),
-          });
-        }
-      }
+      requirePositive(c, 'fxRate', data.fxRate, 'validation.fxRateMustBePositive', 'validation.fxRateMustBePositive');
+      allowOptionalNonNegative(c, 'feesFx', data.feesFx, 'validation.feesMustBeNonNegative');
+      allowOptionalNonNegative(c, 'taxesFx', data.taxesFx, 'validation.taxesMustBeNonNegative');
     }
   });
 }
