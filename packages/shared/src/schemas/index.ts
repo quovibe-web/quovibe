@@ -1,3 +1,4 @@
+export * from './utils';
 export * from './transaction.schema';
 export * from './security.schema';
 export * from './account.schema';

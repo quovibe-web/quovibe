@@ -41,6 +41,7 @@
     "DEMO_PORTFOLIO_FETCH_BLOCKED": "As atualizações de preços estão desativadas para o portfólio Demo. Importe um XML real ou crie o seu próprio portfólio para atualizar os preços.",
     "DEMO_PORTFOLIO_IMMUTABLE_METADATA": "As definições do portfólio Demo não podem ser alteradas. Crie ou importe o seu próprio portfólio para o personalizar.",
     "DEMO_SOURCE_MISSING": "Os dados do Demo não estão instalados nesta cópia do quovibe.",
+    "DUPLICATE_ISIN": "Já existe um título com este ISIN.",
     "DUPLICATE_NAME": "Já existe um portfólio com este nome. Escolha um nome diferente.",
     "EMPTY_NAME": "O nome não pode estar vazio.",
     "ENCRYPTED_FORMAT": "O ficheiro parece estar encriptado. Reexporte do Portfolio Performance escolhendo o formato XML com atributos ID.",

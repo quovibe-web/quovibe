@@ -100,7 +100,7 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
 
     try {
       if (type === 'DEPOSIT') {
-        const depositAccount = await createMutation.mutateAsync({ name: name.trim(), type: 'DEPOSIT', currency });
+        const depositAccount = await createMutation.mutateAsync({ name: name.trim(), type: 'account', currency });
         toast.success(t('toasts.depositCreated'));
         const domain = normalizeDomain(website);
         if (domain) {
@@ -114,7 +114,7 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
         if (isNewDeposit) {
           const deposit = await createMutation.mutateAsync({
             name: newDepositName.trim(),
-            type: 'DEPOSIT',
+            type: 'account',
             currency: newDepositCurrency,
           });
           resolvedRefId = (deposit as { id: string }).id;
@@ -128,7 +128,7 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
 
         await createMutation.mutateAsync({
           name: name.trim(),
-          type: 'SECURITIES',
+          type: 'portfolio',
           // No currency for portfolios — inherited from referenceAccount
           referenceAccountId: resolvedRefId,
         });

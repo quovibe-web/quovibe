@@ -1,5 +1,35 @@
 import type BetterSqlite3 from 'better-sqlite3';
 
+// BUG-117: typed service-layer error. Route handlers map DUPLICATE_ISIN to 409.
+// Mirrors AccountServiceError in accounts.service.ts.
+export class SecurityServiceError extends Error {
+  constructor(public readonly code: string, message?: string) {
+    super(message ?? code);
+    this.name = 'SecurityServiceError';
+  }
+}
+
+// BUG-117: case-insensitive duplicate-ISIN guard, scoped to one portfolio DB.
+// Null/empty ISIN is allowed (security may have no ISIN — e.g. crypto, custom).
+// `selfId` lets the update path skip its own row.
+function assertUniqueIsin(
+  sqlite: BetterSqlite3.Database,
+  isin: string | null | undefined,
+  selfId?: string,
+): void {
+  if (!isin) return;
+  const target = isin.trim().toUpperCase();
+  if (!target) return;
+  const row = sqlite
+    .prepare(
+      selfId
+        ? 'SELECT uuid FROM security WHERE UPPER(isin) = ? AND uuid != ? LIMIT 1'
+        : 'SELECT uuid FROM security WHERE UPPER(isin) = ? LIMIT 1',
+    )
+    .get(...(selfId ? [target, selfId] : [target])) as { uuid: string } | undefined;
+  if (row) throw new SecurityServiceError('DUPLICATE_ISIN');
+}
+
 /**
  * Creates a security + optional FEED properties in a single transaction.
  */
@@ -26,6 +56,7 @@ export function createSecurity(
   },
 ): void {
   sqlite.transaction(() => {
+    assertUniqueIsin(sqlite, params.isin);
     sqlite.prepare(
       `INSERT INTO security (uuid, name, isin, tickerSymbol, wkn, currency, note, isRetired,
        feedURL, feed, latestFeedURL, latestFeed, feedTickerSymbol, calendar, onlineId, updatedAt)
@@ -76,6 +107,7 @@ export function updateSecurity(
   },
 ): void {
   sqlite.transaction(() => {
+    if (input.isin !== undefined) assertUniqueIsin(sqlite, input.isin, id);
     const setClauses: string[] = [];
     const values: unknown[] = [];
     if (input.name !== undefined) { setClauses.push('name = ?'); values.push(input.name); }

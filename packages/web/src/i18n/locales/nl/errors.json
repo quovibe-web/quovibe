@@ -41,6 +41,7 @@
     "DEMO_PORTFOLIO_FETCH_BLOCKED": "Prijsupdates zijn uitgeschakeld voor de Demo-portefeuille. Importeer een echte XML of maak je eigen portefeuille aan om prijzen bij te werken.",
     "DEMO_PORTFOLIO_IMMUTABLE_METADATA": "De instellingen van de Demo-portefeuille kunnen niet worden gewijzigd. Maak of importeer uw eigen portefeuille om deze aan te passen.",
     "DEMO_SOURCE_MISSING": "De Demo-gegevens zijn niet geïnstalleerd in deze quovibe-kopie.",
+    "DUPLICATE_ISIN": "Er bestaat al een effect met deze ISIN.",
     "DUPLICATE_NAME": "Er bestaat al een portefeuille met deze naam. Kies een andere naam.",
     "EMPTY_NAME": "De naam mag niet leeg zijn.",
     "ENCRYPTED_FORMAT": "Het bestand lijkt versleuteld. Exporteer opnieuw vanuit Portfolio Performance en kies XML-formaat met ID-attributen.",

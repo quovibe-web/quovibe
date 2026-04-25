@@ -72,7 +72,7 @@ export function ChangeReferenceAccountDialog({
     if (isNew) {
       const created = await createMutation.mutateAsync({
         name: newName.trim(),
-        type: 'DEPOSIT',
+        type: 'account',
         currency,
       });
       targetId = created.id;

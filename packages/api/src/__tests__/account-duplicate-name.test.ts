@@ -53,12 +53,12 @@ describe('POST /accounts duplicate-name guard (BUG-06)', () => {
     const pid = await makePortfolio(app, 'P-dup-1');
 
     const first = await request(app).post(`/api/p/${pid}/accounts`).send({
-      name: 'Conto Twist', type: 'DEPOSIT', currency: 'EUR',
+      name: 'Conto Twist', type: 'account', currency: 'EUR',
     });
     expect(first.status, JSON.stringify(first.body)).toBe(201);
 
     const second = await request(app).post(`/api/p/${pid}/accounts`).send({
-      name: 'Conto Twist', type: 'DEPOSIT', currency: 'EUR',
+      name: 'Conto Twist', type: 'account', currency: 'EUR',
     });
     expect(second.status, JSON.stringify(second.body)).toBe(409);
     expect(second.body.error).toBe('DUPLICATE_NAME');
@@ -71,17 +71,17 @@ describe('POST /accounts duplicate-name guard (BUG-06)', () => {
     const pid = await makePortfolio(app, 'P-dup-2');
 
     const first = await request(app).post(`/api/p/${pid}/accounts`).send({
-      name: 'Main', type: 'DEPOSIT', currency: 'EUR',
+      name: 'Main', type: 'account', currency: 'EUR',
     });
     expect(first.status).toBe(201);
 
     const upper = await request(app).post(`/api/p/${pid}/accounts`).send({
-      name: 'MAIN', type: 'DEPOSIT', currency: 'EUR',
+      name: 'MAIN', type: 'account', currency: 'EUR',
     });
     expect(upper.status).toBe(409);
 
     const padded = await request(app).post(`/api/p/${pid}/accounts`).send({
-      name: '  main  ', type: 'DEPOSIT', currency: 'EUR',
+      name: '  main  ', type: 'account', currency: 'EUR',
     });
     expect(padded.status).toBe(409);
   });
@@ -94,10 +94,10 @@ describe('POST /accounts duplicate-name guard (BUG-06)', () => {
     const pidB = await makePortfolio(app, 'P-dup-3b');
 
     const a = await request(app).post(`/api/p/${pidA}/accounts`).send({
-      name: 'Shared Name', type: 'DEPOSIT', currency: 'EUR',
+      name: 'Shared Name', type: 'account', currency: 'EUR',
     });
     const b = await request(app).post(`/api/p/${pidB}/accounts`).send({
-      name: 'Shared Name', type: 'DEPOSIT', currency: 'EUR',
+      name: 'Shared Name', type: 'account', currency: 'EUR',
     });
     expect(a.status).toBe(201);
     expect(b.status).toBe(201);
@@ -110,10 +110,10 @@ describe('POST /accounts duplicate-name guard (BUG-06)', () => {
     const pid = await makePortfolio(app, 'P-dup-4');
 
     const a = await request(app).post(`/api/p/${pid}/accounts`).send({
-      name: 'Acct-A', type: 'DEPOSIT', currency: 'EUR',
+      name: 'Acct-A', type: 'account', currency: 'EUR',
     });
     const b = await request(app).post(`/api/p/${pid}/accounts`).send({
-      name: 'Acct-B', type: 'DEPOSIT', currency: 'EUR',
+      name: 'Acct-B', type: 'account', currency: 'EUR',
     });
     expect(a.status).toBe(201);
     expect(b.status).toBe(201);

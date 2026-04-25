@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { CostMethod } from '../enums';
 import { chartConfigV2Schema } from './benchmark.schema';
+import { nonBlankString } from './utils';
 
 // ---------------------------------------------------------------------------
 // Reporting period discriminated union
@@ -186,7 +187,7 @@ export const UUID_V4_RE =
 
 export const portfolioEntrySchema = z.object({
   id: z.string().regex(UUID_V4_RE),
-  name: z.string().min(1),
+  name: nonBlankString(200),
   kind: z.enum(['real', 'demo']),
   source: z.enum(['fresh', 'demo', 'import-pp-xml', 'import-quovibe-db']),
   createdAt: z.string(),

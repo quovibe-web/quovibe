@@ -41,6 +41,7 @@
     "DEMO_PORTFOLIO_FETCH_BLOCKED": "Price updates are disabled for the Demo portfolio. Import a real XML or create your own portfolio to update prices.",
     "DEMO_PORTFOLIO_IMMUTABLE_METADATA": "The Demo portfolio's settings cannot be changed. Create or import your own portfolio to customize it.",
     "DEMO_SOURCE_MISSING": "The Demo data is not installed on this copy of quovibe.",
+    "DUPLICATE_ISIN": "A security with this ISIN already exists.",
     "DUPLICATE_NAME": "A portfolio with this name already exists. Choose a different name.",
     "EMPTY_NAME": "The name cannot be empty.",
     "ENCRYPTED_FORMAT": "The file appears to be encrypted. Re-export from Portfolio Performance choosing XML format with ID attributes.",

@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { nonBlankString } from './utils';
 
 export const createTaxonomySchema = z.object({
-  name: z.string().min(1).max(100),
+  name: nonBlankString(100),
   template: z.enum([
     'asset-classes',
     'industries-gics-sectors',
@@ -14,18 +15,18 @@ export const createTaxonomySchema = z.object({
 });
 
 export const renameTaxonomySchema = z.object({
-  name: z.string().min(1).max(100),
+  name: nonBlankString(100),
 });
 
 export const createCategorySchema = z.object({
-  name: z.string().min(1).max(100),
+  name: nonBlankString(100),
   parentId: z.string().min(1),
   color: z.string().optional(),
   rank: z.number().int().min(0).optional(),
 });
 
 export const updateCategorySchema = z.object({
-  name: z.string().min(1).max(100).optional(),
+  name: nonBlankString(100).optional(),
   color: z.string().optional(),
   parentId: z.string().min(1).optional(),
   rank: z.number().int().min(0).optional(),

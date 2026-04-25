@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { nonBlankString, currencyCode } from './utils';
 
 // Wire-contract schemas for portfolio creation + legacy-portfolio setup.
 // Bound to HTTP:
@@ -11,8 +12,7 @@ import { z } from 'zod';
 // never hits this wire contract). Keep the distinction: shared = HTTP bodies,
 // service = internal call shape.
 
-const accountName = z.string().trim().min(1).max(128);
-const currencyCode = z.string().trim().regex(/^[A-Z]{3}$/, 'ISO 4217 3-letter code');
+const accountName = nonBlankString(128);
 
 const depositInput = z.object({
   name: accountName,
@@ -26,7 +26,7 @@ const primaryDepositInput = z.object({
 
 const freshPayload = z.object({
   source: z.literal('fresh'),
-  name: z.string().min(1).max(200),
+  name: nonBlankString(200),
   baseCurrency: currencyCode,
   securitiesAccountName: accountName,
   primaryDeposit: primaryDepositInput,

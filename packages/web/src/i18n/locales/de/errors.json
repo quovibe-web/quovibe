@@ -41,6 +41,7 @@
     "DEMO_PORTFOLIO_FETCH_BLOCKED": "Kursaktualisierungen sind für das Demo-Portfolio deaktiviert. Importieren Sie eine echte XML-Datei oder erstellen Sie Ihr eigenes Portfolio, um Kurse zu aktualisieren.",
     "DEMO_PORTFOLIO_IMMUTABLE_METADATA": "Die Einstellungen des Demo-Portfolios können nicht geändert werden. Erstellen oder importieren Sie ein eigenes Portfolio, um es anzupassen.",
     "DEMO_SOURCE_MISSING": "Die Demo-Daten sind in dieser quovibe-Installation nicht vorhanden.",
+    "DUPLICATE_ISIN": "Ein Wertpapier mit dieser ISIN existiert bereits.",
     "DUPLICATE_NAME": "Ein Portfolio mit diesem Namen existiert bereits. Wählen Sie einen anderen Namen.",
     "EMPTY_NAME": "Der Name darf nicht leer sein.",
     "ENCRYPTED_FORMAT": "Die Datei scheint verschlüsselt zu sein. Exportieren Sie erneut aus Portfolio Performance und wählen Sie das XML-Format mit ID-Attributen.",

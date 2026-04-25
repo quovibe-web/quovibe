@@ -38,7 +38,7 @@ describe('PUT /accounts/:id referenceAccountId (BUG-62)', () => {
     expect(primaryDeposit).toBeDefined();
 
     const second = await request(app).post(`/api/p/${portfolioId}/accounts`).send({
-      name: 'Cash #2', type: 'DEPOSIT', currency: 'EUR',
+      name: 'Cash #2', type: 'account', currency: 'EUR',
     });
     expect(second.status, JSON.stringify(second.body)).toBe(201);
 

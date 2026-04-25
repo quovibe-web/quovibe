@@ -41,6 +41,7 @@
     "DEMO_PORTFOLIO_FETCH_BLOCKED": "Les mises à jour de prix sont désactivées pour le portefeuille Démo. Importez un vrai fichier XML ou créez votre propre portefeuille pour mettre à jour les prix.",
     "DEMO_PORTFOLIO_IMMUTABLE_METADATA": "Les paramètres du portefeuille Démo ne peuvent pas être modifiés. Créez ou importez votre propre portefeuille pour le personnaliser.",
     "DEMO_SOURCE_MISSING": "Les données Démo ne sont pas installées dans cette copie de quovibe.",
+    "DUPLICATE_ISIN": "Un titre avec cet ISIN existe déjà.",
     "DUPLICATE_NAME": "Un portefeuille avec ce nom existe déjà. Choisissez un autre nom.",
     "EMPTY_NAME": "Le nom ne peut pas être vide.",
     "ENCRYPTED_FORMAT": "Le fichier semble chiffré. Réexportez depuis Portfolio Performance en choisissant le format XML avec attributs ID.",

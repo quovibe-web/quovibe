@@ -203,8 +203,7 @@ const createAccountHandler: RequestHandler = async (req, res) => {
   const db = getDb(req);
   const sqlite = getSqlite(req);
   const id = uuidv4();
-  // Store ppxml2db-compatible type values ('portfolio' / 'account')
-  const dbType = input.type === 'SECURITIES' ? 'portfolio' : 'account';
+  const dbType = input.type;
   // Portfolios don't own a currency — they inherit from referenceAccount
   const dbCurrency = dbType === 'portfolio' ? null : (input.currency ?? 'EUR');
 
@@ -247,7 +246,7 @@ const updateAccount: RequestHandler = async (req, res) => {
   const existingType = existing[0].type;
   const updateSet = {
     ...(input.name !== undefined && { name: input.name }),
-    ...(input.type !== undefined && { type: input.type === 'SECURITIES' ? 'portfolio' : 'account' }),
+    ...(input.type !== undefined && { type: input.type }),
     // Portfolios don't own a currency — ignore currency updates for portfolio type
     ...(input.currency !== undefined && existingType !== 'portfolio' && { currency: input.currency }),
     ...(input.referenceAccountId !== undefined && {
