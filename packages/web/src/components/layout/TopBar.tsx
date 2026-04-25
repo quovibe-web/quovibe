@@ -399,9 +399,9 @@ function PeriodSelector() {
       {/* Mobile period — compact tappable display */}
       <Sheet>
         <SheetTrigger asChild>
-          <button className="md:hidden flex items-center gap-1.5 text-xs text-muted-foreground font-mono tabular-nums px-2 py-1 rounded-md hover:bg-muted/50 transition-colors">
-            <CalendarIcon className="h-3.5 w-3.5" />
-            {formatDate(periodStart ?? '')} — {formatDate(periodEnd ?? '')}
+          <button className="md:hidden flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground font-mono tabular-nums px-2 py-1 rounded-md hover:bg-muted/50 transition-colors">
+            <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{formatDate(periodStart ?? '')} — {formatDate(periodEnd ?? '')}</span>
           </button>
         </SheetTrigger>
         <SheetContent side="bottom" className="h-auto rounded-t-2xl">
@@ -492,7 +492,7 @@ interface TopBarProps {
 export function TopBar({ onMenuClick, isScrolled = false }: TopBarProps) {
   return (
     <header className={cn(
-      "h-14 flex items-center gap-3 px-4 lg:px-6 shrink-0 transition-all duration-300 ease-out border-b",
+      "h-14 flex items-center gap-2 md:gap-3 px-4 lg:px-6 shrink-0 min-w-0 transition-all duration-300 ease-out border-b",
       isScrolled
         ? "bg-[var(--qv-bg)]/80 backdrop-blur-xl border-border shadow-sm supports-not-[backdrop-filter]:bg-[var(--qv-bg)]"
         : "bg-background border-transparent"
@@ -522,7 +522,7 @@ export function TopBar({ onMenuClick, isScrolled = false }: TopBarProps) {
 
       <PeriodSelector />
 
-      <div className="ml-auto flex items-center gap-1">
+      <div className="ml-auto flex min-w-0 items-center gap-1">
         <DemoBadge />
         <PortfolioSwitcher />
         <div className="hidden md:block">
