@@ -2,8 +2,46 @@ globs: packages/api/src/db/**
 ---
 # DB Schema Rules
 
-- **NEVER modify the original DB schema without asking first.** The schema mirrors ppxml2db and changes have downstream consequences.
+- **DDL source of truth: `packages/api/src/db/bootstrap.sql`** (ADR-015).
+  Applied idempotently on every `openDatabase()` call via
+  `applyBootstrap(db)` in `packages/api/src/db/apply-bootstrap.ts`. Drizzle's
+  `schema.ts` is the ORM view, parity-checked against `bootstrap.sql` by
+  Gate 2 (`bootstrap-parity.test.ts`). Never add `CREATE TABLE` / `ALTER`
+  outside `bootstrap.sql` or the `VENDOR_COLUMN_PATCHES` table in
+  `apply-bootstrap.ts` — runtime DDL elsewhere fails Gate 3.
+- `bootstrap.sql` has two halves separated by the `═══ QUOVIBE SECTION BEGIN ═══`
+  marker:
+  - **§1+§2** — verbatim from `packages/api/vendor/ppxml2db_init.py` (24
+    baseline tables + indexes) with `IF NOT EXISTS` added to every `CREATE`.
+    Gate 1 (`pnpm check:bootstrap`) compares this half against regenerated
+    upstream output — drift fails CI. **NEVER edit ppxml2db tables in this
+    section directly.**
+  - **§3+§4** — quovibe-owned `vf_*` tables and analytical indexes (see
+    below). Free to extend, subject to the parity tests.
+- **NEVER modify the original ppxml2db schema without asking first.** The §1+§2
+  half mirrors ppxml2db; changes have downstream consequences (PP-XML import,
+  ppxml2db.py compatibility, Gate 1 drift).
 - Table names are **singular** (ppxml2db convention): `xact`, `security`, `account`, `price`, `latest_price` — not plural.
+- `vf_*` tables (quovibe-owned, per-portfolio DB, ADR-014 + ADR-015 §3):
+  - `vf_exchange_rate` — live FX cache, PK `(date, from_currency, to_currency)`.
+  - `vf_portfolio_meta` — portable per-portfolio metadata (key/value).
+    Allowlisted keys: `name`, `createdAt`, `source`, `schemaVersion`.
+  - `vf_dashboard` — portfolio-scoped dashboards (`position` is sole order
+    truth; smallest = implicit default, no `is_default` flag).
+  - `vf_chart_config` — portfolio-scoped chart **content** only (series refs,
+    visibility, benchmarks). User-level chart aesthetics live in sidecar
+    `preferences.chartStyle`, NOT here.
+  - `vf_csv_import_config` — saved CSV import mappings.
+- §4 analytical indexes (quovibe-owned, performance-driven): `idx_xact_date`,
+  `idx_xact_security`, `idx_xact_cross_entry_from_acc`,
+  `idx_xact_cross_entry_to_acc`, `idx_price_date`, `idx_price_security_date`.
+- **Vendor column patches** (`apply-bootstrap.ts > VENDOR_COLUMN_PATCHES`):
+  the only sanctioned route to add columns to a §1+§2 vendor table without
+  breaking Gate 1 parity. Today's patch set adds `high BIGINT`, `low BIGINT`,
+  `volume BIGINT` to `latest_price` (populated by `ppxml2db.py` from
+  `<latest>` XML nodes; nullable for older exports / non-equity tickers). Add
+  new patches only when the vendor SQL genuinely under-specifies a column the
+  importer writes — never as a shortcut around Gate 1.
 - Unit conventions (ppxml2db encoding):
   - Shares: stored as integer × 10^8 → divide by `1e8` in the service layer
   - Prices: stored as integer × 10^8 → divide by `1e8` in the service layer

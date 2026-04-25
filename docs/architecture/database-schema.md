@@ -35,7 +35,9 @@ Related tables: `security_event`, `security_attr`, `security_prop`, `attribute_t
 ### Prices
 
 - **`price`** — daily historical timeseries. Columns: `security` (FK), `tstamp` (date), `value` (INTEGER, ×10^8).
-- **`latest_price`** — last known quote (scalar per security). Columns: `security` (PK, FK), `tstamp`, `value` (INTEGER, ×10^8).
+- **`latest_price`** — last known quote (scalar per security). Columns: `security` (PK, FK), `tstamp`, `value` (INTEGER, ×10^8), plus nullable `high`, `low`, `volume` (BIGINT, ×10^8 for high/low; raw integer count for volume).
+
+OHLC columns (`high`, `low`, `volume`) are **not** part of vendor `ppxml2db_init.py`. They are added at runtime by `VENDOR_COLUMN_PATCHES` in `packages/api/src/db/apply-bootstrap.ts` (idempotent `PRAGMA table_info` + `ALTER TABLE ADD COLUMN`), which keeps the vendored SQL pristine for Gate 1 drift-checking while still satisfying the `<latest>` XML-node columns that `ppxml2db.py` actually writes. They are consumed only by chart display; performance / MVE / TTWROR calculations use `value` exclusively.
 
 These are **two separate pipelines**. Never INSERT into `price` from `latest_price`. See `.claude/rules/api.md` for the injection rule.
 
@@ -82,6 +84,19 @@ These live in every portfolio DB alongside the ppxml2db tables. They are created
 - **`vf_csv_import_config`** (renamed from `csv_import_config` in ADR-015) — saved CSV import mappings (`id TEXT PK, name, type, config TEXT, createdAt, updatedAt`).
 
 > Source for all `vf_*` tables: `packages/api/src/db/bootstrap.sql` §3. Drizzle mappings: `packages/api/src/db/schema.ts` (`vfExchangeRates`, `vfPortfolioMeta`, `vfDashboards`, `vfChartConfigs`, `vfCsvImportConfigs`).
+
+### Analytical indexes (`bootstrap.sql` §4)
+
+Six performance-driven indexes layered on top of the ppxml2db baseline (none touch vendor tables structurally, all `IF NOT EXISTS`):
+
+- `idx_xact_date` on `xact(date)`
+- `idx_xact_security` on `xact(security)`
+- `idx_xact_cross_entry_from_acc` on `xact_cross_entry(from_acc)`
+- `idx_xact_cross_entry_to_acc` on `xact_cross_entry(to_acc)`
+- `idx_price_date` on `price(tstamp)`
+- `idx_price_security_date` on `price(security, tstamp)`
+
+These are quovibe-owned and may be extended subject to the parity tests; new indexes go into §4 of `bootstrap.sql` (never inline in service code).
 
 ## Unit conventions (ppxml2db)
 
