@@ -93,6 +93,12 @@ The `CROSS_CURRENCY_FX_TYPES` constant in `transaction-gating.ts`
 documents the same invariant — keep it in sync if a new type is ever
 added that crosses currency legs.
 
+The CSV import path enforces a parallel gate: see
+`.claude/rules/csv-import.md` "Cross-currency CSV import" for the four
+CSV-side error codes (`FX_RATE_REQUIRED`, `INVALID_FX_RATE`,
+`FX_VERIFICATION_FAILED`, `CURRENCY_MISMATCH`) and the hard-abort posture
+on execute. Both paths consume the same `CROSS_CURRENCY_FX_TYPES` set.
+
 ## Double-entry BUY/SELL
 
 For BUY and SELL, `createTransaction` / `updateTransaction` must create **2 xact rows**:

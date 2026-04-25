@@ -51,6 +51,12 @@ export type CreateCsvImportConfigInput = z.infer<typeof csvImportConfigSchema>;
 export const tradeColumnFields = [
   'date', 'type', 'security', 'shares', 'amount',
   'fees', 'taxes', 'currency', 'note', 'isin', 'ticker', 'crossAccount',
+  // Cross-currency columns. `amount` is the deposit-ccy net (wire "Value");
+  // `grossAmount` is the security-ccy gross (wire "Gross Amount"); `fxRate`
+  // is the wire "Exchange Rate" (deposit-per-security); `currencyGrossAmount`
+  // is the security ccy code. All optional — required only when the row is
+  // cross-currency. See `.claude/rules/csv-import.md` for the gate.
+  'fxRate', 'grossAmount', 'currencyGrossAmount',
 ] as const;
 export type TradeColumnField = (typeof tradeColumnFields)[number];
 
@@ -70,6 +76,12 @@ export const csvErrorCodes = [
   'UNKNOWN_TYPE', 'INVALID_PRICE', 'NEGATIVE_SHARES',
   'MISSING_SECURITY', 'MISSING_SHARES', 'DUPLICATE_DATE',
   'MISSING_CROSS_ACCOUNT',
+  // Cross-currency CSV gate.
+  // FX_RATE_REQUIRED: cross-ccy row with no Exchange Rate AND no rate cached.
+  // INVALID_FX_RATE: Exchange Rate parsed as ≤ 0 or NaN.
+  // FX_VERIFICATION_FAILED: |Gross × Rate − Value| above wire-step-2 tolerance.
+  // CURRENCY_MISMATCH: Currency Gross Amount ≠ resolved security.currency.
+  'FX_RATE_REQUIRED', 'INVALID_FX_RATE', 'FX_VERIFICATION_FAILED', 'CURRENCY_MISMATCH',
 ] as const;
 export type CsvErrorCode = (typeof csvErrorCodes)[number];
 
@@ -91,12 +103,22 @@ export interface NormalizedTradeRow {
   isin?: string;
   ticker?: string;
   shares?: number;
-  amount: number;           // gross amount, always positive
+  amount: number;           // deposit-ccy bare cost (wire "Value")
   fees?: number;
   taxes?: number;
   currency?: string;
   note?: string;
   crossAccountId?: string;  // destination account for SECURITY_TRANSFER / TRANSFER_BETWEEN_ACCOUNTS
+  // Cross-currency channel.
+  // fxRate: qv convention (security-per-deposit), inverted from the wire
+  //   `Exchange Rate` column at parse time via `ppRateToQvRate`.
+  // grossAmount: security-ccy gross (wire "Gross Amount"). Used for the FOREX
+  //   xact_unit's `forex_amount` and `Gross × Rate = Value` verification.
+  // currencyGrossAmount: security ccy code, pinned against the resolved
+  //   security.currency for CURRENCY_MISMATCH detection.
+  fxRate?: number;
+  grossAmount?: number;
+  currencyGrossAmount?: string;
 }
 
 export interface NormalizedPriceRow {

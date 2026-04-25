@@ -6,14 +6,17 @@ import type BetterSqlite3 from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
 import {
   parseDate, parseNumber, normalizeTransactionType,
+  ppRateToQvRate, verifyGrossRateValue,
+  CROSS_CURRENCY_FX_TYPES, TransactionType,
   type NormalizedTradeRow, type NormalizedPriceRow,
   type RowError, type CsvParseResult, type TradePreviewResult,
   type TradeExecuteResult, type PriceExecuteResult, type PreviewRow,
   type UnmatchedSecurity, type CsvDelimiter,
 } from '@quovibe/shared';
 import { parseCsvFile, parseCsvRows } from './csv-reader';
-import { mapTradeRows, type TradeMapperContext, type XactInsert, type CrossEntryInsert } from './csv-trade-mapper';
+import { mapTradeRows, type TradeMapperContext, type XactInsert, type CrossEntryInsert, type UnitInsert } from './csv-trade-mapper';
 import { mapPriceRows, type PriceInsert } from './csv-price-mapper';
+import { getRate } from '../fx.service';
 
 // BUG-100: placeholder used only inside previewTradeImport's in-memory
 // securityMap for create-new rows. Never written to DB, never compared
@@ -86,6 +89,261 @@ function releaseLock(): void {
   try { fs.unlinkSync(LOCK_PATH); } catch { /* ignore */ }
 }
 
+// ─── Cross-currency helpers ───────────────────────
+
+const FX_ERROR_CODES = new Set([
+  'FX_RATE_REQUIRED', 'INVALID_FX_RATE', 'FX_VERIFICATION_FAILED', 'CURRENCY_MISMATCH',
+]);
+
+interface ParseTradeOpts {
+  decimalSeparator: '.' | ',';
+  thousandSeparator: '' | '.' | ',' | ' ';
+  dateFormat: string;
+}
+
+// Parse one CSV row's fields into a `NormalizedTradeRow`. Returns either the
+// normalized row or a `RowError` describing the first show-stopper. Used by
+// both `previewTradeImport` and `executeTradeImport` so the column-by-column
+// behavior cannot drift between the two.
+function parseTradeRow(
+  rowNum: number,
+  fields: string[],
+  columnMapping: Record<string, number>,
+  opts: ParseTradeOpts,
+): NormalizedTradeRow | RowError {
+  const idx = (k: string): number | undefined => columnMapping[k];
+
+  const rawDate = idx('date') != null ? fields[idx('date')!] ?? '' : '';
+  const date = parseDate(rawDate, opts.dateFormat);
+  if (!date) {
+    return { row: rowNum, column: 'date', value: rawDate, code: 'INVALID_DATE', message: 'csvImport.errors.invalidDate' };
+  }
+
+  const rawType = idx('type') != null ? fields[idx('type')!] ?? '' : '';
+  const txType = normalizeTransactionType(rawType);
+  if (!txType) {
+    return { row: rowNum, column: 'type', value: rawType, code: 'UNKNOWN_TYPE', message: 'csvImport.errors.unknownType' };
+  }
+
+  const rawAmount = idx('amount') != null ? fields[idx('amount')!] ?? '' : '';
+  const amount = parseNumber(rawAmount, opts.decimalSeparator, opts.thousandSeparator);
+  if (amount == null) {
+    return { row: rowNum, column: 'amount', value: rawAmount, code: 'INVALID_NUMBER', message: 'csvImport.errors.invalidNumber' };
+  }
+
+  const row: NormalizedTradeRow = {
+    rowNumber: rowNum,
+    date,
+    type: txType,
+    securityName: idx('security') != null ? (fields[idx('security')!] ?? '').trim() : '',
+    isin: idx('isin') != null ? ((fields[idx('isin')!] ?? '').trim() || undefined) : undefined,
+    ticker: idx('ticker') != null ? ((fields[idx('ticker')!] ?? '').trim() || undefined) : undefined,
+    amount,
+  };
+
+  if (idx('shares') != null) {
+    const shares = parseNumber(fields[idx('shares')!] ?? '', opts.decimalSeparator, opts.thousandSeparator);
+    if (shares != null) row.shares = shares;
+  }
+  if (idx('fees') != null) {
+    const fees = parseNumber(fields[idx('fees')!] ?? '', opts.decimalSeparator, opts.thousandSeparator);
+    if (fees != null) row.fees = fees;
+  }
+  if (idx('taxes') != null) {
+    const taxes = parseNumber(fields[idx('taxes')!] ?? '', opts.decimalSeparator, opts.thousandSeparator);
+    if (taxes != null) row.taxes = taxes;
+  }
+  if (idx('currency') != null) {
+    const cur = (fields[idx('currency')!] ?? '').trim();
+    if (cur) row.currency = cur;
+  }
+  if (idx('note') != null) {
+    const note = (fields[idx('note')!] ?? '').trim();
+    if (note) row.note = note;
+  }
+  if (idx('crossAccount') != null) {
+    const crossAccount = (fields[idx('crossAccount')!] ?? '').trim();
+    if (crossAccount) row.crossAccountId = crossAccount;
+  }
+  if (idx('grossAmount') != null) {
+    const g = parseNumber(fields[idx('grossAmount')!] ?? '', opts.decimalSeparator, opts.thousandSeparator);
+    if (g != null) row.grossAmount = g;
+  }
+  if (idx('currencyGrossAmount') != null) {
+    const c = (fields[idx('currencyGrossAmount')!] ?? '').trim().toUpperCase();
+    if (c) row.currencyGrossAmount = c;
+  }
+  // `Exchange Rate` column carries the PP convention (deposit-per-security).
+  // Stored on the row in qv convention (security-per-deposit) so the mapper
+  // and the FOREX xact_unit emit byte-identical values to transaction.service.
+  // Empty/zero rate is treated as "absent" rather than INVALID_FX_RATE: PP's
+  // own BUY example (csv-import.md:151) leaves the column blank for
+  // same-currency rows, so blank must mean "skip the rate, not invalid".
+  if (idx('fxRate') != null) {
+    const raw = (fields[idx('fxRate')!] ?? '').trim();
+    if (raw) {
+      const ppRate = parseNumber(raw, opts.decimalSeparator, opts.thousandSeparator);
+      if (ppRate == null || ppRate <= 0) {
+        return { row: rowNum, column: 'fxRate', value: raw, code: 'INVALID_FX_RATE', message: 'csvImport.errors.invalidFxRate' };
+      }
+      const qv = ppRateToQvRate(ppRate);
+      if (qv == null) {
+        return { row: rowNum, column: 'fxRate', value: raw, code: 'INVALID_FX_RATE', message: 'csvImport.errors.invalidFxRate' };
+      }
+      row.fxRate = qv;
+      // Stash the raw PP rate on the row only long enough to run the
+      // PP step-2 `Gross × Rate = Value` check downstream. Held in a
+      // closure-scoped Map (see `enrichRowsWithFxChecks`), not here.
+    }
+  }
+
+  return row;
+}
+
+// Build a securityId → currency map from a securityMap that may contain
+// pending-new sentinels. Pending entries are silently dropped (caller's
+// responsibility to seed them with `input.newSecurities[].currency` at
+// execute time).
+function buildSecurityCurrencyMap(
+  sqlite: BetterSqlite3.Database,
+  securityIds: Iterable<string>,
+  pendingSentinel?: string,
+): Map<string, string> {
+  const ids = new Set<string>();
+  for (const id of securityIds) {
+    if (!id) continue;
+    if (pendingSentinel && id === pendingSentinel) continue;
+    ids.add(id);
+  }
+  const out = new Map<string, string>();
+  if (ids.size === 0) return out;
+  const placeholders = Array.from(ids).map(() => '?').join(','); // native-ok
+  const rows = sqlite.prepare(
+    `SELECT uuid, currency FROM security WHERE uuid IN (${placeholders})`,
+  ).all(...ids) as Array<{ uuid: string; currency: string | null }>;
+  for (const r of rows) {
+    if (r.currency) out.set(r.uuid, r.currency);
+  }
+  return out;
+}
+
+// Build an accountUuid → currency map for a set of account UUIDs (commonly
+// `crossAccountId` values plus the source deposit account).
+function buildAccountCurrencyMap(
+  sqlite: BetterSqlite3.Database,
+  accountIds: Iterable<string>,
+): Map<string, string> {
+  const ids = new Set<string>();
+  for (const id of accountIds) {
+    if (id) ids.add(id);
+  }
+  const out = new Map<string, string>();
+  if (ids.size === 0) return out;
+  const placeholders = Array.from(ids).map(() => '?').join(','); // native-ok
+  const rows = sqlite.prepare(
+    `SELECT uuid, currency FROM account WHERE uuid IN (${placeholders})`,
+  ).all(...ids) as Array<{ uuid: string; currency: string | null }>;
+  for (const r of rows) {
+    if (r.currency) out.set(r.uuid, r.currency);
+  }
+  return out;
+}
+
+interface FxEnrichmentInput {
+  rows: NormalizedTradeRow[];
+  securityMap: Map<string, string>;
+  securityCurrencyMap: Map<string, string>;
+  accountCurrencyMap: Map<string, string>;
+  depositCurrency: string;
+}
+
+// For every cross-currency row missing an `fxRate`, attempt to fill it from
+// the `vf_exchange_rate` cache via `getRate`. Then run the PP step-2
+// `Gross × Rate = Value` consistency check and the `Currency Gross Amount`
+// pin. Returns the row errors collected; the rows are mutated in place.
+function enrichRowsWithFxChecks(
+  sqlite: BetterSqlite3.Database,
+  input: FxEnrichmentInput,
+): RowError[] {
+  const errors: RowError[] = [];
+
+  for (const row of input.rows) {
+    const txType = row.type as TransactionType;
+    if (!CROSS_CURRENCY_FX_TYPES.has(txType)) continue;
+
+    let secCcy: string | null = null;
+    let otherCcy: string | null = null;
+
+    if (txType === TransactionType.BUY || txType === TransactionType.SELL) {
+      const secId = row.securityName ? input.securityMap.get(row.securityName) : undefined;
+      if (!secId) continue; // pending-new or unmatched — gate runs at execute
+      secCcy = input.securityCurrencyMap.get(secId) ?? null;
+      otherCcy = secCcy;
+    } else if (txType === TransactionType.TRANSFER_BETWEEN_ACCOUNTS) {
+      if (!row.crossAccountId) continue;
+      otherCcy = input.accountCurrencyMap.get(row.crossAccountId) ?? null;
+    }
+
+    if (!otherCcy || otherCcy === input.depositCurrency) continue;
+
+    // Auto-fill missing rate from the vf_exchange_rate cache. Mirrors PP's
+    // "automatic" cross-currency behavior described in csv-import.md:142.
+    // Convention: getRate(deposit, security) returns security-per-deposit
+    // = qv convention, ready to store on row.fxRate as-is.
+    if (row.fxRate == null) {
+      const cached = getRate(sqlite, input.depositCurrency, otherCcy, row.date);
+      if (cached && !cached.isZero()) {
+        row.fxRate = cached.toNumber();
+      } else {
+        errors.push({
+          row: row.rowNumber,
+          column: 'fxRate',
+          code: 'FX_RATE_REQUIRED',
+          message: 'csvImport.errors.fxRateRequired',
+        });
+        continue;
+      }
+    }
+
+    // PP step-2 `Gross × Rate = Value` check. PP rate (deposit-per-security)
+    // = 1 / qv rate. row.amount carries PP's "Value" in deposit ccy;
+    // row.grossAmount carries PP's "Gross Amount" in security ccy. If the
+    // user did not provide grossAmount the check is skipped — PP's BUY
+    // example (csv-import.md:151) does not require it either.
+    if (row.grossAmount != null && row.fxRate > 0) {
+      const ppRate = 1 / row.fxRate;
+      if (!verifyGrossRateValue(row.grossAmount, ppRate, row.amount)) {
+        errors.push({
+          row: row.rowNumber,
+          column: 'grossAmount',
+          code: 'FX_VERIFICATION_FAILED',
+          message: 'csvImport.errors.fxVerificationFailed',
+        });
+        continue;
+      }
+    }
+
+    // CURRENCY_MISMATCH: explicit `Currency Gross Amount` must match the
+    // resolved security currency (BUY/SELL only — transfers don't carry a
+    // security).
+    if (
+      (txType === TransactionType.BUY || txType === TransactionType.SELL) &&
+      row.currencyGrossAmount && secCcy &&
+      row.currencyGrossAmount !== secCcy
+    ) {
+      errors.push({
+        row: row.rowNumber,
+        column: 'currencyGrossAmount',
+        value: row.currencyGrossAmount,
+        code: 'CURRENCY_MISMATCH',
+        message: 'csvImport.errors.currencyMismatch',
+      });
+    }
+  }
+
+  return errors;
+}
+
 // ─── Parse (Step 1) ───────────────────────────────
 
 export async function parseCsv(
@@ -152,83 +410,16 @@ export async function previewTradeImport(
 
   let rowNum = 1; // native-ok
   for await (const fields of parseCsvRows(filePath, { delimiter: input.delimiter, skipLines: 0 })) {
-    const dateIdx = input.columnMapping['date'];
-    const typeIdx = input.columnMapping['type'];
-    const securityIdx = input.columnMapping['security'];
-    const amountIdx = input.columnMapping['amount'];
-    const sharesIdx = input.columnMapping['shares'];
-    const feesIdx = input.columnMapping['fees'];
-    const taxesIdx = input.columnMapping['taxes'];
-    const currencyIdx = input.columnMapping['currency'];
-    const noteIdx = input.columnMapping['note'];
-    const isinIdx = input.columnMapping['isin'];
-    const tickerIdx = input.columnMapping['ticker'];
-    const crossAccountIdx = input.columnMapping['crossAccount'];
-
-    // Parse date
-    const rawDate = dateIdx != null ? fields[dateIdx] ?? '' : '';
-    const date = parseDate(rawDate, input.dateFormat);
-    if (!date) {
-      rowErrors.push({ row: rowNum, column: 'date', value: rawDate, code: 'INVALID_DATE', message: 'csvImport.errors.invalidDate' });
-      rowNum++; // native-ok
-      continue;
+    const parsed = parseTradeRow(rowNum, fields, input.columnMapping, {
+      decimalSeparator: input.decimalSeparator,
+      thousandSeparator: input.thousandSeparator,
+      dateFormat: input.dateFormat,
+    });
+    if ('code' in parsed) {
+      rowErrors.push(parsed);
+    } else {
+      normalizedRows.push(parsed);
     }
-
-    // Parse type
-    const rawType = typeIdx != null ? fields[typeIdx] ?? '' : '';
-    const txType = normalizeTransactionType(rawType);
-    if (!txType) {
-      rowErrors.push({ row: rowNum, column: 'type', value: rawType, code: 'UNKNOWN_TYPE', message: 'csvImport.errors.unknownType' });
-      rowNum++; // native-ok
-      continue;
-    }
-
-    // Parse amount
-    const rawAmount = amountIdx != null ? fields[amountIdx] ?? '' : '';
-    const amount = parseNumber(rawAmount, input.decimalSeparator, input.thousandSeparator);
-    if (amount == null) {
-      rowErrors.push({ row: rowNum, column: 'amount', value: rawAmount, code: 'INVALID_NUMBER', message: 'csvImport.errors.invalidNumber' });
-      rowNum++; // native-ok
-      continue;
-    }
-
-    const normalized: NormalizedTradeRow = {
-      rowNumber: rowNum,
-      date,
-      type: txType,
-      securityName: securityIdx != null ? (fields[securityIdx] ?? '').trim() : '',
-      isin: isinIdx != null ? (fields[isinIdx] ?? '').trim() || undefined : undefined,
-      ticker: tickerIdx != null ? (fields[tickerIdx] ?? '').trim() || undefined : undefined,
-      amount,
-    };
-
-    // Optional fields
-    if (sharesIdx != null) {
-      const shares = parseNumber(fields[sharesIdx] ?? '', input.decimalSeparator, input.thousandSeparator);
-      if (shares != null) normalized.shares = shares;
-    }
-    if (feesIdx != null) {
-      const fees = parseNumber(fields[feesIdx] ?? '', input.decimalSeparator, input.thousandSeparator);
-      if (fees != null) normalized.fees = fees;
-    }
-    if (taxesIdx != null) {
-      const taxes = parseNumber(fields[taxesIdx] ?? '', input.decimalSeparator, input.thousandSeparator);
-      if (taxes != null) normalized.taxes = taxes;
-    }
-    if (currencyIdx != null) {
-      const cur = (fields[currencyIdx] ?? '').trim();
-      if (cur) normalized.currency = cur;
-    }
-    if (noteIdx != null) {
-      const note = (fields[noteIdx] ?? '').trim();
-      if (note) normalized.note = note;
-    }
-    if (crossAccountIdx != null) {
-      const crossAccount = (fields[crossAccountIdx] ?? '').trim();
-      if (crossAccount) normalized.crossAccountId = crossAccount;
-    }
-
-    normalizedRows.push(normalized);
     rowNum++; // native-ok
   }
 
@@ -308,15 +499,38 @@ export async function previewTradeImport(
     }
   }
 
+  // Build currency maps + auto-fill missing fxRate from cache + run PP
+  // step-2 verification + CURRENCY_MISMATCH check. Pending-new securities
+  // are absent from `securityCurrencyMap` (sentinel filtered) and therefore
+  // skip the gate at preview; execute catches them once real UUIDs exist.
+  const securityCurrencyMap = buildSecurityCurrencyMap(
+    sqlite, securityMap.values(), PREVIEW_PENDING_NEW_SENTINEL,
+  );
+  const accountCurrencyMap = buildAccountCurrencyMap(
+    sqlite,
+    normalizedRows.map((r) => r.crossAccountId).filter((x): x is string => !!x),
+  );
+  const fxErrors = enrichRowsWithFxChecks(sqlite, {
+    rows: normalizedRows,
+    securityMap,
+    securityCurrencyMap,
+    accountCurrencyMap,
+    depositCurrency: portfolioCurrency,
+  });
+
   // Map to transactions for preview
   const ctx: TradeMapperContext = {
     portfolioId: input.targetSecuritiesAccountId,
     depositAccountId: acctRow.referenceAccount,
     portfolioCurrency,
     securityMap,
+    securityCurrencyMap,
+    accountCurrencyMap,
   };
 
   const mapped = mapTradeRows(normalizedRows, ctx);
+
+  const allMapperErrors = [...fxErrors, ...mapped.errors];
 
   // Build preview rows
   const previewRows: PreviewRow[] = normalizedRows.map((row) => ({
@@ -330,7 +544,7 @@ export async function previewTradeImport(
     taxes: row.taxes,
     currency: row.currency,
     note: row.note,
-    error: mapped.errors.find((e) => e.row === row.rowNumber),
+    error: allMapperErrors.find((e) => e.row === row.rowNumber),
   }));
 
   // Summary
@@ -342,11 +556,11 @@ export async function previewTradeImport(
   return {
     rows: previewRows,
     unmatchedSecurities,
-    errors: [...rowErrors, ...mapped.errors],
+    errors: [...rowErrors, ...allMapperErrors],
     summary: {
       total: normalizedRows.length + rowErrors.length, // native-ok
-      valid: normalizedRows.length - mapped.errors.length, // native-ok
-      errors: rowErrors.length + mapped.errors.length, // native-ok
+      valid: normalizedRows.length - allMapperErrors.length, // native-ok
+      errors: rowErrors.length + allMapperErrors.length, // native-ok
       byType,
     },
   };
@@ -402,8 +616,9 @@ export async function executeTradeImport(
       createdSecurities++; // native-ok
     }
 
-    // Re-parse and normalize (same as preview)
+    // Re-parse and normalize (same parser as preview).
     const normalizedRows: NormalizedTradeRow[] = [];
+    const parseRowErrors: RowError[] = [];
     const excludedSet = new Set(input.excludedRows);
 
     let rowNum = 1; // native-ok
@@ -413,65 +628,43 @@ export async function executeTradeImport(
         continue;
       }
 
-      const date = parseDate(
-        fields[input.config.columnMapping['date']] ?? '',
-        input.config.dateFormat,
-      );
-      const txType = normalizeTransactionType(fields[input.config.columnMapping['type']] ?? '');
-      const amount = parseNumber(
-        fields[input.config.columnMapping['amount']] ?? '',
-        input.config.decimalSeparator,
-        input.config.thousandSeparator,
-      );
-
-      if (!date || !txType || amount == null) {
-        rowNum++; // native-ok
-        continue;
+      const parsed = parseTradeRow(rowNum, fields, input.config.columnMapping, {
+        decimalSeparator: input.config.decimalSeparator,
+        thousandSeparator: input.config.thousandSeparator,
+        dateFormat: input.config.dateFormat,
+      });
+      if ('code' in parsed) {
+        parseRowErrors.push(parsed);
+      } else {
+        normalizedRows.push(parsed);
       }
-
-      const row: NormalizedTradeRow = {
-        rowNumber: rowNum,
-        date,
-        type: txType,
-        securityName: (fields[input.config.columnMapping['security']] ?? '').trim(),
-        amount,
-      };
-
-      // Optional fields
-      const sharesIdx = input.config.columnMapping['shares'];
-      if (sharesIdx != null) {
-        const shares = parseNumber(fields[sharesIdx] ?? '', input.config.decimalSeparator, input.config.thousandSeparator);
-        if (shares != null) row.shares = shares;
-      }
-      const feesIdx = input.config.columnMapping['fees'];
-      if (feesIdx != null) {
-        const fees = parseNumber(fields[feesIdx] ?? '', input.config.decimalSeparator, input.config.thousandSeparator);
-        if (fees != null) row.fees = fees;
-      }
-      const taxesIdx = input.config.columnMapping['taxes'];
-      if (taxesIdx != null) {
-        const taxes = parseNumber(fields[taxesIdx] ?? '', input.config.decimalSeparator, input.config.thousandSeparator);
-        if (taxes != null) row.taxes = taxes;
-      }
-      const currencyIdx = input.config.columnMapping['currency'];
-      if (currencyIdx != null) {
-        const cur = (fields[currencyIdx] ?? '').trim();
-        if (cur) row.currency = cur;
-      }
-      const noteIdx = input.config.columnMapping['note'];
-      if (noteIdx != null) {
-        const note = (fields[noteIdx] ?? '').trim();
-        if (note) row.note = note;
-      }
-      const crossAccountIdx = input.config.columnMapping['crossAccount'];
-      if (crossAccountIdx != null) {
-        const crossAccount = (fields[crossAccountIdx] ?? '').trim();
-        if (crossAccount) row.crossAccountId = crossAccount;
-      }
-
-      normalizedRows.push(row);
       rowNum++; // native-ok
     }
+
+    // Build currency maps. New securities created above already live in
+    // `securityMap` with real UUIDs; seed `securityCurrencyMap` with the
+    // user-supplied currency from `input.newSecurities`. Pending sentinels
+    // never appear here because execute always resolves them first.
+    const securityCurrencyMap = buildSecurityCurrencyMap(sqlite, securityMap.values());
+    for (const sec of input.newSecurities) {
+      const id = securityMap.get(sec.name);
+      if (id) securityCurrencyMap.set(id, sec.currency);
+    }
+    const accountCurrencyMap = buildAccountCurrencyMap(
+      sqlite,
+      normalizedRows.map((r) => r.crossAccountId).filter((x): x is string => !!x),
+    );
+
+    // Defense-in-depth: re-run the FX enrichment + checks at execute time.
+    // Pending-new securities that bypassed the preview gate are caught here
+    // because their currency now exists in `securityCurrencyMap`.
+    const fxErrors = enrichRowsWithFxChecks(sqlite, {
+      rows: normalizedRows,
+      securityMap,
+      securityCurrencyMap,
+      accountCurrencyMap,
+      depositCurrency: portfolioCurrency,
+    });
 
     // Map
     const ctx: TradeMapperContext = {
@@ -479,17 +672,38 @@ export async function executeTradeImport(
       depositAccountId: acctRow.referenceAccount!,
       portfolioCurrency,
       securityMap,
+      securityCurrencyMap,
+      accountCurrencyMap,
     };
 
     const mapped = mapTradeRows(normalizedRows, ctx);
 
+    // Hard-abort on any FX-class error before opening the SQLite transaction.
+    // Deliberately stricter than the soft-skip posture used for
+    // MISSING_SHARES / MISSING_SECURITY / MISSING_CROSS_ACCOUNT — see
+    // `.claude/rules/csv-import.md` Cross-currency FX gate.
+    const allMapperErrors = [...fxErrors, ...mapped.errors];
+    const fxAbort = allMapperErrors.find((e) => FX_ERROR_CODES.has(e.code));
+    if (fxAbort) {
+      const count = allMapperErrors.filter((e) => FX_ERROR_CODES.has(e.code)).length; // native-ok
+      throw new CsvImportError(
+        'FX_RATE_REQUIRED',
+        `${count} row(s) require FX information that the CSV import cannot resolve`,
+      );
+    }
+
     // Insert all in a single SQLite transaction
-    const doInsert = sqlite.transaction((txns: XactInsert[], entries: CrossEntryInsert[]) => {
+    const doInsert = sqlite.transaction((
+      txns: XactInsert[], entries: CrossEntryInsert[], unitRows: UnitInsert[],
+    ) => {
       const insertXact = sqlite.prepare(
         'INSERT INTO xact (uuid, type, date, currency, amount, shares, note, security, account, acctype, source, updatedAt, fees, taxes, _xmlid, _order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       );
       const insertCE = sqlite.prepare(
         'INSERT INTO xact_cross_entry (from_xact, from_acc, to_xact, to_acc, type) VALUES (?, ?, ?, ?, ?)',
+      );
+      const insertUnit = sqlite.prepare(
+        'INSERT INTO xact_unit (xact, type, amount, currency, forex_amount, forex_currency, exchangeRate) VALUES (?, ?, ?, ?, ?, ?, ?)',
       );
 
       let nextXmlid = ((sqlite.prepare('SELECT COALESCE(MAX(_xmlid), 0) + 1 AS n FROM xact').get() as { n: number }).n);
@@ -509,17 +723,21 @@ export async function executeTradeImport(
       for (const ce of entries) {
         insertCE.run(ce.fromXact, ce.fromAcc, ce.toXact, ce.toAcc, ce.type);
       }
+
+      for (const u of unitRows) {
+        insertUnit.run(u.xact, u.type, u.amount, u.currency, u.forex_amount, u.forex_currency, u.exchangeRate);
+      }
     });
 
-    doInsert(mapped.transactions, mapped.crossEntries);
+    doInsert(mapped.transactions, mapped.crossEntries, mapped.units);
 
     // Cleanup temp file
     try { fs.unlinkSync(filePath); } catch { /* ignore */ }
 
-    // BUG-101: report input-row count, not raw xact-row count. BUY/SELL and
-    // transfers emit 2 xact rows per input row (see csv-trade-mapper); doubling
-    // leaks an implementation detail into user-facing copy. Subtract mapper
-    // errors because those rows were in normalizedRows but produced no xact.
+    // Report input-row count rather than raw xact-row count: BUY/SELL and
+    // transfers emit 2 xact rows per input row (see csv-trade-mapper);
+    // doubling leaks an implementation detail into user-facing copy.
+    // Subtract mapper errors because those rows produced no xact.
     const logicalCount = normalizedRows.length - mapped.errors.length; // native-ok
     return {
       imported: logicalCount,
@@ -527,7 +745,7 @@ export async function executeTradeImport(
         transactions: logicalCount,
         securities: createdSecurities,
       },
-      errors: mapped.errors,
+      errors: [...parseRowErrors, ...mapped.errors],
     };
   } finally {
     releaseLock();

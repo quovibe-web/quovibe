@@ -154,9 +154,11 @@ const tradePreviewSchema = z.object({
 const tradeExecuteSchema = z.object({
   tempFileId: z.string().min(1),
   config: z.object({
-    // Client omits delimiter on execute; csv-reader falls back to ',' which is
-    // the happy path for most CSVs. Keep optional to match wire reality.
-    delimiter: z.enum(csvDelimiters).optional(),
+    // Client omits delimiter on execute; .default(',') keeps the wire field
+    // optional but narrows the parsed output to CsvDelimiter so the service's
+    // required delimiter param accepts it (BUG-122). Same value csv-reader
+    // already falls back to.
+    delimiter: z.enum(csvDelimiters).default(','),
     columnMapping: columnMappingSchema,
     dateFormat: dateFormatSchema,
     decimalSeparator: decimalSeparatorSchema,

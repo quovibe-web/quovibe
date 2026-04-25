@@ -27,6 +27,10 @@ const ROW_ERROR_I18N: Partial<Record<CsvErrorCode, string>> = {
   MISSING_SECURITY: 'errors.missingSecurity',
   MISSING_SHARES: 'errors.missingShares',
   MISSING_CROSS_ACCOUNT: 'errors.missingCrossAccount',
+  FX_RATE_REQUIRED: 'errors.fxRateRequired',
+  INVALID_FX_RATE: 'errors.invalidFxRate',
+  FX_VERIFICATION_FAILED: 'errors.fxVerificationFailed',
+  CURRENCY_MISMATCH: 'errors.currencyMismatch',
 };
 
 interface Props {
@@ -42,6 +46,7 @@ function mapExecuteError(message: string): string {
     case 'NO_REFERENCE_ACCOUNT': return 'errors.noReferenceAccount';
     case 'TEMP_FILE_EXPIRED': return 'errors.tempExpired';
     case 'IMPORT_IN_PROGRESS': return 'errors.importInProgress';
+    case 'FX_RATE_REQUIRED': return 'errors.fxRateRequired';
     default: return 'errors.importFailed';
   }
 }
