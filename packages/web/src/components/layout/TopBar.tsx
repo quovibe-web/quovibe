@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, Eye, EyeOff, Sun, Moon, Monitor, Plus, MoreHorizontal, Settings, Menu } from 'lucide-react';
+import { CalendarIcon, Eye, EyeOff, Plus, MoreHorizontal, Settings, Menu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -21,8 +21,6 @@ import { usePortfolio } from '@/api/use-portfolio';
 import { useUpdatePreferences } from '@/api/use-preferences';
 import { usePortfolio as usePortfolioContext } from '@/context/PortfolioContext';
 import { usePrivacy } from '@/context/privacy-context';
-import { useTheme } from '@/hooks/use-theme';
-import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import { NewPeriodDialog } from '@/components/domain/NewPeriodDialog';
 import { DEFAULT_PERIODS, formatPeriodShortLabel, formatPeriodLabel, getPeriodId, ALL_PERIOD_ID } from '@/lib/period-utils';
 import { resolveReportingPeriod } from '@quovibe/shared';
@@ -38,17 +36,11 @@ const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 // Max custom periods to show as pills in the TopBar
 const MAX_PILL_CUSTOM = 2;
 
-/** Privacy + Light/System/Dark toggle group */
+/** Privacy toggle (single button — theme + language live in Settings). */
 function ToggleGroup() {
   const { t } = useTranslation('navigation');
   const { isPrivate, togglePrivacy } = usePrivacy();
-  const { theme, setTheme } = useTheme();
   const { mutate: updatePreferences } = useUpdatePreferences();
-
-  function handleTheme(next: 'light' | 'dark' | 'system') {
-    setTheme(next);
-    updatePreferences({ theme: next });
-  }
 
   function handlePrivacy() {
     togglePrivacy();
@@ -56,60 +48,19 @@ function ToggleGroup() {
   }
 
   return (
-    <div className="flex items-center gap-0.5 rounded-full bg-muted p-0.5">
-      <button
-        onClick={handlePrivacy}
-        className={cn(
-          'p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-          isPrivate
-            ? 'bg-card text-foreground'
-            : 'text-muted-foreground hover:text-foreground'
-        )}
-        title={isPrivate ? t('privacy.disable') : t('privacy.enable')}
-        aria-label={isPrivate ? t('privacy.disable') : t('privacy.enable')}
-      >
-        {isPrivate ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-      </button>
-      <button
-        onClick={() => handleTheme('light')}
-        className={cn(
-          'hidden md:inline-flex p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-          theme === 'light'
-            ? 'bg-card text-primary'
-            : 'text-muted-foreground hover:text-foreground'
-        )}
-        title={t('theme.light')}
-        aria-label={t('theme.light')}
-      >
-        <Sun className="h-4 w-4" />
-      </button>
-      <button
-        onClick={() => handleTheme('system')}
-        className={cn(
-          'hidden md:inline-flex p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-          theme === 'system'
-            ? 'bg-card text-primary'
-            : 'text-muted-foreground hover:text-foreground'
-        )}
-        title={t('theme.system')}
-        aria-label={t('theme.system')}
-      >
-        <Monitor className="h-4 w-4" />
-      </button>
-      <button
-        onClick={() => handleTheme('dark')}
-        className={cn(
-          'hidden md:inline-flex p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-          theme === 'dark'
-            ? 'bg-card text-primary'
-            : 'text-muted-foreground hover:text-foreground'
-        )}
-        title={t('theme.dark')}
-        aria-label={t('theme.dark')}
-      >
-        <Moon className="h-4 w-4" />
-      </button>
-    </div>
+    <button
+      onClick={handlePrivacy}
+      className={cn(
+        'inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+        isPrivate
+          ? 'bg-muted text-foreground'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+      )}
+      title={isPrivate ? t('privacy.disable') : t('privacy.enable')}
+      aria-label={isPrivate ? t('privacy.disable') : t('privacy.enable')}
+    >
+      {isPrivate ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+    </button>
   );
 }
 
@@ -525,9 +476,6 @@ export function TopBar({ onMenuClick, isScrolled = false }: TopBarProps) {
       <div className="ml-auto flex min-w-0 items-center gap-1">
         <DemoBadge />
         <PortfolioSwitcher />
-        <div className="hidden md:block">
-          <LanguageSwitcher />
-        </div>
         <ToggleGroup />
       </div>
     </header>
