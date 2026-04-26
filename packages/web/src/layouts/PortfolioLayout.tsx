@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
 import { UUID_V4_RE } from '@quovibe/shared';
 import { Shell } from '@/components/layout/Shell';
@@ -7,6 +7,7 @@ import { usePortfolioRegistry } from '@/api/use-portfolios';
 import { useSecuritiesAccounts } from '@/api/use-securities-accounts';
 import { useEventStream } from '@/api/use-events';
 import { appendSearch } from '@/lib/router-helpers';
+import { writeTabPortfolioId } from '@/lib/portfolio-recency';
 
 export function PortfolioLayout() {
   const { portfolioId } = useParams<{ portfolioId: string }>();
@@ -15,7 +16,22 @@ export function PortfolioLayout() {
   const securitiesAccounts = useSecuritiesAccounts(portfolioId ?? '');
   useEventStream();
 
-  if (!portfolioId || !UUID_V4_RE.test(portfolioId)) {
+  const isValidPortfolioId = !!portfolioId && UUID_V4_RE.test(portfolioId);
+  const entry = isValidPortfolioId
+    ? registry.data?.portfolios.find((p) => p.id === portfolioId) ?? null
+    : null;
+  const validatedEntryId = entry?.id ?? null;
+
+  // Persist this tab's last-validated portfolio id. UserSettingsLayout reads
+  // it via sessionStorage so /settings anchors on the same portfolio this
+  // tab was viewing — global `lastOpenedAt` is shared across tabs and would
+  // otherwise let a sibling tab's switcher click silently change which
+  // portfolio appears "active" when /settings mounts.
+  useEffect(() => {
+    if (validatedEntryId) writeTabPortfolioId(validatedEntryId);
+  }, [validatedEntryId]);
+
+  if (!isValidPortfolioId) {
     // error-path redirect: don't preserve search
     return <Navigate to="/welcome" replace />;
   }
@@ -23,7 +39,6 @@ export function PortfolioLayout() {
     return <Suspense fallback={null}><div /></Suspense>;
   }
 
-  const entry = registry.data?.portfolios.find((p) => p.id === portfolioId);
   // error-path redirect: don't preserve search
   if (!entry) return <Navigate to="/welcome" replace />;
 
