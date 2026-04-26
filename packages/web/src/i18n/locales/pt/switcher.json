@@ -1,9 +1,10 @@
 {
-  "noPortfolio": "No portfolio",
-  "newPortfolio": "+ New portfolio…",
-  "tryDemo": "🧪 Try Demo",
+  "noPortfolio": "Sem carteira",
+  "newPortfolio": "+ Nova carteira…",
+  "tryDemo": "🧪 Experimentar a demo",
+  "allPortfolios": "Todas as carteiras…",
   "demoBadge": "Demo",
   "errors": {
-    "demoFailed": "Could not open the demo: {{msg}}"
+    "demoFailed": "Não foi possível abrir a demo: {{msg}}"
   }
 }

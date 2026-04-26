@@ -2,6 +2,7 @@
   "noPortfolio": "Nessun portafoglio",
   "newPortfolio": "+ Nuovo portafoglio…",
   "tryDemo": "🧪 Prova la demo",
+  "allPortfolios": "Tutti i portafogli…",
   "demoBadge": "Demo",
   "errors": {
     "demoFailed": "Impossibile aprire la demo: {{msg}}"
