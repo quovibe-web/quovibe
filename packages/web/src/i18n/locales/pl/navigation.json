@@ -34,8 +34,7 @@
   "theme": {
     "light": "Jasny motyw",
     "system": "Motyw systemowy",
-    "dark": "Ciemny motyw",
-    "toggle": "Przełącz motyw"
+    "dark": "Ciemny motyw"
   },
   "more": "Więcej",
   "morePeriods": "Więcej okresów",

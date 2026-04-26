@@ -34,8 +34,7 @@
   "theme": {
     "light": "Helles Design",
     "system": "Systemdesign",
-    "dark": "Dunkles Design",
-    "toggle": "Design wechseln"
+    "dark": "Dunkles Design"
   },
   "more": "Mehr",
   "morePeriods": "Weitere Perioden",

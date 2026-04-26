@@ -34,8 +34,7 @@
   "theme": {
     "light": "Tema claro",
     "system": "Tema do sistema",
-    "dark": "Tema escuro",
-    "toggle": "Mudar tema"
+    "dark": "Tema escuro"
   },
   "more": "Mais",
   "morePeriods": "Mais períodos",
