@@ -87,6 +87,7 @@ export function PortfolioSwitcher() {
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
+          {/* Welcome is portfolio-agnostic — don't forward periodStart/periodEnd from current portfolio context. */}
           <DropdownMenuItem onClick={() => navigate('/welcome')}>
             <Home className="mr-2 h-4 w-4" /> {t('allPortfolios')}
           </DropdownMenuItem>
