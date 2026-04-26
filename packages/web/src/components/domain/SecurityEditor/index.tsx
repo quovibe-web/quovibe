@@ -84,6 +84,11 @@ export function SecurityEditor({
   const [feedData, setFeedData] = useState<PriceFeedValues>(DEFAULT_FEED);
   const [attributes, setAttributes] = useState<SecurityAttribute[]>([]);
   const [taxonomyAssignments, setTaxonomyAssignments] = useState<TaxonomyAssignment[]>([]);
+  // Snapshot of the logo at editor-open time. Save only PUTs /logo when the current
+  // value differs — prevents wiping a logo that an out-of-band background fetch
+  // (e.g. AddInstrumentDialog post-create) wrote while the editor was open. A ref
+  // because reading it at save time never needs to drive a re-render.
+  const initialLogoValueRef = useRef<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -114,6 +119,7 @@ export function SecurityEditor({
         latestFeedUrl: detail.latestFeedUrl ?? '',
       });
       setAttributes(detail.attributes ?? []);
+      initialLogoValueRef.current = detail.attributes?.find(a => a.typeId === 'logo')?.value ?? null;
       setTaxonomyAssignments(detail.taxonomyAssignments ?? []);
       setIsDirty(false);
       setError(null);
@@ -121,6 +127,7 @@ export function SecurityEditor({
       setMasterData(DEFAULT_MASTER);
       setFeedData(DEFAULT_FEED);
       setAttributes([]);
+      initialLogoValueRef.current = null;
       setTaxonomyAssignments([]);
       setIsDirty(false);
       setError(null);
@@ -248,13 +255,16 @@ export function SecurityEditor({
         }),
       });
 
-      // Save logo via dedicated endpoint (only touches logo row, no full replace)
-      const logoAttr = attributes.find(a => a.typeId === 'logo');
-      await api.fetch(`/api/securities/${id}/logo`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ logoUrl: logoAttr?.value || null }),
-      });
+      // Save logo only when the user touched it. Skipping the PUT preserves any logo
+      // an out-of-band background fetch wrote while the editor was open.
+      const currentLogo = attributes.find(a => a.typeId === 'logo')?.value || null;
+      if (currentLogo !== initialLogoValueRef.current) {
+        await api.fetch(`/api/securities/${id}/logo`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logoUrl: currentLogo }),
+        });
+      }
 
       await api.fetch(`/api/securities/${id}/taxonomy`, {
         method: 'PUT',
@@ -331,7 +341,6 @@ export function SecurityEditor({
               attributes={attributes}
               onChange={handleAttributesChange}
               ticker={masterData.ticker}
-              instrumentType={detail?.instrumentType ?? undefined}
             />
 
             <TaxonomiesSection

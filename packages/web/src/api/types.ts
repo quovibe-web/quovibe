@@ -137,7 +137,6 @@ export interface SecurityListItem {
   ticker: string | null;
   currency: string;
   isRetired: boolean;
-  instrumentType?: string | null;
   latestPrice?: string | null;
   latestDate?: string | null;
   logoUrl?: string | null;

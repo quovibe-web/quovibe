@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { resolveLogo, findFundDomain } from '../logo-resolver.service';
+import { InstrumentType } from '@quovibe/shared';
+import { resolveLogo, findFundDomain, LogoResolverError } from '../logo-resolver.service';
 
-// Spy on quoteSummary at the prototype level so require() and import() both see the stub
 const yf2 = require('yahoo-finance2');
 const YahooFinance = yf2.default ?? yf2;
 
@@ -12,6 +12,18 @@ function makeFetchResponse(body: unknown, contentType = 'image/png', ok = true) 
     headers: { get: (_: string) => contentType },
     arrayBuffer: async () => Buffer.from('fakeimage').buffer,
     json: async () => body,
+  };
+}
+
+// Google's default globe favicon (sz=128, no real favicon for the domain) is ~650 bytes;
+// a real one is typically ≥ 2 KB. Tests drive the placeholder detector by buffer size.
+function makeFaviconResponse(sizeBytes: number) {
+  return {
+    ok: true,
+    status: 200,
+    headers: { get: (_: string) => 'image/png' },
+    arrayBuffer: async () => Buffer.alloc(sizeBytes).buffer,
+    json: async () => ({}),
   };
 }
 
@@ -58,8 +70,6 @@ describe('findFundDomain', () => {
 describe('resolveLogo', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    vi.clearAllMocks();
-    // Re-attach spy after restoreAllMocks
     vi.spyOn(YahooFinance.prototype, 'quoteSummary');
   });
 
@@ -78,7 +88,7 @@ describe('resolveLogo', () => {
       assetProfile: { website: 'https://www.nvidia.com' },
     });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
-    const result = await resolveLogo({ ticker: 'NVDA', instrumentType: 'EQUITY' });
+    const result = await resolveLogo({ ticker: 'NVDA', instrumentType: InstrumentType.EQUITY });
     expect(result).toMatch(/^data:image\/png;base64,/);
     expect(fetch).toHaveBeenCalledWith(
       'https://www.google.com/s2/favicons?domain=www.nvidia.com&sz=128',
@@ -92,14 +102,14 @@ describe('resolveLogo', () => {
       .mockResolvedValueOnce(makeFetchResponse({ image: { large: 'https://cdn.coingecko.com/coins/images/1/large/bitcoin.png' } }, 'application/json'))
       .mockResolvedValueOnce(makeFetchResponse({}, 'image/png')),
     );
-    const result = await resolveLogo({ ticker: 'BTC-USD', instrumentType: 'CRYPTO' });
+    const result = await resolveLogo({ ticker: 'BTC-USD', instrumentType: InstrumentType.CRYPTO });
     expect(result).toMatch(/^data:image\/png;base64,/);
   });
 
   it('falls back to ticker.com favicon when Yahoo Finance returns no website', async () => {
     vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({ assetProfile: { website: undefined } });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
-    const result = await resolveLogo({ ticker: 'AAPL', instrumentType: 'EQUITY' });
+    const result = await resolveLogo({ ticker: 'AAPL', instrumentType: InstrumentType.EQUITY });
     expect(result).toMatch(/^data:image\/png;base64,/);
     expect(fetch).toHaveBeenCalledWith(
       'https://www.google.com/s2/favicons?domain=aapl.com&sz=128',
@@ -112,7 +122,7 @@ describe('resolveLogo', () => {
       .mockResolvedValueOnce({ assetProfile: { website: undefined } }) // RACE.MI — no website
       .mockResolvedValueOnce({ assetProfile: { website: 'https://www.ferrari.com' } }); // RACE — has website
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
-    const result = await resolveLogo({ ticker: 'RACE.MI', instrumentType: 'EQUITY' });
+    const result = await resolveLogo({ ticker: 'RACE.MI', instrumentType: InstrumentType.EQUITY });
     expect(result).toMatch(/^data:image\/png;base64,/);
     expect(fetch).toHaveBeenCalledWith(
       'https://www.google.com/s2/favicons?domain=www.ferrari.com&sz=128',
@@ -123,17 +133,40 @@ describe('resolveLogo', () => {
   it('falls back to base-ticker.com favicon when both Yahoo calls return no website', async () => {
     vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({ assetProfile: { website: undefined } });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
-    await resolveLogo({ ticker: 'RACE.MI', instrumentType: 'EQUITY' });
+    await resolveLogo({ ticker: 'RACE.MI', instrumentType: InstrumentType.EQUITY });
     expect(fetch).toHaveBeenCalledWith(
       'https://www.google.com/s2/favicons?domain=race.com&sz=128',
       expect.any(Object),
     );
   });
 
-  it('throws when all strategies fail', async () => {
-    vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockRejectedValue(new Error('network error'));
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network error')));
-    await expect(resolveLogo({ ticker: 'XXXX', instrumentType: 'EQUITY' })).rejects.toThrow('Logo not found');
+  it('classifies as RESOLVER_UPSTREAM_ERROR when network errors hit every strategy', async () => {
+    vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockRejectedValue(new Error('fetch failed'));
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('fetch failed')));
+    await expect(resolveLogo({ ticker: 'XXXX', instrumentType: InstrumentType.EQUITY })).rejects.toMatchObject({
+      code: 'RESOLVER_UPSTREAM_ERROR',
+    });
+  });
+
+  it('classifies as LOGO_NOT_FOUND when sources reply but none had a logo', async () => {
+    // Yahoo says the security exists but has no website / no fund family;
+    // both Google Favicon paths return placeholders. No upstream/network error class.
+    vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
+      quoteType: { quoteType: 'EQUITY' },
+      assetProfile: { website: undefined },
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFaviconResponse(700)));
+    await expect(resolveLogo({ ticker: 'XXXX', instrumentType: InstrumentType.EQUITY })).rejects.toMatchObject({
+      code: 'LOGO_NOT_FOUND',
+    });
+  });
+
+  it('throws a LogoResolverError instance (not a plain Error)', async () => {
+    vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockRejectedValue(new Error('fetch failed'));
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('fetch failed')));
+    await expect(resolveLogo({ ticker: 'XXXX', instrumentType: InstrumentType.EQUITY })).rejects.toBeInstanceOf(
+      LogoResolverError,
+    );
   });
 
   describe('ETF logo resolution', () => {
@@ -143,7 +176,7 @@ describe('resolveLogo', () => {
         quoteType: { shortName: 'iShares Core MSCI World UCITS ETF' },
       });
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
-      const result = await resolveLogo({ ticker: 'SWDA', instrumentType: 'ETF' });
+      const result = await resolveLogo({ ticker: 'SWDA', instrumentType: InstrumentType.ETF });
       expect(result).toMatch(/^data:image\/png;base64,/);
       expect(fetch).toHaveBeenCalledWith(
         'https://www.google.com/s2/favicons?domain=ishares.com&sz=128',
@@ -157,7 +190,7 @@ describe('resolveLogo', () => {
         quoteType: { shortName: 'Vanguard FTSE All-World UCITS ETF' },
       });
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
-      const result = await resolveLogo({ ticker: 'VWRL', instrumentType: 'ETF' });
+      const result = await resolveLogo({ ticker: 'VWRL', instrumentType: InstrumentType.ETF });
       expect(result).toMatch(/^data:image\/png;base64,/);
       expect(fetch).toHaveBeenCalledWith(
         'https://www.google.com/s2/favicons?domain=vanguard.com&sz=128',
@@ -173,7 +206,7 @@ describe('resolveLogo', () => {
           quoteType: { shortName: 'iShares Core MSCI World UCITS ETF' },
         });
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
-      const result = await resolveLogo({ ticker: 'SWDA.MI', instrumentType: 'ETF' });
+      const result = await resolveLogo({ ticker: 'SWDA.MI', instrumentType: InstrumentType.ETF });
       expect(result).toMatch(/^data:image\/png;base64,/);
       expect(fetch).toHaveBeenCalledWith(
         'https://www.google.com/s2/favicons?domain=ishares.com&sz=128',
@@ -182,11 +215,15 @@ describe('resolveLogo', () => {
     });
 
     it('falls back to equity path when fund family is not in the map', async () => {
-      vi.spyOn(YahooFinance.prototype, 'quoteSummary')
-        .mockResolvedValueOnce({ fundProfile: { family: 'Obscure Niche Provider' }, quoteType: {} }) // ETF call — no match
-        .mockResolvedValueOnce({ assetProfile: { website: 'https://www.obscurefund.com' } });         // equity fallback
+      // Single quoteSummary call returns all three modules; equity fallback reuses the
+      // same summary's assetProfile rather than firing a second Yahoo round-trip.
+      vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
+        quoteType: { quoteType: 'ETF' },
+        fundProfile: { family: 'Obscure Niche Provider' },
+        assetProfile: { website: 'https://www.obscurefund.com' },
+      });
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
-      const result = await resolveLogo({ ticker: 'OBSCURE', instrumentType: 'ETF' });
+      const result = await resolveLogo({ ticker: 'OBSCURE', instrumentType: InstrumentType.ETF });
       expect(result).toMatch(/^data:image\/png;base64,/);
       expect(fetch).toHaveBeenCalledWith(
         'https://www.google.com/s2/favicons?domain=www.obscurefund.com&sz=128',
@@ -200,7 +237,7 @@ describe('resolveLogo', () => {
         quoteType: {},
       });
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
-      const result = await resolveLogo({ ticker: 'VFIAX', instrumentType: 'FUND' });
+      const result = await resolveLogo({ ticker: 'VFIAX', instrumentType: InstrumentType.FUND });
       expect(result).toMatch(/^data:image\/png;base64,/);
       expect(fetch).toHaveBeenCalledWith(
         'https://www.google.com/s2/favicons?domain=vanguard.com&sz=128',
@@ -211,12 +248,15 @@ describe('resolveLogo', () => {
     it('rethrows Yahoo Finance network errors from resolveFund (does not silently fall to equity)', async () => {
       vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockRejectedValue(new Error('network timeout'));
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network timeout')));
-      await expect(resolveLogo({ ticker: 'SWDA', instrumentType: 'ETF' })).rejects.toThrow('Logo not found');
+      await expect(resolveLogo({ ticker: 'SWDA', instrumentType: InstrumentType.ETF })).rejects.toMatchObject({
+        code: 'RESOLVER_UPSTREAM_ERROR',
+      });
     });
   });
 
   it('resolves without instrumentType (uses Yahoo Finance path)', async () => {
     vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
+      quoteType: { quoteType: 'EQUITY' },
       assetProfile: { website: 'https://www.ferrari.com' },
     });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
@@ -228,10 +268,154 @@ describe('resolveLogo', () => {
     );
   });
 
+  describe('auto-detection from Yahoo quoteType', () => {
+    it('ETF without instrumentType auto-detects via quoteType and uses fundProfile', async () => {
+      // The user-reported bug: clicking "Fetch logo" in SecurityEditor for an existing
+      // ETF sent only { ticker } because detail.instrumentType was undefined. The resolver
+      // must auto-detect ETF from Yahoo's quoteType.quoteType and route to the fund path.
+      vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
+        quoteType: { quoteType: 'ETF', shortName: 'iShares Core MSCI World UCITS ETF' },
+        fundProfile: { family: 'iShares' },
+        assetProfile: { website: undefined },
+      });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
+      const result = await resolveLogo({ ticker: 'SWDA' });
+      expect(result).toMatch(/^data:image\/png;base64,/);
+      expect(fetch).toHaveBeenCalledWith(
+        'https://www.google.com/s2/favicons?domain=ishares.com&sz=128',
+        expect.any(Object),
+      );
+    });
+
+    it('MUTUALFUND quoteType maps to fund path', async () => {
+      vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
+        quoteType: { quoteType: 'MUTUALFUND', shortName: 'Vanguard 500 Index Fund Admiral' },
+        fundProfile: { family: 'Vanguard' },
+      });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
+      const result = await resolveLogo({ ticker: 'VFIAX' });
+      expect(result).toMatch(/^data:image\/png;base64,/);
+      expect(fetch).toHaveBeenCalledWith(
+        'https://www.google.com/s2/favicons?domain=vanguard.com&sz=128',
+        expect.any(Object),
+      );
+    });
+
+    it('uses a single Yahoo round-trip for auto-detected EQUITY', async () => {
+      const spy = vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
+        quoteType: { quoteType: 'EQUITY' },
+        assetProfile: { website: 'https://www.nvidia.com' },
+      });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
+      await resolveLogo({ ticker: 'NVDA' });
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses a single Yahoo round-trip for auto-detected ETF', async () => {
+      const spy = vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
+        quoteType: { quoteType: 'ETF', shortName: 'iShares Core MSCI World UCITS ETF' },
+        fundProfile: { family: 'iShares' },
+      });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
+      await resolveLogo({ ticker: 'SWDA' });
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('extracts partial data from a FailedYahooValidationError', async () => {
+    // yahoo-finance2 throws FailedYahooValidationError with a `.result` payload
+    // when the response shape is partially invalid. fetchFullSummary must reuse
+    // that partial payload instead of failing the whole resolution.
+    class FailedYahooValidationError extends Error {
+      result: unknown;
+      constructor(result: unknown) {
+        super('schema validation failed');
+        this.result = result;
+      }
+    }
+    vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockRejectedValue(
+      new FailedYahooValidationError({
+        quoteType: { quoteType: 'ETF', shortName: 'iShares Core MSCI World UCITS ETF' },
+        fundProfile: { family: 'iShares' },
+      }),
+    );
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
+    const result = await resolveLogo({ ticker: 'SWDA', instrumentType: InstrumentType.ETF });
+    expect(result).toMatch(/^data:image\/png;base64,/);
+    expect(fetch).toHaveBeenCalledWith(
+      'https://www.google.com/s2/favicons?domain=ishares.com&sz=128',
+      expect.any(Object),
+    );
+  });
+
+  describe('crypto quote-currency suffix stripping', () => {
+    it('strips -EUR suffix correctly', async () => {
+      vi.stubGlobal('fetch', vi.fn()
+        .mockResolvedValueOnce(makeFetchResponse([{ id: 'bitcoin', symbol: 'btc' }], 'application/json'))
+        .mockResolvedValueOnce(makeFetchResponse({ image: { large: 'https://cdn.coingecko.com/coins/images/1/large/bitcoin.png' } }, 'application/json'))
+        .mockResolvedValueOnce(makeFetchResponse({}, 'image/png')),
+      );
+      const result = await resolveLogo({ ticker: 'BTC-EUR', instrumentType: InstrumentType.CRYPTO });
+      expect(result).toMatch(/^data:image\/png;base64,/);
+    });
+
+    it('strips -GBP suffix correctly', async () => {
+      vi.stubGlobal('fetch', vi.fn()
+        .mockResolvedValueOnce(makeFetchResponse([{ id: 'ethereum', symbol: 'eth' }], 'application/json'))
+        .mockResolvedValueOnce(makeFetchResponse({ image: { large: 'https://cdn.coingecko.com/coins/images/279/large/ethereum.png' } }, 'application/json'))
+        .mockResolvedValueOnce(makeFetchResponse({}, 'image/png')),
+      );
+      const result = await resolveLogo({ ticker: 'ETH-GBP', instrumentType: InstrumentType.CRYPTO });
+      expect(result).toMatch(/^data:image\/png;base64,/);
+    });
+  });
+
+  describe('placeholder favicon detection', () => {
+    it('rejects undersized response from Google Favicon (Google default globe)', async () => {
+      // Yahoo says NVDA's website is nonsense.invalid; Google returns its default globe (700 bytes).
+      // Outer fallback also tries nvda.com and Google again returns the default globe (700 bytes).
+      // With placeholder detection, both paths should be rejected and resolveLogo throws LOGO_NOT_FOUND
+      // (not UPSTREAM — every source actually responded; the responses just held no logo).
+      vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
+        quoteType: { quoteType: 'EQUITY' },
+        assetProfile: { website: 'https://nonsense.invalid' },
+      });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFaviconResponse(700)));
+      await expect(
+        resolveLogo({ ticker: 'NVDA', instrumentType: InstrumentType.EQUITY }),
+      ).rejects.toMatchObject({ code: 'LOGO_NOT_FOUND' });
+    });
+
+    it('accepts a real favicon (above threshold)', async () => {
+      vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
+        quoteType: { quoteType: 'EQUITY' },
+        assetProfile: { website: 'https://www.nvidia.com' },
+      });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFaviconResponse(4096)));
+      const result = await resolveLogo({ ticker: 'NVDA', instrumentType: InstrumentType.EQUITY });
+      expect(result).toMatch(/^data:image\/png;base64,/);
+    });
+
+    it('falls through to outer ticker.com fallback when primary domain returns placeholder', async () => {
+      vi.spyOn(YahooFinance.prototype, 'quoteSummary').mockResolvedValue({
+        quoteType: { quoteType: 'EQUITY' },
+        assetProfile: { website: 'https://nonsense.invalid' },
+      });
+      // First call (primary domain): placeholder. Second call (ticker.com fallback): real.
+      vi.stubGlobal('fetch', vi.fn()
+        .mockResolvedValueOnce(makeFaviconResponse(700))
+        .mockResolvedValueOnce(makeFaviconResponse(4096)),
+      );
+      const result = await resolveLogo({ ticker: 'NVDA', instrumentType: InstrumentType.EQUITY });
+      expect(result).toMatch(/^data:image\/png;base64,/);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('domain overrides ticker+instrumentType when both provided', async () => {
     const spy = vi.spyOn(YahooFinance.prototype, 'quoteSummary');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse({}, 'image/png')));
-    await resolveLogo({ ticker: 'NVDA', instrumentType: 'EQUITY', domain: 'nvidia.com' });
+    await resolveLogo({ ticker: 'NVDA', instrumentType: InstrumentType.EQUITY, domain: 'nvidia.com' });
     expect(fetch).toHaveBeenCalledWith(
       'https://www.google.com/s2/favicons?domain=nvidia.com&sz=128',
       expect.any(Object),

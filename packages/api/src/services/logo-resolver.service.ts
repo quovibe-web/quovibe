@@ -1,6 +1,42 @@
-import type { LogoResolveRequest } from '@quovibe/shared';
+import { InstrumentType, normalizeInstrumentType, type LogoResolveRequest } from '@quovibe/shared';
+
+export type LogoErrorCode = 'LOGO_NOT_FOUND' | 'RESOLVER_UPSTREAM_ERROR';
+
+export class LogoResolverError extends Error {
+  readonly code: LogoErrorCode;
+  constructor(code: LogoErrorCode) {
+    super(code);
+    this.code = code;
+    this.name = 'LogoResolverError';
+  }
+}
+
+// File-private sentinel: thrown when the fund-family lookup misses so the outer
+// dispatcher can distinguish "ETF fell through to equity" from genuine network failure.
+class FundFamilyNotFound extends Error {}
+
+const UPSTREAM_ERROR_PATTERNS = [
+  /HTTP 5\d\d/i,
+  /HTTP 429/i,
+  /timeout/i,
+  /ECONN/i,
+  /ENOTFOUND/i,
+  /fetch failed/i,
+  /AbortError/i,
+];
+
+function isUpstreamError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return UPSTREAM_ERROR_PATTERNS.some(re => re.test(err.message));
+}
 
 const TIMEOUT_MS = 8_000;
+
+// Google's default globe (returned at sz=128 when a domain has no real favicon) is
+// consistently under 1 KB. Real domain favicons at sz=128 are typically 2 KB+. Bytes
+// below this threshold are treated as the placeholder and rejected so the next
+// fallback strategy fires instead of silently storing a junk icon.
+const MIN_FAVICON_BYTES = 1_500;
 
 // Lowercase keys for case-insensitive lookup. Values are bare domains (no scheme).
 const FUND_FAMILY_DOMAINS: Record<string, string> = {
@@ -202,70 +238,83 @@ function extractDomain(website: string): string {
 }
 
 async function fetchByDomain(domain: string): Promise<string> {
-  return fetchToBase64(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`);
+  const url = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+  if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}`);
+  const buffer = await res.arrayBuffer();
+  if (buffer.byteLength < MIN_FAVICON_BYTES) {
+    throw new Error(`Placeholder favicon for ${domain}`);
+  }
+  const contentType = res.headers.get('content-type') ?? 'image/png';
+  return `data:${contentType};base64,${Buffer.from(buffer).toString('base64')}`;
 }
 
-function getYf() {
+// Module-scope singleton. Tests spy on `YahooFinance.prototype.quoteSummary`, so the
+// shared instance is fully spy-compatible. `require()` (not import) keeps mock
+// compatibility with the existing test harness.
+const YahooFinance = (() => {
   const mod = require('yahoo-finance2');
-  const YahooFinance = mod.default ?? mod;
-  return new YahooFinance();
+  return mod.default ?? mod;
+})();
+const yf = new YahooFinance();
+
+type FullSummary = {
+  quoteType?: { quoteType?: string; shortName?: string };
+  fundProfile?: { family?: string };
+  assetProfile?: { website?: string };
+};
+
+const SUMMARY_MODULES = ['quoteType', 'fundProfile', 'assetProfile'] as const;
+
+async function fetchFullSummary(t: string): Promise<FullSummary> {
+  try {
+    return await yf.quoteSummary(t, { modules: SUMMARY_MODULES });
+  } catch (err) {
+    if (err instanceof Error && err.constructor.name === 'FailedYahooValidationError') {
+      // Yahoo returned partially-invalid data. Salvage `err.result` so downstream
+      // optional-chaining still finds whatever modules did parse.
+      return (err as unknown as { result: FullSummary }).result ?? {};
+    }
+    if (err instanceof Error && err.message.startsWith('Quote not found')) {
+      return {};
+    }
+    throw err;
+  }
 }
 
-async function resolveEquity(ticker: string, baseTicker: string): Promise<string> {
-  const yf = getYf();
-  let website: string | undefined;
-
-  const summary = await yf.quoteSummary(ticker, { modules: ['assetProfile'] });
-  website = summary.assetProfile?.website;
-
-  // Exchange-specific listings (e.g. RACE.MI) often have sparse assetProfile.
-  // Retry with the base ticker (no exchange suffix) to get the primary listing's data.
+async function resolveEquityFromSummary(
+  summary: FullSummary,
+  ticker: string,
+  baseTicker: string,
+  getBaseSummary: () => Promise<FullSummary>,
+): Promise<string> {
+  let website = summary.assetProfile?.website;
   if (!website && baseTicker !== ticker) {
-    const baseSummary = await yf.quoteSummary(baseTicker, { modules: ['assetProfile'] });
+    const baseSummary = await getBaseSummary();
     website = baseSummary.assetProfile?.website;
   }
-
   if (!website) throw new Error(`No website for ${ticker}`);
   return fetchByDomain(extractDomain(website));
 }
 
-async function resolveFund(ticker: string, baseTicker: string): Promise<string> {
-  const yf = getYf();
-
-  const tryFundDomain = async (t: string): Promise<string | undefined> => {
-    type PartialSummary = { fundProfile?: { family?: string }; quoteType?: { shortName?: string } };
-    let summary: PartialSummary;
-    try {
-      summary = await yf.quoteSummary(t, { modules: ['fundProfile', 'quoteType'] });
-    } catch (err) {
-      if (err instanceof Error && err.constructor.name === 'FailedYahooValidationError') {
-        // Validation error: Yahoo returned partial data. Extract what we need from err.result.
-        summary = (err as unknown as { result: PartialSummary }).result ?? {};
-      } else if (err instanceof Error && err.message.startsWith('Quote not found')) {
-        // Ticker not found on Yahoo Finance — no data to use.
-        return undefined;
-      } else {
-        throw err; // network error, timeout — propagate
-      }
-    }
-    const family = summary.fundProfile?.family;
-    const shortName = summary.quoteType?.shortName;
-    const domain = findFundDomain(family, shortName);
-    return domain;
-  };
-
-  let domain = await tryFundDomain(ticker);
-
+async function resolveFundFromSummary(
+  summary: FullSummary,
+  ticker: string,
+  baseTicker: string,
+  getBaseSummary: () => Promise<FullSummary>,
+): Promise<string> {
+  let domain = findFundDomain(summary.fundProfile?.family, summary.quoteType?.shortName);
   if (!domain && baseTicker !== ticker) {
-    domain = await tryFundDomain(baseTicker);
+    const baseSummary = await getBaseSummary();
+    domain = findFundDomain(baseSummary.fundProfile?.family, baseSummary.quoteType?.shortName);
   }
-
-  if (!domain) throw new Error(`No fund family found for ${ticker}`);
+  if (!domain) throw new FundFamilyNotFound();
   return fetchByDomain(domain);
 }
 
 async function resolveCrypto(ticker: string): Promise<string> {
-  const symbol = ticker.replace(/-USD$/i, '').toLowerCase();
+  // Strip any 3-4 char quote-currency suffix (USD, EUR, GBP, JPY, USDT, ...).
+  const symbol = ticker.replace(/-[A-Z]{3,4}$/i, '').toLowerCase();
   const listRes = await fetch('https://api.coingecko.com/api/v3/coins/list', { signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (!listRes.ok) throw new Error('CoinGecko list unavailable');
   const list = await listRes.json() as Array<{ id: string; symbol: string }>;
@@ -281,40 +330,48 @@ async function resolveCrypto(ticker: string): Promise<string> {
 }
 
 export async function resolveLogo(input: LogoResolveRequest): Promise<string> {
-  // Domain path (accounts, or explicit domain override)
   if (input.domain) {
     return fetchByDomain(input.domain);
   }
 
-  const { ticker, instrumentType } = input as { ticker: string; instrumentType?: string };
-
-  // Strip exchange suffix (e.g. RACE.MI → race, SWDA.MI → swda) for fallback domain
+  const { ticker, instrumentType } = input as { ticker: string; instrumentType?: InstrumentType };
   const baseTicker = ticker.replace(/\.[A-Z0-9]+$/i, '');
 
   try {
-    if (instrumentType === 'CRYPTO') {
+    // Explicit CRYPTO hint short-circuits Yahoo entirely.
+    if (instrumentType === InstrumentType.CRYPTO) {
       return await resolveCrypto(ticker);
     }
-    if (instrumentType === 'ETF' || instrumentType === 'FUND') {
+
+    const summary = await fetchFullSummary(ticker);
+    const detected = instrumentType ?? normalizeInstrumentType(summary.quoteType?.quoteType ?? '');
+
+    if (detected === InstrumentType.CRYPTO) {
+      return await resolveCrypto(ticker);
+    }
+
+    // Memoise baseTicker fetch so a fund→equity fall-through reuses the same Yahoo response.
+    let baseSummaryCache: FullSummary | undefined;
+    const getBaseSummary = async (): Promise<FullSummary> =>
+      baseSummaryCache ??= await fetchFullSummary(baseTicker);
+
+    if (detected === InstrumentType.ETF || detected === InstrumentType.FUND) {
       try {
-        return await resolveFund(ticker, baseTicker);
+        return await resolveFundFromSummary(summary, ticker, baseTicker, getBaseSummary);
       } catch (err) {
-        // Only fall through if the fund family was simply not in the map.
-        // Re-throw on other errors (e.g. network) so the outer catch handles them cleanly.
-        if (!(err instanceof Error) || !err.message.startsWith('No fund family found')) {
-          throw err;
-        }
+        if (!(err instanceof FundFamilyNotFound)) throw err;
+        // fund family not in the map — fall through to equity using the same summaries
       }
     }
-    // For EQUITY and all other types (or when instrumentType is unknown),
-    // try Yahoo Finance assetProfile → company website → Google Favicon
-    return await resolveEquity(ticker, baseTicker);
-  } catch {
-    // Fallback: base ticker (exchange suffix stripped) + .com
+    return await resolveEquityFromSummary(summary, ticker, baseTicker, getBaseSummary);
+  } catch (primaryErr) {
     try {
       return await fetchByDomain(`${baseTicker.toLowerCase()}.com`);
-    } catch {
-      throw new Error('Logo not found');
+    } catch (fallbackErr) {
+      if (isUpstreamError(primaryErr) || isUpstreamError(fallbackErr)) {
+        throw new LogoResolverError('RESOLVER_UPSTREAM_ERROR');
+      }
+      throw new LogoResolverError('LOGO_NOT_FOUND');
     }
   }
 }

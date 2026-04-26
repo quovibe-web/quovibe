@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAttributeTypes } from '@/api/use-attribute-types';
 import { useResolveLogo } from '@/api/use-logo';
+import { resolveErrorMessage } from '@/api/query-client';
 import { resizeToPng } from '@/lib/image-utils';
 import { SectionHeader } from './SectionHeader';
 import type { SecurityAttribute } from '@/api/types';
-import type { InstrumentType } from '@quovibe/shared';
 
 function ImageField({
   attr,
@@ -32,8 +32,8 @@ function ImageField({
     setFetchError(null);
     try {
       await onFetchLogo();
-    } catch {
-      setFetchError(t('attributes.fetchLogoFailed'));
+    } catch (err) {
+      setFetchError(resolveErrorMessage(err));
     } finally {
       setIsFetching(false);
     }
@@ -118,10 +118,9 @@ interface Props {
   attributes: SecurityAttribute[];
   onChange: (attributes: SecurityAttribute[]) => void;
   ticker?: string;
-  instrumentType?: string | null;
 }
 
-export function AttributesSection({ attributes, onChange, ticker, instrumentType }: Props) {
+export function AttributesSection({ attributes, onChange, ticker }: Props) {
   const { t } = useTranslation('securities');
   const { data: types = [] } = useAttributeTypes();
   const [addingTypeId, setAddingTypeId] = useState('');
@@ -159,10 +158,7 @@ export function AttributesSection({ attributes, onChange, ticker, instrumentType
 
   const onFetchLogo = ticker
     ? async () => {
-        const { logoUrl } = await resolveLogoMutation.mutateAsync({
-          ticker,
-          ...(instrumentType ? { instrumentType: instrumentType as InstrumentType } : {}),
-        });
+        const { logoUrl } = await resolveLogoMutation.mutateAsync({ ticker });
         updateValue('logo', logoUrl);
       }
     : undefined;
