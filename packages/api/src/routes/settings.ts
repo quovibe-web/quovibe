@@ -240,17 +240,22 @@ settingsRouter.delete('/table-layouts/:tableId', (req, res) => {
   res.json({ ok: true });
 });
 
-// PUT /api/settings/auto-fetch — toggle autoFetchPricesOnFirstOpen
-const putAutoFetchSchema = z.object({ autoFetchPricesOnFirstOpen: z.boolean() });
+// PUT /api/settings/auto-fetch{,-fx} — toggle a single boolean app flag.
+// Body shape: { [key]: boolean }; response echoes the same shape.
+function makeAppFlagPut<K extends 'autoFetchPricesOnFirstOpen' | 'autoFetchFxOnFirstOpen'>(
+  key: K,
+): RequestHandler {
+  const schema = z.object({ [key]: z.boolean() } as Record<K, z.ZodBoolean>);
+  return (req, res) => {
+    const p = schema.safeParse(req.body);
+    if (!p.success) { res.status(400).json({ error: 'INVALID_INPUT' }); return; }
+    const current = getSettings();
+    const updated = updateSettings({
+      app: { ...current.app, [key]: (p.data as Record<K, boolean>)[key] },
+    });
+    res.json({ [key]: updated.app[key] });
+  };
+}
 
-const putAutoFetch: RequestHandler = (req, res) => {
-  const p = putAutoFetchSchema.safeParse(req.body);
-  if (!p.success) { res.status(400).json({ error: 'INVALID_INPUT' }); return; }
-  const current = getSettings();
-  const updated = updateSettings({
-    app: { ...current.app, autoFetchPricesOnFirstOpen: p.data.autoFetchPricesOnFirstOpen },
-  });
-  res.json({ autoFetchPricesOnFirstOpen: updated.app.autoFetchPricesOnFirstOpen });
-};
-
-settingsRouter.put('/auto-fetch', putAutoFetch);
+settingsRouter.put('/auto-fetch', makeAppFlagPut('autoFetchPricesOnFirstOpen'));
+settingsRouter.put('/auto-fetch-fx', makeAppFlagPut('autoFetchFxOnFirstOpen'));

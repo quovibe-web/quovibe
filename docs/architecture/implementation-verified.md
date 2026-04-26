@@ -48,8 +48,7 @@ must be added here to pass the automated check.
 
 | Method | Tables written | Audit status |
 |--------|---------------|--------------|
-| `fetchExchangeRates` | exchange_rate (virtual table) | Verified |
-| `fetchAllExchangeRates` | exchange_rate (virtual table) | Verified (delegates to fetchExchangeRates) |
+| `fetchAllExchangeRates` | vf_exchange_rate | Verified (single ECB XML fetch covering every foreign currency, per-currency Yahoo fallback) |
 
 ## import.service.ts
 

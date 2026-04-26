@@ -6,6 +6,8 @@
   "updates": {
     "title": "Updates",
     "autoFetchLabel": "Update prices automatically on first open per portfolio",
-    "autoFetchHint": "Off by default to avoid consuming Yahoo / AlphaVantage API quota on container restarts. Turn on if you want fresh prices whenever you first open a portfolio in a new process."
+    "autoFetchHint": "Off by default to avoid consuming Yahoo / AlphaVantage API quota on container restarts. Turn on if you want fresh prices whenever you first open a portfolio in a new process.",
+    "autoFetchFxLabel": "Update exchange rates automatically on first open per portfolio",
+    "autoFetchFxHint": "Off by default. When enabled, foreign-currency exchange rates are refreshed from the ECB (with Yahoo fallback) the first time you open a portfolio after a server restart, if the cached rates are missing or older than yesterday."
   }
 }

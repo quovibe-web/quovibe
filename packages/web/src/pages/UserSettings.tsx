@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, Plus, Minus } from 'lucide-react';
+import type { QuovibeSettings, QuovibePreferences } from '@quovibe/shared';
 import { apiFetch } from '@/api/fetch';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -22,20 +23,14 @@ import { usePrivacy } from '@/context/privacy-context';
 import { useLanguage, type LanguageCode } from '@/hooks/use-language';
 import { cn } from '@/lib/utils';
 
-type Preferences = {
-  language: string;
-  theme: ThemeMode;
-  sharesPrecision: number;
-  quotesPrecision: number;
-  showCurrencyCode: boolean;
-  showPaSuffix: boolean;
-  privacyMode: boolean;
+type AppFlagKey = 'autoFetchPricesOnFirstOpen' | 'autoFetchFxOnFirstOpen';
+
+const APP_FLAG_ROUTE: Record<AppFlagKey, string> = {
+  autoFetchPricesOnFirstOpen: '/api/settings/auto-fetch',
+  autoFetchFxOnFirstOpen: '/api/settings/auto-fetch-fx',
 };
 
-type SettingsResponse = {
-  preferences: Preferences;
-  app: { autoFetchPricesOnFirstOpen: boolean };
-};
+type SettingsResponse = Pick<QuovibeSettings, 'preferences' | 'app'>;
 
 function SettingRow({
   label,
@@ -91,7 +86,10 @@ export default function UserSettings() {
   const [quotesPrecision, setQuotesPrecision] = useState(2);
   const [showCurrencyCode, setShowCurrencyCode] = useState(false);
   const [showPaSuffix, setShowPaSuffix] = useState(true);
-  const [autoFetch, setAutoFetch] = useState(false);
+  const [appFlags, setAppFlags] = useState<Record<AppFlagKey, boolean>>({
+    autoFetchPricesOnFirstOpen: false,
+    autoFetchFxOnFirstOpen: false,
+  });
 
   const [savedField, setSavedField] = useState<string | null>(null);
 
@@ -102,7 +100,10 @@ export default function UserSettings() {
         setQuotesPrecision(s.preferences.quotesPrecision ?? 2);
         setShowCurrencyCode(s.preferences.showCurrencyCode ?? false);
         setShowPaSuffix(s.preferences.showPaSuffix ?? true);
-        setAutoFetch(s.app.autoFetchPricesOnFirstOpen ?? false);
+        setAppFlags({
+          autoFetchPricesOnFirstOpen: s.app.autoFetchPricesOnFirstOpen ?? false,
+          autoFetchFxOnFirstOpen: s.app.autoFetchFxOnFirstOpen ?? false,
+        });
       })
       .catch(() => { /* keep defaults */ });
   }, []);
@@ -115,7 +116,7 @@ export default function UserSettings() {
   }
 
   async function savePreference(
-    field: keyof Preferences,
+    field: keyof QuovibePreferences,
     value: string | number | boolean,
   ): Promise<void> {
     await apiFetch('/api/settings/preferences', {
@@ -123,6 +124,15 @@ export default function UserSettings() {
       body: JSON.stringify({ [field]: value }),
     });
     flashSaved(field);
+  }
+
+  async function saveAppFlag(key: AppFlagKey, next: boolean): Promise<void> {
+    setAppFlags(prev => ({ ...prev, [key]: next }));
+    await apiFetch(APP_FLAG_ROUTE[key], {
+      method: 'PUT',
+      body: JSON.stringify({ [key]: next }),
+    });
+    flashSaved(key);
   }
 
   const onLanguageChange = (code: LanguageCode): void => {
@@ -140,14 +150,6 @@ export default function UserSettings() {
     void savePreference('privacyMode', next);
   };
 
-  const onAutoFetch = async (next: boolean): Promise<void> => {
-    setAutoFetch(next);
-    await apiFetch('/api/settings/auto-fetch', {
-      method: 'PUT',
-      body: JSON.stringify({ autoFetchPricesOnFirstOpen: next }),
-    });
-    flashSaved('autoFetch');
-  };
 
   return (
     <main className="qv-page mx-auto max-w-3xl p-6">
@@ -330,9 +332,23 @@ export default function UserSettings() {
         <SettingRow
           label={tUser('updates.autoFetchLabel')}
           description={tUser('updates.autoFetchHint')}
-          saved={savedField === 'autoFetch'}
+          saved={savedField === 'autoFetchPricesOnFirstOpen'}
         >
-          <Switch checked={autoFetch} onCheckedChange={onAutoFetch} />
+          <Switch
+            checked={appFlags.autoFetchPricesOnFirstOpen}
+            onCheckedChange={(v) => void saveAppFlag('autoFetchPricesOnFirstOpen', v)}
+          />
+        </SettingRow>
+
+        <SettingRow
+          label={tUser('updates.autoFetchFxLabel')}
+          description={tUser('updates.autoFetchFxHint')}
+          saved={savedField === 'autoFetchFxOnFirstOpen'}
+        >
+          <Switch
+            checked={appFlags.autoFetchFxOnFirstOpen}
+            onCheckedChange={(v) => void saveAppFlag('autoFetchFxOnFirstOpen', v)}
+          />
         </SettingRow>
       </section>
     </main>

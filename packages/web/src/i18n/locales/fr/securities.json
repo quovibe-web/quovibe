@@ -13,6 +13,8 @@
     "edit": "Modifier",
     "updatePrices": "Mettre à jour tous les cours",
     "updating": "Mise à jour…",
+    "updateFx": "Mettre à jour les taux de change",
+    "updatingFx": "Mise à jour des taux…",
     "refreshQuote": "Actualiser le cours",
     "refreshing": "Actualisation…",
     "addInstrument": "+ Ajouter un instrument",
@@ -20,6 +22,7 @@
   },
   "updateResults": {
     "pricesUpdated": "cours mis à jour",
+    "fxUpdated": "taux de change mis à jour",
     "errors": "erreurs",
     "failedSecurities": "{{count}} titres échoués :"
   },

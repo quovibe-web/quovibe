@@ -13,6 +13,8 @@
     "edit": "Editar",
     "updatePrices": "Actualizar todos los precios",
     "updating": "Actualizando…",
+    "updateFx": "Actualizar tipos de cambio",
+    "updatingFx": "Actualizando cambios…",
     "refreshQuote": "Actualizar cotización",
     "refreshing": "Actualizando…",
     "addInstrument": "+ Añadir instrumento",
@@ -20,6 +22,7 @@
   },
   "updateResults": {
     "pricesUpdated": "precios actualizados",
+    "fxUpdated": "tipos de cambio actualizados",
     "errors": "errores",
     "failedSecurities": "{{count}} valores fallidos:"
   },

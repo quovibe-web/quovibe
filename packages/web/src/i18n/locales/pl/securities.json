@@ -13,6 +13,8 @@
     "edit": "Edytuj",
     "updatePrices": "Zaktualizuj wszystkie ceny",
     "updating": "Aktualizowanie…",
+    "updateFx": "Zaktualizuj kursy walut",
+    "updatingFx": "Aktualizowanie kursów…",
     "refreshQuote": "Odśwież kurs",
     "refreshing": "Aktualizowanie…",
     "addInstrument": "+ Dodaj instrument",
@@ -20,6 +22,7 @@
   },
   "updateResults": {
     "pricesUpdated": "cen zaktualizowanych",
+    "fxUpdated": "kursów walut zaktualizowanych",
     "errors": "błędów",
     "failedSecurities": "{{count}} papierów wartościowych nie powiodło się:"
   },

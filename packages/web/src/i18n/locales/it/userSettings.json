@@ -6,6 +6,8 @@
   "updates": {
     "title": "Aggiornamenti",
     "autoFetchLabel": "Aggiorna i prezzi automaticamente alla prima apertura di ogni portafoglio",
-    "autoFetchHint": "Disattivato di default per evitare di consumare la quota API di Yahoo / AlphaVantage ad ogni riavvio del container. Attivalo se desideri prezzi aggiornati ogni volta che apri un portafoglio in un nuovo processo."
+    "autoFetchHint": "Disattivato di default per evitare di consumare la quota API di Yahoo / AlphaVantage ad ogni riavvio del container. Attivalo se desideri prezzi aggiornati ogni volta che apri un portafoglio in un nuovo processo.",
+    "autoFetchFxLabel": "Aggiorna i tassi di cambio automaticamente alla prima apertura di ogni portafoglio",
+    "autoFetchFxHint": "Disattivato di default. Se attivo, i tassi di cambio per le valute estere vengono aggiornati dalla BCE (con fallback su Yahoo) alla prima apertura del portafoglio dopo un riavvio del server, se i tassi in cache sono assenti o più vecchi di ieri."
   }
 }

@@ -9,52 +9,57 @@ const ECB_URL = process.env.ECB_RATES_URL
 
 // ─── ECB XML fetch ────────────────────────────────────────────────────────────
 
-async function fetchFromEcb(
+/**
+ * Fetches the full ECB euro reference rates XML once and extracts cross-rates
+ * for every requested target currency from the `from` base. ECB publishes
+ * EUR-based rates; cross-rates compose as `target / from`.
+ */
+async function fetchAllPairsFromEcb(
   from: string,
-  to: string,
+  targets: string[],
   startDate?: string,
   endDate?: string,
-): Promise<{ date: string; rate: Decimal }[]> {
+): Promise<Map<string, { date: string; rate: Decimal }[]>> {
+  const out = new Map<string, { date: string; rate: Decimal }[]>();
+  if (targets.length === 0) return out;
+
   try {
-     
+
     const axios = require('axios');
-     
+
     const cheerio = require('cheerio');
 
     const res = await axios.get(ECB_URL, { timeout: 30000 });
     const $ = cheerio.load(res.data as string, { xmlMode: true });
 
-    const results: { date: string; rate: Decimal }[] = [];
+    for (const t of targets) out.set(t, []);
 
     $('Cube[time]').each((_i: number, dayEl: unknown) => {
       const date = $(dayEl).attr('time') as string;
       if (startDate && date < startDate) return;
       if (endDate && date > endDate) return;
 
-      // ECB provides EUR-based rates
-      // Build a map: currency -> rate relative to EUR
       const rates: Record<string, Decimal> = { EUR: new Decimal(1) };
       $(dayEl).find('Cube[currency]').each((_j: number, rateEl: unknown) => {
         const currency = $(rateEl).attr('currency') as string;
         const rateStr = $(rateEl).attr('rate') as string;
-        if (currency && rateStr) {
-          rates[currency] = new Decimal(rateStr);
-        }
+        if (currency && rateStr) rates[currency] = new Decimal(rateStr);
       });
 
       const fromRate = rates[from];
-      const toRate = rates[to];
-      if (!fromRate || !toRate) return;
+      if (!fromRate) return;
 
-      // Cross-rate: toRate / fromRate (both relative to EUR)
-      const rate = toRate.div(fromRate);
-      results.push({ date, rate });
+      for (const target of targets) {
+        const toRate = rates[target];
+        if (!toRate) continue;
+        out.get(target)!.push({ date, rate: toRate.div(fromRate) });
+      }
     });
 
-    return results;
+    return out;
   } catch (err) {
     console.warn('[fx] ECB fetch failed:', (err as Error).message);
-    return [];
+    return out;
   }
 }
 
@@ -110,6 +115,41 @@ function saveRates(
   tx();
 }
 
+// ─── Public: shared currency helpers ─────────────────────────────────────────
+
+export function getBaseCurrency(sqlite: BetterSqlite3.Database): string {
+  const baseProp = sqlite.prepare(
+    `SELECT value FROM property WHERE name = 'portfolio.currency'`,
+  ).get() as { value: string } | undefined;
+  return baseProp?.value ?? 'EUR';
+}
+
+export function listForeignCurrencies(
+  sqlite: BetterSqlite3.Database,
+  base: string,
+): string[] {
+  const rows = sqlite.prepare(`
+    SELECT DISTINCT currency FROM security WHERE currency IS NOT NULL AND currency != ?
+    UNION
+    SELECT DISTINCT currency FROM account WHERE currency IS NOT NULL AND currency != ?
+  `).all(base, base) as { currency: string }[];
+  return rows.map(r => r.currency);
+}
+
+export function hasForeignCurrencies(
+  sqlite: BetterSqlite3.Database,
+  base: string,
+): boolean {
+  const row = sqlite.prepare(`
+    SELECT 1 AS x FROM (
+      SELECT currency FROM security WHERE currency IS NOT NULL AND currency != ?
+      UNION ALL
+      SELECT currency FROM account WHERE currency IS NOT NULL AND currency != ?
+    ) LIMIT 1
+  `).get(base, base) as { x: number } | undefined;
+  return row !== undefined;
+}
+
 // ─── Public: check if FX fetch is needed ─────────────────────────────────────
 
 /**
@@ -122,54 +162,10 @@ export function needsFxFetch(sqlite: BetterSqlite3.Database): boolean {
       'SELECT COUNT(*) as cnt FROM vf_exchange_rate',
     ).get() as { cnt: number };
     if (count.cnt > 0) return false;
-
-    const baseProp = sqlite.prepare(
-      `SELECT value FROM property WHERE name = 'portfolio.currency'`,
-    ).get() as { value: string } | undefined;
-    const baseCurrency = baseProp?.value ?? 'EUR';
-
-    const rows = sqlite.prepare(`
-      SELECT DISTINCT currency FROM security WHERE currency IS NOT NULL
-      UNION
-      SELECT DISTINCT currency FROM account WHERE currency IS NOT NULL
-    `).all() as { currency: string }[];
-
-    return rows.some(r => r.currency !== baseCurrency);
+    return hasForeignCurrencies(sqlite, getBaseCurrency(sqlite));
   } catch {
     return false;
   }
-}
-
-// ─── Public: fetch exchange rates ─────────────────────────────────────────────
-
-export async function fetchExchangeRates(
-  sqlite: BetterSqlite3.Database,
-  from: string,
-  to: string,
-  startDate?: string,
-  endDate?: string,
-): Promise<{ fetched: number; error?: string }> {
-  if (from === to) return { fetched: 0 };
-
-  // Try ECB first
-  let rates = await fetchFromEcb(from, to, startDate, endDate);
-
-  // Fallback to Yahoo
-  if (rates.length === 0) {
-    rates = await fetchFromYahoo(from, to, startDate, endDate);
-  }
-
-  if (rates.length === 0) {
-    return { fetched: 0, error: `No rates found for ${from}/${to}` };
-  }
-
-  try {
-    saveRates(sqlite, from, to, rates);
-  } catch (err) {
-    return { fetched: 0, error: (err as Error).message };
-  }
-
-  return { fetched: rates.length };
 }
 
 // ─── Public: fetch all exchange rates ─────────────────────────────────────────
@@ -189,43 +185,45 @@ export interface FxFetchSummary {
 /**
  * Auto-detects all foreign currencies in the DB and fetches exchange rates
  * for each pair vs base currency. Designed to be called from a route handler
- * (manual button) or a future cron job.
+ * (manual button) or a future cron job. Issues exactly one ECB XML download
+ * regardless of how many foreign currencies are present; falls back to a
+ * per-currency Yahoo fetch only for currencies missing from the ECB feed.
  */
 export async function fetchAllExchangeRates(
   sqlite: BetterSqlite3.Database,
   options?: { startDate?: string; endDate?: string },
 ): Promise<FxFetchSummary> {
   const start = Date.now();
+  const baseCurrency = getBaseCurrency(sqlite);
+  const targets = listForeignCurrencies(sqlite, baseCurrency);
 
-  // Auto-detect all currencies in use
-  const rows = sqlite.prepare(`
-    SELECT DISTINCT currency FROM security WHERE currency IS NOT NULL
-    UNION
-    SELECT DISTINCT currency FROM account WHERE currency IS NOT NULL
-  `).all() as { currency: string }[];
-
-  const currencies = new Set(rows.map(r => r.currency));
-  // Base currency from property table, fallback EUR
-  const baseProp = sqlite.prepare(
-    `SELECT value FROM property WHERE name = 'portfolio.currency'`
-  ).get() as { value: string } | undefined;
-  const baseCurrency = baseProp?.value ?? 'EUR';
-
-  currencies.delete(baseCurrency);
+  const ecbByCurrency = await fetchAllPairsFromEcb(
+    baseCurrency, targets, options?.startDate, options?.endDate,
+  );
 
   const results: FetchResult[] = [];
   let totalFetched = 0;
 
-  for (const cur of currencies) {
-    // ECB publishes EUR-based rates, so fetch EUR→foreign
-    // (buildRateMap will invert as needed)
+  for (const cur of targets) {
     const pair = `${baseCurrency}/${cur}`;
-    const fetchResult = await fetchExchangeRates(
-      sqlite, baseCurrency, cur,
-      options?.startDate, options?.endDate,
-    );
-    results.push({ pair, fetched: fetchResult.fetched, error: fetchResult.error });
-    totalFetched += fetchResult.fetched;
+    let rates = ecbByCurrency.get(cur) ?? [];
+
+    if (rates.length === 0) {
+      rates = await fetchFromYahoo(baseCurrency, cur, options?.startDate, options?.endDate);
+    }
+
+    if (rates.length === 0) {
+      results.push({ pair, fetched: 0, error: `No rates found for ${pair}` });
+      continue;
+    }
+
+    try {
+      saveRates(sqlite, baseCurrency, cur, rates);
+      results.push({ pair, fetched: rates.length });
+      totalFetched += rates.length;
+    } catch (err) {
+      results.push({ pair, fetched: 0, error: (err as Error).message });
+    }
   }
 
   return { results, totalFetched, duration: Date.now() - start };

@@ -6,6 +6,8 @@
   "updates": {
     "title": "Atualizações",
     "autoFetchLabel": "Atualizar cotações automaticamente na primeira abertura de cada carteira",
-    "autoFetchHint": "Desativado por padrão para evitar consumir a cota da API Yahoo / AlphaVantage em reinicializações do contêiner. Ative se quiser cotações atualizadas sempre que abrir uma carteira em um novo processo."
+    "autoFetchHint": "Desativado por padrão para evitar consumir a cota da API Yahoo / AlphaVantage em reinicializações do contêiner. Ative se quiser cotações atualizadas sempre que abrir uma carteira em um novo processo.",
+    "autoFetchFxLabel": "Atualizar taxas de câmbio automaticamente na primeira abertura de cada carteira",
+    "autoFetchFxHint": "Desativado por padrão. Quando ativado, as taxas de câmbio de moedas estrangeiras são atualizadas pelo BCE (com Yahoo como alternativa) na primeira abertura de uma carteira após um reinício do servidor, se as taxas em cache estiverem ausentes ou forem anteriores a ontem."
   }
 }

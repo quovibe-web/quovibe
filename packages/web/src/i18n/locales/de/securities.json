@@ -13,6 +13,8 @@
     "edit": "Bearbeiten",
     "updatePrices": "Alle Kurse aktualisieren",
     "updating": "Aktualisieren…",
+    "updateFx": "Wechselkurse aktualisieren",
+    "updatingFx": "Wechselkurse aktualisieren…",
     "refreshQuote": "Kurs aktualisieren",
     "refreshing": "Aktualisieren…",
     "addInstrument": "+ Instrument hinzufügen",
@@ -20,6 +22,7 @@
   },
   "updateResults": {
     "pricesUpdated": "Kurse aktualisiert",
+    "fxUpdated": "Wechselkurse aktualisiert",
     "errors": "Fehler",
     "failedSecurities": "{{count}} Wertpapiere fehlgeschlagen:"
   },

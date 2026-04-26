@@ -6,6 +6,8 @@
   "updates": {
     "title": "Updates",
     "autoFetchLabel": "Koersen automatisch bijwerken bij de eerste opening van elke portefeuille",
-    "autoFetchHint": "Standaard uitgeschakeld om te voorkomen dat het Yahoo / AlphaVantage API-quotum wordt verbruikt bij container-herstarts. Schakel dit in als je verse koersen wilt wanneer je een portefeuille opent in een nieuw proces."
+    "autoFetchHint": "Standaard uitgeschakeld om te voorkomen dat het Yahoo / AlphaVantage API-quotum wordt verbruikt bij container-herstarts. Schakel dit in als je verse koersen wilt wanneer je een portefeuille opent in een nieuw proces.",
+    "autoFetchFxLabel": "Wisselkoersen automatisch bijwerken bij de eerste opening van elke portefeuille",
+    "autoFetchFxHint": "Standaard uitgeschakeld. Indien ingeschakeld worden wisselkoersen voor vreemde valuta's bijgewerkt vanuit de ECB (met Yahoo als terugval) bij de eerste opening van een portefeuille na een herstart van de server, als de gecachte koersen ontbreken of ouder zijn dan gisteren."
   }
 }

@@ -162,6 +162,7 @@ const appSchema = z.object({
   initialized: z.boolean().default(false),
   defaultPortfolioId: z.string().nullable().default(null),
   autoFetchPricesOnFirstOpen: z.boolean().default(false),
+  autoFetchFxOnFirstOpen: z.boolean().default(false),
 }).default({});
 
 export const preferencesSchema = z.object({
