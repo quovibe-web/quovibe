@@ -14,7 +14,7 @@ import { usePortfolioRegistry, useCreatePortfolio, useTouchPortfolio } from '@/a
 import { portfolioSectionPath } from '@/lib/portfolio-switch-route';
 import { toast } from 'sonner';
 import { resolveErrorMessage } from '@/api/query-client';
-import { Beaker, ChevronDown, Check, Plus } from 'lucide-react';
+import { Beaker, ChevronDown, Check, Home, Plus } from 'lucide-react';
 import { NewPortfolioDialog } from '@/components/domain/portfolio/NewPortfolioDialog';
 
 export function PortfolioSwitcher() {
@@ -86,6 +86,10 @@ export function PortfolioSwitcher() {
               <Beaker className="mr-2 h-4 w-4" /> {t('tryDemo')}
             </DropdownMenuItem>
           )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => navigate('/welcome')}>
+            <Home className="mr-2 h-4 w-4" /> {t('allPortfolios')}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <NewPortfolioDialog open={newDialogOpen} onOpenChange={setNewDialogOpen} />
