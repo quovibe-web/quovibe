@@ -36,11 +36,11 @@ const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 // Max custom periods to show as pills in the TopBar
 const MAX_PILL_CUSTOM = 2;
 
-/** Privacy toggle (single button — theme + language live in Settings). */
-function ToggleGroup() {
+function PrivacyToggle() {
   const { t } = useTranslation('navigation');
   const { isPrivate, togglePrivacy } = usePrivacy();
   const { mutate: updatePreferences } = useUpdatePreferences();
+  const label = isPrivate ? t('privacy.disable') : t('privacy.enable');
 
   function handlePrivacy() {
     togglePrivacy();
@@ -48,19 +48,19 @@ function ToggleGroup() {
   }
 
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="icon-sm"
       onClick={handlePrivacy}
       className={cn(
-        'inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-        isPrivate
-          ? 'bg-muted text-foreground'
-          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+        'text-muted-foreground hover:text-foreground',
+        isPrivate && 'bg-muted text-foreground hover:bg-muted',
       )}
-      title={isPrivate ? t('privacy.disable') : t('privacy.enable')}
-      aria-label={isPrivate ? t('privacy.disable') : t('privacy.enable')}
+      title={label}
+      aria-label={label}
     >
       {isPrivate ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-    </button>
+    </Button>
   );
 }
 
@@ -476,7 +476,7 @@ export function TopBar({ onMenuClick, isScrolled = false }: TopBarProps) {
       <div className="ml-auto flex min-w-0 items-center gap-1">
         <DemoBadge />
         <PortfolioSwitcher />
-        <ToggleGroup />
+        <PrivacyToggle />
       </div>
     </header>
   );
