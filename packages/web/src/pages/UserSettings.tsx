@@ -6,7 +6,7 @@
 // Uses raw `apiFetch` — not React Query — per the Phase 5b blocker constraints.
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Plus, Minus } from 'lucide-react';
+import { Check, Plus, Minus, Palette, Hash, RefreshCw, type LucideIcon } from 'lucide-react';
 import type { QuovibeSettings, QuovibePreferences } from '@quovibe/shared';
 import { apiFetch } from '@/api/fetch';
 import { Switch } from '@/components/ui/switch';
@@ -63,11 +63,24 @@ function SettingRow({
   );
 }
 
-function SectionHeader({ children }: { children: React.ReactNode }) {
+function SectionHeader({
+  icon: Icon,
+  children,
+}: {
+  icon: LucideIcon;
+  children: React.ReactNode;
+}) {
   return (
-    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-8 first:mt-0 mb-1">
-      {children}
-    </h3>
+    <div className="flex items-center gap-2 mt-10 first:mt-0 mb-3">
+      <Icon
+        className="h-3.5 w-3.5 text-muted-foreground"
+        strokeWidth={2}
+        aria-hidden="true"
+      />
+      <h3 className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
+        {children}
+      </h3>
+    </div>
   );
 }
 
@@ -162,7 +175,7 @@ export default function UserSettings() {
 
       {/* ── LANGUAGE & APPEARANCE ── */}
       <section>
-        <SectionHeader>{t('sections.display')}</SectionHeader>
+        <SectionHeader icon={Palette}>{t('sections.display')}</SectionHeader>
 
         <SettingRow
           label={t('presentation.language')}
@@ -222,7 +235,7 @@ export default function UserSettings() {
 
       {/* ── DISPLAY FORMAT ── */}
       <section>
-        <SectionHeader>{t('sections.precision')}</SectionHeader>
+        <SectionHeader icon={Hash}>{t('sections.precision')}</SectionHeader>
 
         <SettingRow
           label={t('presentation.sharesPrecision')}
@@ -327,7 +340,7 @@ export default function UserSettings() {
 
       {/* ── UPDATES ── */}
       <section>
-        <SectionHeader>{tUser('updates.title')}</SectionHeader>
+        <SectionHeader icon={RefreshCw}>{tUser('updates.title')}</SectionHeader>
 
         <SettingRow
           label={tUser('updates.autoFetchLabel')}
