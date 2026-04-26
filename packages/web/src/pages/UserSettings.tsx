@@ -74,7 +74,7 @@ function SectionHeader({
     <div className="flex items-center gap-2 mt-10 first:mt-0 mb-3">
       <Icon
         className="h-3.5 w-3.5 text-muted-foreground"
-        strokeWidth={2}
+        strokeWidth={1.75}
         aria-hidden="true"
       />
       <h3 className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
