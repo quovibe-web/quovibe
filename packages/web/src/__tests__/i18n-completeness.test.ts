@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 const LOCALES_DIR = join(__dirname, '..', 'i18n', 'locales');
-const NAMESPACES = ['dashboard', 'performance', 'welcome', 'csv-import', 'userSettings', 'portfolio-setup', 'errors'];
+const NAMESPACES = ['dashboard', 'performance', 'welcome', 'csv-import', 'userSettings', 'portfolio-setup', 'errors', 'portfolioSettings'];
 const LANGUAGES = ['en', 'it', 'de', 'fr', 'es', 'nl', 'pl', 'pt'];
 
 function getAllKeys(obj: Record<string, unknown>, prefix = ''): string[] {
