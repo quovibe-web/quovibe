@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { usePortfolioRegistry, useCreatePortfolio, useTouchPortfolio } from '@/api/use-portfolios';
 import { portfolioSectionPath } from '@/lib/portfolio-switch-route';
+import { sortByRecency } from '@/lib/portfolio-recency';
 import { toast } from 'sonner';
 import { resolveErrorMessage } from '@/api/query-client';
 import { Beaker, ChevronDown, Check, Home, Plus } from 'lucide-react';
@@ -31,7 +32,7 @@ export function PortfolioSwitcher() {
 
   if (!registry.data) return null;
   const portfolios = registry.data.portfolios;
-  const realPortfolios = portfolios.filter((p) => p.kind === 'real');
+  const realPortfolios = portfolios.filter((p) => p.kind === 'real').sort(sortByRecency);
   const demoExists = portfolios.some((p) => p.kind === 'demo');
   const currentKind =
     portfolios.find((p) => p.id === portfolioId)?.kind
