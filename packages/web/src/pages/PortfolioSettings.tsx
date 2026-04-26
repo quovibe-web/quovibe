@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CURRENCIES } from '@/lib/currencies';
-import { CostMethod, type UpdateSettingsInput } from '@quovibe/shared';
+import { CostMethod, getAllCalendarInfos, type UpdateSettingsInput } from '@quovibe/shared';
 
 function SettingRow({
   label,
@@ -211,17 +211,31 @@ export default function PortfolioSettings() {
         description={t('data.fields.calendarDescription')}
         saved={savedField === 'calendar'}
       >
-        <Input
-          value={calendar}
-          onChange={(e) => setCalendar(e.target.value)}
-          onBlur={() => {
-            if (calendar !== (portfolioData?.config['portfolio.calendar'] ?? '')) {
-              void save('calendar', { calendar });
-            }
+        <Select
+          value={calendar === '' ? '__none' : calendar}
+          onValueChange={(v) => {
+            const next = v === '__none' ? '' : v;
+            setCalendar(next);
+            void save('calendar', { calendar: next });
           }}
-          className="w-[200px]"
-          placeholder={t('data.fields.calendarPlaceholder')}
-        />
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none">{t('data.fields.calendarDefault')}</SelectItem>
+            {calendar !== '' && !getAllCalendarInfos().some((c) => c.id === calendar) && (
+              <SelectItem value={calendar} disabled>
+                {`${calendar} (${t('data.fields.calendarUnknown')})`}
+              </SelectItem>
+            )}
+            {getAllCalendarInfos()
+              .filter((c) => c.id !== 'empty' && c.id !== 'default')
+              .map((cal) => (
+                <SelectItem key={cal.id} value={cal.id}>{cal.label}</SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
       </SettingRow>
 
       <SectionHeader>{t('data.sections.priceFeeds')}</SectionHeader>
