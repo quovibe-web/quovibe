@@ -33,7 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { useSecurities, useFetchAllPrices, useFetchAllExchangeRates, useDeleteSecurity } from '@/api/use-securities';
+import { useSecurities, useFetchAllPrices, useDeleteSecurity } from '@/api/use-securities';
 import { useAccountDetail, useAccountHoldings } from '@/api/use-accounts';
 import { useStatementOfAssets, useHoldings } from '@/api/use-reports';
 import { useReportingPeriod, usePerformanceSecurities } from '@/api/use-performance';
@@ -259,7 +259,6 @@ export default function Investments() {
   const summaryLoading = secLoading || stmtLoading;
   const tableLoading = secLoading || (needsStatement && stmtLoading) || (needsPerf && perfLoading);
   const fetchAll = useFetchAllPrices();
-  const fetchAllFx = useFetchAllExchangeRates();
   const deleteSecurity = useDeleteSecurity();
   const { palette } = useChartColors();
   const { isPrivate } = usePrivacy();
@@ -390,10 +389,6 @@ export default function Investments() {
     fetchAll.mutate();
   };
 
-  const handleFetchAllFx = () => {
-    fetchAllFx.mutate();
-  };
-
   // Empty-portfolio state: hide controls and summary; only EmptyState owns the page (BUG-44).
   // Scope: only when not filtering to an account and the underlying securities list is truly empty.
   const isEmptyPortfolio = !accountFilterId && !secLoading && securities.length === 0;
@@ -415,23 +410,9 @@ export default function Investments() {
           <Button onClick={handleFetchAll} disabled={fetchAll.isPending}>
             {fetchAll.isPending ? tSecurities('actions.updating') : tSecurities('actions.updatePrices')}
           </Button>
-          <Button variant="outline" onClick={handleFetchAllFx} disabled={fetchAllFx.isPending}>
-            {fetchAllFx.isPending ? tSecurities('actions.updatingFx') : tSecurities('actions.updateFx')}
-          </Button>
           <Button onClick={() => setWizardOpen(true)}>{tSecurities('actions.addInstrument')}</Button>
         </>}
       />
-
-      {!isEmptyPortfolio && fetchAllFx.isSuccess && fetchAllFx.data && (
-        <FetchStatus
-          totalFetched={fetchAllFx.data.totalFetched}
-          totalLabel={tSecurities('updateResults.fxUpdated')}
-          errorsLabel={tSecurities('updateResults.errors')}
-          errors={fetchAllFx.data.results
-            .filter(r => r.error)
-            .map(r => ({ key: r.pair, label: r.pair, error: r.error! }))}
-        />
-      )}
 
       {!isEmptyPortfolio && fetchAll.isSuccess && fetchAll.data && (
         <FetchStatus

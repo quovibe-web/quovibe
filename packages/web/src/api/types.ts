@@ -184,12 +184,6 @@ export interface FetchAllResult {
   totalErrors: number;
 }
 
-export interface FxFetchSummary {
-  results: { pair: string; fetched: number; error?: string }[];
-  totalFetched: number;
-  duration: number;
-}
-
 export interface TestFetchResponse {
   prices: Array<{ date: string; close: string }>;
   count: number;

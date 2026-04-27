@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useScopedApi } from './use-scoped-api';
 import { toApiError } from './fetch';
-import type { SecurityListItem, SecurityDetailResponse, TestFetchResponse, FetchAllResult, FxFetchSummary, SearchResult, PreviewPricesResponse, PreviewPrice } from './types';
+import type { SecurityListItem, SecurityDetailResponse, TestFetchResponse, FetchAllResult, SearchResult, PreviewPricesResponse, PreviewPrice } from './types';
 import { taxonomyKeys } from './use-taxonomies';
 
 export const securitiesKeys = {
@@ -84,22 +84,6 @@ export function useFetchAllPrices() {
   return useMutation({
     mutationFn: () =>
       api.fetch<FetchAllResult>('/api/prices/fetch-all', { method: 'POST' }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId] });
-    },
-  });
-}
-
-export function useFetchAllExchangeRates() {
-  const api = useScopedApi();
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () =>
-      api.fetch<FxFetchSummary>('/api/prices/fetch-exchange-rates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId] });
     },
