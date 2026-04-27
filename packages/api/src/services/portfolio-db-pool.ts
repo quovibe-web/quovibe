@@ -32,6 +32,17 @@ type OpenedHook = (id: string, sqlite: BetterSqlite3.Database) => void;
 let onOpened: OpenedHook | null = null;
 export function setOnOpened(fn: OpenedHook): void { onOpened = fn; }
 
+/**
+ * Post-evict hook fired exactly once per portfolio id when the pool drops a
+ * handle (manual `evictPortfolioDb` or idle-over-cap eviction). Used by the
+ * FX scheduler to clear its per-portfolio timer (ADR-016 — no portfolio data
+ * held). Errors are caught and logged.
+ */
+type OnEvictedHook = (id: string) => void;
+// quovibe:allow-module-state — wired once at startup; no portfolio data held.
+let onEvicted: OnEvictedHook | null = null;
+export function setOnEvicted(fn: OnEvictedHook): void { onEvicted = fn; }
+
 function evictIdleOverCap(): void {
   if (pool.size <= PORTFOLIO_POOL_MAX) return;
   const idle = [...pool.entries()]
@@ -42,6 +53,9 @@ function evictIdleOverCap(): void {
     try { e.handle.sqlite.pragma('wal_checkpoint(TRUNCATE)'); } catch { /* ok */ }
     try { e.handle.closeDb(); } catch { /* already closed */ }
     pool.delete(id);
+    try { onEvicted?.(id); } catch (err) {
+      console.warn('[quovibe] onEvicted hook failed', { id, err: (err as Error).message });
+    }
   }
   if (pool.size > PORTFOLIO_POOL_MAX) {
     console.warn('[quovibe] portfolio pool over soft cap (all handles busy)', {
@@ -103,6 +117,9 @@ export function evictPortfolioDb(id: string): void {
   try { entry.handle.sqlite.pragma('wal_checkpoint(TRUNCATE)'); } catch { /* ok */ }
   try { entry.handle.closeDb(); } catch { /* already closed */ }
   pool.delete(id);
+  try { onEvicted?.(id); } catch (err) {
+    console.warn('[quovibe] onEvicted hook failed', { id, err: (err as Error).message });
+  }
 }
 
 /** Debug / test helper. Never call from production code. */
