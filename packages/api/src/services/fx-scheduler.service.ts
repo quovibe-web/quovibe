@@ -38,15 +38,30 @@ export function msUntilNextRefresh(nowMs: number = Date.now()): number {
 
 // quovibe:allow-module-state — scheduler timer handles only, keyed by portfolio id; no data held (ADR-016).
 const timers = new Map<string, NodeJS.Timeout>();
+// quovibe:allow-module-state — one-shot eager-fetch dedup; keyed by portfolio id, no data held (ADR-016).
+const eagerFiredInProcess = new Set<string>();
 
 /**
  * Start the per-portfolio FX refresh tick. Idempotent: re-entry replaces the
  * prior timer. Demo portfolios are skipped (live fetches would create a
  * discontinuity at the seeded simulation seam — same posture as auto-fetch).
+ *
+ * Fires `fetchAllExchangeRates` eagerly once per portfolio per process, then
+ * arms the cadence tick. Mirrors the upstream startup-then-schedule order
+ * (`provider.update` runs before `Job.schedule(delay)`). Subsequent re-acquires
+ * (after pool eviction + reopen) skip the eager fetch — the scheduled tick
+ * handles freshness from then on.
  */
 export function startFxScheduler(id: string, sqlite: BetterSqlite3.Database): void {
   if (getPortfolioEntry(id)?.kind === 'demo') return;
   stopFxScheduler(id);
+
+  if (!eagerFiredInProcess.has(id)) {
+    eagerFiredInProcess.add(id);
+    Promise.resolve()
+      .then(() => fetchAllExchangeRates(sqlite))
+      .catch(err => console.warn('[quovibe] fx scheduler eager fetch failed', { id, err: (err as Error).message }));
+  }
 
   let self: NodeJS.Timeout;
 
@@ -93,4 +108,9 @@ export function wireFxScheduler(): void {
 /** Test helper. Never call from production code. */
 export function _schedulerStateForTests(): { size: number; ids: string[] } {
   return { size: timers.size, ids: [...timers.keys()] };
+}
+
+/** Test helper. Never call from production code. */
+export function _resetEagerForTests(): void {
+  eagerFiredInProcess.clear();
 }
