@@ -18,13 +18,15 @@ export function DeletePortfolioDialog(props: {
   const registry = usePortfolioRegistry();
   const navigate = useNavigate();
   const submit = (): void => {
+    const remaining =
+      registry.data?.portfolios.filter((p) => p.id !== props.id && p.kind === 'real') ?? [];
+    const nextDefault = remaining[0]?.id ?? null;
+
+    props.onOpenChange(false);
+    navigate(nextDefault ? `/p/${nextDefault}/dashboard` : '/welcome');
+
     del.mutate(props.id, {
       onSuccess: () => {
-        props.onOpenChange(false);
-        const remaining =
-          registry.data?.portfolios.filter((p) => p.id !== props.id && p.kind === 'real') ?? [];
-        const nextDefault = remaining[0]?.id ?? null;
-        navigate(nextDefault ? `/p/${nextDefault}/dashboard` : '/welcome');
         toast.success(t('delete.success'));
       },
       onError: (err) => toast.error(t('delete.error', { msg: resolveErrorMessage(err) })),

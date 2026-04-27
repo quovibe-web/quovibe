@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { UseMutationOptions, QueryClient } from '@tanstack/react-query';
 import type { FreshPortfolioInput } from '@quovibe/shared';
 import { apiFetch, toApiError } from './fetch';
 
@@ -110,13 +111,30 @@ export function useRenamePortfolio() {
   });
 }
 
+/**
+ * Mutation config for deleting a portfolio. Exported so unit tests can build
+ * the mutation against a real QueryClient via cache.build(...) without
+ * needing @testing-library/react. The hook below is the production wrapper.
+ */
+export function deletePortfolioMutationOptions(
+  qc: QueryClient,
+): UseMutationOptions<void, Error, string> {
+  return {
+    mutationFn: (id) => apiFetch<void>(`/api/portfolios/${id}`, { method: 'DELETE' }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ['portfolios', id] });
+      qc.removeQueries({ queryKey: ['portfolios', id] });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: portfoliosKeys.list(), exact: true });
+    },
+    meta: { suppressGlobalErrorToast: true },
+  };
+}
+
 export function useDeletePortfolio() {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => apiFetch<void>(`/api/portfolios/${id}`, { method: 'DELETE' }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: portfoliosKeys.list() }); },
-    meta: { suppressGlobalErrorToast: true },
-  });
+  return useMutation(deletePortfolioMutationOptions(qc));
 }
 
 export function useTouchPortfolio() {
