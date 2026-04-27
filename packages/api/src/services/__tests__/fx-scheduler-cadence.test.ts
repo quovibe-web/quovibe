@@ -37,4 +37,21 @@ describe('msUntilNextRefresh', () => {
     expect(ms).toBeGreaterThanOrEqual(90 * 60 * 1000 - 1000);
     expect(ms).toBeLessThanOrEqual(90 * 60 * 1000 + 1000);
   });
+
+  test('handles CEST → CET transition day (fall-back, 2026-10-25)', () => {
+    // 2026-10-25 04:00 UTC. On fall-back day Europe/Berlin gains 1h overnight,
+    // formula's wall-clock arithmetic may drift; cap at 6h must absorb.
+    const now = new Date('2026-10-25T04:00:00Z').getTime();
+    const ms = msUntilNextRefresh(now);
+    expect(ms).toBeGreaterThan(0);
+    expect(ms).toBeLessThanOrEqual(SIX_HOURS_MS);
+  });
+
+  test('handles CET → CEST transition day (spring-forward, 2026-03-29)', () => {
+    // 2026-03-29 02:30 UTC = boundary; spring-forward at 02:00 CET → 03:00 CEST.
+    const now = new Date('2026-03-29T02:30:00Z').getTime();
+    const ms = msUntilNextRefresh(now);
+    expect(ms).toBeGreaterThan(0);
+    expect(ms).toBeLessThanOrEqual(SIX_HOURS_MS);
+  });
 });

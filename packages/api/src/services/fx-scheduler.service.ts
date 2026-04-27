@@ -26,8 +26,8 @@ export function msUntilNextRefresh(nowMs: number = Date.now()): number {
   const localMin = parseInt(parts.minute, 10);
   const localSec = parseInt(parts.second, 10);
 
-  // hoursUntil17 in (0, 24]. When localHour === 24 (some Intl contexts emit
-  // '24' at midnight Europe/Berlin), 17 - 24 = -7, +24 = 17, then cap at 6h.
+  // When localHour >= 17 (i.e. we're already past or at today's anchor),
+  // target tomorrow's 17:00 instead.
   let hoursUntil17 = 17 - localHour;
   if (hoursUntil17 <= 0) hoursUntil17 += 24;
   const msUntil17 = hoursUntil17 * 60 * 60 * 1000 - localMin * 60 * 1000 - localSec * 1000;
@@ -38,29 +38,39 @@ export function msUntilNextRefresh(nowMs: number = Date.now()): number {
 // quovibe:allow-module-state — scheduler timer handles only, keyed by portfolio id; no data held (ADR-016).
 const timers = new Map<string, NodeJS.Timeout>();
 
+/**
+ * Start the per-portfolio FX refresh tick. Idempotent: re-entry replaces the
+ * prior timer. Demo portfolios are skipped (live fetches would create a
+ * discontinuity at the seeded simulation seam — same posture as auto-fetch).
+ */
 export function startFxScheduler(id: string, sqlite: BetterSqlite3.Database): void {
   if (getPortfolioEntry(id)?.kind === 'demo') return;
   stopFxScheduler(id);
+
+  let self: NodeJS.Timeout;
 
   const tick = (): void => {
     Promise.resolve()
       .then(() => fetchAllExchangeRates(sqlite))
       .catch(err => console.warn('[quovibe] fx scheduler fetch failed', { id, err: (err as Error).message }))
       .finally(() => {
-        // Re-arm only if we still own this portfolio handle.
-        if (timers.has(id)) {
+        // Re-arm only if THIS tick is still the current owner of the slot
+        // (a stop+start pair during the in-flight fetch would replace `self`).
+        if (timers.get(id) === self) {
           const next = setTimeout(tick, msUntilNextRefresh());
+          self = next;
           timers.set(id, next);
         }
       });
   };
 
-  // Initial tick: schedule at the same cadence (don't fire synchronously —
-  // matches the upstream job, which uses a delayed schedule instead of running now).
-  const handle = setTimeout(tick, msUntilNextRefresh());
-  timers.set(id, handle);
+  self = setTimeout(tick, msUntilNextRefresh());
+  timers.set(id, self);
 }
 
+/**
+ * Stop the per-portfolio FX refresh tick. No-op if not running.
+ */
 export function stopFxScheduler(id: string): void {
   const t = timers.get(id);
   if (!t) return;
