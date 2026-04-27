@@ -52,6 +52,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { TransactionForm, type TransactionFormValues } from '@/components/domain/TransactionForm';
 import { useCreateTransaction } from '@/api/use-transactions';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { preparePayload } from '@/lib/transaction-payload';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
@@ -71,6 +72,17 @@ export default function AccountDetail() {
   const [newTxType, setNewTxType] = useState<TransactionType>(TransactionType.BUY);
   const newTxFormRef = useRef<HTMLFormElement>(null);
   const createMutation = useCreateTransaction();
+  const { run: handleNewTxSubmit, inFlight: createInFlight } = useGuardedSubmit(
+    async (values: TransactionFormValues) => {
+      try {
+        await createMutation.mutateAsync(preparePayload(values));
+        toast.success(tCommon('toasts.transactionCreated'));
+        setNewSheetOpen(false);
+      } catch {
+        // Global MutationCache error toast handles user-visible feedback.
+      }
+    },
+  );
 
   const { data: account, isLoading, isFetching } = useAccountDetail(id ?? '');
   const { data: allAccounts = [], isLoading: accountsLoading } = useAccounts(true);
@@ -109,15 +121,6 @@ export default function AccountDetail() {
   function openNewTransaction(type: TransactionType) {
     setNewTxType(type);
     setNewSheetOpen(true);
-  }
-
-  function handleNewTxSubmit(values: TransactionFormValues) {
-    createMutation.mutate(preparePayload(values), {
-      onSuccess: () => {
-        toast.success(tCommon('toasts.transactionCreated'));
-        setNewSheetOpen(false);
-      },
-    });
   }
 
   return (
@@ -335,7 +338,7 @@ export default function AccountDetail() {
               key={newTxType}
               type={newTxType}
               onSubmit={handleNewTxSubmit}
-              isSubmitting={createMutation.isPending}
+              isSubmitting={createInFlight || createMutation.isPending}
               hideSubmitButton
               formRef={newTxFormRef}
               preselectedAccountId={id}
@@ -348,7 +351,7 @@ export default function AccountDetail() {
             </Button>
             <Button
               onClick={() => newTxFormRef.current?.requestSubmit()}
-              disabled={createMutation.isPending}
+              disabled={createInFlight || createMutation.isPending}
             >
               {createMutation.isPending ? tCommon('saving') : tCommon('save')}
             </Button>
