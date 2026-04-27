@@ -1,7 +1,6 @@
 import { Router, type Router as RouterType, type RequestHandler } from 'express';
-import { fetchExchangeRatesSchema } from '@quovibe/shared';
 import { getRate } from '../services/fx.service';
-import { fetchAllExchangeRates, fetchSinglePairOnDemand } from '../services/fx-fetcher.service';
+import { fetchSinglePairOnDemand } from '../services/fx-fetcher.service';
 import { fetchAllPrices } from '../services/prices.service';
 import { getSqlite, getPortfolioId, isDemoPortfolio } from '../helpers/request';
 
@@ -59,23 +58,3 @@ const getExchangeRate: RequestHandler = async (req, res) => {
 
 pricesRouter.post('/fetch-all', fetchAll);
 pricesRouter.get('/exchange-rates', getExchangeRate);
-
-// ─── Fetch exchange rates for all foreign currencies ──────────────────────────
-
-const fetchExchangeRatesHandler: RequestHandler = async (req, res) => {
-  const sqlite = getSqlite(req);
-  const parsed = fetchExchangeRatesSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: 'Invalid request body', details: parsed.error.flatten() });
-    return;
-  }
-
-  try {
-    const result = await fetchAllExchangeRates(sqlite, parsed.data ?? {});
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-};
-
-pricesRouter.post('/fetch-exchange-rates', fetchExchangeRatesHandler);
