@@ -115,17 +115,15 @@ describe('stopFxScheduler', () => {
   test('stop+restart during in-flight tick fetch does not clobber the new timer', async () => {
     const { fetchAllExchangeRates } = await import('../fx-fetcher.service');
     let resolveFetch: () => void = () => {};
-    let callCount = 0;
-    // Eager (call 1) and tick_B (call 3) resolve immediately; tick_A (call 2) hangs in-flight.
-    vi.mocked(fetchAllExchangeRates).mockImplementation(() => {
-      callCount++;
-      if (callCount === 2) {
-        return new Promise<{ results: never[]; totalFetched: number; duration: number }>((r) => {
+    // Eager (call 1) resolves immediately; tick_A (call 2) hangs in-flight; tick_B (call 3+) resolves immediately.
+    vi.mocked(fetchAllExchangeRates)
+      .mockResolvedValueOnce({ results: [], totalFetched: 0, duration: 0 })
+      .mockImplementationOnce(
+        () => new Promise<{ results: never[]; totalFetched: number; duration: number }>((r) => {
           resolveFetch = () => r({ results: [], totalFetched: 0, duration: 0 });
-        });
-      }
-      return Promise.resolve({ results: [], totalFetched: 0, duration: 0 });
-    });
+        }),
+      )
+      .mockResolvedValue({ results: [], totalFetched: 0, duration: 0 });
 
     startFxScheduler('p1', sqlite);
     await vi.advanceTimersByTimeAsync(6 * 60 * 60 * 1000 + 1); // eager + tick_A fire (tick_A in-flight)
