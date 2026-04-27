@@ -27,6 +27,9 @@ describe('useGuardedSubmit', () => {
 
     await act(async () => {
       resolveHandler();
+      // The coalesced calls (promises[1..4]) must resolve cleanly, not reject:
+      // the contract says re-entry is a silent no-op, not an error path. If
+      // any of them rejects, Promise.all surfaces it and the test fails.
       await Promise.all(promises);
     });
 
@@ -87,6 +90,11 @@ describe('useGuardedSubmit', () => {
       await runPromise;
     });
 
+    // Heuristic: search console.error for "unmounted" — React's standard
+    // setState-on-unmounted warning. Fragile to React version changes (the
+    // exact warning text has shifted across React 16/17/18/19); if a future
+    // upgrade renames the warning, this assertion silently passes a regression.
+    // Watch for this when bumping React major versions.
     const unmountedSetStateLog = errorSpy.mock.calls.find((args) =>
       String(args[0]).includes('unmounted'),
     );
