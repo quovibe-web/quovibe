@@ -76,6 +76,7 @@ import { TransactionForm, type TransactionFormValues } from '@/components/domain
 import { TypeBadge } from '@/components/shared/TypeBadge';
 import { AccountAvatar } from '@/components/shared/AccountAvatar';
 import { useCreateTransaction } from '@/api/use-transactions';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { preparePayload } from '@/lib/transaction-payload';
 import { getTransactionCashflowSign } from '@/lib/transaction-display';
 
@@ -296,6 +297,17 @@ export default function Transactions() {
   const [newTxType, setNewTxType] = useState<TransactionType>(TransactionType.BUY);
   const newTxFormRef = useRef<HTMLFormElement>(null);
   const createMutation = useCreateTransaction();
+  const { run: handleNewTxSubmit, inFlight: createInFlight } = useGuardedSubmit(
+    async (values: TransactionFormValues) => {
+      try {
+        await createMutation.mutateAsync(preparePayload(values));
+        toast.success(tCommon('toasts.transactionCreated'));
+        setNewSheetOpen(false);
+      } catch {
+        // Global MutationCache error toast handles user-visible feedback.
+      }
+    },
+  );
 
   const deleteMutation = useDeleteTransaction();
   const fetchAllTransactions = useExportTransactions();
@@ -400,15 +412,6 @@ export default function Transactions() {
     setAccountFilter('ALL');
     setSecurityFilter('ALL');
     setSearchInput('');
-  }
-
-  function handleNewTxSubmit(values: TransactionFormValues) {
-    createMutation.mutate(preparePayload(values), {
-      onSuccess: () => {
-        toast.success(tCommon('toasts.transactionCreated'));
-        setNewSheetOpen(false);
-      },
-    });
   }
 
   return (
@@ -641,7 +644,7 @@ export default function Transactions() {
               key={newTxType}
               type={newTxType}
               onSubmit={handleNewTxSubmit}
-              isSubmitting={createMutation.isPending}
+              isSubmitting={createInFlight || createMutation.isPending}
               hideSubmitButton
               formRef={newTxFormRef}
               serverError={createMutation.error}
@@ -653,7 +656,7 @@ export default function Transactions() {
             </Button>
             <Button
               onClick={() => newTxFormRef.current?.requestSubmit()}
-              disabled={createMutation.isPending}
+              disabled={createInFlight || createMutation.isPending}
             >
               {createMutation.isPending ? t('common:saving') : t('common:save')}
             </Button>
