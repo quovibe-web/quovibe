@@ -4,12 +4,9 @@ import { setOnOpened } from './portfolio-db-pool';
 import { getSettings } from './settings.service';
 import { getPortfolioEntry } from './portfolio-registry';
 import { fetchAllPrices } from './prices.service';
-import { fetchAllExchangeRates, getBaseCurrency, hasForeignCurrencies } from './fx-fetcher.service';
 
 // quovibe:allow-module-state — one-shot-per-portfolio auto-fetch dedup; keyed by portfolio id, no data held (ADR-016).
 const fetchedInProcess = new Set<string>();
-// quovibe:allow-module-state — one-shot-per-portfolio FX auto-fetch dedup; keyed by portfolio id, no data held (ADR-016).
-const fetchedFxInProcess = new Set<string>();
 const STALE_MS = 12 * 60 * 60 * 1000;        // 12 hours
 
 function isStale(sqlite: BetterSqlite3.Database): boolean {
@@ -21,14 +18,6 @@ function isStale(sqlite: BetterSqlite3.Database): boolean {
 function hasActiveSecurities(sqlite: BetterSqlite3.Database): boolean {
   const row = sqlite.prepare("SELECT COUNT(*) AS n FROM security WHERE COALESCE(isRetired, 0) = 0").get() as { n: number };
   return row.n > 0;
-}
-
-function needsFxAutoFetch(sqlite: BetterSqlite3.Database): boolean {
-  if (!hasForeignCurrencies(sqlite, getBaseCurrency(sqlite))) return false;
-  const row = sqlite.prepare('SELECT MAX(date) AS d FROM vf_exchange_rate').get() as { d: string | null };
-  if (!row.d) return true;                   // table empty
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  return row.d < yesterday;
 }
 
 export function wireAutoFetchHook(): void {
@@ -46,14 +35,6 @@ export function wireAutoFetchHook(): void {
         // Fire-and-forget. Errors log but don't propagate — boot must not fail.
         Promise.resolve().then(() => fetchAllPrices(sqlite))
           .catch(err => console.warn('[quovibe] auto fetch failed', { id, err: (err as Error).message }));
-      }
-    }
-
-    if (settings.app.autoFetchFxOnFirstOpen && !fetchedFxInProcess.has(id)) {
-      fetchedFxInProcess.add(id);
-      if (needsFxAutoFetch(sqlite)) {
-        Promise.resolve().then(() => fetchAllExchangeRates(sqlite))
-          .catch(err => console.warn('[quovibe] auto fetch fx failed', { id, err: (err as Error).message }));
       }
     }
   });
