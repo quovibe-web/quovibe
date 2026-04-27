@@ -1,6 +1,7 @@
 import type BetterSqlite3 from 'better-sqlite3';
 import { fetchAllExchangeRates } from './fx-fetcher.service';
 import { getPortfolioEntry } from './portfolio-registry';
+import { setOnOpened, setOnEvicted } from './portfolio-db-pool';
 
 export const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
@@ -76,6 +77,17 @@ export function stopFxScheduler(id: string): void {
   if (!t) return;
   clearTimeout(t);
   timers.delete(id);
+}
+
+/**
+ * Register the FX scheduler with the portfolio-db-pool lifecycle hooks.
+ * Called once at app startup (alongside `wireAutoFetchHook`). Pool eviction
+ * (manual delete OR idle-over-cap) and pool open (cache-miss acquire) both
+ * drive the per-portfolio timer lifecycle here.
+ */
+export function wireFxScheduler(): void {
+  setOnOpened((id, sqlite) => startFxScheduler(id, sqlite));
+  setOnEvicted((id) => stopFxScheduler(id));
 }
 
 /** Test helper. Never call from production code. */

@@ -56,8 +56,8 @@ describe('setOnEvicted', () => {
 
   afterEach(() => {
     closeAllPooledHandles();
-    // Reset the hook so a previous test's spy doesn't leak into the next.
-    setOnEvicted(() => { /* reset */ });
+    // hooks accumulate within the file's module scope; vitest file-isolation
+    // gives each test a fresh module, and each test uses fresh vi.fn() refs.
   });
 
   it('hook fires when evictPortfolioDb is called', () => {
@@ -98,7 +98,7 @@ describe('setOnEvicted', () => {
     expect(hook).toHaveBeenCalledTimes(2);
   });
 
-  it('hook is idempotent across reset (last setter wins)', () => {
+  it('multiple setOnEvicted callers all fire (append semantics)', () => {
     const a = vi.fn<(id: string) => void>();
     const b = vi.fn<(id: string) => void>();
     setOnEvicted(a);
@@ -108,7 +108,7 @@ describe('setOnEvicted', () => {
     releasePortfolioDb(IDS[0]);
     evictPortfolioDb(IDS[0]);
 
-    expect(a).not.toHaveBeenCalled();
+    expect(a).toHaveBeenCalledTimes(1);
     expect(b).toHaveBeenCalledTimes(1);
   });
 });

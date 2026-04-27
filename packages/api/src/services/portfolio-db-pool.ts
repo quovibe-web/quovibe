@@ -25,23 +25,25 @@ export function setResolveEntry(fn: (id: string) => PortfolioEntry | null): void
 
 /**
  * Post-open hook fired exactly once after the pool opens a handle on cache miss.
- * Used by auto-fetch wiring (ADR-015 §3.8a). Errors are caught and logged.
+ * Used by auto-fetch wiring (ADR-015 §3.8a) and the FX scheduler. Multiple
+ * subscribers fire in registration order; errors are caught and logged.
  */
 type OpenedHook = (id: string, sqlite: BetterSqlite3.Database) => void;
-// quovibe:allow-module-state — wired once at startup by auto-fetch; no portfolio data held.
-let onOpened: OpenedHook | null = null;
-export function setOnOpened(fn: OpenedHook): void { onOpened = fn; }
+// quovibe:allow-module-state — wired once at startup; callbacks only, no portfolio data held (ADR-016).
+const onOpenedHooks: OpenedHook[] = [];
+export function setOnOpened(fn: OpenedHook): void { onOpenedHooks.push(fn); }
 
 /**
  * Post-evict hook fired exactly once per portfolio id when the pool drops a
  * handle (manual `evictPortfolioDb` or idle-over-cap eviction). Used by the
  * FX scheduler to clear its per-portfolio timer (ADR-016 — no portfolio data
- * held). Errors are caught and logged.
+ * held). Multiple subscribers fire in registration order; errors are caught
+ * and logged.
  */
 type OnEvictedHook = (id: string) => void;
-// quovibe:allow-module-state — wired once at startup; no portfolio data held.
-let onEvicted: OnEvictedHook | null = null;
-export function setOnEvicted(fn: OnEvictedHook): void { onEvicted = fn; }
+// quovibe:allow-module-state — wired once at startup; callbacks only, no portfolio data held (ADR-016).
+const onEvictedHooks: OnEvictedHook[] = [];
+export function setOnEvicted(fn: OnEvictedHook): void { onEvictedHooks.push(fn); }
 
 function evictIdleOverCap(): void {
   if (pool.size <= PORTFOLIO_POOL_MAX) return;
@@ -53,8 +55,10 @@ function evictIdleOverCap(): void {
     try { e.handle.sqlite.pragma('wal_checkpoint(TRUNCATE)'); } catch { /* ok */ }
     try { e.handle.closeDb(); } catch { /* already closed */ }
     pool.delete(id);
-    try { onEvicted?.(id); } catch (err) {
-      console.warn('[quovibe] onEvicted hook failed', { id, err: (err as Error).message });
+    for (const hook of onEvictedHooks) {
+      try { hook(id); } catch (err) {
+        console.warn('[quovibe] onEvicted hook failed', { id, err: (err as Error).message });
+      }
     }
   }
   if (pool.size > PORTFOLIO_POOL_MAX) {
@@ -90,8 +94,10 @@ export function acquirePortfolioDb(id: string): OpenDatabaseResult {
   entry.refCount++;
   evictIdleOverCap();
   if (freshlyOpened) {
-    try { onOpened?.(id, entry.handle.sqlite); } catch (err) {
-      console.warn('[quovibe] onOpened hook failed', { id, err: (err as Error).message });
+    for (const hook of onOpenedHooks) {
+      try { hook(id, entry.handle.sqlite); } catch (err) {
+        console.warn('[quovibe] onOpened hook failed', { id, err: (err as Error).message });
+      }
     }
   }
   return entry.handle;
@@ -117,8 +123,10 @@ export function evictPortfolioDb(id: string): void {
   try { entry.handle.sqlite.pragma('wal_checkpoint(TRUNCATE)'); } catch { /* ok */ }
   try { entry.handle.closeDb(); } catch { /* already closed */ }
   pool.delete(id);
-  try { onEvicted?.(id); } catch (err) {
-    console.warn('[quovibe] onEvicted hook failed', { id, err: (err as Error).message });
+  for (const hook of onEvictedHooks) {
+    try { hook(id); } catch (err) {
+      console.warn('[quovibe] onEvicted hook failed', { id, err: (err as Error).message });
+    }
   }
 }
 

@@ -8,6 +8,7 @@ import { loadSettings } from './services/settings.service';
 import { recoverFromInterruptedSwap } from './services/boot-recovery';
 import { closeAllPooledHandles } from './services/portfolio-db-pool';
 import { wireAutoFetchHook } from './services/auto-fetch';
+import { wireFxScheduler } from './services/fx-scheduler.service';
 
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
 
@@ -26,6 +27,7 @@ function start(): void {
   loadSettings();
   recoverFromInterruptedSwap();
   wireAutoFetchHook();
+  wireFxScheduler();
 
   const app = createApp();
   addStaticServing(app);
