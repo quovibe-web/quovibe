@@ -44,5 +44,8 @@ jobs:
       - name: Architecture checks
         run: pnpm check:arch
 
+      - name: Bootstrap parity (Gate 1 — bootstrap.sql vs ppxml2db_init.py)
+        run: pnpm check:bootstrap
+
       - name: Tests
         run: pnpm test

@@ -59,4 +59,9 @@ ENV QUOVIBE_DEMO_SOURCE=/app/assets/demo.db
 # .db files + rotated .bak.* backups live here.
 VOLUME ["/app/data"]
 
+# Healthcheck uses busybox-wget (bundled in alpine). Lives in the image so it
+# applies to bare `docker run` as well as compose deployments.
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=30s \
+  CMD wget -q --spider http://localhost:3000/api/portfolios || exit 1
+
 CMD ["node", "packages/api/index.js"]
