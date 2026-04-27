@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TransactionForm, type TransactionFormValues } from '@/components/domain/TransactionForm';
 import { useCreateTransaction } from '@/api/use-transactions';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { usePortfolio } from '@/context/PortfolioContext';
 import { preparePayload } from '@/lib/transaction-payload';
 import { txTypeKey } from '@/lib/utils';
@@ -44,16 +45,22 @@ export default function TransactionNew() {
     preType && availableTypes.includes(preType) ? preType : availableTypes[0];
 
   const [type, setType] = useState<TransactionType>(initialType);
-  const { mutate, isPending, error } = useCreateTransaction();
+  const { mutateAsync, isPending, error } = useCreateTransaction();
 
-  function handleSubmit(values: TransactionFormValues) {
-    mutate(preparePayload(values), {
-      onSuccess: () => {
+  const { run: handleSubmit, inFlight } = useGuardedSubmit(
+    async (values: TransactionFormValues) => {
+      try {
+        await mutateAsync(preparePayload(values));
         toast.success(tCommon('toasts.transactionCreated'));
         navigate(`/p/${portfolio.id}/transactions`);
-      },
-    });
-  }
+      } catch {
+        // Global MutationCache error toast handles the user-visible message
+        // (see packages/web/src/api/query-client.ts). The catch swallows so
+        // the run promise resolves cleanly; React's onClick fire-and-forget
+        // therefore produces no unhandledrejection log.
+      }
+    },
+  );
 
   return (
     <div className="qv-page space-y-6 max-w-lg mx-auto">
@@ -82,7 +89,7 @@ export default function TransactionNew() {
             key={type}
             type={type}
             onSubmit={handleSubmit}
-            isSubmitting={isPending}
+            isSubmitting={inFlight || isPending}
             preselectedAccountId={preAccountId}
             serverError={error}
           />
