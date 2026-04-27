@@ -98,6 +98,10 @@ docs/quovibe-sessions-v2.md
 .claude/skills/
 skills-lock.json
 .playwright-mcp/
+.playwright-mcp/sidecar-snapshots/
+.playwright-mcp/test-backups/
+.playwright-mcp/snapshots/
+.playwright-mcp/network/
 docs/superpowers/
 
 # E2E tests (Playwright — excluded from public repo).

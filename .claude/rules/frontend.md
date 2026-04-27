@@ -3,12 +3,16 @@ globs: packages/web/**
 # Frontend Rules
 
 ## Stack
-- React 19.2 + Vite 8.0 + React Router 7.13 + TypeScript 5.9 strict
-- UI: shadcn/ui + Tailwind 4.2
-- Data tables: TanStack Table 8.21 (`DataTable` wrapper in `components/shared/`)
-- Server state: TanStack Query 5.95 (query hooks in `src/api/use-*.ts`)
-- Charts: Recharts 3.8
-- Date: date-fns 4.1 (`format`, `parseISO`, `startOfYear`, `subYears`)
+- React 19 + Vite 8 + React Router 7 + TypeScript 5 strict (exact minors live in `package.json`)
+- UI: shadcn/ui + Tailwind 4
+- Data tables: TanStack Table 8 (`DataTable` wrapper in `components/shared/`)
+- Server state: TanStack Query 5 (query hooks in `src/api/use-*.ts`)
+- Charts: Recharts 3 + lightweight-charts 5 (price/perf widgets)
+- Forms: react-hook-form 7 + `@hookform/resolvers` (Zod), see "Form pattern" below
+- Toasts: sonner (global `MutationCache` error handler in `src/api/query-client.ts`)
+- Animation: framer-motion 12 (page entrance + stagger only)
+- Drag-and-drop: dnd-kit (dashboard widget reorder)
+- Date: date-fns 4 (`format`, `parseISO`, `startOfYear`, `subYears`)
 - Validation: Zod schemas from `@quovibe/shared`
 
 ## Structure
@@ -211,14 +215,15 @@ at the sanctioned hook location, not per-form `useRef(false)` copies. See
 
 ## Themes and Colors
 - Tailwind v4 with CSS custom properties in `globals.css`.
-- **Muted indigo palette** — primary is `--color-primary` (hsl 225°), accent is `--color-chart-5` (hsl 245°). Legacy cyan/violet/gradient vars and utility classes have been removed.
+- **Warm Flexoki-inspired palette** — primary is `--color-primary` (`#205EA6` light / `#4385BE` dark, Flexoki blue), and the chart accents come from the Flexoki swatch (chart-1 blue `#4385BE`, chart-2 cyan `#3AA99F`, chart-3 orange `#DA702C`, chart-4 red `#D14D41`, chart-5 lavender `#8B7EC8`, chart-6 olive `#879A39`, chart-7 yellow `#D0A215`, chart-8 magenta `#CE5D97`). Legacy gradient utility classes and the indigo/cyan brand vars have been removed from CSS; `src/lib/colors.ts` keeps `cyan` and `violet` keys as backward-compat aliases (mapped to `--color-primary` and `--color-chart-5`) — prefer the semantic / chart vars for new code.
+- Light-mode surfaces use warm parchment tones (`--qv-bg #f2f0e5`, `--qv-surface #fffcf0`); dark mode uses near-black warm greys (`--qv-bg #100f0f`, `--qv-surface #1c1b1a`).
 - Surface hierarchy: `--qv-bg` → `--qv-surface` → `--qv-surface-elevated` → `--qv-surface-3`.
 - Semantic colors: `--qv-success`, `--qv-danger`, `--qv-warning`, `--qv-info`, `--qv-positive`, `--qv-negative`.
-- Chart palette: 8-color desaturated palette via `--color-chart-1` through `--color-chart-8` (light and dark variants).
+- Chart palette: 8 Flexoki accents via `--color-chart-1` through `--color-chart-8` (same hex values used in light and dark — they're tuned to be legible on both backgrounds).
 - Use `useTheme()` for `resolvedTheme`, `useChartColors()` for chart colors with dark mode (returns 8-color `palette` array).
-- Dynamic colors: `getColor('profit')` / `getColor('loss')` via `src/lib/colors.ts` (reads CSS vars at runtime).
+- Dynamic colors: `getColor('profit')` / `getColor('loss')` via `src/lib/colors.ts` (reads CSS vars at runtime, falls back to hard-coded Flexoki hex when the DOM is unavailable, e.g. SSR/tests).
 - Micro-interactions: page entrance fade (`qv-page`), staggered children reveal, fade-in (`qv-fade-in`), surface transitions (`transition-surface`).
-- Light mode uses atmospheric body gradient and card shadows; dark mode uses border + lightness delta, no shadows.
+- Light mode uses an atmospheric warm-tinted radial gradient on `body` and card shadows; dark mode uses border + lightness delta, no shadows.
 
 ## i18n (Internationalization)
 - **Never hardcode user-visible strings.** See `.claude/rules/frontend-i18n.md` for full rules (namespaces, workflow, formatting, pluralization).
