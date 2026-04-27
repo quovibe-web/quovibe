@@ -3,386 +3,548 @@
 ```
 quovibe/
 ├── docker-compose.yml
+├── docker-compose.dev.yml
 ├── Dockerfile
-├── .env.example
+├── Dockerfile.dev
+├── package.json                    # root scripts (build, lint, test, governance gates)
 ├── pnpm-workspace.yaml
-├── package.json                    # root scripts
+├── pnpm-lock.yaml
+├── tsconfig.base.json
+├── vitest.config.ts                # root test runner (orchestrates all package suites)
+├── eslint.config.mjs
+├── README.md
+├── CONTRIBUTING.md
+├── CODE_OF_CONDUCT.md
+├── LICENSE
+├── CLAUDE.md                       # Lean root memory (links to .claude/rules/*.md)
+├── .claude/
+│   ├── rules/                      # Glob-scoped Claude rules (auto-load by file context)
+│   ├── commands/
+│   ├── settings.json
+│   └── settings.local.json
 │
 ├── packages/
-│   ├── shared/                     # Types, Zod schemas, shared constants
+│   ├── shared/                     # Types, Zod schemas, calendars, CSV/XML helpers, period resolver
 │   │   ├── src/
-│   │   │   ├── types/
+│   │   │   ├── types/                  # Hand-written response types (legacy; new code uses z.infer)
 │   │   │   │   ├── account.ts
-│   │   │   │   ├── benchmark.ts          # BenchmarkSeriesResponse (API response types)
-│   │   │   │   ├── calculation.ts        # CalculationBreakdownResponse
-│   │   │   │   ├── dashboard.ts          # Dashboard config types
+│   │   │   │   ├── benchmark.ts
+│   │   │   │   ├── calculation.ts
+│   │   │   │   ├── dashboard.ts
 │   │   │   │   ├── price.ts
 │   │   │   │   ├── security.ts
 │   │   │   │   ├── taxonomy.ts
 │   │   │   │   ├── transaction.ts
 │   │   │   │   └── index.ts
-│   │   │   ├── schemas/            # Zod schemas (front+back validation)
+│   │   │   ├── schemas/                # Zod schemas — single source of truth for validation
 │   │   │   │   ├── account.schema.ts
-│   │   │   │   ├── benchmark.schema.ts   # BenchmarkConfig, ChartConfig (sidecar)
-│   │   │   │   ├── data-series.schema.ts # Data series filter definitions
+│   │   │   │   ├── benchmark.schema.ts        # BenchmarkConfig, ChartConfig (sidecar)
+│   │   │   │   ├── data-series.schema.ts
+│   │   │   │   ├── logo.schema.ts
+│   │   │   │   ├── portfolio.schema.ts        # createPortfolioSchema (discriminated union), setupPortfolioSchema
 │   │   │   │   ├── prices.schema.ts
 │   │   │   │   ├── reports.schema.ts
 │   │   │   │   ├── security.schema.ts
 │   │   │   │   ├── security-event.schema.ts
 │   │   │   │   ├── security-search.schema.ts
-│   │   │   │   ├── settings.schema.ts
-│   │   │   │   ├── taxonomy.schema.ts    # CRUD: create/update taxonomy, category, assignment
-│   │   │   │   ├── transaction.schema.ts
+│   │   │   │   ├── settings.schema.ts          # Sidecar quovibe.settings.json shape
+│   │   │   │   ├── taxonomy.schema.ts
+│   │   │   │   ├── transaction.schema.ts       # Per-type invariants (BUG-106/111/112/113)
+│   │   │   │   ├── watchlist.schema.ts
+│   │   │   │   ├── utils.ts
 │   │   │   │   └── index.ts
-│   │   │   ├── calendars/          # Trading calendars (holidays, Easter)
-│   │   │   │   ├── definitions/    # Americas, Asia-Pacific, Europe, Generic
+│   │   │   ├── calendars/              # Trading calendars (holidays, Easter)
+│   │   │   │   ├── definitions/        # Americas, Asia-Pacific, Europe, Generic
 │   │   │   │   ├── calendar-utils.ts
-│   │   │   │   ├── easter.ts       # Computus algorithm
+│   │   │   │   ├── easter.ts           # Computus algorithm
 │   │   │   │   ├── registry.ts
 │   │   │   │   ├── resolve.ts
 │   │   │   │   ├── rules.ts
 │   │   │   │   ├── types.ts
 │   │   │   │   └── index.ts
-│   │   │   ├── enums.ts            # TransactionType, CostMethod, AccountType, InstrumentType
-│   │   │   ├── instrument-type.ts  # normalizeInstrumentType (Yahoo quoteType → InstrumentType)
-│   │   │   ├── cashflow.ts         # Cashflow definition per level (portfolio/account/security)
+│   │   │   ├── csv/                    # Pure CSV helpers (parsers, sniff, FX rate inversion)
+│   │   │   │   ├── csv-fx.ts           # ppRateToQvRate, verifyGrossRateValue (BUG-121)
+│   │   │   │   ├── csv-normalizer.ts
+│   │   │   │   ├── csv-sniff.ts        # sniffLikelyTradeCsv (BUG-46 step-1 heuristic)
+│   │   │   │   ├── csv-types.ts
+│   │   │   │   ├── type-aliases.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── xml/                    # Pure PP-XML client-side sniff (BUG-09)
+│   │   │   │   ├── xml-sniff.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── enums.ts                # TransactionType, CostMethod, AccountType, InstrumentType
+│   │   │   ├── instrument-type.ts
+│   │   │   ├── cashflow.ts             # Cashflow definitions per level (portfolio/account/security)
 │   │   │   ├── constants.ts
-│   │   │   ├── reporting-period-resolver.ts  # Shared period resolution logic
-│   │   │   └── transaction-gating.ts  # Transaction type validation rules
+│   │   │   ├── reporting-period-resolver.ts
+│   │   │   ├── transaction-gating.ts   # CROSS_CURRENCY_FX_TYPES, AMOUNT_REQUIRED_TYPES, etc.
+│   │   │   └── index.ts
+│   │   ├── __tests__/
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
-│   ├── engine/                     # Pure financial logic (zero I/O dependencies)
+│   ├── engine/                     # Pure financial logic (zero I/O — ESLint-enforced)
 │   │   ├── src/
 │   │   │   ├── cost/
 │   │   │   │   ├── fifo.ts
 │   │   │   │   ├── moving-average.ts
-│   │   │   │   ├── split.ts              # Stock split adjustment
+│   │   │   │   ├── split.ts
+│   │   │   │   ├── types.ts
 │   │   │   │   └── index.ts
 │   │   │   ├── performance/
-│   │   │   │   ├── irr.ts              # Money-Weighted Return (Newton-Raphson)
-│   │   │   │   ├── ttwror.ts           # True Time-Weighted Rate of Return
-│   │   │   │   ├── benchmark.ts        # Benchmark cumulative return series (PP-compliant)
-│   │   │   │   ├── simple-return.ts    # r = MVE/MVB - 1
-│   │   │   │   ├── annualize.ts        # Periodic → p.a. conversion
+│   │   │   │   ├── irr.ts                  # Newton-Raphson + Brent fallback
+│   │   │   │   ├── ttwror.ts
+│   │   │   │   ├── benchmark.ts            # PP-compliant cumulative return series
+│   │   │   │   ├── simple-return.ts
+│   │   │   │   ├── absolute-performance.ts
+│   │   │   │   ├── monthly-returns.ts
+│   │   │   │   ├── annualize.ts
+│   │   │   │   ├── risk.ts                 # Volatility, Sharpe, semivariance, drawdown
 │   │   │   │   └── index.ts
 │   │   │   ├── cashflow/
-│   │   │   │   ├── resolver.ts         # Determines cashflow per level
-│   │   │   │   ├── portfolio-level.ts  # Only deposit, removal, delivery in/out
-│   │   │   │   ├── account-level.ts    # All except security transfer
-│   │   │   │   └── security-level.ts   # Buy, sell, dividend, delivery in/out
+│   │   │   │   ├── resolver.ts
+│   │   │   │   ├── portfolio-level.ts
+│   │   │   │   ├── account-level.ts
+│   │   │   │   ├── security-level.ts
+│   │   │   │   └── index.ts
 │   │   │   ├── valuation/
-│   │   │   │   ├── market-value.ts     # Market value calculation at a date
-│   │   │   │   ├── purchase-value.ts   # Purchase Value for reporting period
-│   │   │   │   └── statement.ts        # Statement of Assets snapshot
+│   │   │   │   ├── market-value.ts
+│   │   │   │   ├── period-gains.ts
+│   │   │   │   ├── purchase-value.ts
+│   │   │   │   ├── statement.ts
+│   │   │   │   └── index.ts
 │   │   │   ├── fx/
-│   │   │   │   └── converter.ts        # Multi-currency conversion
+│   │   │   │   ├── converter.ts
+│   │   │   │   ├── currency-gains.ts
+│   │   │   │   ├── rate-map.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── helpers/
+│   │   │   │   └── transaction-amounts.ts
 │   │   │   └── index.ts
 │   │   ├── __tests__/
-│   │   │   ├── cost/
-│   │   │   │   ├── cost-methods.test.ts   # FIFO + Moving Average tests
-│   │   │   │   └── split.test.ts
-│   │   │   ├── helpers/
-│   │   │   │   └── transaction-amounts.test.ts
-│   │   │   ├── irr.test.ts
-│   │   │   ├── ttwror.test.ts
-│   │   │   ├── purchase-value.test.ts
-│   │   │   └── cashflow-resolver.test.ts
+│   │   │   └── regression/             # Calculation regression suite pinned to fixture DBs
+│   │   │       ├── absolute-perf-regression.test.ts
+│   │   │       ├── fifo-regression.test.ts
+│   │   │       ├── fx-regression.test.ts
+│   │   │       └── ttwror-regression.test.ts
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
-│   ├── api/                        # Express 5 Backend
+│   ├── api/                        # Express 5 backend
 │   │   ├── src/
-│   │   │   ├── index.ts            # Entry point + reloadApp (drain guard, atomic swap)
-│   │   │   ├── create-app.ts       # Express app factory (all route mounts)
-│   │   │   ├── config.ts           # QUOVIBE_DATA_DIR, QUOVIBE_DEMO_SOURCE, env vars
+│   │   │   ├── index.ts                # Entry + reloadApp (drain guard, atomic swap)
+│   │   │   ├── create-app.ts           # Express factory (route mounts, middleware order)
+│   │   │   ├── bootstrap.ts            # Boot-time wiring (registry load, recovery, startup tasks)
+│   │   │   ├── config.ts               # QUOVIBE_DATA_DIR, QUOVIBE_DEMO_SOURCE, IMPORT_MAX_MB, …
 │   │   │   ├── db/
-│   │   │   │   ├── client.ts       # SQLite connection (better-sqlite3) + backupDb
-│   │   │   │   ├── open-db.ts      # Open + verify + apply extensions
-│   │   │   │   ├── schema.ts       # Complete Drizzle schema (ppxml2db spec)
-│   │   │   │   ├── verify.ts       # ppxml2db schema compatibility verification
-│   │   │   │   └── extensions.ts   # Additional tables (non-destructive)
+│   │   │   │   ├── bootstrap.sql           # DDL source of truth (ADR-015)
+│   │   │   │   ├── apply-bootstrap.ts      # Idempotent apply + VENDOR_COLUMN_PATCHES
+│   │   │   │   ├── backup.ts               # backupDb (online .backup API)
+│   │   │   │   ├── open-db.ts              # openDatabase + verify + extensions
+│   │   │   │   ├── schema.ts               # Drizzle ORM view (parity-checked vs bootstrap.sql)
+│   │   │   │   └── verify.ts
+│   │   │   ├── helpers/
+│   │   │   │   ├── portfolio-cache.ts      # Typed WeakMap<Database, T> per ADR-016
+│   │   │   │   └── request.ts
+│   │   │   ├── lib/
+│   │   │   │   └── atomic-fs.ts            # Crash-safe write via temp + rename
+│   │   │   ├── middleware/
+│   │   │   │   ├── broadcast-mutations.ts  # Cross-tab BroadcastChannel emission on writes
+│   │   │   │   ├── error-handler.ts
+│   │   │   │   ├── portfolio-context.ts    # /api/p/:portfolioId/* — opens DB, attaches sqlite to req
+│   │   │   │   └── reporting-period.ts
+│   │   │   ├── providers/                  # Price-feed providers (registry-dispatched)
+│   │   │   │   ├── alphavantage.provider.ts
+│   │   │   │   ├── json.provider.ts
+│   │   │   │   ├── table.provider.ts
+│   │   │   │   ├── yahoo.provider.ts
+│   │   │   │   ├── yahoo-client.ts
+│   │   │   │   ├── registry.ts
+│   │   │   │   ├── types.ts
+│   │   │   │   ├── utils.ts
+│   │   │   │   └── index.ts
 │   │   │   ├── routes/
 │   │   │   │   ├── accounts.ts
 │   │   │   │   ├── attribute-types.ts
 │   │   │   │   ├── calendars.ts
-│   │   │   │   ├── csv-import.ts          # CSV trade/price import endpoints
+│   │   │   │   ├── chart-config.ts             # Per-portfolio chart content sidecar
+│   │   │   │   ├── csv-import.ts
+│   │   │   │   ├── dashboard.ts
 │   │   │   │   ├── debug.ts
-│   │   │   │   ├── dashboard.ts           # Dashboard layout config (GET/PUT)
-│   │   │   │   ├── import.ts
+│   │   │   │   ├── events.ts                   # Live SSE event stream (cross-tab broadcast)
+│   │   │   │   ├── import.ts                   # POST /api/import/xml (PP-XML upload)
+│   │   │   │   ├── logo.ts
 │   │   │   │   ├── performance.ts
-│   │   │   │   ├── portfolio.ts
+│   │   │   │   ├── portfolio.ts                # Single-portfolio context routes
+│   │   │   │   ├── portfolios.ts               # Registry CRUD (create / list / rename / delete)
 │   │   │   │   ├── prices.ts
 │   │   │   │   ├── rebalancing.ts
 │   │   │   │   ├── reports.ts
 │   │   │   │   ├── securities.ts
 │   │   │   │   ├── security-events.ts
 │   │   │   │   ├── security-search.ts
-│   │   │   │   ├── settings.ts            # Reporting periods + investments-view sidecar
-│   │   │   │   ├── taxonomies.ts          # Taxonomy read + PATCH allocation weight
-│   │   │   │   ├── taxonomy-write.ts      # Taxonomy/category/assignment CRUD
-│   │   │   │   └── transactions.ts
+│   │   │   │   ├── settings.ts
+│   │   │   │   ├── setup.ts                    # /securities-accounts + /setup (BUG-54)
+│   │   │   │   ├── taxonomies.ts
+│   │   │   │   ├── taxonomy-write.ts
+│   │   │   │   ├── transactions.ts
+│   │   │   │   └── watchlists.ts
 │   │   │   ├── services/
-│   │   │   │   ├── accounts.service.ts      # Account balance and logic
-│   │   │   │   ├── benchmark.service.ts     # Benchmark series computation (FX + sampling)
-│   │   │   │   ├── csv/                     # CSV import subsystem
-│   │   │   │   │   ├── csv-config.service.ts   # CRUD for saved CSV column mappings
-│   │   │   │   │   ├── csv-import.service.ts   # CSV → transaction insert orchestrator
-│   │   │   │   │   ├── csv-price-mapper.ts     # Map CSV columns to price fields
-│   │   │   │   │   ├── csv-reader.ts           # Parse CSV with configurable delimiters
-│   │   │   │   │   └── csv-trade-mapper.ts     # Map CSV columns to trade fields
-│   │   │   │   ├── data-series.service.ts   # Taxonomy slice data series
-│   │   │   │   ├── fx.service.ts            # ECB exchange rates
-│   │   │   │   ├── fx-fetcher.service.ts    # FX rate fetching
-│   │   │   │   ├── import.service.ts        # ppxml2db validation + temp DB
-│   │   │   │   ├── movers.service.ts        # Top/bottom performers with sparklines
-│   │   │   │   ├── performance.service.ts   # Engine orchestrator
-│   │   │   │   ├── prices.service.ts        # Yahoo Finance fetch
-│   │   │   │   ├── rebalancing.service.ts   # Portfolio rebalancing logic
-│   │   │   │   ├── reports.service.ts       # Report generation logic
-│   │   │   │   ├── security-search-import.service.ts  # Import prices into DB (from search preview)
-│   │   │   │   ├── reference-data.ts        # Pure per-portfolio securities/accounts/logos read (ADR-016)
-│   │   │   │   ├── settings.service.ts      # Sidecar settings load/save + chart-config
-│   │   │   │   ├── taxonomy.service.ts      # Taxonomy/category/assignment CRUD logic
-│   │   │   │   ├── taxonomy-performance.service.ts  # Taxonomy slice performance
-│   │   │   │   ├── transaction.service.ts   # CRUD logic with double-entry
-│   │   │   │   ├── unit-conversion.ts       # shares/10^8, amount/10^2
-│   │   │   │   └── yahoo-search.service.ts  # Yahoo securities search
+│   │   │   │   ├── accounts.service.ts
+│   │   │   │   ├── auto-fetch.ts
+│   │   │   │   ├── benchmark.service.ts
+│   │   │   │   ├── boot-recovery.ts            # Crash-recovery for in-flight imports
+│   │   │   │   ├── chart-config.service.ts
+│   │   │   │   ├── chart-config-migrations.ts
+│   │   │   │   ├── csv/
+│   │   │   │   │   ├── csv-config.service.ts
+│   │   │   │   │   ├── csv-import.service.ts
+│   │   │   │   │   ├── csv-price-mapper.ts
+│   │   │   │   │   ├── csv-reader.ts
+│   │   │   │   │   └── csv-trade-mapper.ts
+│   │   │   │   ├── dashboard.service.ts
+│   │   │   │   ├── dashboard-seed.ts
+│   │   │   │   ├── data-series.service.ts
+│   │   │   │   ├── fx.service.ts
+│   │   │   │   ├── fx-fetcher.service.ts
+│   │   │   │   ├── import.service.ts           # ppxml2db orchestration + lock + sanitization
+│   │   │   │   ├── import-validation.ts
+│   │   │   │   ├── logo-resolver.service.ts
+│   │   │   │   ├── movers.service.ts
+│   │   │   │   ├── performance.service.ts
+│   │   │   │   ├── portfolio-db-pool.ts        # better-sqlite3 handle pool (per portfolio)
+│   │   │   │   ├── portfolio-manager.ts        # Create/rename/delete + seed (BUG-54)
+│   │   │   │   ├── portfolio-registry.ts       # data/portfolios.json metadata index
+│   │   │   │   ├── prices.service.ts
+│   │   │   │   ├── rebalancing.service.ts
+│   │   │   │   ├── reference-data.ts           # Pure per-portfolio reads (ADR-016)
+│   │   │   │   ├── reports.service.ts
+│   │   │   │   ├── securities.service.ts
+│   │   │   │   ├── security-search-import.service.ts
+│   │   │   │   ├── settings.service.ts
+│   │   │   │   ├── taxonomy.service.ts
+│   │   │   │   ├── taxonomy-performance.service.ts
+│   │   │   │   ├── transaction.service.ts      # Double-entry BUY/SELL (.claude/rules/double-entry.md)
+│   │   │   │   ├── unit-conversion.ts
+│   │   │   │   ├── watchlists.service.ts
+│   │   │   │   ├── widget-migrations.ts
+│   │   │   │   └── yahoo-search.service.ts
 │   │   │   ├── data/
-│   │   │   │   └── taxonomy-templates.ts    # 7 pre-built templates (asset classes, GICS, regions...)
-│   │   │   └── middleware/
-│   │   │       ├── error-handler.ts
-│   │   │       └── reporting-period.ts      # Parse period from query params
+│   │   │   │   └── taxonomy-templates.ts
+│   │   │   ├── tests/
+│   │   │   │   └── audit/                      # Read-path + write-path audit suites
+│   │   │   ├── types/
+│   │   │   │   └── express.d.ts
+│   │   │   └── __tests__/                      # supertest end-to-end suites
+│   │   ├── vendor/
+│   │   │   ├── ppxml2db_init.py                # Upstream baseline schema (Gate 1 source)
+│   │   │   ├── ppxml2db.py
+│   │   │   └── *.sql                           # Per-table verbatim SQL fragments
+│   │   ├── scripts/                            # bootstrap.sql regen + parity helpers
+│   │   │   ├── regen-bootstrap.sh
+│   │   │   ├── check-bootstrap-fresh.sh
+│   │   │   ├── normalize-bootstrap.mjs
+│   │   │   ├── dump-schema.mjs
+│   │   │   └── exec-sql.mjs
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
-│   └── web/                        # React Frontend
+│   └── web/                        # React 19 + Vite frontend
 │       ├── src/
 │       │   ├── main.tsx
-│       │   ├── router.tsx              # React Router v7 config
-│       │   ├── api/                     # TanStack Query hooks
-│       │   │   ├── fetch.ts             # apiFetch wrapper
-│       │   │   ├── query-client.ts
-│       │   │   ├── types.ts             # API response types
+│       │   ├── router.tsx                  # React Router v7 (Shell + sibling welcome/setup routes)
+│       │   ├── globals.css                 # Tailwind v4 @theme + Flexoki palette tokens
+│       │   ├── test-setup.ts
+│       │   ├── vite-env.d.ts
+│       │   ├── api/                        # apiFetch + TanStack Query hooks
+│       │   │   ├── fetch.ts
+│       │   │   ├── query-client.ts         # MutationCache global error toast + ApiError shape
+│       │   │   ├── types.ts
 │       │   │   ├── use-accounts.ts
+│       │   │   ├── use-allocation-view.ts
+│       │   │   ├── use-ath.ts
 │       │   │   ├── use-attribute-types.ts
-│       │   │   ├── use-benchmark-series.ts     # Benchmark TTWROR series
-│       │   │   ├── use-chart-config.ts         # Chart config sidecar (benchmarks)
-│       │   │   ├── use-chart-series.ts         # Unified multi-series data (portfolio, security, benchmark)
-│       │   │   ├── use-csv-import.ts           # CSV import mutations + config hooks
-│       │   │   ├── use-dashboards.ts            # Per-portfolio dashboard REST collection (ADR-015)
+│       │   │   ├── use-benchmark-series.ts
+│       │   │   ├── use-chart-config.ts
+│       │   │   ├── use-chart-series.ts
+│       │   │   ├── use-csv-import.ts
+│       │   │   ├── use-dashboards.ts
+│       │   │   ├── use-events.ts           # SSE subscription + cross-tab cache invalidation
+│       │   │   ├── use-fx.ts
 │       │   │   ├── use-import.ts
-│       │   │   ├── use-init-portfolio.ts
-│       │   │   ├── use-investments-view.ts     # Column visibility sidecar
-│       │   │   ├── use-movers.ts               # Top/bottom performers query
+│       │   │   ├── use-investments-view.ts
+│       │   │   ├── use-logo.ts
+│       │   │   ├── use-movers.ts
 │       │   │   ├── use-performance.ts
 │       │   │   ├── use-portfolio.ts
+│       │   │   ├── use-portfolios.ts       # Registry CRUD
+│       │   │   ├── use-preferences.ts      # Sidecar user preferences
 │       │   │   ├── use-rebalancing.ts
 │       │   │   ├── use-reporting-periods.ts
 │       │   │   ├── use-reports.ts
+│       │   │   ├── use-scoped-api.ts       # Builds /api/p/:pid/* base URLs
 │       │   │   ├── use-securities.ts
+│       │   │   ├── use-securities-accounts.ts
 │       │   │   ├── use-security-events.ts
-│       │   │   ├── use-table-layout.ts         # Persisted column widths / sort state
+│       │   │   ├── use-table-layout.ts
 │       │   │   ├── use-taxonomies.ts
-│       │   │   ├── use-taxonomy-mutations.ts   # CRUD mutations + cache invalidation
-│       │   │   ├── use-taxonomy-series.ts      # Taxonomy slice performance
+│       │   │   ├── use-taxonomy-mutations.ts
+│       │   │   ├── use-taxonomy-series.ts
 │       │   │   ├── use-taxonomy-tree.ts
-│       │   │   └── use-transactions.ts
+│       │   │   ├── use-transactions.ts
+│       │   │   └── use-watchlists.ts
 │       │   ├── components/
-│       │   │   ├── ui/                  # shadcn/ui primitives (do not touch)
+│       │   │   ├── ui/                     # shadcn/ui primitives (do not touch)
 │       │   │   ├── layout/
-│       │   │   │   ├── Shell.tsx              # App shell (sidebar + topbar + outlet)
-│       │   │   │   ├── Sidebar.tsx            # DesktopSidebar, CollapsedSidebar, MobileNav, SidebarDrawer
-│       │   │   │   ├── TopBar.tsx             # Period pills, toggle group (privacy + theme), language
-│       │   │   │   └── ExpandableNavItem.tsx  # Expandable nav section (taxonomies)
-│       │   │   ├── domain/
+│       │   │   │   ├── Shell.tsx
+│       │   │   │   ├── Sidebar.tsx
+│       │   │   │   ├── TopBar.tsx              # Privacy only (theme/lang in Settings)
+│       │   │   │   ├── ExpandableNavItem.tsx
+│       │   │   │   ├── PortfolioSwitcher.tsx
+│       │   │   │   └── DemoBadge.tsx
+│       │   │   ├── welcome/                # Welcome / portfolio-setup chrome (no Shell)
+│       │   │   │   ├── ActionCard.tsx
+│       │   │   │   ├── WelcomeBackground.tsx
+│       │   │   │   ├── WelcomeHero.tsx
+│       │   │   │   ├── WelcomeTopBar.tsx
+│       │   │   │   └── WelcomeFooter.tsx
+│       │   │   ├── ImportDropzone.tsx
+│       │   │   ├── ImportProgress.tsx
+│       │   │   ├── domain/                 # Business-logic components
 │       │   │   │   ├── TransactionForm.tsx
+│       │   │   │   ├── transaction-form.schema.ts
+│       │   │   │   ├── transaction-server-error.ts
 │       │   │   │   ├── PriceChart.tsx
-│       │   │   │   ├── TaxonomyChart.tsx       # Donut/bar chart (bidirectional hover)
-│       │   │   │   ├── RebalancingTable.tsx     # Actual vs target, delta, weights
-│       │   │   │   ├── CreateTaxonomyDialog.tsx # Create with template picker
-│       │   │   │   ├── DeleteTaxonomyDialog.tsx
-│       │   │   │   ├── AssignCategoryDialog.tsx # Assign security/account to category
-│       │   │   │   ├── CategoryColorPicker.tsx
-│       │   │   │   ├── TaxonomyNodePicker.tsx
-│       │   │   │   ├── CreateAccountDialog.tsx
-│       │   │   │   ├── AddInstrumentDialog/      # Spotlight search + detail sheet
-│       │   │   │   │   ├── index.tsx             # Dialog orchestrator (state, keyboard nav, create flow)
-│       │   │   │   │   ├── InstrumentSearch.tsx  # Search input + filter chips
-│       │   │   │   │   ├── InstrumentResultsList.tsx  # Results listbox with keyboard nav
-│       │   │   │   │   ├── InstrumentResultCard.tsx   # Individual result card
-│       │   │   │   │   ├── InstrumentDetail.tsx  # Detail panel + price preview + CTA
-│       │   │   │   │   ├── InstrumentTypeBadge.tsx    # Colored type badge
-│       │   │   │   │   ├── CreateEmptyInstrument.tsx  # Manual creation link
-│       │   │   │   │   └── types.ts              # Local types (DialogView)
-│       │   │   │   ├── SecurityEditor/          # Sheet-based security editor (scrollable sections)
-│       │   │   │   │   ├── index.tsx
-│       │   │   │   │   ├── MasterDataSection.tsx
-│       │   │   │   │   ├── PriceFeedSection.tsx
-│       │   │   │   │   ├── AttributesSection.tsx
-│       │   │   │   │   ├── TaxonomiesSection.tsx
-│       │   │   │   │   ├── SectionHeader.tsx
-│       │   │   │   ├── csv-import/              # CSV import wizard steps
-│       │   │   │   │   ├── CsvUploadStep.tsx        # File upload + delimiter config
-│       │   │   │   │   ├── CsvColumnMapStep.tsx     # Column mapping UI
-│       │   │   │   │   ├── CsvPreviewStep.tsx       # Preview parsed transactions
-│       │   │   │   │   ├── CsvSecurityMatchStep.tsx # Match CSV securities to DB
-│       │   │   │   │   └── CsvPriceImportDialog.tsx # Historical price import from CSV
-│       │   │   │   ├── widgets/                 # Individual dashboard widget components
-│       │   │   │   │   ├── WidgetAbsoluteChange.tsx
-│       │   │   │   │   ├── WidgetAbsolutePerformance.tsx
-│       │   │   │   │   ├── WidgetBenchmarkComparison.tsx
-│       │   │   │   │   ├── WidgetCalculationCompact.tsx
-│       │   │   │   │   ├── WidgetCashDrag.tsx          # Cash drag donut + liquidity ratio
-│       │   │   │   │   ├── WidgetCostTaxDrag.tsx       # Fee/tax drag metrics
-│       │   │   │   │   ├── WidgetCurrentDrawdown.tsx
-│       │   │   │   │   ├── WidgetDelta.tsx
-│       │   │   │   │   ├── WidgetDrawdownChart.tsx
-│       │   │   │   │   ├── WidgetIrr.tsx
-│       │   │   │   │   ├── WidgetMarketValue.tsx
-│       │   │   │   │   ├── WidgetMaxDrawdown.tsx
-│       │   │   │   │   ├── WidgetMaxDrawdownDuration.tsx
-│       │   │   │   │   ├── WidgetMovers.tsx            # Top/bottom performers with sparklines
-│       │   │   │   │   ├── WidgetPerfChart.tsx
-│       │   │   │   │   ├── WidgetReturnsHeatmap.tsx
-│       │   │   │   │   ├── WidgetSemivariance.tsx
-│       │   │   │   │   ├── WidgetSharpeRatio.tsx
-│       │   │   │   │   ├── WidgetTtwror.tsx
-│       │   │   │   │   ├── WidgetTtwrorPa.tsx
-│       │   │   │   │   └── WidgetVolatility.tsx
+│       │   │   │   ├── TaxonomyChart.tsx
+│       │   │   │   ├── RebalancingTable.tsx
+│       │   │   │   ├── CommandPalette.tsx
+│       │   │   │   ├── ChartSummaryBar.tsx
 │       │   │   │   ├── PriceFeedConfig.tsx
-│       │   │   │   ├── CorporateEventDialog.tsx
-│       │   │   │   ├── StockSplitDialog.tsx
-│       │   │   │   ├── BenchmarkConfigDialog.tsx      # Benchmark selection (gear icon on chart)
-│       │   │   │   ├── BenchmarkWidgetConfigDialog.tsx # Benchmark widget security picker
 │       │   │   │   ├── HolidayTable.tsx
 │       │   │   │   ├── PaymentBreakdownTooltip.tsx
-│       │   │   │   ├── AccountDetailTabs.tsx    # Inner tabs (Cash Account / Transactions) for AccountDetail
-│       │   │   │   ├── AccountSummaryStrip.tsx  # KPI strip shown on Investments when filtered by account
-│       │   │   │   ├── BrokerageUnitCard.tsx    # Collapsed brokerage card with split bar
-│       │   │   │   ├── BrokerageUnitExpanded.tsx # Expanded brokerage: security chips + cash details
-│       │   │   │   ├── StandaloneDepositCard.tsx # Card for deposit accounts not linked to a portfolio
-│       │   │   │   ├── CashAccountView.tsx      # Cash balance + history view inside AccountDetail
-│       │   │   │   ├── PeriodOverrideDialog.tsx # Per-widget period override (pills + custom range)
-│       │   │   │   ├── WidgetShell.tsx          # Widget container with kebab menu + period badge
-│       │   │   │   ├── WidgetCatalogDialog.tsx  # Catalog for adding widgets to a dashboard tab
-│       │   │   │   ├── SecurityDrawer.tsx        # Side drawer with security detail (from Investments table)
-│       │   │   │   ├── CalculationBreakdownCard.tsx
-│       │   │   │   ├── CalculationDetail.tsx
-│       │   │   │   ├── DataSeriesDialog.tsx
-│       │   │   │   ├── DataSeriesPickerDialog.tsx  # Data series picker for widget config
-│       │   │   │   ├── DataSeriesSelector.tsx
+│       │   │   │   ├── DashboardEmptyState.tsx
+│       │   │   │   ├── DashboardHero.tsx
+│       │   │   │   ├── DashboardMetricsStrip.tsx
+│       │   │   │   ├── MetricsStripSettings.tsx
+│       │   │   │   ├── PeriodOverrideDialog.tsx
+│       │   │   │   ├── WidgetShell.tsx
+│       │   │   │   ├── WidgetCatalogDialog.tsx
+│       │   │   │   ├── BenchmarkConfigDialog.tsx
+│       │   │   │   ├── BenchmarkWidgetConfigDialog.tsx
+│       │   │   │   ├── WatchlistWidgetConfigDialog.tsx
+│       │   │   │   ├── AddSecurityToWatchlistDialog.tsx
+│       │   │   │   ├── CreateAccountDialog.tsx
+│       │   │   │   ├── ChangeReferenceAccountDialog.tsx
+│       │   │   │   ├── RenamePortfolioDialog.tsx
+│       │   │   │   ├── DeletePortfolioDialog.tsx
+│       │   │   │   ├── CreateTaxonomyDialog.tsx
+│       │   │   │   ├── DeleteTaxonomyDialog.tsx
+│       │   │   │   ├── DeleteCategoryDialog.tsx
 │       │   │   │   ├── CategoryNameDialog.tsx
 │       │   │   │   ├── MoveCategoryDialog.tsx
+│       │   │   │   ├── CategoryColorPicker.tsx
+│       │   │   │   ├── AssignCategoryDialog.tsx
+│       │   │   │   ├── TaxonomyNodePickerPopover.tsx
+│       │   │   │   ├── WeightEditDialog.tsx
 │       │   │   │   ├── NewPeriodDialog.tsx
-│       │   │   │   └── WeightEditDialog.tsx
+│       │   │   │   ├── DataSeriesDialog.tsx
+│       │   │   │   ├── DataSeriesPickerDialog.tsx
+│       │   │   │   ├── DataSeriesSelector.tsx
+│       │   │   │   ├── CalculationBreakdownCard.tsx
+│       │   │   │   ├── CalculationDetail.tsx
+│       │   │   │   ├── CorporateEventDialog.tsx
+│       │   │   │   ├── StockSplitDialog.tsx
+│       │   │   │   ├── AccountDetailTabs.tsx
+│       │   │   │   ├── AccountSummaryStrip.tsx
+│       │   │   │   ├── BrokerageUnitCard.tsx
+│       │   │   │   ├── BrokerageUnitExpanded.tsx
+│       │   │   │   ├── StandaloneDepositCard.tsx
+│       │   │   │   ├── CashAccountView.tsx
+│       │   │   │   ├── SecurityDrawer.tsx
+│       │   │   │   ├── EditBuyDialog.tsx
+│       │   │   │   ├── EditSellDialog.tsx
+│       │   │   │   ├── EditCashDialog.tsx
+│       │   │   │   ├── EditDeliveryDialog.tsx
+│       │   │   │   ├── EditRemovalDialog.tsx
+│       │   │   │   ├── EditSecurityTransferDialog.tsx
+│       │   │   │   ├── EditTaxRefundDialog.tsx
+│       │   │   │   ├── EditTransferOutboundDialog.tsx
+│       │   │   │   ├── AddInstrumentDialog/    # Spotlight search + detail sheet
+│       │   │   │   ├── SecurityEditor/         # Sheet-based security editor
+│       │   │   │   ├── SecurityDetail/
+│       │   │   │   │   └── TaxonomyAssignmentsCard.tsx
+│       │   │   │   ├── csv-import/             # Wizard steps (upload, map, match, preview)
+│       │   │   │   ├── portfolio/              # PortfolioSetupForm + NewPortfolioDialog (BUG-54)
+│       │   │   │   └── widgets/                # 26 dashboard widgets (KPIs, charts, lists)
 │       │   │   └── shared/
-│       │   │       ├── DataTable.tsx             # TanStack Table wrapper (persistence, sort, resize, reorder, export, virtualization)
-│       │   │       ├── TableToolbar.tsx          # Unified toolbar (search, custom filters, reset)
-│       │   │       ├── CurrencyDisplay.tsx       # Privacy-aware + colorSign prop
+│       │   │       ├── DataTable.tsx
+│       │   │       ├── TableToolbar.tsx
+│       │   │       ├── CurrencyDisplay.tsx     # Privacy-aware + colorSign
+│       │   │       ├── SharesDisplay.tsx
 │       │   │       ├── DateRangePicker.tsx
-│       │   │       ├── MetricCard.tsx            # KPI display card
-│       │   │       ├── KpiCard.tsx               # KPI card variant
-│       │   │       ├── LazySection.tsx           # IntersectionObserver deferred mounting
-│       │   │       ├── FadeIn.tsx                # Fade-in animation
-│       │   │       ├── LanguageSwitcher.tsx
-│       │   │       ├── ChartExportButton.tsx     # Export chart as PNG
+│       │   │       ├── AccessibleNumberFlow.tsx
+│       │   │       ├── AccountAvatar.tsx
+│       │   │       ├── SecurityAvatar.tsx
+│       │   │       ├── CashBreakdown.tsx
+│       │   │       ├── ChartExportButton.tsx
+│       │   │       ├── ChartLegendOverlay.tsx
 │       │   │       ├── ChartSkeleton.tsx
-│       │   │       ├── ChartTooltip.tsx          # Frosted glass tooltip + ChartTooltipRow
-│       │   │       ├── MetricCardSkeleton.tsx
-│       │   │       ├── SectionSkeleton.tsx
-│       │   │       ├── TableSkeleton.tsx
+│       │   │       ├── ChartToolbar.tsx
+│       │   │       ├── ChartTooltip.tsx
 │       │   │       ├── ColumnVisibilityToggle.tsx
 │       │   │       ├── EmptyState.tsx
+│       │   │       ├── ErrorFallback.tsx
+│       │   │       ├── FadeIn.tsx
+│       │   │       ├── GainBadge.tsx
+│       │   │       ├── KpiCard.tsx
+│       │   │       ├── LanguageSwitcher.tsx
+│       │   │       ├── LazySection.tsx
+│       │   │       ├── MetricCard.tsx
+│       │   │       ├── MetricCardSkeleton.tsx
 │       │   │       ├── PageHeader.tsx
-│       │   │       ├── SharesDisplay.tsx         # Privacy-aware shares display
-│       │   │       ├── SidecarSync.tsx           # Syncs sidecar settings to/from server
-│       │   │       ├── SummaryStrip.tsx          # Generic KPI summary strip
-│       │   │       ├── TypeBadge.tsx             # Transaction type badge
-│       │   │       └── UnsavedChangesAlert.tsx   # Dirty-state alert for unsaved form changes
+│       │   │       ├── RootRedirect.tsx
+│       │   │       ├── SectionSkeleton.tsx
+│       │   │       ├── SegmentedControl.tsx
+│       │   │       ├── SidecarSync.tsx
+│       │   │       ├── Sparkline.tsx
+│       │   │       ├── SplitBar.tsx
+│       │   │       ├── SubmitButton.tsx
+│       │   │       ├── SummaryStrip.tsx
+│       │   │       ├── TableSkeleton.tsx
+│       │   │       ├── TypeBadge.tsx
+│       │   │       └── UnsavedChangesAlert.tsx
+│       │   ├── layouts/
+│       │   │   ├── PortfolioLayout.tsx         # /p/:portfolioId/* — N=0 setup redirect
+│       │   │   └── UserSettingsLayout.tsx
 │       │   ├── pages/
+│       │   │   ├── Welcome.tsx                 # No Shell (welcome chrome)
+│       │   │   ├── PortfolioSetupPage.tsx      # /p/:pid/setup — sibling of PortfolioLayout
+│       │   │   ├── ImportHub.tsx               # PP-XML + .db restore boundary
 │       │   │   ├── Dashboard.tsx
-│       │   │   ├── AccountsHub.tsx            # Accounts Hub: brokerage unit cards + standalone deposits
-│       │   │   ├── Investments.tsx            # Unified: securities list + statement + holdings + performance
+│       │   │   ├── AccountsHub.tsx
+│       │   │   ├── AccountDetail.tsx
+│       │   │   ├── Investments.tsx             # Securities + statement + holdings + perf
 │       │   │   ├── SecurityDetail.tsx
 │       │   │   ├── Transactions.tsx
 │       │   │   ├── TransactionNew.tsx
-│       │   │   ├── AccountDetail.tsx
-│       │   │   ├── Analytics.tsx              # Parent shell for analytics sub-routes
+│       │   │   ├── Analytics.tsx               # Parent shell for analytics sub-routes
 │       │   │   ├── Calculation.tsx
 │       │   │   ├── PerformanceChart.tsx
-│       │   │   ├── Payments.tsx               # Dividends, interest, fees, taxes
-│       │   │   ├── TaxonomySeries.tsx         # Taxonomy slice performance
-│       │   │   ├── AssetAllocation.tsx        # Definition + Rebalancing views
-│       │   │   ├── CsvImportPage.tsx          # CSV trade import wizard (standalone)
-│       │   │   ├── Settings.tsx               # 4 tabs: portfolio, presentation, dataSources, advanced
-│       │   │   └── ImportPage.tsx             # Standalone (no sidebar)
-│       │   ├── i18n/                   # Internationalization
-│       │   │   ├── index.ts            # i18next config
-│       │   │   └── locales/            # 8 languages × 11 namespaces
-│       │   │       ├── en/             # common, navigation, dashboard, securities, investments,
-│       │   │       ├── it/             # transactions, accounts, performance, reports, settings, errors
-│       │   │       ├── de/
-│       │   │       ├── fr/
-│       │   │       ├── es/
-│       │   │       ├── nl/
-│       │   │       ├── pl/
-│       │   │       └── pt/
+│       │   │   ├── Payments.tsx
+│       │   │   ├── TaxonomySeries.tsx
+│       │   │   ├── AssetAllocation.tsx
+│       │   │   ├── CsvImportPage.tsx
+│       │   │   ├── Watchlists.tsx
+│       │   │   ├── PortfolioSettings.tsx       # Per-portfolio settings (split from old Settings)
+│       │   │   └── UserSettings.tsx            # Cross-portfolio user prefs
+│       │   ├── i18n/
+│       │   │   ├── index.ts                    # ns array — source of truth for namespaces
+│       │   │   └── locales/                    # 8 languages × 18 namespaces
+│       │   │       └── {en,it,de,fr,es,nl,pl,pt}/
+│       │   │           ├── accounts.json
+│       │   │           ├── common.json
+│       │   │           ├── csv-import.json
+│       │   │           ├── dashboard.json
+│       │   │           ├── errors.json
+│       │   │           ├── investments.json
+│       │   │           ├── navigation.json
+│       │   │           ├── performance.json
+│       │   │           ├── portfolio-setup.json
+│       │   │           ├── portfolioSettings.json
+│       │   │           ├── reports.json
+│       │   │           ├── securities.json
+│       │   │           ├── settings.json
+│       │   │           ├── switcher.json
+│       │   │           ├── transactions.json
+│       │   │           ├── userSettings.json
+│       │   │           ├── watchlists.json
+│       │   │           └── welcome.json
 │       │   ├── context/
-│       │   │   ├── privacy-context.tsx         # Privacy mode (blur amounts)
-│       │   │   └── widget-config-context.tsx   # Widget period overrides + dashboard state
+│       │   │   ├── PortfolioContext.tsx        # Active portfolio metadata + reference accounts
+│       │   │   ├── privacy-context.tsx
+│       │   │   ├── widget-config-context.tsx
+│       │   │   └── analytics-context.tsx
 │       │   ├── hooks/
 │       │   │   ├── use-theme.ts
-│       │   │   ├── use-chart-colors.ts         # Theme-aware chart palette (reads CSS vars at runtime)
-│       │   │   ├── use-chart-theme.ts          # Centralized chart grid/axis/cursor styling tokens
-│       │   │   ├── useColumnDnd.ts              # Column drag-and-drop reordering (@dnd-kit)
+│       │   │   ├── use-base-currency.ts
+│       │   │   ├── use-chart-colors.ts
+│       │   │   ├── use-chart-theme.ts
+│       │   │   ├── useColumnDnd.ts
 │       │   │   ├── useColumnVisibility.ts
-│       │   │   ├── use-debounce.ts             # Generic debounce hook (used by search)
+│       │   │   ├── use-crosshair-values.ts
+│       │   │   ├── use-debounce.ts
 │       │   │   ├── use-display-preferences.ts
-│       │   │   ├── useInvestmentsColumns.tsx   # Column definitions + performance columns
-│       │   │   ├── useSecurityDrawerData.ts    # Data fetching for SecurityDrawer
+│       │   │   ├── useDocumentTitle.ts
+│       │   │   ├── use-guarded-submit.ts       # Save-button re-entry guard (BUG-141/145)
+│       │   │   ├── useInvestmentsColumns.tsx
 │       │   │   ├── use-language.ts
+│       │   │   ├── use-lightweight-chart.ts
+│       │   │   ├── useSecurityDrawerData.ts
+│       │   │   ├── use-unsaved-changes-guard.ts
 │       │   │   ├── use-widget-calculation.ts
 │       │   │   ├── use-widget-chart-calculation.ts
-│       │   │   ├── use-unsaved-changes-guard.ts # Dirty-state guard: intercepts Sheet close when isDirty
+│       │   │   ├── use-widget-invested-capital.ts
 │       │   │   └── use-widget-kpi-meta.ts
 │       │   └── lib/
-│       │       ├── formatters.ts           # Currency, dates, percentages (uses i18n.language)
-│       │       ├── colors.ts              # getColor(), getValueColorStyle(), COLORS proxy (reads CSS vars)
-│       │       ├── utils.ts               # cn(), txTypeKey(), helpers
-│       │       ├── privacy.ts             # maskCurrency(), maskShares()
-│       │       ├── transaction-display.ts # getTransactionCashflowSign() (context-aware)
-│       │       ├── transaction-payload.ts # Build transaction payloads for API mutations
-│       │       ├── period-utils.ts        # DEFAULT_PERIODS, formatPeriodLabel, getPeriodId, ALL_PERIOD_ID
-│       │       ├── calculation-rows.ts    # Calculation tab row helpers
-│       │       ├── chart-formatters.ts    # Chart axis/tooltip formatters
-│       │       ├── currencies.ts
-│       │       ├── data-series-utils.ts   # Resolve data series to API query params
-│       │       ├── drag-utils.ts          # Drag-and-drop utility helpers
+│       │       ├── formatters.ts               # i18n-aware number/date/currency
+│       │       ├── colors.ts                   # Reads CSS vars; Flexoki fallbacks
+│       │       ├── utils.ts                    # cn(), txTypeKey(), helpers
 │       │       ├── enums.ts
-│       │       ├── metric-registry.ts
-│       │       ├── widget-registry.ts     # Widget type registry for dashboard
-│       │       ├── pagination.ts
+│       │       ├── currencies.ts
+│       │       ├── privacy.ts
+│       │       ├── period-utils.ts
+│       │       ├── router-helpers.ts           # appendSearch (RedirectWithSearch — BUG-08)
+│       │       ├── portfolio-recency.ts
+│       │       ├── portfolio-switch-route.ts
+│       │       ├── transaction-display.ts
+│       │       ├── transaction-payload.ts
+│       │       ├── chart-formatters.ts
+│       │       ├── chart-series-factory.ts
+│       │       ├── chart-types.ts
+│       │       ├── calculation-rows.ts
+│       │       ├── data-series-utils.ts
+│       │       ├── dashboard-templates.ts
+│       │       ├── drag-utils.ts
+│       │       ├── fx-utils.ts
 │       │       ├── image-utils.ts
-│       │       ├── table-sort-functions.ts # Sort functions with nulls-last (numeric, date, string, boolean, decimalJs)
-│       │       ├── column-factories.tsx    # Column type factories (numeric, currency, percent, date, shares, text, boolean)
-│       │       ├── table-export.ts        # CSV export utility (buildCsvContent, exportTableToCSV)
-│       │       └── security-completeness.ts # Completeness indicator rules (no-taxonomy, no-feed, no-isin, retired)
+│       │       ├── metric-registry.ts
+│       │       ├── widget-registry.ts
+│       │       ├── pagination.ts
+│       │       ├── security-completeness.ts
+│       │       ├── table-export.ts
+│       │       ├── table-sort-functions.ts
+│       │       ├── column-factories.tsx
+│       │       ├── taxonomy-cascade.ts
+│       │       └── taxonomy-flatten.ts
 │       ├── package.json
 │       └── tsconfig.json
 │
-├── scripts/                        # Governance & automation scripts
-│   ├── check-architecture.ts       # Dependency boundaries, export check
-│   ├── check-docs-alignment.sh     # Verify doc↔code alignment
-│   ├── check-governance.ts         # Doc↔code consistency, reference enforcement
-│   ├── ci.sh                       # CI pipeline script
-│   ├── preflight.sh                # Session start checks
-│   ├── postflight.sh               # Session end checks + CHANGELOG
+├── eslint-rules/                   # Custom ESLint rules (governance)
+│   ├── no-portfolio-scope-module-state.mjs   # ADR-016
+│   └── no-unscoped-portfolio-api.mjs
+│
+├── scripts/                        # Governance & automation
+│   ├── check-architecture.ts       # A1–A9 dependency boundaries
+│   ├── check-governance.ts         # G1–G14 doc↔code consistency, upstream-ref ban, service-layer
+│   ├── check-docs-alignment.sh
+│   ├── ci.sh
+│   ├── preflight.sh
+│   ├── postflight.sh
+│   ├── seed-demo.ts                # Seeds data/demo.db template
 │   └── generate-changelog-entry.sh
 │
-├── data/                           # Mounted as Docker volume (portfolio.db not committed)
+├── tests/
+│   └── golden-dataset/             # Cross-package fixtures (audit suites consume these)
+│
+├── data/                           # Docker volume — portfolio.db, demo.db, portfolios.json (gitignored)
 │
 └── docs/                           # Project documentation
     ├── architecture/               # Architecture documentation (this directory)
-    └── adr/                        # Architecture Decision Records
+    ├── adr/                        # Architecture Decision Records (ADR-001…ADR-016)
+    ├── release-notes/              # Public release notes
+    ├── screenshots/                # Marketing screenshots referenced by README
+    ├── audit/                      # Read-path / write-path / regression audit specs (gitignored)
+    ├── pp-reference/               # PP business-logic reference (gitignored)
+    ├── pp-verified/                # Behavior-verification notes (gitignored)
+    └── superpowers/specs/          # Feature/bug TDD specs (gitignored)
 ```

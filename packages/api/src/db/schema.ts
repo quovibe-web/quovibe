@@ -1,3 +1,11 @@
+// Drizzle ORM view of the schema. Hand-maintained.
+//
+// DDL source of truth is `packages/api/src/db/bootstrap.sql` (ADR-015) — this
+// file mirrors it for the ORM/typing layer only. Parity is enforced at
+// merge-time by `bootstrap-parity.test.ts` (Gate 2): any column added/removed
+// here without the matching change in `bootstrap.sql` (or the
+// `VENDOR_COLUMN_PATCHES` map in `apply-bootstrap.ts` for vendor tables) will
+// fail CI. Never add `CREATE TABLE` / `ALTER` outside those two locations.
 import {
   sqliteTable, text, integer, primaryKey,
 } from 'drizzle-orm/sqlite-core';
