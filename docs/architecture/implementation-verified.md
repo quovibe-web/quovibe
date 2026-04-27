@@ -55,7 +55,7 @@ must be added here to pass the automated check.
 
 | Method | Tables written | Audit status |
 |--------|---------------|--------------|
-| `startFxScheduler` / `stopFxScheduler` | (none directly — schedules `fetchAllExchangeRates` ticks) | Verified (per-portfolio timer; cadence = next 17:00 Europe/Berlin or +6h cap; demo portfolios skipped; closure-local ownership guard against stop+restart races). |
+| `startFxScheduler` / `stopFxScheduler` | (none directly — schedules `fetchAllExchangeRates` ticks) | Verified (per-portfolio timer; cadence = next 17:00 Europe/Berlin or +6h cap; eager-fires `fetchAllExchangeRates` once on first start per portfolio per process — mirrors PP `StartupAddon.update`-then-`schedule` order; pool reopen skips eager via process-scope dedup Set; demo portfolios skipped; closure-local ownership guard against stop+restart races). |
 
 ## import.service.ts
 

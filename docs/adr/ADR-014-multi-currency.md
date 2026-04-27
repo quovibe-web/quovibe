@@ -130,11 +130,15 @@ fetchSinglePairOnDemand()            ← lazy-fill path on GET miss
 
 The scheduler lives in `packages/api/src/services/fx-scheduler.service.ts`. It
 hooks into the `portfolio-db-pool` lifecycle: `setOnOpened` arms a per-portfolio
-timer; `setOnEvicted` clears it. Demo portfolios are skipped (their seeded
-random walk would be visibly clobbered by live ECB rates at the seam). There
-is no manual "Update FX" button — ECB is free, unlimited, and the 17:00 anchor
-matches its publish window. PP's `StartupAddon.UpdateExchangeRatesJob` uses
-the same cadence formula.
+timer; `setOnEvicted` clears it. On the FIRST open of a real portfolio per
+process, the scheduler also eager-fires `fetchAllExchangeRates` once before
+arming the cadence tick — mirrors PP's `StartupAddon` ordering
+(`provider.update` runs before `Job.schedule(delay)`). A process-scope dedup
+Set ensures pool eviction + reopen does NOT re-run the eager fetch; the
+scheduled tick handles freshness from then on. Demo portfolios are skipped
+entirely (their seeded random walk would be visibly clobbered by live ECB
+rates at the seam). There is no manual "Update FX" button — ECB is free,
+unlimited, and the 17:00 anchor matches its publish window.
 
 **Key characteristics**:
 
