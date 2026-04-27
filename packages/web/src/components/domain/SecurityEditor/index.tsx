@@ -90,6 +90,7 @@ export function SecurityEditor({
   // because reading it at save time never needs to drive a re-render.
   const initialLogoValueRef = useRef<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const inFlightRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -179,12 +180,17 @@ export function SecurityEditor({
   }
 
   async function handleSave() {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+
     if (!masterData.name.trim()) {
       setError(t('securityEditor.nameRequired'));
+      inFlightRef.current = false;
       return;
     }
     if (!masterData.currency.trim()) {
       setError(t('securityEditor.currencyRequired'));
+      inFlightRef.current = false;
       return;
     }
 
@@ -197,6 +203,7 @@ export function SecurityEditor({
     for (const [, sum] of byTaxonomy) {
       if (sum > 10000) {
         setError(t('taxonomies.weightSumError'));
+        inFlightRef.current = false;
         return;
       }
     }
@@ -286,6 +293,7 @@ export function SecurityEditor({
       setError(e instanceof Error ? e.message : t('securityEditor.saveError'));
     } finally {
       setSaving(false);
+      inFlightRef.current = false;
     }
   }
 
