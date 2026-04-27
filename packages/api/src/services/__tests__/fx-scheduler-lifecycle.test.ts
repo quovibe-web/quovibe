@@ -86,7 +86,7 @@ describe('stopFxScheduler', () => {
   test('stop+restart during in-flight fetch does not clobber the new timer', async () => {
     const { fetchAllExchangeRates } = await import('../fx-fetcher.service');
     let resolveFetch: () => void = () => {};
-    (fetchAllExchangeRates as ReturnType<typeof vi.fn>).mockImplementationOnce(
+    vi.mocked(fetchAllExchangeRates).mockImplementationOnce(
       () => new Promise<{ results: never[]; totalFetched: number; duration: number }>((r) => {
         resolveFetch = () => r({ results: [], totalFetched: 0, duration: 0 });
       }),
@@ -101,9 +101,9 @@ describe('stopFxScheduler', () => {
     const sizeAfterRestart = _schedulerStateForTests().size;
     resolveFetch(); // unblock the in-flight fetch; its .finally must NOT clobber the new timer
     await vi.runOnlyPendingTimersAsync();
-
-    // The post-resolve state should still be exactly 1 entry — the old tick's
-    // re-arm must have been suppressed by the identity check.
+    // Guard intact = exactly 2 fetches (tick_A + self_B); a leaked re-arm
+    // from tick_A's .finally would push this to 3.
+    expect(fetchAllExchangeRates).toHaveBeenCalledTimes(2);
     expect(_schedulerStateForTests().size).toBe(sizeAfterRestart);
   });
 });
