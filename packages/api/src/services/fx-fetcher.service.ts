@@ -228,3 +228,31 @@ export async function fetchAllExchangeRates(
 
   return { results, totalFetched, duration: Date.now() - start };
 }
+
+/**
+ * On-demand single-pair fetch for the lazy-fill flow on GET /exchange-rates.
+ * Tries ECB cross-rate first (one HTTP fetch), then Yahoo `${from}${to}=X` as
+ * fallback. Saves every returned date+rate to vf_exchange_rate so subsequent
+ * lookups for any same-pair date hit the cache.
+ *
+ * Returns void: the route handler re-runs getRate() after the cache write,
+ * which centralizes the date-resolution + forward-fill semantics. No-op when
+ * both upstreams returned no data for the pair (the route handler then
+ * surfaces the legitimate 404 to the client).
+ */
+export async function fetchSinglePairOnDemand(
+  sqlite: BetterSqlite3.Database,
+  from: string,
+  to: string,
+): Promise<void> {
+  const ecb = await fetchAllPairsFromEcb(from, [to]);
+  let rates = ecb.get(to) ?? [];
+
+  if (rates.length === 0) {
+    rates = await fetchFromYahoo(from, to);
+  }
+
+  if (rates.length === 0) return;
+
+  saveRates(sqlite, from, to, rates);
+}

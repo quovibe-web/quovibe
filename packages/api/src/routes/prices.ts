@@ -1,7 +1,7 @@
 import { Router, type Router as RouterType, type RequestHandler } from 'express';
 import { fetchExchangeRatesSchema } from '@quovibe/shared';
 import { getRate } from '../services/fx.service';
-import { fetchAllExchangeRates } from '../services/fx-fetcher.service';
+import { fetchAllExchangeRates, fetchSinglePairOnDemand } from '../services/fx-fetcher.service';
 import { fetchAllPrices } from '../services/prices.service';
 import { getSqlite, getPortfolioId, isDemoPortfolio } from '../helpers/request';
 
@@ -33,7 +33,7 @@ const fetchAll: RequestHandler = async (req, res) => {
   }
 };
 
-const getExchangeRate: RequestHandler = (req, res) => {
+const getExchangeRate: RequestHandler = async (req, res) => {
   const { from, to, date } = req.query as Record<string, string>;
 
   if (!from || !to || !date) {
@@ -42,7 +42,12 @@ const getExchangeRate: RequestHandler = (req, res) => {
   }
 
   const sqlite = getSqlite(req);
-  const rate = getRate(sqlite, from, to, date);
+  let rate = getRate(sqlite, from, to, date);
+
+  if (rate === null && !isDemoPortfolio(req)) {
+    await fetchSinglePairOnDemand(sqlite, from, to);
+    rate = getRate(sqlite, from, to, date);
+  }
 
   if (rate === null) {
     res.status(404).json({ error: `No rate found for ${from}/${to} on ${date}` });
