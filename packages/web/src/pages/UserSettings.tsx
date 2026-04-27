@@ -23,11 +23,10 @@ import { usePrivacy } from '@/context/privacy-context';
 import { useLanguage, type LanguageCode } from '@/hooks/use-language';
 import { cn } from '@/lib/utils';
 
-type AppFlagKey = 'autoFetchPricesOnFirstOpen' | 'autoFetchFxOnFirstOpen';
+type AppFlagKey = 'autoFetchPricesOnFirstOpen';
 
 const APP_FLAG_ROUTE: Record<AppFlagKey, string> = {
   autoFetchPricesOnFirstOpen: '/api/settings/auto-fetch',
-  autoFetchFxOnFirstOpen: '/api/settings/auto-fetch-fx',
 };
 
 type SettingsResponse = Pick<QuovibeSettings, 'preferences' | 'app'>;
@@ -101,7 +100,6 @@ export default function UserSettings() {
   const [showPaSuffix, setShowPaSuffix] = useState(true);
   const [appFlags, setAppFlags] = useState<Record<AppFlagKey, boolean>>({
     autoFetchPricesOnFirstOpen: false,
-    autoFetchFxOnFirstOpen: false,
   });
 
   const [savedField, setSavedField] = useState<string | null>(null);
@@ -115,7 +113,6 @@ export default function UserSettings() {
         setShowPaSuffix(s.preferences.showPaSuffix ?? true);
         setAppFlags({
           autoFetchPricesOnFirstOpen: s.app.autoFetchPricesOnFirstOpen ?? false,
-          autoFetchFxOnFirstOpen: s.app.autoFetchFxOnFirstOpen ?? false,
         });
       })
       .catch(() => { /* keep defaults */ });
@@ -350,17 +347,6 @@ export default function UserSettings() {
           <Switch
             checked={appFlags.autoFetchPricesOnFirstOpen}
             onCheckedChange={(v) => void saveAppFlag('autoFetchPricesOnFirstOpen', v)}
-          />
-        </SettingRow>
-
-        <SettingRow
-          label={tUser('updates.autoFetchFxLabel')}
-          description={tUser('updates.autoFetchFxHint')}
-          saved={savedField === 'autoFetchFxOnFirstOpen'}
-        >
-          <Switch
-            checked={appFlags.autoFetchFxOnFirstOpen}
-            onCheckedChange={(v) => void saveAppFlag('autoFetchFxOnFirstOpen', v)}
           />
         </SettingRow>
       </section>
