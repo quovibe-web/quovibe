@@ -8,6 +8,7 @@ import { fetchAllExchangeRates, getBaseCurrency, hasForeignCurrencies } from './
 
 // quovibe:allow-module-state — one-shot-per-portfolio auto-fetch dedup; keyed by portfolio id, no data held (ADR-016).
 const fetchedInProcess = new Set<string>();
+// quovibe:allow-module-state — one-shot-per-portfolio FX auto-fetch dedup; keyed by portfolio id, no data held (ADR-016).
 const fetchedFxInProcess = new Set<string>();
 const STALE_MS = 12 * 60 * 60 * 1000;        // 12 hours
 
