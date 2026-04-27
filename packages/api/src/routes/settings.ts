@@ -240,9 +240,9 @@ settingsRouter.delete('/table-layouts/:tableId', (req, res) => {
   res.json({ ok: true });
 });
 
-// PUT /api/settings/auto-fetch{,-fx} — toggle a single boolean app flag.
-// Body shape: { [key]: boolean }; response echoes the same shape.
-function makeAppFlagPut<K extends 'autoFetchPricesOnFirstOpen' | 'autoFetchFxOnFirstOpen'>(
+// PUT /api/settings/auto-fetch — toggle the prices auto-fetch app flag.
+// Body shape: { autoFetchPricesOnFirstOpen: boolean }; response echoes the same shape.
+function makeAppFlagPut<K extends 'autoFetchPricesOnFirstOpen'>(
   key: K,
 ): RequestHandler {
   const schema = z.object({ [key]: z.boolean() } as Record<K, z.ZodBoolean>);
@@ -258,4 +258,3 @@ function makeAppFlagPut<K extends 'autoFetchPricesOnFirstOpen' | 'autoFetchFxOnF
 }
 
 settingsRouter.put('/auto-fetch', makeAppFlagPut('autoFetchPricesOnFirstOpen'));
-settingsRouter.put('/auto-fetch-fx', makeAppFlagPut('autoFetchFxOnFirstOpen'));
