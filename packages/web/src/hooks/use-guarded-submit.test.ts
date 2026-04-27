@@ -7,7 +7,7 @@ describe('useGuardedSubmit', () => {
   it('coalesces N concurrent calls into a single handler invocation', async () => {
     let resolveHandler: () => void = () => {};
     const handlerPromise = new Promise<void>((r) => { resolveHandler = r; });
-    const handler = vi.fn<[], Promise<void>>(() => handlerPromise);
+    const handler = vi.fn<() => Promise<void>>(() => handlerPromise);
 
     const { result } = renderHook(() => useGuardedSubmit(handler));
 
@@ -37,7 +37,7 @@ describe('useGuardedSubmit', () => {
   });
 
   it('allows sequential calls after the previous run settles', async () => {
-    const handler = vi.fn<[], Promise<void>>(async () => {});
+    const handler = vi.fn<() => Promise<void>>(async () => {});
 
     const { result } = renderHook(() => useGuardedSubmit(handler));
 
@@ -55,7 +55,7 @@ describe('useGuardedSubmit', () => {
   });
 
   it('rethrows handler errors and resets inFlight in finally', async () => {
-    const handler = vi.fn<[], Promise<void>>(async () => {
+    const handler = vi.fn<() => Promise<void>>(async () => {
       throw new Error('boom');
     });
 
@@ -74,7 +74,7 @@ describe('useGuardedSubmit', () => {
 
     let resolveHandler: () => void = () => {};
     const handlerPromise = new Promise<void>((r) => { resolveHandler = r; });
-    const handler = vi.fn<[], Promise<void>>(() => handlerPromise);
+    const handler = vi.fn<() => Promise<void>>(() => handlerPromise);
 
     const { result, unmount } = renderHook(() => useGuardedSubmit(handler));
 
