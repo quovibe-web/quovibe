@@ -102,14 +102,12 @@ The naming convention confirms intent — the `vf_` prefix (seen in the `extensi
 **Data flow**:
 
 ```
-[User clicks "Update Exchange Rates" in Settings]
-[OR: auto-triggered on import / startup]
-       │
-       ▼
-POST /api/prices/fetch-exchange-rates
+[Per-portfolio FX scheduler — fires at next 17:00 Europe/Berlin or +6h cap, whichever sooner]
+[OR: lazy-fill on GET /api/prices/exchange-rates cache miss]
        │
        ▼
 fetchAllExchangeRates()              ← auto-detects currencies from security + account tables
+fetchSinglePairOnDemand()            ← lazy-fill path on GET miss
        │
        ├── fetchFromEcb()            ← primary source (ECB XML, EUR-based rates)
        │        or
@@ -129,6 +127,14 @@ fetchAllExchangeRates()              ← auto-detects currencies from security +
    benchmark.service.ts              ← benchmark index price conversion
    accounts.service.ts               ← deposit account balance conversion
 ```
+
+The scheduler lives in `packages/api/src/services/fx-scheduler.service.ts`. It
+hooks into the `portfolio-db-pool` lifecycle: `setOnOpened` arms a per-portfolio
+timer; `setOnEvicted` clears it. Demo portfolios are skipped (their seeded
+random walk would be visibly clobbered by live ECB rates at the seam). There
+is no manual "Update FX" button — ECB is free, unlimited, and the 17:00 anchor
+matches its publish window. PP's `StartupAddon.UpdateExchangeRatesJob` uses
+the same cadence formula.
 
 **Key characteristics**:
 

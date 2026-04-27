@@ -48,7 +48,14 @@ must be added here to pass the automated check.
 
 | Method | Tables written | Audit status |
 |--------|---------------|--------------|
-| `fetchAllExchangeRates` | vf_exchange_rate | Verified (single ECB XML fetch covering every foreign currency, per-currency Yahoo fallback) |
+| `fetchAllExchangeRates` | vf_exchange_rate | Verified (single ECB XML fetch covering every foreign currency, per-currency Yahoo fallback). Called by `fx-scheduler.service.ts` ticks. |
+| `fetchSinglePairOnDemand` | vf_exchange_rate | Verified (lazy-fill on `GET /api/p/:pid/prices/exchange-rates` cache miss; ECB cross-rate then Yahoo fallback). |
+
+## fx-scheduler.service.ts
+
+| Method | Tables written | Audit status |
+|--------|---------------|--------------|
+| `startFxScheduler` / `stopFxScheduler` | (none directly — schedules `fetchAllExchangeRates` ticks) | Verified (per-portfolio timer; cadence = next 17:00 Europe/Berlin or +6h cap; demo portfolios skipped; closure-local ownership guard against stop+restart races). |
 
 ## import.service.ts
 

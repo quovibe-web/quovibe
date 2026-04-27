@@ -207,6 +207,7 @@ quovibe/
 │   │   │   │   ├── data-series.service.ts
 │   │   │   │   ├── fx.service.ts
 │   │   │   │   ├── fx-fetcher.service.ts
+│   │   │   │   ├── fx-scheduler.service.ts       # Per-portfolio FX refresh (next 17 CET / 6h cap)
 │   │   │   │   ├── import.service.ts           # ppxml2db orchestration + lock + sanitization
 │   │   │   │   ├── import-validation.ts
 │   │   │   │   ├── logo-resolver.service.ts
