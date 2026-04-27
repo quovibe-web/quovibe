@@ -6,8 +6,6 @@
   "updates": {
     "title": "Aktualizacje",
     "autoFetchLabel": "Automatycznie aktualizuj kursy przy pierwszym otwarciu każdego portfela",
-    "autoFetchHint": "Domyślnie wyłączone, aby uniknąć zużywania limitu API Yahoo / AlphaVantage podczas restartów kontenera. Włącz, jeśli chcesz świeże kursy przy każdym otwarciu portfela w nowym procesie.",
-    "autoFetchFxLabel": "Automatycznie aktualizuj kursy walut przy pierwszym otwarciu każdego portfela",
-    "autoFetchFxHint": "Domyślnie wyłączone. Po włączeniu kursy walut obcych są odświeżane z EBC (z Yahoo jako zapasowym źródłem) przy pierwszym otwarciu portfela po restarcie serwera, jeśli kursy w pamięci podręcznej są nieobecne lub starsze niż wczoraj."
+    "autoFetchHint": "Domyślnie wyłączone, aby uniknąć zużywania limitu API Yahoo / AlphaVantage podczas restartów kontenera. Włącz, jeśli chcesz świeże kursy przy każdym otwarciu portfela w nowym procesie."
   }
 }

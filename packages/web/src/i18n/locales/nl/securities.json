@@ -13,8 +13,6 @@
     "edit": "Bewerken",
     "updatePrices": "Alle koersen bijwerken",
     "updating": "Bijwerken…",
-    "updateFx": "Wisselkoersen bijwerken",
-    "updatingFx": "Wisselkoersen bijwerken…",
     "refreshQuote": "Koers vernieuwen",
     "refreshing": "Bijwerken…",
     "addInstrument": "+ Instrument toevoegen",
@@ -22,7 +20,6 @@
   },
   "updateResults": {
     "pricesUpdated": "koersen bijgewerkt",
-    "fxUpdated": "wisselkoersen bijgewerkt",
     "errors": "fouten",
     "failedSecurities": "{{count}} effecten mislukt:"
   },

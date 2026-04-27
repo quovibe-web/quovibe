@@ -13,8 +13,6 @@
     "edit": "Edit",
     "updatePrices": "Update All Prices",
     "updating": "Updating…",
-    "updateFx": "Update FX Rates",
-    "updatingFx": "Updating FX…",
     "refreshQuote": "Refresh Quote",
     "refreshing": "Refreshing…",
     "addInstrument": "+ Add Instrument",
@@ -22,7 +20,6 @@
   },
   "updateResults": {
     "pricesUpdated": "prices updated",
-    "fxUpdated": "exchange rates updated",
     "errors": "errors",
     "failedSecurities": "{{count}} securities failed:"
   },

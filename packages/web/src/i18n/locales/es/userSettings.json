@@ -6,8 +6,6 @@
   "updates": {
     "title": "Actualizaciones",
     "autoFetchLabel": "Actualizar precios automáticamente al abrir cada cartera por primera vez",
-    "autoFetchHint": "Desactivado por defecto para evitar consumir la cuota de API de Yahoo / AlphaVantage en reinicios de contenedor. Actívalo si deseas precios actualizados cada vez que abres una cartera en un nuevo proceso.",
-    "autoFetchFxLabel": "Actualizar tipos de cambio automáticamente al abrir cada cartera por primera vez",
-    "autoFetchFxHint": "Desactivado por defecto. Si está activado, los tipos de cambio para divisas extranjeras se actualizan desde el BCE (con Yahoo como respaldo) la primera vez que abres una cartera tras un reinicio del servidor, si los tipos en caché faltan o son anteriores a ayer."
+    "autoFetchHint": "Desactivado por defecto para evitar consumir la cuota de API de Yahoo / AlphaVantage en reinicios de contenedor. Actívalo si deseas precios actualizados cada vez que abres una cartera en un nuevo proceso."
   }
 }

@@ -6,8 +6,6 @@
   "updates": {
     "title": "Mises à jour",
     "autoFetchLabel": "Actualiser automatiquement les cours à la première ouverture de chaque portefeuille",
-    "autoFetchHint": "Désactivé par défaut pour éviter d'utiliser le quota API de Yahoo / AlphaVantage lors des redémarrages du conteneur. Activez cette option si vous souhaitez des cours à jour à chaque ouverture d'un portefeuille dans un nouveau processus.",
-    "autoFetchFxLabel": "Actualiser automatiquement les taux de change à la première ouverture de chaque portefeuille",
-    "autoFetchFxHint": "Désactivé par défaut. S'il est activé, les taux de change des devises étrangères sont actualisés depuis la BCE (avec Yahoo en repli) à la première ouverture d'un portefeuille après un redémarrage du serveur, si les taux en cache sont absents ou antérieurs à hier."
+    "autoFetchHint": "Désactivé par défaut pour éviter d'utiliser le quota API de Yahoo / AlphaVantage lors des redémarrages du conteneur. Activez cette option si vous souhaitez des cours à jour à chaque ouverture d'un portefeuille dans un nouveau processus."
   }
 }
