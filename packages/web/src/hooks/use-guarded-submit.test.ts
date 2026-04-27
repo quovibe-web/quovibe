@@ -102,4 +102,25 @@ describe('useGuardedSubmit', () => {
 
     errorSpy.mockRestore();
   });
+
+  it('rejects sync handlers at the type level', () => {
+    // Compile-time contract: handler MUST return Promise<void>. A sync handler
+    // returning a string is a TS error. The @ts-expect-error directive below
+    // documents and locks the contract — if a future refactor relaxes the
+    // generic, this directive will start erroring (because the line WOULD
+    // typecheck) and the typecheck stage will fail.
+    function _typeCheck() {
+      // @ts-expect-error sync return type must be rejected
+      useGuardedSubmit((v: string) => v);
+    }
+    void _typeCheck;
+
+    const { result } = renderHook(() =>
+      useGuardedSubmit(async (v: string) => {
+        void v;
+      }),
+    );
+    expect(typeof result.current.run).toBe('function');
+    expect(typeof result.current.inFlight).toBe('boolean');
+  });
 });

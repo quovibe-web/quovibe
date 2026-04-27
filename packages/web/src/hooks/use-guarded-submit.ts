@@ -14,6 +14,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  *    `await mutateAsync(...)`.
  *  - Errors thrown by `handler` are re-thrown out of `run` so the caller's
  *    existing try/catch (or React Query's `onError`) keeps working.
+ *  - The internal `useCallback` dep on `handler` means an inline arrow
+ *    `async (v) => mutateAsync(v)` recreates `run` every render. Harmless
+ *    for one-shot Save buttons; if you ever put `run` into a dep array,
+ *    wrap the handler in `useCallback` at the call site.
  *  - `inFlight` is reactive React state suitable for the button `disabled`
  *    prop. The race-closing guard is the internal `useRef(false)`, not the
  *    React state.
@@ -28,12 +32,12 @@ export function useGuardedSubmit<TArgs extends unknown[]>(
   const mountedRef = useRef(true);
   const [inFlight, setInFlight] = useState(false);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
       mountedRef.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
 
   const run = useCallback(
     async (...args: TArgs) => {
