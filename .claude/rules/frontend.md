@@ -180,6 +180,35 @@ Pure form-side schemas live next to the component as `*-form.schema.ts` and
 have their own vitest coverage; they are NOT in `@quovibe/shared` (which is
 wire-schema territory and must remain I/O- and view-free).
 
+### Save-button re-entry guard
+
+Every form Save handler that fires a mutation MUST wrap through
+`useGuardedSubmit` from `@/hooks/use-guarded-submit`. The wrapped handler
+MUST be `async` and MUST `await mutateAsync(...)` (NOT `mutate(...)`
+fire-and-forget) — the synchronous re-entry guard only covers the handler's
+own promise. `mutate()` returns synchronously, so a fire-and-forget call
+slips through and the second click of a rapid double-click fires a duplicate
+request.
+
+Pattern:
+
+```tsx
+const { mutateAsync, isPending, error } = useCreateX();
+const { run, inFlight } = useGuardedSubmit(async (values: FormValues) => {
+  try {
+    await mutateAsync(payload(values));
+    navigate(...);
+  } catch {
+    // global MutationCache error toast handles user-visible feedback
+  }
+});
+// <Form onSubmit={run} isSubmitting={inFlight || isPending} />
+```
+
+Rationale: BUG-141 / BUG-145 are the recurring-class precedent. Class fix
+at the sanctioned hook location, not per-form `useRef(false)` copies. See
+`docs/superpowers/specs/2026-04-27-bug-145-shared-form-save-guard-design.md`.
+
 ## Themes and Colors
 - Tailwind v4 with CSS custom properties in `globals.css`.
 - **Muted indigo palette** — primary is `--color-primary` (hsl 225°), accent is `--color-chart-5` (hsl 245°). Legacy cyan/violet/gradient vars and utility classes have been removed.
