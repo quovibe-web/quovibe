@@ -121,6 +121,7 @@
   "errors.invalidFxRate": "Taxa de câmbio inválida: {{value}}",
   "errors.fxVerificationFailed": "Bruto × Taxa não corresponde ao Valor (verificação multimoeda falhou)",
   "errors.currencyMismatch": "A moeda '{{value}}' não corresponde à moeda do título",
+  "errors.insufficientShares": "Venda de mais ações do que disponíveis nesse momento",
   "errors.tempExpired": "Sessão expirada. Por favor, reenvie o arquivo.",
   "errors.importInProgress": "Outra importação está em andamento. Por favor, aguarde.",
   "errors.noFile": "Nenhum arquivo selecionado",

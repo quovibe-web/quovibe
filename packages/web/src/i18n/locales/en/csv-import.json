@@ -121,6 +121,7 @@
   "errors.invalidFxRate": "Invalid exchange rate: {{value}}",
   "errors.fxVerificationFailed": "Gross × Rate does not match Value (cross-currency check failed)",
   "errors.currencyMismatch": "Currency '{{value}}' does not match the security's currency",
+  "errors.insufficientShares": "Selling more shares than available at that point in time",
   "errors.tempExpired": "Session expired. Please re-upload the file.",
   "errors.importInProgress": "Another import is currently in progress. Please wait.",
   "errors.noFile": "No file selected",

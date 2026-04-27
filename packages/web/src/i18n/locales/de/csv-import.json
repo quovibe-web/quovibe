@@ -121,6 +121,7 @@
   "errors.invalidFxRate": "Ungültiger Wechselkurs: {{value}}",
   "errors.fxVerificationFailed": "Brutto × Kurs entspricht nicht dem Wert (Fremdwährungsprüfung fehlgeschlagen)",
   "errors.currencyMismatch": "Währung '{{value}}' stimmt nicht mit der Wertpapierwährung überein",
+  "errors.insufficientShares": "Mehr Anteile verkauft als zu diesem Zeitpunkt verfügbar",
   "errors.tempExpired": "Sitzung abgelaufen. Bitte Datei erneut hochladen.",
   "errors.importInProgress": "Ein anderer Import läuft gerade. Bitte warten.",
   "errors.noFile": "Keine Datei ausgewählt",

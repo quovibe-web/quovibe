@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   parseDate, parseNumber, normalizeTransactionType,
   ppRateToQvRate, verifyGrossRateValue,
+  autodetectCsvFormat,
   CROSS_CURRENCY_FX_TYPES, TransactionType,
   type NormalizedTradeRow, type NormalizedPriceRow,
   type RowError, type CsvParseResult, type TradePreviewResult,
@@ -14,7 +15,10 @@ import {
   type UnmatchedSecurity, type CsvDelimiter,
 } from '@quovibe/shared';
 import { parseCsvFile, parseCsvRows } from './csv-reader';
-import { mapTradeRows, type TradeMapperContext, type XactInsert, type CrossEntryInsert, type UnitInsert } from './csv-trade-mapper';
+import {
+  mapTradeRows, toSharesDb,
+  type TradeMapperContext, type XactInsert, type CrossEntryInsert, type UnitInsert,
+} from './csv-trade-mapper';
 import { mapPriceRows, type PriceInsert } from './csv-price-mapper';
 import { getRate } from '../fx.service';
 
@@ -94,6 +98,123 @@ function releaseLock(): void {
 const FX_ERROR_CODES = new Set([
   'FX_RATE_REQUIRED', 'INVALID_FX_RATE', 'FX_VERIFICATION_FAILED', 'CURRENCY_MISMATCH',
 ]);
+
+// Pre-mapping (CSV-row) type sets. SECURITY_TRANSFER is treated as outflow:
+// the row's source portfolio = `accountId`, the row's `crossAccountId` is the
+// destination — auditing the destination would need a symmetric pass and is
+// out of scope today.
+const SHARES_INFLOW_TYPES = new Set<TransactionType>([
+  TransactionType.BUY,
+  TransactionType.DELIVERY_INBOUND,
+]);
+const SHARES_OUTFLOW_TYPES = new Set<TransactionType>([
+  TransactionType.SELL,
+  TransactionType.DELIVERY_OUTBOUND,
+  TransactionType.SECURITY_TRANSFER,
+]);
+
+// Post-mapping (xact-row) type sets. SECURITY_TRANSFER is decomposed by
+// `csv-trade-mapper.ts` Group D into TRANSFER_OUT / TRANSFER_IN xact rows,
+// so the SQL CASE that audits existing holdings keys on the post-mapping
+// names instead of the pre-mapping enum.
+const DB_INFLOW_TYPE_LITERALS = ['BUY', 'TRANSFER_IN', 'DELIVERY_INBOUND'] as const;
+const DB_OUTFLOW_TYPE_LITERALS = ['SELL', 'TRANSFER_OUT', 'DELIVERY_OUTBOUND'] as const;
+
+// Walks `rows` in chronological order (date asc, then rowNumber asc as
+// tie-breaker), maintaining a running shares balance per security at the
+// target portfolio. Outflow rows whose required shares exceed the running
+// balance get an INSUFFICIENT_SHARES error; their delta is NOT applied so a
+// single bad SELL doesn't poison subsequent unrelated rows. Pending-new
+// securities (sentinel-mapped) skip the gate — caller re-runs at execute
+// once the security UUID exists.
+function checkInventoryFeasibility(
+  sqlite: BetterSqlite3.Database,
+  rows: NormalizedTradeRow[],
+  securityMap: Map<string, string>,
+  portfolioId: string,
+  pendingSentinel: string | null,
+): RowError[] {
+  const errors: RowError[] = [];
+
+  const touched = new Set<string>();
+  for (const row of rows) {
+    const txType = row.type as TransactionType;
+    if (!SHARES_INFLOW_TYPES.has(txType) && !SHARES_OUTFLOW_TYPES.has(txType)) continue;
+    if (!row.securityName) continue;
+    const secId = securityMap.get(row.securityName);
+    if (!secId) continue;
+    if (pendingSentinel && secId === pendingSentinel) continue;
+    touched.add(secId);
+  }
+
+  if (touched.size === 0) return errors;
+
+  const secPlaceholders = Array.from(touched).map(() => '?').join(','); // native-ok
+  const inflowList = DB_INFLOW_TYPE_LITERALS.map((t) => `'${t}'`).join(',');
+  const outflowList = DB_OUTFLOW_TYPE_LITERALS.map((t) => `'${t}'`).join(',');
+  const balanceRows = sqlite.prepare(
+    `SELECT security, COALESCE(SUM(CASE
+       WHEN type IN (${inflowList}) THEN shares
+       WHEN type IN (${outflowList}) THEN -shares
+       ELSE 0
+     END), 0) AS net_shares
+     FROM xact
+     WHERE account = ? AND security IN (${secPlaceholders})
+     GROUP BY security`,
+  ).all(portfolioId, ...touched) as Array<{ security: string; net_shares: number }>;
+
+  const balance = new Map<string, number>();
+  for (const id of touched) balance.set(id, 0);
+  for (const r of balanceRows) balance.set(r.security, r.net_shares);
+
+  // Same-date BUY-then-SELL is intuitively read in CSV order; reversing
+  // would reject valid same-day round trips.
+  const sorted = [...rows].sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1; // native-ok
+    return a.rowNumber - b.rowNumber; // native-ok
+  });
+
+  for (const row of sorted) {
+    const txType = row.type as TransactionType;
+    const isOutflow = SHARES_OUTFLOW_TYPES.has(txType);
+    if (!isOutflow && !SHARES_INFLOW_TYPES.has(txType)) continue;
+    if (!row.securityName) continue;
+    const secId = securityMap.get(row.securityName);
+    if (!secId) continue;
+    if (pendingSentinel && secId === pendingSentinel) continue;
+    if (row.shares == null || row.shares <= 0) continue; // mapper handles MISSING_SHARES
+
+    const sharesDb = toSharesDb(row.shares);
+    const current = balance.get(secId) ?? 0;
+
+    if (isOutflow && sharesDb > current) {
+      errors.push({
+        row: row.rowNumber,
+        column: 'shares',
+        value: String(row.shares),
+        code: 'INSUFFICIENT_SHARES',
+        message: 'csvImport.errors.insufficientShares',
+      });
+      continue;
+    }
+    balance.set(secId, current + (isOutflow ? -sharesDb : sharesDb));
+  }
+
+  return errors;
+}
+
+// Throws a CsvImportError when any error in `errors` matches `match`. Mirrors
+// the FX / inventory hard-abort symmetry — both gates need find + count + throw,
+// only the predicate and the emitted code differ.
+function abortIfMatch(
+  errors: RowError[],
+  match: (e: RowError) => boolean,
+  code: string,
+  msg: (n: number) => string,
+): void {
+  const hits = errors.filter(match);
+  if (hits.length > 0) throw new CsvImportError(code, msg(hits.length));
+}
 
 interface ParseTradeOpts {
   decimalSeparator: '.' | ',';
@@ -354,12 +475,14 @@ export async function parseCsv(
   if (!filePath) throw new CsvImportError('TEMP_FILE_EXPIRED', 'Temp file not found');
 
   const result = await parseCsvFile(filePath, opts);
+  const autodetected = autodetectCsvFormat(result.headers, result.sampleRows);
   return {
     tempFileId,
     headers: result.headers,
     sampleRows: result.sampleRows,
     detectedDelimiter: result.detectedDelimiter,
     totalRows: result.totalRows,
+    autodetected,
   };
 }
 
@@ -518,6 +641,13 @@ export async function previewTradeImport(
     depositCurrency: portfolioCurrency,
   });
 
+  // Pending-new securities skip the gate here (sentinel filter); execute
+  // re-runs the check once real UUIDs exist.
+  const inventoryErrors = checkInventoryFeasibility(
+    sqlite, normalizedRows, securityMap,
+    input.targetSecuritiesAccountId, PREVIEW_PENDING_NEW_SENTINEL,
+  );
+
   // Map to transactions for preview
   const ctx: TradeMapperContext = {
     portfolioId: input.targetSecuritiesAccountId,
@@ -530,7 +660,7 @@ export async function previewTradeImport(
 
   const mapped = mapTradeRows(normalizedRows, ctx);
 
-  const allMapperErrors = [...fxErrors, ...mapped.errors];
+  const allMapperErrors = [...fxErrors, ...inventoryErrors, ...mapped.errors];
 
   // Build preview rows
   const previewRows: PreviewRow[] = normalizedRows.map((row) => ({
@@ -666,6 +796,14 @@ export async function executeTradeImport(
       depositCurrency: portfolioCurrency,
     });
 
+    // Re-run at execute. Pending-new securities are now resolved (real UUIDs
+    // minted above), so they're checked too — that's why `pendingSentinel`
+    // is `null` here but `PREVIEW_PENDING_NEW_SENTINEL` at preview.
+    const inventoryErrors = checkInventoryFeasibility(
+      sqlite, normalizedRows, securityMap,
+      input.targetSecuritiesAccountId, null,
+    );
+
     // Map
     const ctx: TradeMapperContext = {
       portfolioId: input.targetSecuritiesAccountId,
@@ -678,19 +816,23 @@ export async function executeTradeImport(
 
     const mapped = mapTradeRows(normalizedRows, ctx);
 
-    // Hard-abort on any FX-class error before opening the SQLite transaction.
-    // Deliberately stricter than the soft-skip posture used for
+    // Hard-abort on any FX-class or inventory error before opening the SQLite
+    // transaction. Deliberately stricter than the soft-skip posture used for
     // MISSING_SHARES / MISSING_SECURITY / MISSING_CROSS_ACCOUNT — see
     // `.claude/rules/csv-import.md` Cross-currency FX gate.
-    const allMapperErrors = [...fxErrors, ...mapped.errors];
-    const fxAbort = allMapperErrors.find((e) => FX_ERROR_CODES.has(e.code));
-    if (fxAbort) {
-      const count = allMapperErrors.filter((e) => FX_ERROR_CODES.has(e.code)).length; // native-ok
-      throw new CsvImportError(
-        'FX_RATE_REQUIRED',
-        `${count} row(s) require FX information that the CSV import cannot resolve`,
-      );
-    }
+    const allMapperErrors = [...fxErrors, ...inventoryErrors, ...mapped.errors];
+    abortIfMatch(
+      allMapperErrors,
+      (e) => FX_ERROR_CODES.has(e.code),
+      'FX_RATE_REQUIRED',
+      (n) => `${n} row(s) require FX information that the CSV import cannot resolve`,
+    );
+    abortIfMatch(
+      allMapperErrors,
+      (e) => e.code === 'INSUFFICIENT_SHARES',
+      'INSUFFICIENT_SHARES',
+      (n) => `${n} row(s) sell more shares than available at that point in time`,
+    );
 
     // Insert all in a single SQLite transaction
     const doInsert = sqlite.transaction((

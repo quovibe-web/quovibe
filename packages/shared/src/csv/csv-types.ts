@@ -82,6 +82,11 @@ export const csvErrorCodes = [
   // FX_VERIFICATION_FAILED: |Gross × Rate − Value| above wire-step-2 tolerance.
   // CURRENCY_MISMATCH: Currency Gross Amount ≠ resolved security.currency.
   'FX_RATE_REQUIRED', 'INVALID_FX_RATE', 'FX_VERIFICATION_FAILED', 'CURRENCY_MISMATCH',
+  // Inventory-feasibility gate: outflow (SELL, DELIVERY_OUTBOUND, source-side
+  // SECURITY_TRANSFER) exceeds the shares available at that point in time,
+  // considering existing DB holdings plus cumulative same-CSV deltas applied
+  // in chronological order.
+  'INSUFFICIENT_SHARES',
 ] as const;
 export type CsvErrorCode = (typeof csvErrorCodes)[number];
 
@@ -138,6 +143,16 @@ export interface CsvParseResult {
   sampleRows: string[][];
   detectedDelimiter: CsvDelimiter;
   totalRows: number;
+  // Server-side autodetect output. Wizard treats any null field as "user
+  // must pick" rather than overriding the dropdown defaults; an empty
+  // `columnMapping` likewise leaves the user's existing mapping untouched.
+  // Shape mirrors `AutodetectResult` in `csv-autodetect.ts` — keep in sync.
+  autodetected?: {
+    dateFormat: CsvDateFormat | null;
+    decimalSeparator: '.' | ',' | null;
+    thousandSeparator: '' | '.' | ',' | ' ' | null;
+    columnMapping: Record<string, number>;
+  };
 }
 
 export interface UnmatchedSecurity {

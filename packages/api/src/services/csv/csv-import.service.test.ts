@@ -129,6 +129,32 @@ function createTestDb(): Database.Database {
       expect(result.sampleRows).toHaveLength(2);
       expect(result.totalRows).toBe(2);
     });
+
+    it('returns autodetected wizard pre-fills (BUG-133)', async () => {
+      // German-style CSV: dd.MM.yyyy + comma decimal + dot thousand
+      // separator + multilingual headers. The wizard should be able to
+      // skip the dropdown step and present a populated mapping straight
+      // out of the parse phase.
+      const csv = [
+        'Datum;Typ;Wertpapier;Stück;Wert',
+        '15.01.2024;Kauf;Apple Inc;10;1.500,50',
+        '16.01.2024;Verkauf;Apple Inc;3;480,00',
+      ].join('\n');
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'de.csv');
+
+      const result = await parseCsv(tempFileId, { delimiter: ';' });
+
+      expect(result.autodetected).toBeDefined();
+      expect(result.autodetected!.dateFormat).toBe('dd.MM.yyyy');
+      expect(result.autodetected!.decimalSeparator).toBe(',');
+      expect(result.autodetected!.thousandSeparator).toBe('.');
+      // Multilingual header auto-match: German labels → internal fields.
+      expect(result.autodetected!.columnMapping['date']).toBe(0);
+      expect(result.autodetected!.columnMapping['type']).toBe(1);
+      expect(result.autodetected!.columnMapping['security']).toBe(2);
+      expect(result.autodetected!.columnMapping['shares']).toBe(3);
+      expect(result.autodetected!.columnMapping['amount']).toBe(4);
+    });
   });
 
   describe('executePriceImport', () => {
@@ -544,6 +570,123 @@ function createTestDb(): Database.Database {
       expect(forex!.forex_amount).toBe(160671); // 1606.71 USD × 100
       expect(units.find((u) => u.type === 'FEE')!.amount).toBe(1500);  // 15 EUR × 100
       expect(units.find((u) => u.type === 'TAX')!.amount).toBe(1000);  // 10 EUR × 100
+    });
+  });
+
+  describe('Inventory feasibility (BUG-123)', () => {
+    let sqlite: Database.Database;
+
+    beforeEach(() => { sqlite = createTestDb(); });
+    afterEach(() => { sqlite.close(); });
+
+    const baseInput = (tempFileId: string) => ({
+      tempFileId,
+      delimiter: ',' as const,
+      columnMapping: { date: 0, type: 1, security: 2, shares: 3, amount: 4 },
+      dateFormat: 'yyyy-MM-dd',
+      decimalSeparator: '.' as const,
+      thousandSeparator: '' as const,
+      targetSecuritiesAccountId: 'port-1',
+    });
+
+    it('flags SELL exceeding existing DB holdings as INSUFFICIENT_SHARES', async () => {
+      // Seed 10 shares already held in the portfolio (BUY xact row).
+      // shares are stored × 1e8 in DB, so 10 shares = 10 × 1e8 = 1_000_000_000.
+      sqlite.prepare(
+        'INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, source, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      ).run('seed-buy', 'BUY', '2024-01-01', 'EUR', 100000, 1_000_000_000, 'sec-1', 'port-1', 'portfolio', 'TEST', '2024-01-01');
+
+      const csv = [
+        'date,type,security,shares,amount',
+        '2024-02-01,SELL,Apple Inc,20,3000.00',
+      ].join('\n');
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'short-sell.csv');
+
+      const result = await previewTradeImport(sqlite, baseInput(tempFileId));
+
+      const insufficient = result.errors.find((e) => e.code === 'INSUFFICIENT_SHARES');
+      expect(insufficient).toBeDefined();
+      expect(insufficient!.row).toBe(1);
+      expect(result.summary.errors).toBeGreaterThanOrEqual(1);
+      expect(result.summary.valid).toBe(0);
+    });
+
+    it('allows SELL <= cumulative shares from earlier same-CSV BUYs', async () => {
+      // No DB holdings; CSV: BUY 50 then SELL 30 — must be valid, no error.
+      const csv = [
+        'date,type,security,shares,amount',
+        '2024-01-02,BUY,Apple Inc,50,7500.00',
+        '2024-01-05,SELL,Apple Inc,30,4800.00',
+      ].join('\n');
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'cumulative.csv');
+
+      const result = await previewTradeImport(sqlite, baseInput(tempFileId));
+
+      expect(result.errors.filter((e) => e.code === 'INSUFFICIENT_SHARES')).toHaveLength(0);
+      expect(result.summary.valid).toBe(2);
+    });
+
+    it('flags SELL exceeding cumulative same-CSV adds even when chronologically interleaved', async () => {
+      // BUY 5, SELL 10 — net 5 short. Date ordering: BUY first.
+      const csv = [
+        'date,type,security,shares,amount',
+        '2024-01-02,BUY,Apple Inc,5,750.00',
+        '2024-01-05,SELL,Apple Inc,10,1500.00',
+      ].join('\n');
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'short.csv');
+
+      const result = await previewTradeImport(sqlite, baseInput(tempFileId));
+
+      const insufficient = result.errors.find((e) => e.code === 'INSUFFICIENT_SHARES');
+      expect(insufficient).toBeDefined();
+      expect(insufficient!.row).toBe(2); // the SELL row, not the BUY
+    });
+
+    it('orders rows chronologically before applying deltas (later-dated SELL gets earlier-dated BUY contribution)', async () => {
+      // Row 1 (CSV order) is the later SELL; row 2 is the earlier BUY.
+      // Naïve in-CSV-order check would fail; chronological ordering passes.
+      const csv = [
+        'date,type,security,shares,amount',
+        '2024-01-10,SELL,Apple Inc,30,4800.00',
+        '2024-01-02,BUY,Apple Inc,50,7500.00',
+      ].join('\n');
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'reordered.csv');
+
+      const result = await previewTradeImport(sqlite, baseInput(tempFileId));
+
+      expect(result.errors.filter((e) => e.code === 'INSUFFICIENT_SHARES')).toHaveLength(0);
+      expect(result.summary.valid).toBe(2);
+    });
+
+    it('flags DELIVERY_OUTBOUND exceeding holdings the same way as SELL', async () => {
+      const csv = [
+        'date,type,security,shares,amount',
+        '2024-02-01,DELIVERY_OUTBOUND,Apple Inc,5,0',
+      ].join('\n');
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'deliv-out.csv');
+
+      const result = await previewTradeImport(sqlite, baseInput(tempFileId));
+
+      const insufficient = result.errors.find((e) => e.code === 'INSUFFICIENT_SHARES');
+      expect(insufficient).toBeDefined();
+    });
+
+    it('does not flag pending-new securities until execute (currency unknown at preview)', async () => {
+      // Pending-new at preview means no securityId resolved yet → check
+      // intentionally skips, mirroring the FX-gate skip pattern. Execute
+      // catches it once the security exists.
+      const csv = [
+        'date,type,security,shares,amount',
+        '2024-02-01,SELL,FreshCorp,5,100.00',
+      ].join('\n');
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'pending.csv');
+
+      const result = await previewTradeImport(sqlite, {
+        ...baseInput(tempFileId),
+        newSecurityNames: ['FreshCorp'],
+      });
+
+      expect(result.errors.filter((e) => e.code === 'INSUFFICIENT_SHARES')).toHaveLength(0);
     });
   });
 });

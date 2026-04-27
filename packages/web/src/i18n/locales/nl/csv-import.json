@@ -121,6 +121,7 @@
   "errors.invalidFxRate": "Ongeldige wisselkoers: {{value}}",
   "errors.fxVerificationFailed": "Bruto × Koers komt niet overeen met Waarde (multivalutacontrole mislukt)",
   "errors.currencyMismatch": "Valuta '{{value}}' komt niet overeen met de valuta van het effect",
+  "errors.insufficientShares": "Meer aandelen verkocht dan beschikbaar op dat moment",
   "errors.tempExpired": "Sessie verlopen. Upload het bestand opnieuw.",
   "errors.importInProgress": "Een andere import is momenteel bezig. Een ogenblik geduld.",
   "errors.noFile": "Geen bestand geselecteerd",

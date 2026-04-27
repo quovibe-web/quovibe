@@ -121,6 +121,7 @@
   "errors.invalidFxRate": "Tasso di cambio non valido: {{value}}",
   "errors.fxVerificationFailed": "Lordo × Tasso non corrisponde al Valore (verifica multivaluta fallita)",
   "errors.currencyMismatch": "La valuta '{{value}}' non corrisponde alla valuta del titolo",
+  "errors.insufficientShares": "Vendita di più quote di quelle disponibili in quel momento",
   "errors.tempExpired": "Sessione scaduta. Si prega di ricaricare il file.",
   "errors.importInProgress": "Un'altra importazione è in corso. Attendere prego.",
   "errors.noFile": "Nessun file selezionato",

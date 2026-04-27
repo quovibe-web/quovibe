@@ -121,6 +121,7 @@
   "errors.invalidFxRate": "Nieprawidłowy kurs wymiany: {{value}}",
   "errors.fxVerificationFailed": "Brutto × Kurs nie zgadza się z Wartością (weryfikacja walutowa nieudana)",
   "errors.currencyMismatch": "Waluta '{{value}}' nie zgadza się z walutą papieru wartościowego",
+  "errors.insufficientShares": "Sprzedaż większej liczby akcji niż dostępne w tym momencie",
   "errors.tempExpired": "Sesja wygasła. Prześlij plik ponownie.",
   "errors.importInProgress": "Inny import jest w toku. Proszę czekać.",
   "errors.noFile": "Nie wybrano pliku",

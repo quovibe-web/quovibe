@@ -88,10 +88,19 @@ export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
 
     parseMutation.mutate(file, {
       onSuccess: (result) => {
-        onUpdate({
+        const ad = result.autodetected;
+        const overlay: Partial<WizardState> = {
           parseResult: result,
           delimiter: result.detectedDelimiter,
-        });
+        };
+        if (ad?.dateFormat) overlay.dateFormat = ad.dateFormat;
+        if (ad?.decimalSeparator) overlay.decimalSeparator = ad.decimalSeparator;
+        // `''` is a *valid* signal (no thousand sep observed) — preserve it.
+        if (ad?.thousandSeparator != null) overlay.thousandSeparator = ad.thousandSeparator;
+        if (ad && Object.keys(ad.columnMapping).length > 0) {
+          overlay.columnMapping = ad.columnMapping;
+        }
+        onUpdate(overlay);
       },
       onError: (err) => {
         setUploadError(mapServerError(err instanceof Error ? err.message : String(err)));

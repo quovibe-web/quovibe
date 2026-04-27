@@ -31,6 +31,7 @@ const ROW_ERROR_I18N: Partial<Record<CsvErrorCode, string>> = {
   INVALID_FX_RATE: 'errors.invalidFxRate',
   FX_VERIFICATION_FAILED: 'errors.fxVerificationFailed',
   CURRENCY_MISMATCH: 'errors.currencyMismatch',
+  INSUFFICIENT_SHARES: 'errors.insufficientShares',
 };
 
 interface Props {
@@ -47,6 +48,7 @@ function mapExecuteError(message: string): string {
     case 'TEMP_FILE_EXPIRED': return 'errors.tempExpired';
     case 'IMPORT_IN_PROGRESS': return 'errors.importInProgress';
     case 'FX_RATE_REQUIRED': return 'errors.fxRateRequired';
+    case 'INSUFFICIENT_SHARES': return 'errors.insufficientShares';
     default: return 'errors.importFailed';
   }
 }

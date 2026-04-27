@@ -121,6 +121,7 @@
   "errors.invalidFxRate": "Tipo de cambio no válido: {{value}}",
   "errors.fxVerificationFailed": "Bruto × Tipo no coincide con Valor (verificación multidivisa fallida)",
   "errors.currencyMismatch": "La moneda '{{value}}' no coincide con la moneda del valor",
+  "errors.insufficientShares": "Venta de más participaciones de las disponibles en ese momento",
   "errors.tempExpired": "Sesión expirada. Por favor, vuelva a subir el archivo.",
   "errors.importInProgress": "Otra importación está en curso. Por favor, espere.",
   "errors.noFile": "Ningún archivo seleccionado",

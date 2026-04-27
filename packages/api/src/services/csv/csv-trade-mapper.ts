@@ -137,11 +137,11 @@ function computeNetAmountHecto(
   return Math.round(parseFloat(net.times(100).toPrecision(15)));
 }
 
-function toHecto(value: number): number {
+export function toHecto(value: number): number {
   return Math.round(parseFloat(new Decimal(value).times(100).toPrecision(15)));
 }
 
-function toSharesDb(value: number): number {
+export function toSharesDb(value: number): number {
   return Math.round(parseFloat(new Decimal(value).times(1e8).toPrecision(15)));
 }
 

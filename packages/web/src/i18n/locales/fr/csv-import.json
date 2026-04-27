@@ -121,6 +121,7 @@
   "errors.invalidFxRate": "Taux de change invalide : {{value}}",
   "errors.fxVerificationFailed": "Brut × Taux ne correspond pas à la Valeur (vérification multidevise échouée)",
   "errors.currencyMismatch": "La devise '{{value}}' ne correspond pas à la devise du titre",
+  "errors.insufficientShares": "Vente de plus de parts que disponibles à ce moment",
   "errors.tempExpired": "Session expirée. Veuillez re-télécharger le fichier.",
   "errors.importInProgress": "Un autre import est en cours. Veuillez patienter.",
   "errors.noFile": "Aucun fichier sélectionné",
