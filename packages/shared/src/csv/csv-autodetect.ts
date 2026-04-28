@@ -216,7 +216,7 @@ const HEADER_ALIASES: ReadonlyMap<string, string> = new Map([
   ['datum van notering', 'dateOfQuote'],
   ['data notowania', 'dateOfQuote'],
   ['data da cotacao', 'dateOfQuote'],
-  // BUG-124: cross-currency fees/taxes
+  // Cross-currency fees/taxes
   ['fees foreign currency', 'feesFx'],
   ['foreign fees', 'feesFx'],
   ['commissioni valuta estera', 'feesFx'],

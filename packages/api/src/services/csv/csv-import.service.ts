@@ -294,8 +294,8 @@ function parseTradeRow(
     const c = (fields[idx('currencyGrossAmount')!] ?? '').trim().toUpperCase();
     if (c) row.currencyGrossAmount = c;
   }
-  // BUG-124: cross-currency fees/taxes. Optional numeric columns that carry
-  // the foreign-currency magnitude of fees and taxes (in their respective
+  // Cross-currency fees/taxes. Optional numeric columns that carry the
+  // foreign-currency magnitude of fees and taxes (in their respective
   // currencies, not pre-converted to deposit ccy). Currency overrides are rare.
   if (idx('feesFx') != null) {
     const raw = (fields[idx('feesFx')!] ?? '').trim();

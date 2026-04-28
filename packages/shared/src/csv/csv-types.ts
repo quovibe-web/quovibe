@@ -63,7 +63,7 @@ export const tradeColumnFields = [
   // Date of Quote: alternate spelling of `date` for price-import flow;
   // ignored on trade flow when the canonical `date` is mapped.
   'wkn', 'time', 'dateOfQuote',
-  // BUG-124: cross-currency fees/taxes. `feesFx` / `taxesFx` carry the
+  // Cross-currency fees/taxes. `feesFx` / `taxesFx` carry the
   // foreign-currency fee/tax magnitude (security ccy by default).
   // `feesCurrency` / `taxesCurrency` allow overriding the ccy code per
   // unit (rare — most brokers settle fees in the security ccy).
@@ -135,7 +135,7 @@ export interface NormalizedTradeRow {
   fxRate?: number;
   grossAmount?: number;
   currencyGrossAmount?: string;
-  // BUG-124: cross-currency fees/taxes. Optional. Numeric magnitudes are
+  // Cross-currency fees/taxes. Optional. Numeric magnitudes are
   // in their respective currencies (NOT pre-converted to the deposit ccy).
   // Mapper applies `/ fxRate` to compute the deposit-ccy equivalent for
   // FEE/TAX `xact_unit.amount`, and stores the foreign-ccy magnitude in
