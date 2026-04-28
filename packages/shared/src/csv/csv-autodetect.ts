@@ -212,10 +212,10 @@ const HEADER_ALIASES: ReadonlyMap<string, string> = new Map([
   ['data quotazione', 'dateOfQuote'],
   ['datum der notierung', 'dateOfQuote'],
   ['date de cotation', 'dateOfQuote'],
-  ['fecha de cotización', 'dateOfQuote'],
+  ['fecha de cotizacion', 'dateOfQuote'],
   ['datum van notering', 'dateOfQuote'],
   ['data notowania', 'dateOfQuote'],
-  ['data da cotação', 'dateOfQuote'],
+  ['data da cotacao', 'dateOfQuote'],
   // ── Italian ──
   ['data', 'date'],
   ['tipo', 'type'],
