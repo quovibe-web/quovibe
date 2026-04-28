@@ -56,6 +56,9 @@
   "columns.field.fxRate": "Tipo de Cambio",
   "columns.field.grossAmount": "Importe Bruto",
   "columns.field.currencyGrossAmount": "Moneda Importe Bruto",
+  "columns.field.wkn": "WKN",
+  "columns.field.time": "Hora",
+  "columns.field.dateOfQuote": "Fecha de cotización",
 
   "securities.title": "Asociar valores",
   "securities.description": "Asociar valores CSV con los existentes o crear nuevos",

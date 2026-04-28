@@ -56,6 +56,9 @@
   "columns.field.fxRate": "Wisselkoers",
   "columns.field.grossAmount": "Brutobedrag",
   "columns.field.currencyGrossAmount": "Valuta Brutobedrag",
+  "columns.field.wkn": "WKN",
+  "columns.field.time": "Tijd",
+  "columns.field.dateOfQuote": "Datum van notering",
 
   "securities.title": "Effecten koppelen",
   "securities.description": "CSV-effecten koppelen aan bestaande of nieuwe maken",

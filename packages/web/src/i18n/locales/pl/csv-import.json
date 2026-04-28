@@ -56,6 +56,9 @@
   "columns.field.fxRate": "Kurs Wymiany",
   "columns.field.grossAmount": "Kwota Brutto",
   "columns.field.currencyGrossAmount": "Waluta Kwoty Brutto",
+  "columns.field.wkn": "WKN",
+  "columns.field.time": "Czas",
+  "columns.field.dateOfQuote": "Data notowania",
 
   "securities.title": "Dopasuj papiery wartościowe",
   "securities.description": "Dopasuj papiery wartościowe z CSV do istniejących lub utwórz nowe",

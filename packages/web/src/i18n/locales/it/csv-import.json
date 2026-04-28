@@ -56,6 +56,9 @@
   "columns.field.fxRate": "Tasso di Cambio",
   "columns.field.grossAmount": "Importo Lordo",
   "columns.field.currencyGrossAmount": "Valuta Importo Lordo",
+  "columns.field.wkn": "WKN",
+  "columns.field.time": "Ora",
+  "columns.field.dateOfQuote": "Data quotazione",
 
   "securities.title": "Abbina Titoli",
   "securities.description": "Abbina i titoli del CSV a quelli esistenti o creane di nuovi",

@@ -56,6 +56,9 @@
   "columns.field.fxRate": "Exchange Rate",
   "columns.field.grossAmount": "Gross Amount",
   "columns.field.currencyGrossAmount": "Currency Gross Amount",
+  "columns.field.wkn": "WKN",
+  "columns.field.time": "Time",
+  "columns.field.dateOfQuote": "Date of Quote",
 
   "securities.title": "Match Securities",
   "securities.description": "Match CSV securities to existing ones or create new",

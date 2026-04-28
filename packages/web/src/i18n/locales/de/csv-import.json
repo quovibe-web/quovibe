@@ -56,6 +56,9 @@
   "columns.field.fxRate": "Wechselkurs",
   "columns.field.grossAmount": "Bruttobetrag",
   "columns.field.currencyGrossAmount": "Währung Bruttobetrag",
+  "columns.field.wkn": "WKN",
+  "columns.field.time": "Zeit",
+  "columns.field.dateOfQuote": "Datum der Notierung",
 
   "securities.title": "Wertpapiere abgleichen",
   "securities.description": "CSV-Wertpapiere mit vorhandenen abgleichen oder neu erstellen",

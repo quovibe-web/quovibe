@@ -56,6 +56,9 @@
   "columns.field.fxRate": "Taxa de Câmbio",
   "columns.field.grossAmount": "Valor Bruto",
   "columns.field.currencyGrossAmount": "Moeda do Valor Bruto",
+  "columns.field.wkn": "WKN",
+  "columns.field.time": "Hora",
+  "columns.field.dateOfQuote": "Data da cotação",
 
   "securities.title": "Associar ativos",
   "securities.description": "Associar ativos do CSV aos existentes ou criar novos",
