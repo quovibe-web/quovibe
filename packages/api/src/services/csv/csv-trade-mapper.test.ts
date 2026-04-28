@@ -753,4 +753,140 @@ describe('mapTradeRows', () => {
       expect(result.units).toHaveLength(0);
     });
   });
+
+  describe('mapTradeRows — feesFx/taxesFx FOREX emission (BUG-124)', () => {
+    // Cross-currency context: EUR portfolio, Apple with USD currency
+    const usdSecCtx: TradeMapperContext = {
+      ...ctx,
+      portfolioCurrency: 'EUR',
+      securityCurrencyMap: new Map([['sec-apple', 'USD']]),
+    };
+
+    it('emits FOREX-tagged FEE unit when feesFx is set on a cross-currency BUY', () => {
+      // qv-convention: fxRate = USD-per-EUR (security-per-deposit)
+      // feesFx = 5 USD, fxRate = 0.92
+      // totalFeesDeposit = 0 + (5 / 0.92) = 5.4348 EUR
+      // feesDepHecto = round(5.4348 * 100) = 543
+      // forex_amount = round(5 * 100) = 500
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 1,
+        date: '2026-01-15',
+        type: TransactionType.BUY,
+        securityName: 'Apple Inc',
+        shares: 10,
+        amount: 1500,         // EUR net (deposit ccy)
+        currency: 'EUR',
+        feesFx: 5,            // 5 USD broker fee (security ccy)
+        fxRate: 0.92,         // qv-convention: USD per EUR
+        grossAmount: 1380,    // 1500 * 0.92 USD gross
+        currencyGrossAmount: 'USD',
+      }];
+
+      const result = mapTradeRows(rows, usdSecCtx);
+      expect(result.errors).toHaveLength(0);
+
+      const feeUnit = result.units.find(u => u.type === 'FEE');
+      expect(feeUnit).toBeDefined();
+      // forex_amount = round(feesFx * 100) = round(5 * 100) = 500
+      expect(feeUnit!.forex_amount).toBe(500);
+      expect(feeUnit!.forex_currency).toBe('USD');
+      expect(feeUnit!.exchangeRate).toBe('0.92');
+      // amount = round((0 + 5/0.92) * 100) = round(543.478...) = 543
+      expect(feeUnit!.amount).toBe(543);
+      expect(feeUnit!.currency).toBe('EUR');
+      // FEE must be on the securities-side xact, not the cash-side
+      expect(feeUnit!.xact).toBe(result.transactions[0].id);
+    });
+
+    it('emits FOREX-tagged TAX unit when taxesFx is set on a cross-currency SELL', () => {
+      // taxesFx = 2 USD, fxRate = 0.92
+      // totalTaxesDeposit = 0 + (2 / 0.92) = 2.1739 EUR
+      // taxesDepHecto = round(2.1739 * 100) = 217
+      // forex_amount = round(2 * 100) = 200
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 1,
+        date: '2026-01-15',
+        type: TransactionType.SELL,
+        securityName: 'Apple Inc',
+        shares: 10,
+        amount: 1500,
+        currency: 'EUR',
+        taxesFx: 2,           // 2 USD withholding (security ccy)
+        fxRate: 0.92,
+        currencyGrossAmount: 'USD',
+      }];
+
+      const result = mapTradeRows(rows, usdSecCtx);
+      expect(result.errors).toHaveLength(0);
+
+      const taxUnit = result.units.find(u => u.type === 'TAX');
+      expect(taxUnit).toBeDefined();
+      expect(taxUnit!.forex_amount).toBe(200);
+      expect(taxUnit!.forex_currency).toBe('USD');
+      expect(taxUnit!.exchangeRate).toBe('0.92');
+      // amount = round((0 + 2/0.92) * 100) = round(217.391...) = 217
+      expect(taxUnit!.amount).toBe(217);
+    });
+
+    it('sums deposit fees + feesFx/fxRate correctly when both are provided (rounding parity with transaction.service.ts)', () => {
+      // fees = 3 EUR, feesFx = 5 USD, fxRate = 0.92
+      // totalFeesDeposit = 3 + (5/0.92) = 3 + 5.4348 = 8.4348 EUR
+      // feesDepHecto = round(8.4348 * 100) = 843
+      // forex_amount = round(5 * 100) = 500
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 1,
+        date: '2026-01-15',
+        type: TransactionType.BUY,
+        securityName: 'Apple Inc',
+        shares: 10,
+        amount: 1500,
+        currency: 'EUR',
+        fees: 3,              // 3 EUR same-currency fees
+        feesFx: 5,            // 5 USD broker fee
+        fxRate: 0.92,
+        grossAmount: 1380,
+        currencyGrossAmount: 'USD',
+      }];
+
+      const result = mapTradeRows(rows, usdSecCtx);
+      expect(result.errors).toHaveLength(0);
+
+      const feeUnit = result.units.find(u => u.type === 'FEE');
+      expect(feeUnit).toBeDefined();
+      expect(feeUnit!.forex_amount).toBe(500);
+      expect(feeUnit!.forex_currency).toBe('USD');
+      // amount = round((3 + 5/0.92) * 100) = round(843.478...) = 843
+      expect(feeUnit!.amount).toBe(843);
+    });
+
+    it('does NOT emit FOREX FEE/TAX on same-currency BUY (regression guard)', () => {
+      // Same-currency: VWCE is EUR, portfolio is EUR → no FX decoration
+      const rows: NormalizedTradeRow[] = [{
+        rowNumber: 1,
+        date: '2026-01-15',
+        type: TransactionType.BUY,
+        securityName: 'Apple Inc',
+        shares: 10,
+        amount: 1100,
+        fees: 5,
+        taxes: 1,
+        currency: 'EUR',
+        // sec-apple is EUR in ctx.securityCurrencyMap, same as portfolio
+      }];
+
+      // Use the default ctx (sec-apple → EUR, portfolio → EUR)
+      const result = mapTradeRows(rows, ctx);
+      expect(result.errors).toHaveLength(0);
+
+      const feeUnit = result.units.find(u => u.type === 'FEE');
+      expect(feeUnit).toBeDefined();
+      expect(feeUnit!.forex_amount).toBeNull();
+      expect(feeUnit!.forex_currency).toBeNull();
+      expect(feeUnit!.exchangeRate).toBeNull();
+
+      const taxUnit = result.units.find(u => u.type === 'TAX');
+      expect(taxUnit).toBeDefined();
+      expect(taxUnit!.forex_amount).toBeNull();
+    });
+  });
 });

@@ -151,41 +151,108 @@ export function toSharesDb(value: number): number {
 // buildUnits() in transaction.service.ts. Standalone FEES/TAXES/etc. are
 // intentionally absent — the gross amount lives in xact.amount and emitting
 // a duplicate FEE/TAX unit would double-count.
+//
+// `fx` is only passed for BUY/SELL when the row is cross-currency. The FOREX
+// decoration mirrors transaction.service.ts:247-270 byte-identically:
+//   totalFeesDeposit = (fees in deposit ccy) + (feesFx / fxRate)
+//   feesDepHecto     = round(totalFeesDeposit * 100)  ← single round, not two
+//   forex_amount     = round(feesFx * 100)
+// CSV-specific: `feesCurrency`/`taxesCurrency` allow per-column override;
+// fallback chain is feesCurrency → currencyGrossAmount → securityCurrency
+// (richer than the JSON path, which resolves a single `fxCurrencyCode`).
 function emitFeeTaxUnits(
   xactId: string,
   type: TransactionType,
-  feesDepHecto: number,
-  taxesDepHecto: number,
+  feesDepUnits: number,   // deposit-ccy, in original units (not hecto)
+  taxesDepUnits: number,  // deposit-ccy, in original units (not hecto)
   depositCurrency: string,
+  fx?: {
+    feesFx?: number;
+    taxesFx?: number;
+    feesCurrency?: string;  // resolved security-ccy override for fees
+    taxesCurrency?: string; // resolved security-ccy override for taxes
+    rate: string;           // qv-convention string, security-per-deposit
+    securityCurrency: string;
+  },
 ): UnitInsert[] {
   const out: UnitInsert[] = [];
+
+  // Mirrors transaction.service.ts:247-270 for BUY/SELL.
+  // Sum in deposit units, round once to hecto — avoids double-rounding drift.
+  const buildFxUnit = (
+    kind: 'FEE' | 'TAX',
+    sameDepUnits: number,
+    fxAmount: number | undefined,
+    fxCurrency: string | undefined,
+  ): UnitInsert | null => {
+    if (fxAmount && fxAmount > 0 && fx) {
+      const rateDec = new Decimal(fx.rate);
+      const totalDepUnits = sameDepUnits +
+        new Decimal(fxAmount).div(rateDec).toNumber();
+      const totalDepHecto = Math.round(
+        parseFloat(new Decimal(totalDepUnits).times(100).toPrecision(15)),
+      );
+      const fxHecto = Math.round(
+        parseFloat(new Decimal(fxAmount).times(100).toPrecision(15)),
+      );
+      return makeUnit(xactId, kind, totalDepHecto, depositCurrency, {
+        amount: fxHecto,
+        currency: fxCurrency ?? fx.securityCurrency,
+        rate: fx.rate,
+      });
+    }
+    const depHecto = Math.round(
+      parseFloat(new Decimal(sameDepUnits).times(100).toPrecision(15)),
+    );
+    if (depHecto > 0) {
+      return makeUnit(xactId, kind, depHecto, depositCurrency);
+    }
+    return null;
+  };
+
   switch (type) {
     case TransactionType.BUY:
-    case TransactionType.SELL:
-      if (feesDepHecto > 0) out.push(makeUnit(xactId, 'FEE', feesDepHecto, depositCurrency));
-      if (taxesDepHecto > 0) out.push(makeUnit(xactId, 'TAX', taxesDepHecto, depositCurrency));
+    case TransactionType.SELL: {
+      const fee = buildFxUnit('FEE', feesDepUnits, fx?.feesFx, fx?.feesCurrency);
+      if (fee) out.push(fee);
+      const tax = buildFxUnit('TAX', taxesDepUnits, fx?.taxesFx, fx?.taxesCurrency);
+      if (tax) out.push(tax);
       break;
+    }
     case TransactionType.DELIVERY_INBOUND:
-    case TransactionType.DELIVERY_OUTBOUND:
-      if (feesDepHecto > 0) out.push(makeUnit(xactId, 'FEE', feesDepHecto, depositCurrency));
+    case TransactionType.DELIVERY_OUTBOUND: {
+      const depHecto = toHecto(feesDepUnits);
+      if (depHecto > 0) out.push(makeUnit(xactId, 'FEE', depHecto, depositCurrency));
       break;
-    case TransactionType.DIVIDEND:
-      if (taxesDepHecto > 0) out.push(makeUnit(xactId, 'TAX', taxesDepHecto, depositCurrency));
-      if (feesDepHecto > 0) out.push(makeUnit(xactId, 'FEE', feesDepHecto, depositCurrency));
+    }
+    case TransactionType.DIVIDEND: {
+      const tDepHecto = toHecto(taxesDepUnits);
+      const fDepHecto = toHecto(feesDepUnits);
+      if (tDepHecto > 0) out.push(makeUnit(xactId, 'TAX', tDepHecto, depositCurrency));
+      if (fDepHecto > 0) out.push(makeUnit(xactId, 'FEE', fDepHecto, depositCurrency));
       break;
-    case TransactionType.SECURITY_TRANSFER:
-      if (feesDepHecto > 0) out.push(makeUnit(xactId, 'FEE', feesDepHecto, depositCurrency));
+    }
+    case TransactionType.SECURITY_TRANSFER: {
+      const depHecto = toHecto(feesDepUnits);
+      if (depHecto > 0) out.push(makeUnit(xactId, 'FEE', depHecto, depositCurrency));
       break;
+    }
     case TransactionType.INTEREST:
-    case TransactionType.INTEREST_CHARGE:
-      if (taxesDepHecto > 0) out.push(makeUnit(xactId, 'TAX', taxesDepHecto, depositCurrency));
-      if (feesDepHecto > 0) out.push(makeUnit(xactId, 'FEE', feesDepHecto, depositCurrency));
+    case TransactionType.INTEREST_CHARGE: {
+      const tDepHecto = toHecto(taxesDepUnits);
+      const fDepHecto = toHecto(feesDepUnits);
+      if (tDepHecto > 0) out.push(makeUnit(xactId, 'TAX', tDepHecto, depositCurrency));
+      if (fDepHecto > 0) out.push(makeUnit(xactId, 'FEE', fDepHecto, depositCurrency));
       break;
+    }
     case TransactionType.DEPOSIT:
-    case TransactionType.REMOVAL:
-      if (feesDepHecto > 0) out.push(makeUnit(xactId, 'FEE', feesDepHecto, depositCurrency));
-      if (taxesDepHecto > 0) out.push(makeUnit(xactId, 'TAX', taxesDepHecto, depositCurrency));
+    case TransactionType.REMOVAL: {
+      const fDepHecto = toHecto(feesDepUnits);
+      const tDepHecto = toHecto(taxesDepUnits);
+      if (fDepHecto > 0) out.push(makeUnit(xactId, 'FEE', fDepHecto, depositCurrency));
+      if (tDepHecto > 0) out.push(makeUnit(xactId, 'TAX', tDepHecto, depositCurrency));
       break;
+    }
     default:
       break;
   }
@@ -326,8 +393,28 @@ export function mapTradeRows(
         type: 'buysell',
       });
 
-      // FEE/TAX units on the source row
-      units.push(...emitFeeTaxUnits(secXactId, txType, feesDb, taxesDb, currency));
+      // FEE/TAX units on the source row. Pass the `fx` bag when cross-currency
+      // so emitFeeTaxUnits can apply FOREX decoration mirroring
+      // transaction.service.ts:247-270. Fallback chain for fee/tax currency:
+      // per-column override → currencyGrossAmount column → resolved security ccy.
+      const securityCurrency = securityId
+        ? (ctx.securityCurrencyMap?.get(securityId) ?? currency)
+        : currency;
+      units.push(...emitFeeTaxUnits(
+        secXactId, txType,
+        row.fees ?? 0, row.taxes ?? 0,
+        currency,
+        row.fxRate != null && securityCurrency !== currency
+          ? {
+              feesFx: row.feesFx,
+              taxesFx: row.taxesFx,
+              feesCurrency: row.feesCurrency ?? row.currencyGrossAmount ?? securityCurrency,
+              taxesCurrency: row.taxesCurrency ?? row.currencyGrossAmount ?? securityCurrency,
+              rate: String(row.fxRate),
+              securityCurrency,
+            }
+          : undefined,
+      ));
 
       // FOREX unit when cross-currency. Mirrors transaction.service.ts
       // buildUnits 256-265:
@@ -369,7 +456,7 @@ export function mapTradeRows(
         fees: feesDb,
         taxes: taxesDb,
       });
-      units.push(...emitFeeTaxUnits(xactId, txType, feesDb, taxesDb, currency));
+      units.push(...emitFeeTaxUnits(xactId, txType, row.fees ?? 0, row.taxes ?? 0, currency));
     } else if (GROUP_C_SHARES_ONLY.has(txType)) {
       const xactId = uuidv4();
       transactions.push({
@@ -387,7 +474,7 @@ export function mapTradeRows(
         fees: feesDb,
         taxes: taxesDb,
       });
-      units.push(...emitFeeTaxUnits(xactId, txType, feesDb, taxesDb, currency));
+      units.push(...emitFeeTaxUnits(xactId, txType, row.fees ?? 0, row.taxes ?? 0, currency));
     } else if (GROUP_D_SECURITY_TRANSFER.has(txType)) {
       // SECURITY_TRANSFER: 2 xact rows (portfolio→portfolio) + 1 cross-entry
       if (!row.crossAccountId) {
@@ -446,7 +533,7 @@ export function mapTradeRows(
       });
 
       // FEE units on source (SECURITY_TRANSFER per buildUnits 290-292)
-      units.push(...emitFeeTaxUnits(srcXactId, txType, feesDb, taxesDb, currency));
+      units.push(...emitFeeTaxUnits(srcXactId, txType, row.fees ?? 0, row.taxes ?? 0, currency));
     } else if (GROUP_E_ACCOUNT_TRANSFER.has(txType)) {
       // TRANSFER_BETWEEN_ACCOUNTS: 2 xact rows (deposit→deposit) + 1 cross-entry
       if (!row.crossAccountId) {
