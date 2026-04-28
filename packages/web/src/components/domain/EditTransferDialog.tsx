@@ -45,11 +45,13 @@ export function EditTransferDialog({ open, onOpenChange, transaction }: Props) {
   const initialValues = useMemo<Partial<TransactionFormValues> | undefined>(() => {
     if (!transaction) return undefined;
     const fx = extractFxFromUnits(txDetail?.units);
+    // API serializes amount as number despite the TS declaration (api/types.ts).
+    // Coerce here because TransactionFormShape (Zod) expects strings.
     return {
       date: transaction.date ?? undefined,
       accountId: transaction.account ?? undefined,
       crossAccountId: transaction.crossAccountId ?? undefined,
-      amount: transaction.amount ?? undefined,
+      amount: transaction.amount != null ? String(transaction.amount) : undefined,
       note: transaction.note ?? undefined,
       fxRate: fx.fxRate || undefined,
     };
