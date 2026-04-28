@@ -178,6 +178,8 @@ export interface TradePreviewResult {
     total: number;
     valid: number;
     errors: number;
+    /** CSV rows whose natural key already exists in xact (source='CSV_IMPORT'). */
+    duplicates: number;
     byType: Record<string, number>;
   };
 }
@@ -198,6 +200,8 @@ export interface PreviewRow {
 
 export interface TradeExecuteResult {
   imported: number;
+  /** Rows skipped because their natural key already exists. Default 0. */
+  skippedDuplicates: number;
   created: { transactions: number; securities: number };
   errors: RowError[];
 }
