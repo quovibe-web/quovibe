@@ -1,6 +1,7 @@
 // packages/shared/src/csv/index.ts
 export * from './csv-types';
 export { transactionTypeAliases } from './type-aliases';
+export { inferTransactionType } from './infer-type';
 export {
   parseDate,
   parseNumber,
