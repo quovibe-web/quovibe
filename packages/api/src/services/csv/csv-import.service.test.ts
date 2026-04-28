@@ -106,8 +106,8 @@ function createTestDb(): Database.Database {
       PRIMARY KEY (date, from_currency, to_currency)
     );
 
-    -- BUG-143: mirror the partial unique index that applyBootstrap installs
-    -- in production via apply-bootstrap.ts > ensureCsvDedupeIndex. INSERT OR
+    -- Mirror the partial unique index that applyBootstrap installs in
+    -- production via apply-bootstrap.ts > ensureCsvDedupeIndex. INSERT OR
     -- IGNORE in executeTradeImport relies on this constraint to dedupe.
     CREATE UNIQUE INDEX IF NOT EXISTS idx_xact_csv_natural_key
       ON xact (date, type, security, account, shares, amount)
@@ -570,6 +570,26 @@ function createTestDb(): Database.Database {
         const newCorp = result.unmatchedSecurities.find((s) => s.csvName === 'NewCorp');
         expect(newCorp?.csvCurrencies).toBeUndefined();
       });
+    });
+
+    it('accepts WKN, Time, Date-of-Quote columns without error', async () => {
+      // Exercises the accept-and-ignore read path in parseTradeRow for the
+      // three PP-parity columns. Uses the seeded 'Apple Inc' / 'sec-1' so
+      // no security resolution errors can mask the column-handling behavior.
+      const csv = [
+        'date,type,security,wkn,time,dateOfQuote,shares,amount',
+        '2026-01-15,BUY,Apple Inc,A0YEDG,14:30,2026-01-14,5,1500.00',
+      ].join('\n');
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'wkn-cols.csv');
+
+      const result = await previewTradeImport(sqlite, {
+        ...baseInput(tempFileId),
+        columnMapping: { date: 0, type: 1, security: 2, wkn: 3, time: 4, dateOfQuote: 5, shares: 6, amount: 7 },
+        securityMapping: { 'Apple Inc': 'sec-1' },
+      });
+
+      expect(result.summary.errors).toBe(0);
+      expect(result.summary.valid).toBe(1);
     });
   });
 

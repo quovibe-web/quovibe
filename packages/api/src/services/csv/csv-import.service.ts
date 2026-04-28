@@ -294,6 +294,19 @@ function parseTradeRow(
     const c = (fields[idx('currencyGrossAmount')!] ?? '').trim().toUpperCase();
     if (c) row.currencyGrossAmount = c;
   }
+  // PP-parity columns: accept-and-ignore. WKN/Time/Date-of-Quote are read
+  // here so that strict schema modes don't reject them. They do not influence
+  // the resulting NormalizedTradeRow.
+  if (idx('wkn') != null) {
+    void fields[idx('wkn')!];
+  }
+  if (idx('time') != null) {
+    void fields[idx('time')!];
+  }
+  if (idx('dateOfQuote') != null) {
+    void fields[idx('dateOfQuote')!];
+  }
+
   // `Exchange Rate` column carries the PP convention (deposit-per-security).
   // Stored on the row in qv convention (security-per-deposit) so the mapper
   // and the FOREX xact_unit emit byte-identical values to transaction.service.
@@ -707,10 +720,10 @@ export async function previewTradeImport(
     byType[row.type] = (byType[row.type] ?? 0) + 1; // native-ok
   }
 
-  // BUG-143: count rows whose natural key would dedupe at execute time.
-  // Build a fingerprint set from existing CSV-source xacts once, then check
-  // each mapped XactInsert against it. Counts BOTH legs of BUY/SELL
-  // (matches the wire-level skippedDuplicates returned by execute).
+  // Count rows whose natural key would dedupe at execute time. Build a
+  // fingerprint set from existing CSV-source xacts once, then check each
+  // mapped XactInsert against it. Counts BOTH legs of BUY/SELL (matches the
+  // wire-level skippedDuplicates returned by execute).
   const existingFingerprints = new Set<string>();
   const existingRows = sqlite.prepare(
     "SELECT date, type, security, account, shares, amount FROM xact WHERE source = 'CSV_IMPORT'",
@@ -941,9 +954,9 @@ export async function executeTradeImport(
     // Report input-row count rather than raw xact-row count: BUY/SELL and
     // transfers emit 2 xact rows per input row (see csv-trade-mapper);
     // doubling leaks an implementation detail into user-facing copy.
-    // Subtract mapper errors because those rows produced no xact.
-    // BUG-143: also subtract input rows fully deduped (both legs skipped)
-    // so `imported` reflects what actually persisted.
+    // Subtract mapper errors because those rows produced no xact. Also
+    // subtract input rows fully deduped (both legs skipped) so `imported`
+    // reflects what actually persisted.
     const logicalCount = normalizedRows.length - mapped.errors.length; // native-ok
     // skippedDuplicates is in xact-row units (raw skip count). For the
     // user-facing `imported` we approximate input-row dedupes as ceil(skip/2):
