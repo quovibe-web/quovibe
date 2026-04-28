@@ -5,7 +5,7 @@ import path from 'path';
 import type BetterSqlite3 from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  parseDate, parseNumber, normalizeTransactionType,
+  parseDate, parseNumber, parseNumberWithSuffix, normalizeTransactionType,
   ppRateToQvRate, verifyGrossRateValue,
   autodetectCsvFormat,
   CROSS_CURRENCY_FX_TYPES, TransactionType,
@@ -1075,7 +1075,11 @@ export async function executePriceImport(
         if (v != null) row.low = v;
       }
       if (input.columnMapping.volume != null) {
-        const v = parseNumber(fields[input.columnMapping.volume] ?? '', input.decimalSeparator, input.thousandSeparator);
+        const v = parseNumberWithSuffix(
+          fields[input.columnMapping.volume] ?? '',
+          input.decimalSeparator,
+          input.thousandSeparator,
+        );
         if (v != null) row.volume = Math.round(v);
       }
 

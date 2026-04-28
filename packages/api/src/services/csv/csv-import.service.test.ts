@@ -219,6 +219,52 @@ function createTestDb(): Database.Database {
       expect(result.inserted).toBe(1);
       expect(result.skipped).toBe(1);
     });
+
+    it('accepts volume column with M suffix (BUG-161)', async () => {
+      const csv = 'Date;Close;Volume\n2026-01-15;191.62;45.6M\n';
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'prices-suffix.csv');
+
+      const result = await executePriceImport(sqlite, {
+        tempFileId,
+        securityId: 'sec-1',
+        columnMapping: { date: 0, close: 1, volume: 2 },
+        dateFormat: 'yyyy-MM-dd',
+        decimalSeparator: '.',
+        thousandSeparator: '',
+        skipLines: 0,
+      });
+
+      expect(result.inserted).toBe(1);
+      expect(result.errors).toHaveLength(0);
+
+      // Verify the volume was parsed: 45.6M = 45,600,000
+      const row = sqlite.prepare('SELECT volume FROM price WHERE security = ?').get('sec-1') as Record<string, unknown>;
+      expect(row).toBeTruthy();
+      expect(row.volume).toBe(45600000);
+    });
+
+    it('accepts volume column with B suffix (BUG-161)', async () => {
+      const csv = 'Date;Close;Volume\n2026-01-16;192.00;1.23B\n';
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'prices-suffix-b.csv');
+
+      const result = await executePriceImport(sqlite, {
+        tempFileId,
+        securityId: 'sec-1',
+        columnMapping: { date: 0, close: 1, volume: 2 },
+        dateFormat: 'yyyy-MM-dd',
+        decimalSeparator: '.',
+        thousandSeparator: '',
+        skipLines: 0,
+      });
+
+      expect(result.inserted).toBe(1);
+      expect(result.errors).toHaveLength(0);
+
+      // Verify: 1.23B = 1,230,000,000
+      const row = sqlite.prepare('SELECT volume FROM price WHERE security = ?').get('sec-1') as Record<string, unknown>;
+      expect(row).toBeTruthy();
+      expect(row.volume).toBe(1230000000);
+    });
   });
 
   describe('executeTradeImport (BUG-101)', () => {
@@ -590,6 +636,23 @@ function createTestDb(): Database.Database {
 
       expect(result.summary.errors).toBe(0);
       expect(result.summary.valid).toBe(1);
+    });
+
+    it('rejects suffix in shares column — does NOT silently 1000× cost basis (BUG-161 regression guard)', async () => {
+      const csv = [
+        'date,type,security,shares,amount',
+        '2024-01-02,BUY,Apple Inc,1.23M,1500.00',
+      ].join('\n');
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'trade-suffix.csv');
+
+      const result = await previewTradeImport(sqlite, baseInput(tempFileId));
+
+      // parseNumber is strict and rejects "1.23M", leaving shares undefined.
+      // This produces a MISSING_SHARES error, not a silently-multiplied 1230000 shares.
+      // The regression guard ensures the trade flow never calls parseNumberWithSuffix.
+      expect(result.summary.errors).toBe(1);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]?.code).toBe('MISSING_SHARES');
     });
   });
 
