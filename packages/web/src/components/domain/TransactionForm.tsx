@@ -42,6 +42,7 @@ import {
   type TransactionFormShape,
 } from './transaction-form.schema';
 import { extractServerFieldErrors } from './transaction-server-error';
+import { deriveFxCurrencies, BUY_SELL_TYPES } from './transaction-form-fx.utils';
 
 interface FieldConfig {
   security: 'required' | 'optional' | false;
@@ -58,8 +59,6 @@ interface FieldConfig {
 // Transaction types tied to a portfolio (securities) account. Aliases the
 // shared PRICED_SHARE_TYPES set — both name BUY/SELL/DELIVERY_*/SECURITY_TRANSFER.
 const PORTFOLIO_ONLY_TYPES = PRICED_SHARE_TYPES;
-
-const BUY_SELL_TYPES = new Set([TransactionType.BUY, TransactionType.SELL]);
 
 // Cash-only types (deposit account). Aliases the shared
 // CASH_ONLY_ROUTED_TYPES set — same membership.
@@ -249,13 +248,20 @@ export function TransactionForm({
     () => securities.find(s => s.id === watchedSecurityId),
     [securities, watchedSecurityId],
   );
-  const selectedCashAccount = useMemo(
+  const selectedSourceAccount = useMemo(
+    () => accounts.find(a => a.id === watchedAccountId),
+    [accounts, watchedAccountId],
+  );
+  const selectedCrossAccount = useMemo(
     () => filteredCrossAccounts.find(a => a.id === watchedCrossAccountId),
     [filteredCrossAccounts, watchedCrossAccountId],
   );
-  const securityCurrency = selectedSecurity?.currency ?? null;
-  const cashCurrency = selectedCashAccount?.currency ?? null;
-  const isCrossCurrency = !!(securityCurrency && cashCurrency && securityCurrency !== cashCurrency);
+  const { srcCurrency, dstCurrency, isCrossCurrency } = deriveFxCurrencies({
+    type,
+    sourceAccount: selectedSourceAccount ?? null,
+    crossAccount: selectedCrossAccount ?? null,
+    security: selectedSecurity ?? null,
+  });
 
   const formSchema = useMemo(
     () => buildTransactionFormSchema(
@@ -286,8 +292,8 @@ export function TransactionForm({
 
   const fxDateStr = format(date, 'yyyy-MM-dd');
   const { data: fxData } = useFxRate(
-    isCrossCurrency ? cashCurrency : null,
-    isCrossCurrency ? securityCurrency : null,
+    isCrossCurrency ? srcCurrency : null,
+    isCrossCurrency ? dstCurrency : null,
     isCrossCurrency ? fxDateStr : null,
   );
 
@@ -342,8 +348,8 @@ export function TransactionForm({
     const fxFields: Partial<TransactionFormValues> = {};
     if (isCrossCurrency && values.fxRate) {
       fxFields.fxRate = values.fxRate;
-      fxFields.fxCurrencyCode = securityCurrency ?? undefined;
-      fxFields.currencyCode = cashCurrency ?? undefined;
+      fxFields.fxCurrencyCode = dstCurrency ?? undefined;
+      fxFields.currencyCode = srcCurrency ?? undefined;
       if (values.feesFx) fxFields.feesFx = values.feesFx;
       if (values.taxesFx) fxFields.taxesFx = values.taxesFx;
     }
@@ -576,60 +582,79 @@ export function TransactionForm({
           />
         )}
 
-        {/* FX Section — cross-currency BUY/SELL only */}
-        {BUY_SELL_TYPES.has(type) && isCrossCurrency && (
+        {/* FX Section — cross-currency BUY/SELL or TRANSFER_BETWEEN_ACCOUNTS */}
+        {isCrossCurrency && (
           <div className="rounded-md border bg-muted/30 p-3 space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
-                {t('form.grossInSecurityCcy', { ccy: securityCurrency })}
-              </span>
-              <span className="font-medium">{grossSecurity.toFixed(2)} {securityCurrency}</span>
-            </div>
+            {BUY_SELL_TYPES.has(type) && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {t('form.grossInSecurityCcy', { ccy: dstCurrency })}
+                </span>
+                <span className="font-medium">{grossSecurity.toFixed(2)} {dstCurrency}</span>
+              </div>
+            )}
 
             <NumericField
               form={form}
               name="fxRate"
-              label={`${t('form.exchangeRate')} (${cashCurrency}/${securityCurrency})`}
+              label={`${t('form.exchangeRate')} (${dstCurrency}/${srcCurrency})`}
               fieldId={fieldId('fxRate')}
               placeholder={t('form.fxRatePlaceholder')}
             />
 
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
-                {t('form.convertedGross', { ccy: cashCurrency })}
-              </span>
-              <span className="font-medium">{fx.grossDeposit.toFixed(2)} {cashCurrency}</span>
-            </div>
+            {BUY_SELL_TYPES.has(type) && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {t('form.convertedGross', { ccy: srcCurrency })}
+                </span>
+                <span className="font-medium">{fx.grossDeposit.toFixed(2)} {srcCurrency}</span>
+              </div>
+            )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <NumericField
-                form={form}
-                name="feesFx"
-                label={t('form.feesInCcy', { ccy: securityCurrency })}
-                fieldId={fieldId('feesFx')}
-              />
-              <NumericField
-                form={form}
-                name="fees"
-                label={t('form.feesInCcy', { ccy: cashCurrency })}
-                fieldId={fieldId('fees-fx')}
-              />
-            </div>
+            {type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {t('form.convertedGross', { ccy: dstCurrency })}
+                </span>
+                <span className="font-medium">
+                  {((parseFloat(form.getValues('amount') || '0') || 0) * fxRateVal).toFixed(2)} {dstCurrency}
+                </span>
+              </div>
+            )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <NumericField
-                form={form}
-                name="taxesFx"
-                label={t('form.taxesInCcy', { ccy: securityCurrency })}
-                fieldId={fieldId('taxesFx')}
-              />
-              <NumericField
-                form={form}
-                name="taxes"
-                label={t('form.taxesInCcy', { ccy: cashCurrency })}
-                fieldId={fieldId('taxes-fx')}
-              />
-            </div>
+            {BUY_SELL_TYPES.has(type) && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <NumericField
+                    form={form}
+                    name="feesFx"
+                    label={t('form.feesInCcy', { ccy: dstCurrency })}
+                    fieldId={fieldId('feesFx')}
+                  />
+                  <NumericField
+                    form={form}
+                    name="fees"
+                    label={t('form.feesInCcy', { ccy: srcCurrency })}
+                    fieldId={fieldId('fees-fx')}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <NumericField
+                    form={form}
+                    name="taxesFx"
+                    label={t('form.taxesInCcy', { ccy: dstCurrency })}
+                    fieldId={fieldId('taxesFx')}
+                  />
+                  <NumericField
+                    form={form}
+                    name="taxes"
+                    label={t('form.taxesInCcy', { ccy: srcCurrency })}
+                    fieldId={fieldId('taxes-fx')}
+                  />
+                </div>
+              </>
+            )}
           </div>
         )}
 

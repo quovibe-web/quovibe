@@ -1,7 +1,7 @@
 import { TransactionType } from '@quovibe/shared';
 
 export interface CurrencyHolder {
-  currency: string;
+  currency: string | null;
 }
 
 export interface DeriveFxCurrenciesInput {
