@@ -135,12 +135,25 @@ export function CsvPreviewStep({ state, onBack }: Props) {
 
   // Success state
   if (result) {
+    // BUG-143: skippedDuplicates is xact-row count; BUY/SELL emit 2 legs per
+    // input row, so ceil(/2) is a close-enough input-row-level number for UI.
+    const skippedInputRows = Math.ceil(result.skippedDuplicates / 2);
+    const allDuplicates = result.imported === 0 && result.skippedDuplicates > 0;
     return (
       <div className="space-y-6">
         <Alert>
           <AlertDescription className="space-y-1">
-            <p className="font-medium">{t('result.success')}</p>
-            <p>{t('result.transactions', { count: result.created.transactions })}</p>
+            <p className="font-medium">
+              {allDuplicates ? t('result.allDuplicates', { count: skippedInputRows }) : t('result.success')}
+            </p>
+            {!allDuplicates && (
+              <p>{t('result.transactions', { count: result.created.transactions })}</p>
+            )}
+            {result.skippedDuplicates > 0 && !allDuplicates && (
+              <p className="text-amber-700 dark:text-amber-400">
+                {t('result.skippedDuplicates', { count: skippedInputRows })}
+              </p>
+            )}
             {result.created.securities > 0 && (
               <p>{t('result.securities', { count: result.created.securities })}</p>
             )}
@@ -159,13 +172,21 @@ export function CsvPreviewStep({ state, onBack }: Props) {
   return (
     <div className="space-y-6">
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className={preview.summary.duplicates > 0 ? 'grid grid-cols-4 gap-4' : 'grid grid-cols-3 gap-4'}>
         <Card>
           <CardContent className="pt-4 text-center">
             <div className="text-2xl font-bold">{preview.summary.valid}</div>
             <div className="text-sm text-muted-foreground">{t('preview.valid')}</div>
           </CardContent>
         </Card>
+        {preview.summary.duplicates > 0 && (
+          <Card>
+            <CardContent className="pt-4 text-center">
+              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{preview.summary.duplicates}</div>
+              <div className="text-sm text-muted-foreground">{t('summary.duplicates', { count: preview.summary.duplicates })}</div>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardContent className="pt-4 text-center">
             <div className="text-2xl font-bold text-destructive">{preview.summary.errors}</div>
