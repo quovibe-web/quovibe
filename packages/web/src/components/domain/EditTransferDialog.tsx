@@ -35,6 +35,7 @@ export function EditTransferDialog({ open, onOpenChange, transaction }: Props) {
   const { data: txDetail } = useTransactionDetail(open ? (transaction?.uuid ?? null) : null);
   const formRef = useRef<HTMLFormElement>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [isValid, setIsValid] = useState(false);
   const { guardedOpenChange, showDialog, setShowDialog, discard } =
     useUnsavedChangesGuard(isDirty, onOpenChange);
 
@@ -70,10 +71,8 @@ export function EditTransferDialog({ open, onOpenChange, transaction }: Props) {
     }
   });
 
-  // Key the form on both uuid and whether txDetail has loaded. This ensures
-  // RHF receives the correct fxRate default when detail arrives asynchronously
-  // (cross-currency transfers need the stored rate to pre-populate the field).
-  const formKey = `${transaction?.uuid ?? 'none'}:${txDetail ? '1' : '0'}`;
+  const formKey = transaction?.uuid ?? 'none';
+  const saveDisabled = !isValid || inFlight || updateMutation.isPending;
 
   return (
     <>
@@ -87,7 +86,7 @@ export function EditTransferDialog({ open, onOpenChange, transaction }: Props) {
           </SheetHeader>
 
           <ScrollArea className="flex-1 min-h-0 px-6">
-            {transaction && (
+            {transaction && txDetail && (
               <TransactionForm
                 key={formKey}
                 type={TransactionType.TRANSFER_BETWEEN_ACCOUNTS}
@@ -98,7 +97,11 @@ export function EditTransferDialog({ open, onOpenChange, transaction }: Props) {
                 formRef={formRef}
                 serverError={updateMutation.error}
                 onDirtyChange={setIsDirty}
+                onValidityChange={setIsValid}
               />
+            )}
+            {transaction && !txDetail && (
+              <div className="px-4 py-6 text-sm text-muted-foreground">{tCommon('loading')}</div>
             )}
           </ScrollArea>
 
@@ -115,6 +118,7 @@ export function EditTransferDialog({ open, onOpenChange, transaction }: Props) {
               type="button"
               className="flex-1"
               mutation={{ isPending: inFlight || updateMutation.isPending }}
+              disabled={saveDisabled}
               onClick={() => formRef.current?.requestSubmit()}
             >
               {tCommon('save')}

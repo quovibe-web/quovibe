@@ -117,6 +117,9 @@ interface TransactionFormProps {
   /** Called whenever the form's dirty state changes. Lets parent dialogs
    *  drive unsaved-changes guards without coupling to RHF internals. */
   onDirtyChange?: (dirty: boolean) => void;
+  /** Called whenever the form's validity state changes. Lets parent dialogs
+   *  gate their own footer Save buttons on form validity. */
+  onValidityChange?: (valid: boolean) => void;
 }
 
 function defaultFormValues(
@@ -151,6 +154,7 @@ export function TransactionForm({
   formRef,
   serverError,
   onDirtyChange,
+  onValidityChange,
 }: TransactionFormProps) {
   const { t, i18n } = useTranslation('transactions');
   const cfg = FIELD_CONFIG[type];
@@ -226,6 +230,11 @@ export function TransactionForm({
   useEffect(() => {
     onDirtyChange?.(form.formState.isDirty);
   }, [form.formState.isDirty, onDirtyChange]);
+
+  // Propagate validity state to parent so footer Save buttons can disable while invalid.
+  useEffect(() => {
+    onValidityChange?.(form.formState.isValid);
+  }, [form.formState.isValid, onValidityChange]);
 
   const watchedAccountId = useWatch({ control: form.control, name: 'accountId' }) ?? '';
   const watchedCrossAccountId = useWatch({ control: form.control, name: 'crossAccountId' }) ?? '';
