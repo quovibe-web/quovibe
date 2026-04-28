@@ -630,6 +630,59 @@ function createTestDb(): Database.Database {
       expect(units.find((u) => u.type === 'FEE')!.amount).toBe(1500);  // 15 EUR × 100
       expect(units.find((u) => u.type === 'TAX')!.amount).toBe(1000);  // 10 EUR × 100
     });
+
+    it('cross-currency BUY of new security creates security with CGA currency, not portfolioCurrency (BUG-146)', async () => {
+      // Use a name with no auto-match against the fixture (so the security is
+      // truly new and goes through the create-new path on execute).
+      // PP-aligned: amount × tolerance must hold (5e-4). Use NVIDIA-like
+      // values that pass step-2: 460 USD × 1.0837 = 498.502 EUR ≈ 498.50.
+      const csv = [
+        'date,type,security,shares,amount,fxRate,grossAmount,currencyGrossAmount',
+        '2024-01-15,BUY,FreshUSDStock,5,498.50,1.0837,460,USD',
+      ].join('\n');
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'bug146-exec.csv');
+
+      // Step 1: preview surfaces csvCurrencies for the new security.
+      const previewResult = await previewTradeImport(sqlite, {
+        tempFileId,
+        ...baseConfig,
+        columnMapping: {
+          date: 0, type: 1, security: 2, shares: 3, amount: 4,
+          fxRate: 5, grossAmount: 6, currencyGrossAmount: 7,
+        },
+        targetSecuritiesAccountId: 'port-1',
+        newSecurityNames: ['FreshUSDStock'],
+      });
+      const fresh = previewResult.unmatchedSecurities.find(
+        (s) => s.csvName === 'FreshUSDStock',
+      );
+      expect(fresh?.csvCurrencies).toEqual(['USD']);
+
+      // Step 2: execute as the client would (passing CGA-derived currency).
+      await executeTradeImport(sqlite, {
+        tempFileId,
+        config: {
+          delimiter: ',',
+          columnMapping: {
+            date: 0, type: 1, security: 2, shares: 3, amount: 4,
+            fxRate: 5, grossAmount: 6, currencyGrossAmount: 7,
+          },
+          dateFormat: 'yyyy-MM-dd',
+          decimalSeparator: '.',
+          thousandSeparator: '',
+        },
+        targetSecuritiesAccountId: 'port-1',
+        securityMapping: {},
+        newSecurities: [{ name: 'FreshUSDStock', currency: 'USD' }],
+        excludedRows: [],
+      });
+
+      // Step 3: assert the security was born with USD, not EUR.
+      const sec = sqlite.prepare(
+        "SELECT currency FROM security WHERE name = 'FreshUSDStock'",
+      ).get() as { currency: string };
+      expect(sec.currency).toBe('USD');
+    });
   });
 
   describe('Inventory feasibility (BUG-123)', () => {
