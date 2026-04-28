@@ -354,6 +354,67 @@ function createTestDb(): Database.Database {
       expect(result.summary.errors).toBe(0);
     });
 
+    describe('re-import dedupe (BUG-143)', () => {
+      function seedExistingCsvImport(): void {
+        sqlite.prepare(
+          `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, source, updatedAt, _xmlid, _order)
+           VALUES ('seed-1', 'BUY', '2024-01-15', 'EUR', 50000, 500000000, 'sec-1', 'port-1', 'portfolio', 'CSV_IMPORT', '2024-01-01', 1, 1)`,
+        ).run();
+      }
+
+      const reimportInput = (tempFileId: string) => ({
+        tempFileId,
+        delimiter: ',' as const,
+        columnMapping: { date: 0, type: 1, security: 2, shares: 3, amount: 4 },
+        dateFormat: 'yyyy-MM-dd',
+        decimalSeparator: '.' as const,
+        thousandSeparator: '' as const,
+        targetSecuritiesAccountId: 'port-1',
+        securityMapping: { 'Apple Inc': 'sec-1' },
+      });
+
+      it('summary.duplicates counts rows whose natural key matches existing CSV-source xacts', async () => {
+        seedExistingCsvImport();
+        const csv = [
+          'date,type,security,shares,amount',
+          '2024-01-15,BUY,Apple Inc,5,500.00',
+        ].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'reimport.csv');
+
+        const result = await previewTradeImport(sqlite, reimportInput(tempFileId));
+
+        expect(result.summary.duplicates).toBeGreaterThanOrEqual(1);
+      });
+
+      it('summary.duplicates is 0 when no rows match', async () => {
+        const csv = [
+          'date,type,security,shares,amount',
+          '2024-02-15,BUY,Apple Inc,5,500.00',
+        ].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'fresh.csv');
+
+        const result = await previewTradeImport(sqlite, reimportInput(tempFileId));
+
+        expect(result.summary.duplicates).toBe(0);
+      });
+
+      it('non-CSV-source xacts in DB do NOT count toward duplicates', async () => {
+        sqlite.prepare(
+          `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, source, updatedAt, _xmlid, _order)
+           VALUES ('manual-1', 'BUY', '2024-01-15', 'EUR', 50000, 500000000, 'sec-1', 'port-1', 'portfolio', 'MANUAL', '2024-01-01', 1, 1)`,
+        ).run();
+        const csv = [
+          'date,type,security,shares,amount',
+          '2024-01-15,BUY,Apple Inc,5,500.00',
+        ].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'cross-source.csv');
+
+        const result = await previewTradeImport(sqlite, reimportInput(tempFileId));
+
+        expect(result.summary.duplicates).toBe(0);
+      });
+    });
+
     describe('csvCurrencies enrichment (BUG-146)', () => {
       const cgaInput = (tempFileId: string) => ({
         tempFileId,

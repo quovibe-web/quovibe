@@ -707,6 +707,28 @@ export async function previewTradeImport(
     byType[row.type] = (byType[row.type] ?? 0) + 1; // native-ok
   }
 
+  // BUG-143: count rows whose natural key would dedupe at execute time.
+  // Build a fingerprint set from existing CSV-source xacts once, then check
+  // each mapped XactInsert against it. Counts BOTH legs of BUY/SELL
+  // (matches the wire-level skippedDuplicates returned by execute).
+  const existingFingerprints = new Set<string>();
+  const existingRows = sqlite.prepare(
+    "SELECT date, type, security, account, shares, amount FROM xact WHERE source = 'CSV_IMPORT'",
+  ).all() as Array<{
+    date: string; type: string; security: string | null;
+    account: string; shares: number; amount: number;
+  }>;
+  for (const r of existingRows) {
+    existingFingerprints.add(
+      `${r.date}|${r.type}|${r.security ?? ''}|${r.account}|${r.shares}|${r.amount}`,
+    );
+  }
+  let duplicates = 0; // native-ok
+  for (const tx of mapped.transactions) {
+    const fp = `${tx.date}|${tx.type}|${tx.securityId ?? ''}|${tx.accountId}|${tx.shares}|${tx.amount}`;
+    if (existingFingerprints.has(fp)) duplicates++; // native-ok
+  }
+
   return {
     rows: previewRows,
     unmatchedSecurities,
@@ -715,6 +737,7 @@ export async function previewTradeImport(
       total: normalizedRows.length + rowErrors.length, // native-ok
       valid: normalizedRows.length - allMapperErrors.length, // native-ok
       errors: rowErrors.length + allMapperErrors.length, // native-ok
+      duplicates,
       byType,
     },
   };
