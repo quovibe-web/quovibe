@@ -192,3 +192,50 @@ hard-abort. The `csv-import.json` locale files in all 8 languages carry
 Any regression that drops the `CROSS_CURRENCY_FX_TYPES` gate, drops
 `xact_unit` emission, reverts the qv-convention pin, or weakens the
 hard-abort posture must make one of these suites go red first.
+
+### New-security currency resolution
+
+When the CSV import wizard creates a new security record (unmatched
+name on the security-match step), `security.currency` MUST be derived
+from the CSV's `currencyGrossAmount` (CGA) column when present.
+Resolution priority:
+
+1. User override from the per-row currency picker on
+   `CsvSecurityMatchStep.tsx`.
+2. Single distinct CGA value seen across all CSV rows for that csvName.
+3. Portfolio reference-deposit currency (silent fallback, surfaced as a
+   warning badge inline).
+
+Hardcoding `'EUR'` (or any portfolio-default) at this step is the
+upstream cause of a class of cross-currency SELL bypass: a
+USD-denominated security born as EUR trivially passes
+`enforceCrossCurrencyFxRate` in
+`packages/api/src/routes/transactions.ts` (which compares
+`cash.currency === security.currency`), and every subsequent BUY/SELL
+posts as a same-currency trade with no FOREX `xact_unit` row.
+
+The wire shape carries this context: `UnmatchedSecurity.csvCurrencies`
+is a sorted distinct array of the CGA values seen across rows for that
+csvName (`packages/shared/src/csv/csv-types.ts`). Empty / absent →
+CGA column unmapped or blank everywhere; the client falls back to
+portfolio currency and renders a yellow warning badge so the user can
+confirm or override.
+
+The pure helper lives at
+`packages/web/src/components/domain/csv-import/csv-security-match-step.utils.ts`
+(`resolveNewSecurityCurrency`) and is unit-tested next to the
+component. Server-side: `previewTradeImport` collects CGA per csvName
+during the unmatched-security discovery loop. No execute-path change
+is needed — `INSERT INTO security (... currency ...)` already pulls
+from `input.newSecurities[i].currency`.
+
+Tests that lock the contract:
+- `packages/web/src/components/domain/csv-import/csv-security-match-step.utils.test.ts`
+  — priority-chain unit cases (override > single CGA > portfolio).
+- `packages/api/src/services/csv/csv-import.service.test.ts >
+  csvCurrencies enrichment` — preview emits sorted distinct CGA arrays
+  per csvName; omits the field when CGA is unmapped.
+- `packages/api/src/services/csv/csv-import.service.test.ts >
+  cross-currency BUY of new security creates security with CGA
+  currency, not portfolioCurrency` — end-to-end pin: USD security is
+  born with `security.currency='USD'` after CSV execute.
