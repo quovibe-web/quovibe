@@ -35,6 +35,15 @@ globs: packages/api/src/db/**
 - §4 analytical indexes (quovibe-owned, performance-driven): `idx_xact_date`,
   `idx_xact_security`, `idx_xact_cross_entry_from_acc`,
   `idx_xact_cross_entry_to_acc`, `idx_price_date`, `idx_price_security_date`.
+- **Runtime-installed indexes** (`apply-bootstrap.ts` helpers, NOT in
+  bootstrap.sql §4): `idx_xact_csv_natural_key` — partial unique index on
+  `xact (date, type, security, account, shares, amount) WHERE source='CSV_IMPORT'`,
+  backs CSV re-import dedupe (BUG-143). Runtime DDL is required because
+  the install can fail on a contaminated DB (divergent CSV duplicates) and
+  would otherwise abort the bootstrap exec mid-script. The helper wraps
+  `CREATE UNIQUE INDEX` in try/catch so app-start never breaks. See
+  `.claude/rules/csv-import.md` "Re-import dedupe (BUG-143)" for the full
+  contract + cleanup helper.
 - **Vendor column patches** (`apply-bootstrap.ts > VENDOR_COLUMN_PATCHES`):
   the only sanctioned route to add columns to a §1+§2 vendor table without
   breaking Gate 1 parity. Today's patch set adds `high BIGINT`, `low BIGINT`,

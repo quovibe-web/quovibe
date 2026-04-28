@@ -239,3 +239,100 @@ Tests that lock the contract:
   cross-currency BUY of new security creates security with CGA
   currency, not portfolioCurrency` — end-to-end pin: USD security is
   born with `security.currency='USD'` after CSV execute.
+
+## Re-import dedupe (BUG-143)
+
+CSV re-import is **silently idempotent**: re-importing the same file
+inserts zero new rows, and the user sees the duplicate count in the
+preview chip and the success Alert.
+
+### Server — natural-key fingerprint
+
+The natural key is `(date, type, security, account, shares, amount)`.
+Enforced by a partial unique index `idx_xact_csv_natural_key` on `xact`
+scoped `WHERE source = 'CSV_IMPORT'`. Manual entries and PP-XML imports
+(different `source` values) are never matched against the index — they
+can legitimately collide on the same natural key.
+
+The index is created at runtime by `apply-bootstrap.ts >
+ensureCsvDedupeIndex` rather than declared in `bootstrap.sql §4`.
+**Reason**: bootstrap.sql is applied via a single `db.exec(...)` call.
+If `CREATE UNIQUE INDEX` raises (a contaminated DB still holds
+divergent CSV duplicates that cleanupCsvDuplicates left alone), the
+entire exec aborts mid-script and bootstrap leaves the DB in a
+half-applied state. Runtime DDL with try/catch keeps the app usable
+even when the index can't install. The cleanup helper (also in
+`apply-bootstrap.ts`) collapses byte-identical CSV-source duplicate
+groups before the index is attempted.
+
+### Server — execute path
+
+`executeTradeImport` uses `INSERT OR IGNORE INTO xact ... RETURNING
+uuid` (better-sqlite3 12+ supports RETURNING via `.get()`). When the
+returned row is null, the partial index dropped the insert; the helper
+records the UUID in a skipped-set and downstream `xact_unit` and
+`xact_cross_entry` inserts that reference it are filtered out before
+running. Skip count returned as `TradeExecuteResult.skippedDuplicates`
+(raw xact-row count). The user-facing `imported` field subtracts
+`Math.ceil(skipped / 2)` so it reflects input-row dedupes for the
+common BUY/SELL case (two legs per input).
+
+`previewTradeImport` runs the same fingerprint check at preview time
+(single SQL query, in-memory Set lookup) and sets
+`summary.duplicates` so Step 4 of the wizard can render
+"X new · Y duplicate · Z errors" before the user clicks Import.
+
+### Client — surface
+
+`CsvPreviewStep.tsx` renders an amber summary card with
+`summary.duplicates` count when > 0 (between the "valid" and "errors"
+cards). The result Alert adds a `result.skippedDuplicates` line and
+switches to `result.allDuplicates` as the primary message when
+`imported === 0 && skippedDuplicates > 0`.
+
+### Cleanup of pre-existing duplicates
+
+`cleanupCsvDuplicates` runs once per `applyBootstrap` call. It scans
+for natural-key groups with `count(*) > 1` AND `source='CSV_IMPORT'`,
+fingerprints each member's full editable surface (note, currency,
+fees, taxes, acctype + xact_unit children + xact_cross_entry rows),
+and collapses byte-identical groups to MIN(_id) — deleting victims
+and all their `xact_unit` + `xact_cross_entry` dependents inside a
+single `db.transaction()`.
+
+Divergent groups (members that differ on any field — e.g. user edited
+one of the duplicates manually) are LEFT UNTOUCHED with a logged
+warning. CREATE INDEX then fails for those DBs and is silently
+deferred (try/catch); the affected portfolio still works, but
+re-import dedupe is degraded for it until manual cleanup. This is a
+rare edge case (presupposes manual edits to BUG-143-era duplicates)
+and acceptable as a follow-up rather than blocking app start.
+
+### Known gap: NULL security
+
+SQLite UNIQUE treats NULL as distinct from NULL. Cash-only types
+(DEPOSIT, REMOVAL, INTEREST, FEES, …) have `security IS NULL` and are
+NOT deduped at the DB layer. This is acceptable today because PP CSV
+trade-import scope is BUY/SELL/DIVIDEND/etc. — every row carries a
+security. When cash-only CSV import lands, dedupe for those rows must
+use a separate strategy (likely pre-flight Set-based filter, since
+partial unique index can't help with NULL).
+
+### Tests that lock the contract
+
+- `packages/api/src/db/__tests__/csv-dedupe-cleanup.test.ts` — pure
+  fingerprint helper + `cleanupCsvDuplicates` SQLite cases.
+- `packages/api/src/db/__tests__/bootstrap-csv-dedupe.test.ts` —
+  index install on fresh DB, partial scope (CSV-source only),
+  cleanup on contaminated DB, divergent-group survival.
+- `packages/api/src/services/csv/csv-import.service.test.ts >
+  previewTradeImport — re-import dedupe (BUG-143)` — summary count,
+  fresh-vs-existing, non-CSV-source isolation.
+- `packages/api/src/services/csv/csv-import.service.test.ts >
+  executeTradeImport — re-import dedupe (BUG-143)` — full re-import,
+  mixed batch, no orphan units.
+
+Any regression that drops the partial index, removes the cleanup
+helper, replaces INSERT OR IGNORE with plain INSERT, or stops
+filtering dependent rows on skipped UUIDs must make one of these
+suites go red first.
