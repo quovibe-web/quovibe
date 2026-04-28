@@ -71,7 +71,10 @@ export const tradeColumnFields = [
 ] as const;
 export type TradeColumnField = (typeof tradeColumnFields)[number];
 
-export const requiredTradeColumns: readonly TradeColumnField[] = ['date', 'type', 'security', 'amount'];
+// `type` is intentionally NOT required: when unmapped, parseTradeRow infers
+// it via inferTransactionType (Account-mode rules). When mapped but the cell
+// is empty/unknown, the strict UNKNOWN_TYPE error still fires.
+export const requiredTradeColumns: readonly TradeColumnField[] = ['date', 'security', 'amount'];
 
 // ─── Price Column Mapping ─────────────────────────
 
