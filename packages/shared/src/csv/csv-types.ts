@@ -57,6 +57,12 @@ export const tradeColumnFields = [
   // is the security ccy code. All optional — required only when the row is
   // cross-currency. See `.claude/rules/csv-import.md` for the gate.
   'fxRate', 'grossAmount', 'currencyGrossAmount',
+  // PP-parity accept-and-ignore columns. WKN: German-broker security
+  // identifier, logged but not stored (no security.wkn column today).
+  // Time: HH:MM intraday timestamp; the canonical `date` column wins.
+  // Date of Quote: alternate spelling of `date` for price-import flow;
+  // ignored on trade flow when the canonical `date` is mapped.
+  'wkn', 'time', 'dateOfQuote',
 ] as const;
 export type TradeColumnField = (typeof tradeColumnFields)[number];
 
