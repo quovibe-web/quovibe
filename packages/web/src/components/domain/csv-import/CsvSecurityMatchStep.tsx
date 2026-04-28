@@ -25,9 +25,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { usePreviewCsvTrades } from '@/api/use-csv-import';
 import { useSecurities } from '@/api/use-securities';
 import { useSecuritiesAccounts } from '@/api/use-securities-accounts';
+import { useAccounts } from '@/api/use-accounts';
 import { usePortfolio } from '@/context/PortfolioContext';
+import { CURRENCIES } from '@/lib/currencies';
 import type { WizardState } from '@/pages/CsvImportPage';
 import type { TradePreviewResult } from '@quovibe/shared';
+import { resolveNewSecurityCurrency } from './csv-security-match-step.utils';
 
 interface Props {
   state: WizardState;
@@ -55,7 +58,15 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
   const previewMutation = usePreviewCsvTrades();
   const { data: allSecurities } = useSecurities();
   const secAccounts = useSecuritiesAccounts(portfolio.id);
+  const { data: allAccounts } = useAccounts();
   const [localMapping, setLocalMapping] = useState<Record<string, string>>(state.securityMapping);
+  const [currencyOverrides, setCurrencyOverrides] = useState<Record<string, string>>({});
+
+  // Picked securities account's resolved reference-deposit currency. Falls
+  // back to 'EUR' when accounts haven't loaded yet — the resolver re-runs on
+  // every render so the value will refine once data lands.
+  const portfolioCurrency =
+    allAccounts?.find((a) => a.id === state.targetSecuritiesAccountId)?.currency ?? 'EUR';
   // Replay-fn for the Retry button. Each preview path (initial entry, or the
   // finalizing re-fire triggered by Next) installs its own replay closure;
   // Retry runs whichever was most recent. Without this, Retry would fall back
@@ -150,7 +161,11 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
         name: s.csvName,
         isin: s.csvIsin,
         ticker: s.csvTicker,
-        currency: 'EUR',
+        currency: resolveNewSecurityCurrency(
+          s.csvCurrencies ?? [],
+          portfolioCurrency,
+          currencyOverrides[s.csvName],
+        ),
       }));
 
     if (newSecs.length === 0 && Object.keys(localMapping).length === 0) {
@@ -240,49 +255,100 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
               <div className="space-y-3">
                 {unmatchedSecurities.map((sec) => {
                   const isMatched = !!localMapping[sec.csvName];
+                  const csvCurrencies = sec.csvCurrencies ?? [];
+                  const resolvedCurrency = resolveNewSecurityCurrency(
+                    csvCurrencies,
+                    portfolioCurrency,
+                    currencyOverrides[sec.csvName],
+                  );
+                  const showConflictWarning =
+                    !isMatched && csvCurrencies.length > 1 && !currencyOverrides[sec.csvName];
+                  const showFallbackWarning =
+                    !isMatched && csvCurrencies.length === 0 && !currencyOverrides[sec.csvName];
                   return (
-                    <div key={sec.csvName} className="flex items-center gap-4 p-3 border rounded-md">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{sec.csvName}</div>
-                        {sec.csvIsin && (
-                          <div className="text-xs text-muted-foreground">ISIN: {sec.csvIsin}</div>
+                    <div key={sec.csvName} className="space-y-2 p-3 border rounded-md">
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{sec.csvName}</div>
+                          {sec.csvIsin && (
+                            <div className="text-xs text-muted-foreground">ISIN: {sec.csvIsin}</div>
+                          )}
+                        </div>
+
+                        <Badge
+                          variant={isMatched ? 'default' : 'secondary'}
+                          className={isMatched ? 'bg-green-600' : 'bg-amber-500'}
+                        >
+                          {isMatched ? t('securities.status.matched') : t('securities.status.new')}
+                        </Badge>
+
+                        <Select
+                          value={localMapping[sec.csvName] ?? '__new'}
+                          onValueChange={(v) => {
+                            setLocalMapping((prev) => {
+                              const next = { ...prev };
+                              if (v === '__new') {
+                                delete next[sec.csvName];
+                              } else {
+                                next[sec.csvName] = v;
+                              }
+                              return next;
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="w-60">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__new">{t('securities.createNew')}</SelectItem>
+                            {(allSecurities ?? []).map((s) => (
+                              <SelectItem key={s.id} value={s.id}>
+                                {s.name}
+                                {s.isin ? ` (${s.isin})` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {!isMatched && (
+                          <Select
+                            value={resolvedCurrency}
+                            onValueChange={(v) => {
+                              setCurrencyOverrides((prev) => ({ ...prev, [sec.csvName]: v }));
+                            }}
+                          >
+                            <SelectTrigger className="w-32" aria-label={t('securities.currency.label')}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {CURRENCIES.map((c) => (
+                                <SelectItem key={c.code} value={c.code}>
+                                  {c.code}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         )}
                       </div>
 
-                      <Badge
-                        variant={isMatched ? 'default' : 'secondary'}
-                        className={isMatched ? 'bg-green-600' : 'bg-amber-500'}
-                      >
-                        {isMatched ? t('securities.status.matched') : t('securities.status.new')}
-                      </Badge>
+                      {showConflictWarning && (
+                        <Alert variant="default" className="border-amber-500/50 text-amber-700 dark:text-amber-400">
+                          <AlertDescription>
+                            {t('securities.currency.conflict', {
+                              currencies: csvCurrencies.join(', '),
+                              name: sec.csvName,
+                            })}
+                          </AlertDescription>
+                        </Alert>
+                      )}
 
-                      <Select
-                        value={localMapping[sec.csvName] ?? '__new'}
-                        onValueChange={(v) => {
-                          setLocalMapping((prev) => {
-                            const next = { ...prev };
-                            if (v === '__new') {
-                              delete next[sec.csvName];
-                            } else {
-                              next[sec.csvName] = v;
-                            }
-                            return next;
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="w-60">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__new">{t('securities.createNew')}</SelectItem>
-                          {(allSecurities ?? []).map((s) => (
-                            <SelectItem key={s.id} value={s.id}>
-                              {s.name}
-                              {s.isin ? ` (${s.isin})` : ''}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {showFallbackWarning && (
+                        <Alert variant="default" className="border-amber-500/50 text-amber-700 dark:text-amber-400">
+                          <AlertDescription>
+                            {t('securities.currency.fallback', { currency: resolvedCurrency })}
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     </div>
                   );
                 })}
