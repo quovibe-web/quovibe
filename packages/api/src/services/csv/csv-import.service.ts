@@ -881,12 +881,16 @@ export async function executeTradeImport(
       (n) => `${n} row(s) sell more shares than available at that point in time`,
     );
 
-    // Insert all in a single SQLite transaction
+    // Insert all in a single SQLite transaction. INSERT OR IGNORE +
+    // RETURNING uuid lets us detect rows the partial unique index on
+    // (date,type,security,account,shares,amount) WHERE source='CSV_IMPORT'
+    // silently dropped — used to skip dependent xact_unit/xact_cross_entry
+    // inserts that would otherwise reference a non-existent xact UUID.
     const doInsert = sqlite.transaction((
       txns: XactInsert[], entries: CrossEntryInsert[], unitRows: UnitInsert[],
-    ) => {
+    ): { skipped: number } => {
       const insertXact = sqlite.prepare(
-        'INSERT INTO xact (uuid, type, date, currency, amount, shares, note, security, account, acctype, source, updatedAt, fees, taxes, _xmlid, _order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT OR IGNORE INTO xact (uuid, type, date, currency, amount, shares, note, security, account, acctype, source, updatedAt, fees, taxes, _xmlid, _order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING uuid',
       );
       const insertCE = sqlite.prepare(
         'INSERT INTO xact_cross_entry (from_xact, from_acc, to_xact, to_acc, type) VALUES (?, ?, ?, ?, ?)',
@@ -899,26 +903,37 @@ export async function executeTradeImport(
       let nextOrder = ((sqlite.prepare('SELECT COALESCE(MAX(_order), 0) + 1 AS n FROM xact').get() as { n: number }).n);
       const now = new Date().toISOString();
 
+      const skippedUuids = new Set<string>();
+      let skipped = 0; // native-ok
+
       for (const tx of txns) {
-        insertXact.run(
+        const returned = insertXact.get(
           tx.id, tx.type, tx.date, tx.currency, tx.amount, tx.shares,
           tx.note, tx.securityId, tx.accountId, tx.acctype, tx.source,
           now, tx.fees, tx.taxes, nextXmlid, nextOrder,
-        );
+        ) as { uuid: string } | undefined;
+        if (returned == null) {
+          skippedUuids.add(tx.id);
+          skipped++; // native-ok
+        }
         nextXmlid++; // native-ok
         nextOrder++; // native-ok
       }
 
       for (const ce of entries) {
+        if (skippedUuids.has(ce.fromXact) || skippedUuids.has(ce.toXact)) continue;
         insertCE.run(ce.fromXact, ce.fromAcc, ce.toXact, ce.toAcc, ce.type);
       }
 
       for (const u of unitRows) {
+        if (skippedUuids.has(u.xact)) continue;
         insertUnit.run(u.xact, u.type, u.amount, u.currency, u.forex_amount, u.forex_currency, u.exchangeRate);
       }
+
+      return { skipped };
     });
 
-    doInsert(mapped.transactions, mapped.crossEntries, mapped.units);
+    const insertResult = doInsert(mapped.transactions, mapped.crossEntries, mapped.units);
 
     // Cleanup temp file
     try { fs.unlinkSync(filePath); } catch { /* ignore */ }
@@ -927,11 +942,20 @@ export async function executeTradeImport(
     // transfers emit 2 xact rows per input row (see csv-trade-mapper);
     // doubling leaks an implementation detail into user-facing copy.
     // Subtract mapper errors because those rows produced no xact.
+    // BUG-143: also subtract input rows fully deduped (both legs skipped)
+    // so `imported` reflects what actually persisted.
     const logicalCount = normalizedRows.length - mapped.errors.length; // native-ok
+    // skippedDuplicates is in xact-row units (raw skip count). For the
+    // user-facing `imported` we approximate input-row dedupes as ceil(skip/2):
+    // BUY/SELL emit 2 legs per input, others emit 1. Imperfect for mixed
+    // batches but close enough for the toast/copy. The wire still carries
+    // the raw skip count for the client to reason about.
+    const skippedInputRows = Math.ceil(insertResult.skipped / 2); // native-ok
     return {
-      imported: logicalCount,
+      imported: Math.max(0, logicalCount - skippedInputRows),
+      skippedDuplicates: insertResult.skipped,
       created: {
-        transactions: logicalCount,
+        transactions: Math.max(0, logicalCount - skippedInputRows),
         securities: createdSecurities,
       },
       errors: [...parseRowErrors, ...mapped.errors],

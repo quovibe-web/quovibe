@@ -106,6 +106,13 @@ function createTestDb(): Database.Database {
       PRIMARY KEY (date, from_currency, to_currency)
     );
 
+    -- BUG-143: mirror the partial unique index that applyBootstrap installs
+    -- in production via apply-bootstrap.ts > ensureCsvDedupeIndex. INSERT OR
+    -- IGNORE in executeTradeImport relies on this constraint to dedupe.
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_xact_csv_natural_key
+      ON xact (date, type, security, account, shares, amount)
+      WHERE source = 'CSV_IMPORT';
+
     INSERT INTO account (uuid, name, type, currency, updatedAt, _xmlid, _order)
       VALUES ('dep-1', 'Cash EUR', 'account', 'EUR', '2024-01-01', 1, 1);
     INSERT INTO account (uuid, name, type, referenceAccount, updatedAt, _xmlid, _order)
@@ -264,6 +271,97 @@ function createTestDb(): Database.Database {
       // differs from the table count.
       const xactRowCount = (sqlite.prepare('SELECT COUNT(*) AS n FROM xact').get() as { n: number }).n;
       expect(xactRowCount).toBe(8);
+    });
+
+    describe('re-import dedupe (BUG-143)', () => {
+      const baseExecuteInput = (tempFileId: string) => ({
+        tempFileId,
+        config: {
+          delimiter: ',' as const,
+          columnMapping: { date: 0, type: 1, security: 2, shares: 3, amount: 4 },
+          dateFormat: 'yyyy-MM-dd',
+          decimalSeparator: '.' as const,
+          thousandSeparator: '' as const,
+        },
+        targetSecuritiesAccountId: 'port-1',
+        securityMapping: { 'Apple Inc': 'sec-1' },
+        newSecurities: [],
+        excludedRows: [],
+      });
+
+      it('re-execute same CSV: second pass skips all rows, count unchanged', async () => {
+        const csv = [
+          'date,type,security,shares,amount',
+          '2024-01-15,BUY,Apple Inc,5,500.00',
+          '2024-01-16,BUY,Apple Inc,3,300.00',
+        ].join('\n');
+        const tempFileId1 = saveTempFile(Buffer.from(csv, 'utf-8'), 'first.csv');
+        await executeTradeImport(sqlite, baseExecuteInput(tempFileId1));
+        const xactCountAfterFirst = (sqlite.prepare('SELECT COUNT(*) AS n FROM xact').get() as { n: number }).n;
+
+        const tempFileId2 = saveTempFile(Buffer.from(csv, 'utf-8'), 'second.csv');
+        const second = await executeTradeImport(sqlite, baseExecuteInput(tempFileId2));
+
+        const xactCountAfterSecond = (sqlite.prepare('SELECT COUNT(*) AS n FROM xact').get() as { n: number }).n;
+        expect(second.skippedDuplicates).toBeGreaterThanOrEqual(2);
+        expect(xactCountAfterSecond).toBe(xactCountAfterFirst);
+      });
+
+      it('mixed re-import: 1 new + 1 duplicate inserts only the new row', async () => {
+        const original = 'date,type,security,shares,amount\n2024-01-15,BUY,Apple Inc,5,500.00';
+        const tempFileId1 = saveTempFile(Buffer.from(original, 'utf-8'), 'orig.csv');
+        await executeTradeImport(sqlite, baseExecuteInput(tempFileId1));
+        const beforeMixed = (sqlite.prepare('SELECT COUNT(*) AS n FROM xact').get() as { n: number }).n;
+
+        const mixed = [
+          'date,type,security,shares,amount',
+          '2024-01-15,BUY,Apple Inc,5,500.00',  // duplicate
+          '2024-02-15,BUY,Apple Inc,2,200.00',  // new
+        ].join('\n');
+        const tempFileId2 = saveTempFile(Buffer.from(mixed, 'utf-8'), 'mixed.csv');
+
+        const result = await executeTradeImport(sqlite, baseExecuteInput(tempFileId2));
+
+        expect(result.skippedDuplicates).toBeGreaterThanOrEqual(1);
+        const afterMixed = (sqlite.prepare('SELECT COUNT(*) AS n FROM xact').get() as { n: number }).n;
+        // BUY emits 2 xact rows per input row, so the new row contributes +2.
+        expect(afterMixed).toBe(beforeMixed + 2);
+      });
+
+      it('skipped xacts do NOT leave orphan xact_unit rows', async () => {
+        const csv = [
+          'date,type,security,shares,amount,fees,taxes',
+          '2024-01-15,BUY,Apple Inc,5,500.00,5,2',
+        ].join('\n');
+        const cfg = {
+          delimiter: ',' as const,
+          columnMapping: { date: 0, type: 1, security: 2, shares: 3, amount: 4, fees: 5, taxes: 6 },
+          dateFormat: 'yyyy-MM-dd',
+          decimalSeparator: '.' as const,
+          thousandSeparator: '' as const,
+        };
+        const tempFileId1 = saveTempFile(Buffer.from(csv, 'utf-8'), 'orig.csv');
+        await executeTradeImport(sqlite, {
+          tempFileId: tempFileId1, config: cfg,
+          targetSecuritiesAccountId: 'port-1',
+          securityMapping: { 'Apple Inc': 'sec-1' },
+          newSecurities: [],
+          excludedRows: [],
+        });
+        const unitsBefore = (sqlite.prepare('SELECT COUNT(*) AS n FROM xact_unit').get() as { n: number }).n;
+
+        const tempFileId2 = saveTempFile(Buffer.from(csv, 'utf-8'), 'reimport.csv');
+        await executeTradeImport(sqlite, {
+          tempFileId: tempFileId2, config: cfg,
+          targetSecuritiesAccountId: 'port-1',
+          securityMapping: { 'Apple Inc': 'sec-1' },
+          newSecurities: [],
+          excludedRows: [],
+        });
+
+        const unitsAfter = (sqlite.prepare('SELECT COUNT(*) AS n FROM xact_unit').get() as { n: number }).n;
+        expect(unitsAfter).toBe(unitsBefore);
+      });
     });
   });
 
