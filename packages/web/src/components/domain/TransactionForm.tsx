@@ -228,6 +228,7 @@ export function TransactionForm({
   const watchedTaxes = useWatch({ control: form.control, name: 'taxes' }) ?? '';
   const watchedFeesFx = useWatch({ control: form.control, name: 'feesFx' }) ?? '';
   const watchedTaxesFx = useWatch({ control: form.control, name: 'taxesFx' }) ?? '';
+  const watchedAmount = useWatch({ control: form.control, name: 'amount' }) ?? '';
 
   const filteredCrossAccounts = useMemo(() => {
     let base: typeof accounts;
@@ -617,7 +618,7 @@ export function TransactionForm({
                   {t('form.convertedGross', { ccy: dstCurrency })}
                 </span>
                 <span className="font-medium">
-                  {((parseFloat(form.getValues('amount') || '0') || 0) * fxRateVal).toFixed(2)} {dstCurrency}
+                  {((parseFloat(watchedAmount || '0') || 0) * fxRateVal).toFixed(2)} {dstCurrency}
                 </span>
               </div>
             )}
