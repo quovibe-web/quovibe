@@ -1,36 +1,25 @@
-import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useAccounts } from '@/api/use-accounts';
-import { useSecurities } from '@/api/use-securities';
-import { useUpdateTransaction } from '@/api/use-transactions';
+import { SubmitButton } from '@/components/shared/SubmitButton';
+import { TransactionForm, type TransactionFormValues } from '@/components/domain/TransactionForm';
+import { useUpdateTransaction, useTransactionDetail } from '@/api/use-transactions';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
+import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
+import { UnsavedChangesAlert } from '@/components/shared/UnsavedChangesAlert';
+import { TransactionType } from '@/lib/enums';
+import { preparePayload } from '@/lib/transaction-payload';
 import type { TransactionListItem } from '@/api/types';
-import { getDateLocale } from '@/lib/formatters';
-
-const NONE = '__none__';
 
 interface Props {
   open: boolean;
@@ -40,175 +29,106 @@ interface Props {
 
 export function EditTaxRefundDialog({ open, onOpenChange, transaction }: Props) {
   const { t } = useTranslation('transactions');
-  const { data: accounts = [] } = useAccounts();
-  const { data: securities = [] } = useSecurities();
+  const { t: tCommon } = useTranslation('common');
   const updateMutation = useUpdateTransaction();
+  const { data: txDetail } = useTransactionDetail(open ? (transaction?.uuid ?? null) : null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isValid, setIsValid] = useState(false);
+  const { guardedOpenChange, showDialog, setShowDialog, discard } =
+    useUnsavedChangesGuard(isDirty, onOpenChange);
 
-  const cashAccounts = accounts.filter((a) => a.type === 'account');
-  const [securityId, setSecurityId] = useState(NONE);
-  const [accountId, setAccountId] = useState('');
-  const [date, setDate] = useState<Date>(new Date());
-  const [time, setTime] = useState<string>('00:00');
-  const [calOpen, setCalOpen] = useState(false);
-  const [amount, setAmount] = useState('');
-  const [note, setNote] = useState('');
+  // Reset dirty when transaction changes (sheet reopened with different row).
+  useEffect(() => { setIsDirty(false); }, [transaction?.uuid]);
 
-  useEffect(() => {
+  const initialValues = useMemo<Partial<TransactionFormValues> | undefined>(() => {
+    if (!transaction) return undefined;
+    return {
+      date: transaction.date ?? undefined,
+      accountId: transaction.account ?? undefined,
+      // API serializes amount as number despite TS declaration — coerce to string for Zod.
+      amount: transaction.amount != null ? String(transaction.amount) : undefined,
+      // Preserve attached security through the hidden securityId field (TAX_REFUND has
+      // security:false in FIELD_CONFIG so the picker is hidden, but preparePayload will
+      // still emit the id, maintaining the existing association on round-trip).
+      securityId: (transaction.security ?? transaction.securityId) || undefined,
+      note: transaction.note ?? undefined,
+    };
+  }, [transaction, txDetail]);
+
+  const { run, inFlight } = useGuardedSubmit(async (values: TransactionFormValues) => {
     if (!transaction) return;
-    setSecurityId(transaction.security ?? transaction.securityId ?? NONE);
-    setAccountId(transaction.account ?? '');
-    setDate(transaction.date ? new Date(transaction.date) : new Date());
-    setTime(transaction.date && transaction.date.length > 10 ? transaction.date.slice(11, 16) : '00:00');
-    setAmount(transaction.amount ?? '');
-    setNote(transaction.note ?? '');
-  }, [transaction]);
-
-  const selectedAccount = cashAccounts.find((a) => a.id === accountId);
-  const currency = selectedAccount?.currency ?? transaction?.currencyCode ?? 'EUR';
-
-  function handleSave() {
-    if (!transaction) return;
-    if (!accountId) { toast.error(t('validation.selectAccount')); return; }
-    const amtNum = parseFloat(amount);
-    if (!amount || isNaN(amtNum) || amtNum < 0) { toast.error(t('validation.invalidAmount')); return; }
-
-    updateMutation.mutate(
-      {
+    try {
+      await updateMutation.mutateAsync({
         id: transaction.uuid,
-        data: {
-          type: 'TAX_REFUND',
-          securityId: securityId !== NONE ? securityId : undefined,
-          accountId,
-          date: format(date, 'yyyy-MM-dd') + 'T' + time,
-          amount: amtNum,
-          note: note || undefined,
-        },
-      },
-      {
-        onSuccess: () => {
-          toast.success(t('common:toasts.transactionUpdated'));
-          onOpenChange(false);
-        },
-        onError: () => {
-          toast.error(t('common:toasts.errorSaving'));
-        },
-      }
-    );
-  }
+        data: preparePayload(values),
+      });
+      toast.success(tCommon('toasts.transactionUpdated'));
+      setIsDirty(false);
+      onOpenChange(false);
+    } catch {
+      // serverError prop surfaces inline via TransactionForm; suppressGlobalErrorToast
+      // is set on the mutation so the global toast does not double-fire.
+    }
+  });
+
+  const formKey = transaction?.uuid ?? 'none';
+  const saveDisabled = !isValid || inFlight || updateMutation.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t('editTitles.taxRefund')}</DialogTitle>
-          <DialogDescription className="sr-only">
-            {t('editTitles.taxRefundDescription')}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Sheet open={open} onOpenChange={guardedOpenChange}>
+        <SheetContent side="right" className="w-full sm:max-w-lg p-0 flex flex-col" showCloseButton>
+          <SheetHeader className="px-6 pt-6 pb-2 shrink-0">
+            <SheetTitle>{t('editTitles.taxRefund')}</SheetTitle>
+            <SheetDescription className="sr-only">
+              {t('editTitles.taxRefund')}
+            </SheetDescription>
+          </SheetHeader>
 
-        <div className="space-y-4 py-2">
-          {/* Security (optional) */}
-          <div className="space-y-1">
-            <Label>{t('form.security')}</Label>
-            <Select value={securityId} onValueChange={setSecurityId}>
-              <SelectTrigger autoFocus>
-                <SelectValue placeholder={t('form.selectSecurity')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>{t('form.noSecurity')}</SelectItem>
-                {securities.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Cash Account */}
-          <div className="space-y-1">
-            <Label>{t('form.cashAccount')}</Label>
-            <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger>
-                <SelectValue placeholder={t('form.selectAccount')} />
-              </SelectTrigger>
-              <SelectContent>
-                {cashAccounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.name} ({a.currency})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Date */}
-          <div className="space-y-1">
-            <Label>{t('common:date')}</Label>
-            <div className="flex items-center gap-2">
-              <Popover open={calOpen} onOpenChange={setCalOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="flex-1 justify-start">
-                    <CalendarIcon className="h-4 w-4 mr-2" />
-                    {format(date, 'P', { locale: getDateLocale() })}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={(d) => { if (d) { setDate(d); setCalOpen(false); } }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <Input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="w-28"
+          <ScrollArea className="flex-1 min-h-0 px-6">
+            {transaction && txDetail && (
+              <TransactionForm
+                key={formKey}
+                type={TransactionType.TAX_REFUND}
+                initialValues={initialValues}
+                onSubmit={run}
+                isSubmitting={inFlight || updateMutation.isPending}
+                hideSubmitButton
+                formRef={formRef}
+                serverError={updateMutation.error}
+                onDirtyChange={setIsDirty}
+                onValidityChange={setIsValid}
               />
-            </div>
-          </div>
+            )}
+            {transaction && !txDetail && (
+              <div className="px-4 py-6 text-sm text-muted-foreground">{tCommon('loading')}</div>
+            )}
+          </ScrollArea>
 
-          {/* Credit Note (amount) */}
-          <div className="space-y-1">
-            <Label>{t('form.creditNote')}</Label>
-            <div className="flex gap-2 items-center">
-              <Input
-                type="number"
-                step="any"
-                min="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                className="flex-1"
-              />
-              <span className="text-sm text-muted-foreground w-10">{currency}</span>
-            </div>
-          </div>
+          <SheetFooter className="border-t px-6 py-3 shrink-0 flex flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => guardedOpenChange(false)}
+            >
+              {tCommon('cancel')}
+            </Button>
+            <SubmitButton
+              type="button"
+              className="flex-1"
+              mutation={{ isPending: inFlight || updateMutation.isPending }}
+              disabled={saveDisabled}
+              onClick={() => formRef.current?.requestSubmit()}
+            >
+              {tCommon('save')}
+            </SubmitButton>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
-          {/* Note */}
-          <div className="space-y-1">
-            <Label>{t('common:note')}</Label>
-            <Textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder={t('form.noteOptionalPlaceholder')}
-              rows={3}
-            />
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {t('common:cancel')}
-          </Button>
-          <Button onClick={handleSave} disabled={updateMutation.isPending}>
-            {updateMutation.isPending ? t('common:saving') : t('common:save')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <UnsavedChangesAlert open={showDialog} onOpenChange={setShowDialog} onDiscard={discard} />
+    </>
   );
 }
