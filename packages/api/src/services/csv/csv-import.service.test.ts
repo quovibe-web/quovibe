@@ -810,6 +810,75 @@ function createTestDb(): Database.Database {
       expect(units.find((u) => u.type === 'TAX')!.amount).toBe(1000);  // 10 EUR × 100
     });
 
+    it('executeTradeImport — cross-ccy BUY with feesFx + taxesFx persists FEE-FOREX + TAX-FOREX units (BUG-124)', async () => {
+      // EUR portfolio, USD security (sec-nvda / NVIDIA, seeded in beforeEach).
+      // PP wire Exchange Rate = 1.0870 (deposit-per-security = EUR per USD).
+      // qvRate = 1/1.0870 ≈ 0.9201 (security-per-deposit, stored in xact_unit.exchangeRate).
+      // Gross × Rate = 1500 × 1.0870 = 1630.50 EUR passes the PP step-2 check.
+      // feesFx = 5 USD, taxesFx = 2 USD (no same-currency fees/taxes).
+      //   FEE: forex_amount = round(5×100) = 500; amount = round((5/qvRate)×100) = round(543.5) = 544
+      //   TAX: forex_amount = round(2×100) = 200; amount = round((2/qvRate)×100) = round(217.4) = 217
+      const csv = [
+        'date,type,security,shares,amount,grossAmount,currencyGrossAmount,fxRate,feesFx,taxesFx',
+        '2026-01-15,BUY,NVIDIA,10,1630.50,1500.00,USD,1.0870,5.00,2.00',
+      ].join('\n');
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'bug124-exec.csv');
+
+      const result = await executeTradeImport(sqlite, {
+        tempFileId,
+        config: {
+          ...baseConfig,
+          columnMapping: {
+            date: 0, type: 1, security: 2, shares: 3, amount: 4,
+            grossAmount: 5, currencyGrossAmount: 6, fxRate: 7,
+            feesFx: 8, taxesFx: 9,
+          },
+        },
+        targetSecuritiesAccountId: 'port-1',
+        securityMapping: { NVIDIA: 'sec-nvda' },
+        newSecurities: [],
+        excludedRows: [],
+      });
+
+      expect(result.imported).toBe(1);
+      expect(result.errors).toHaveLength(0);
+
+      // Find the securities-side BUY xact (has shares > 0 and security IS NOT NULL).
+      const secXact = sqlite.prepare(
+        `SELECT uuid FROM xact
+         WHERE type = 'BUY' AND security IS NOT NULL AND shares > 0
+           AND date = '2026-01-15'
+         LIMIT 1`,
+      ).get() as { uuid: string };
+      expect(secXact).toBeDefined();
+
+      // FEE FOREX unit: forex_amount = 500 (5 USD × 100), forex_currency = USD.
+      const feeUnit = sqlite.prepare(
+        `SELECT amount, forex_amount, forex_currency, exchangeRate
+         FROM xact_unit WHERE type = 'FEE' AND xact = ?`,
+      ).get(secXact.uuid) as { amount: number; forex_amount: number; forex_currency: string; exchangeRate: string };
+      expect(feeUnit).toBeDefined();
+      expect(feeUnit.forex_amount).toBe(500);
+      expect(feeUnit.forex_currency).toBe('USD');
+      expect(parseFloat(feeUnit.exchangeRate)).toBeCloseTo(0.92, 2);
+
+      // TAX FOREX unit: forex_amount = 200 (2 USD × 100), forex_currency = USD.
+      const taxUnit = sqlite.prepare(
+        `SELECT amount, forex_amount, forex_currency, exchangeRate
+         FROM xact_unit WHERE type = 'TAX' AND xact = ?`,
+      ).get(secXact.uuid) as { amount: number; forex_amount: number; forex_currency: string; exchangeRate: string };
+      expect(taxUnit).toBeDefined();
+      expect(taxUnit.forex_amount).toBe(200);
+      expect(taxUnit.forex_currency).toBe('USD');
+
+      // FOREX (gross) unit still emitted — BUG-121 regression guard.
+      const forexUnit = sqlite.prepare(
+        `SELECT forex_currency FROM xact_unit WHERE type = 'FOREX' AND xact = ?`,
+      ).get(secXact.uuid) as { forex_currency: string };
+      expect(forexUnit).toBeDefined();
+      expect(forexUnit.forex_currency).toBe('USD');
+    });
+
     it('cross-currency BUY of new security creates security with CGA currency, not portfolioCurrency (BUG-146)', async () => {
       // Use a name with no auto-match against the fixture (so the security is
       // truly new and goes through the create-new path on execute).
