@@ -4,14 +4,10 @@
 [![GitHub release](https://img.shields.io/github/v/release/quovibe-web/quovibe)](https://github.com/quovibe-web/quovibe/releases)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Docker](https://img.shields.io/badge/docker-ghcr.io-blue?logo=docker)](https://ghcr.io/quovibe-web/quovibe)
-[![Ko-fi](https://img.shields.io/badge/support-Ko--fi-ff5e5b?logo=ko-fi)](https://ko-fi.com/Q5Q41VQUH7)
 
 
 > A web-based, self-hosted portfolio tracker developed with the assistance of AI ([Claude Code](https://claude.ai/code)).
 > Import your portfolio XML and instantly access performance analytics, holdings, dividends, and asset allocation — running fully locally.
-
-> [!TIP]
-> Enjoying quovibe? [Support it here](https://ko-fi.com/Q5Q41VQUH7) ☕
 
 ---
 
@@ -253,14 +249,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Core rules:
 - Keep the engine (`packages/engine`) free of I/O
 - Add tests with concrete numeric values for any financial logic
 - Run `pnpm build && pnpm test && pnpm lint` before opening a PR
-
----
-
-## ☕ Support the Project
-
-If you like what's being built here, consider buying me a coffee!
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Q5Q41VQUH7)
 
 ---
 
