@@ -336,3 +336,20 @@ Any regression that drops the partial index, removes the cleanup
 helper, replaces INSERT OR IGNORE with plain INSERT, or stops
 filtering dependent rows on skipped UUIDs must make one of these
 suites go red first.
+
+## Accepted-but-ignored columns (BUG-125)
+
+PP CSV exports include three columns quovibe accepts in column mapping but
+does not store:
+
+- `WKN` — German-broker security identifier. Not in §1+§2 vendor schema
+  (no `security.wkn` column today). Adding one is blocked by ADR-015 and
+  out of scope for this work.
+- `Time` — HH:MM intraday timestamp. The canonical `date` column wins.
+- `Date of Quote` — alternate spelling of `date` for price-import flow;
+  ignored on trade flow when the canonical `date` is mapped.
+
+These columns are wire-accepted (parse-and-discard in
+`csv-import.service.ts > parseTradeRow`) and 8-language `HEADER_ALIASES`
+entries exist in `csv-autodetect.ts`. Re-importing a PP export that
+includes them no longer fails the column-required pre-check.
