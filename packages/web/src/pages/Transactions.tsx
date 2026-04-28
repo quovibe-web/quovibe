@@ -48,7 +48,7 @@ import { useTransactions, useDeleteTransaction, useExportTransactions } from '@/
 import { EditRemovalDialog } from '@/components/domain/EditRemovalDialog';
 import { EditBuyDialog } from '@/components/domain/EditBuyDialog';
 import { EditSellDialog } from '@/components/domain/EditSellDialog';
-import { EditTransferOutboundDialog } from '@/components/domain/EditTransferOutboundDialog';
+import { EditTransferDialog } from '@/components/domain/EditTransferDialog';
 import { EditTaxRefundDialog } from '@/components/domain/EditTaxRefundDialog';
 import { EditCashDialog } from '@/components/domain/EditCashDialog';
 import { EditDeliveryDialog } from '@/components/domain/EditDeliveryDialog';
@@ -492,7 +492,7 @@ export default function Transactions() {
         onOpenChange={(open) => { if (!open) setEditTarget(null); }}
         transaction={editTarget}
       />
-      <EditTransferOutboundDialog
+      <EditTransferDialog
         open={!!editTarget && editTarget.type === 'TRANSFER_BETWEEN_ACCOUNTS'}
         onOpenChange={(open) => { if (!open) setEditTarget(null); }}
         transaction={editTarget}
