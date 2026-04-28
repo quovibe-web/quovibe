@@ -607,3 +607,140 @@ describe('buildTransactionFormSchema — DIVIDEND (BUG-106)', () => {
     }
   });
 });
+
+describe('buildTransactionFormSchema — TRANSFER_BETWEEN_ACCOUNTS', () => {
+  it('cross-ccy: requires fxRate', () => {
+    const schema = buildTransactionFormSchema(
+      ctx({
+        type: TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+        isCrossCurrency: true,
+        showsCrossAccount: true,
+        showsAmount: true,
+        showsShares: false,
+        showsPrice: false,
+        showsFees: false,
+        showsTaxes: false,
+      }),
+      t,
+    );
+    const r = schema.safeParse({
+      ...baseFields,
+      type: TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+      accountId: ACC_A,
+      crossAccountId: ACC_B,
+      amount: '100',
+      // fxRate omitted
+    });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      const errs = fieldErrors(r.error.issues);
+      expect(errs.fxRate).toBe('validation.fxRateMustBePositive');
+    }
+  });
+
+  it('cross-ccy with positive fxRate: passes', () => {
+    const schema = buildTransactionFormSchema(
+      ctx({
+        type: TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+        isCrossCurrency: true,
+        showsCrossAccount: true,
+        showsAmount: true,
+        showsShares: false,
+        showsPrice: false,
+        showsFees: false,
+        showsTaxes: false,
+      }),
+      t,
+    );
+    const r = schema.safeParse({
+      ...baseFields,
+      type: TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+      accountId: ACC_A,
+      crossAccountId: ACC_B,
+      amount: '100',
+      fxRate: '1.0837',
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('same-ccy: fxRate not required', () => {
+    const schema = buildTransactionFormSchema(
+      ctx({
+        type: TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+        isCrossCurrency: false,
+        showsCrossAccount: true,
+        showsAmount: true,
+        showsShares: false,
+        showsPrice: false,
+        showsFees: false,
+        showsTaxes: false,
+      }),
+      t,
+    );
+    const r = schema.safeParse({
+      ...baseFields,
+      type: TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+      accountId: ACC_A,
+      crossAccountId: ACC_B,
+      amount: '100',
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('cross-ccy with zero fxRate: fails', () => {
+    const schema = buildTransactionFormSchema(
+      ctx({
+        type: TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+        isCrossCurrency: true,
+        showsCrossAccount: true,
+        showsAmount: true,
+        showsShares: false,
+        showsPrice: false,
+        showsFees: false,
+        showsTaxes: false,
+      }),
+      t,
+    );
+    const r = schema.safeParse({
+      ...baseFields,
+      type: TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+      accountId: ACC_A,
+      crossAccountId: ACC_B,
+      amount: '100',
+      fxRate: '0',
+    });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      const errs = fieldErrors(r.error.issues);
+      expect(errs.fxRate).toBe('validation.fxRateMustBePositive');
+    }
+  });
+
+  it('source equals destination: rejects with sourceDestMustDiffer', () => {
+    const schema = buildTransactionFormSchema(
+      ctx({
+        type: TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+        isCrossCurrency: false,
+        showsCrossAccount: true,
+        showsAmount: true,
+        showsShares: false,
+        showsPrice: false,
+        showsFees: false,
+        showsTaxes: false,
+      }),
+      t,
+    );
+    const r = schema.safeParse({
+      ...baseFields,
+      type: TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
+      accountId: ACC_A,
+      crossAccountId: ACC_A,
+      amount: '100',
+    });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      const errs = fieldErrors(r.error.issues);
+      expect(errs.crossAccountId).toBe('validation.sourceDestMustDiffer');
+    }
+  });
+});
