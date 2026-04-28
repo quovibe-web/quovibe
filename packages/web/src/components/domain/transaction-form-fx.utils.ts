@@ -17,8 +17,17 @@ export interface DeriveFxCurrenciesResult {
   isCrossCurrency: boolean;
 }
 
-const BUY_SELL = new Set<TransactionType>([TransactionType.BUY, TransactionType.SELL]);
+export const BUY_SELL_TYPES: ReadonlySet<TransactionType> = new Set([
+  TransactionType.BUY,
+  TransactionType.SELL,
+]);
 
+// The covered set below ({BUY, SELL, TRANSFER_BETWEEN_ACCOUNTS}) must stay in
+// sync with `CROSS_CURRENCY_FX_TYPES` in `packages/shared/src/transaction-gating.ts`.
+// If a new type is added there, this helper needs a matching derivation rule —
+// otherwise the server's FX gate fires on a payload the client never built an
+// input for (silent client gap).
+//
 // BUY/SELL: src = cash leg (crossAccount), dst = security currency. The FX rate
 // transforms the deposit-side amount into the security-currency forex_amount,
 // matching transaction.service.ts > buildUnits BUY/SELL convention.
@@ -36,7 +45,7 @@ export function deriveFxCurrencies({
   let srcCurrency: string | null = null;
   let dstCurrency: string | null = null;
 
-  if (BUY_SELL.has(type)) {
+  if (BUY_SELL_TYPES.has(type)) {
     srcCurrency = crossAccount?.currency ?? null;
     dstCurrency = security?.currency ?? null;
   } else if (type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS) {
