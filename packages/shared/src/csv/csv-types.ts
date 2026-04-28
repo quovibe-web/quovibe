@@ -160,6 +160,14 @@ export interface UnmatchedSecurity {
   csvIsin?: string;
   csvTicker?: string;
   suggestedMatch?: { id: string; name: string; isin: string };
+  /**
+   * Distinct, sorted, uppercased ISO-4217 codes seen in the
+   * `currencyGrossAmount` column across all CSV rows whose security name
+   * resolves to this csvName. Empty/absent → CGA column not mapped or
+   * blank everywhere. Used by the client to pre-populate the new-security
+   * currency picker.
+   */
+  csvCurrencies?: string[];
 }
 
 export interface TradePreviewResult {
