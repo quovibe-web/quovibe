@@ -135,8 +135,8 @@ export function CsvPreviewStep({ state, onBack }: Props) {
 
   // Success state
   if (result) {
-    // BUG-143: skippedDuplicates is xact-row count; BUY/SELL emit 2 legs per
-    // input row, so ceil(/2) is a close-enough input-row-level number for UI.
+    // skippedDuplicates is xact-row count; BUY/SELL emit 2 legs per input
+    // row, so ceil(/2) is a close-enough input-row-level number for UI.
     const skippedInputRows = Math.ceil(result.skippedDuplicates / 2);
     const allDuplicates = result.imported === 0 && result.skippedDuplicates > 0;
     return (

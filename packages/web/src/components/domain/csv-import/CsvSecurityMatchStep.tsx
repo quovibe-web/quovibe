@@ -58,15 +58,15 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
   const previewMutation = usePreviewCsvTrades();
   const { data: allSecurities } = useSecurities();
   const secAccounts = useSecuritiesAccounts(portfolio.id);
-  const { data: allAccounts } = useAccounts();
+  const { data: allAccounts, isLoading: accountsLoading } = useAccounts();
   const [localMapping, setLocalMapping] = useState<Record<string, string>>(state.securityMapping);
   const [currencyOverrides, setCurrencyOverrides] = useState<Record<string, string>>({});
 
-  // Picked securities account's resolved reference-deposit currency. Falls
-  // back to 'EUR' when accounts haven't loaded yet — the resolver re-runs on
-  // every render so the value will refine once data lands.
-  const portfolioCurrency =
-    allAccounts?.find((a) => a.id === state.targetSecuritiesAccountId)?.currency ?? 'EUR';
+  // Picked securities account's resolved reference-deposit currency. The
+  // render is gated on `accountsLoading` below, so by the time this runs
+  // `allAccounts` is loaded and the picked account is normally present.
+  const pickedAccount = allAccounts?.find((a) => a.id === state.targetSecuritiesAccountId);
+  const portfolioCurrency = pickedAccount?.currency ?? 'EUR';
   // Replay-fn for the Retry button. Each preview path (initial entry, or the
   // finalizing re-fire triggered by Next) installs its own replay closure;
   // Retry runs whichever was most recent. Without this, Retry would fall back
@@ -188,7 +188,7 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
     );
   };
 
-  if (secAccounts.isLoading) {
+  if (secAccounts.isLoading || accountsLoading) {
     return <div className="text-center py-12 text-muted-foreground">{t('securities.pickerLoading')}</div>;
   }
 
