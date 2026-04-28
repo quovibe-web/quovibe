@@ -240,6 +240,35 @@ Tests that lock the contract:
   currency, not portfolioCurrency` — end-to-end pin: USD security is
   born with `security.currency='USD'` after CSV execute.
 
+### Foreign-currency fees and taxes (BUG-124)
+
+PP CSV cross-currency BUY/SELL rows can carry `Fees Foreign Currency` and
+`Taxes Foreign Currency` columns — fee/tax magnitudes denominated in the
+security currency rather than the deposit currency. Quovibe mirrors
+`transaction.service.ts:247-270` exactly:
+
+- `xact_unit.amount` (FEE/TAX) — combined deposit-ccy hecto:
+  `(fees_deposit + feesFx / fxRate) × 100`, rounded.
+- `xact_unit.forex_amount` (FEE/TAX) — security-ccy hecto: `feesFx × 100`.
+- `xact_unit.forex_currency` — the resolved fee/tax currency (defaults to
+  `currencyGrossAmount`, then the security currency).
+- `xact_unit.exchangeRate` — qv-convention rate (security-per-deposit),
+  same value as the parent FOREX unit's rate.
+
+Same-currency BUY/SELL rows leave `forex_amount` / `forex_currency` /
+`exchangeRate` `NULL` on the FEE/TAX rows (FOREX-decoration is opt-in,
+gated on `row.fxRate != null`).
+
+`csv-trade-mapper.ts > emitFeeTaxUnits` is the single emission site;
+extending it for any future `feesFx` analogue (e.g. `interestFx`) goes
+through the same helper.
+
+The wire columns `feesFx`, `taxesFx`, `feesCurrency`, `taxesCurrency` are
+defined in `tradeColumnFields` in `csv-types.ts`; HEADER_ALIASES coverage
+in `csv-autodetect.ts` is 8-language. End-to-end persistence test:
+`csv-import.service.test.ts > executeTradeImport — cross-ccy BUY with
+feesFx + taxesFx persists FEE-FOREX + TAX-FOREX units (BUG-124)`.
+
 ## Re-import dedupe (BUG-143)
 
 CSV re-import is **silently idempotent**: re-importing the same file
