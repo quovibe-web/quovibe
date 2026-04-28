@@ -294,6 +294,37 @@ function parseTradeRow(
     const c = (fields[idx('currencyGrossAmount')!] ?? '').trim().toUpperCase();
     if (c) row.currencyGrossAmount = c;
   }
+  // BUG-124: cross-currency fees/taxes. Optional numeric columns that carry
+  // the foreign-currency magnitude of fees and taxes (in their respective
+  // currencies, not pre-converted to deposit ccy). Currency overrides are rare.
+  if (idx('feesFx') != null) {
+    const raw = (fields[idx('feesFx')!] ?? '').trim();
+    if (raw) {
+      const n = parseNumber(raw, opts.decimalSeparator, opts.thousandSeparator);
+      if (n == null || n < 0) {
+        return { row: rowNum, column: 'feesFx', value: raw, code: 'INVALID_NUMBER', message: 'csvImport.errors.invalidNumber' };
+      }
+      row.feesFx = n;
+    }
+  }
+  if (idx('taxesFx') != null) {
+    const raw = (fields[idx('taxesFx')!] ?? '').trim();
+    if (raw) {
+      const n = parseNumber(raw, opts.decimalSeparator, opts.thousandSeparator);
+      if (n == null || n < 0) {
+        return { row: rowNum, column: 'taxesFx', value: raw, code: 'INVALID_NUMBER', message: 'csvImport.errors.invalidNumber' };
+      }
+      row.taxesFx = n;
+    }
+  }
+  if (idx('feesCurrency') != null) {
+    const cur = (fields[idx('feesCurrency')!] ?? '').trim();
+    if (cur) row.feesCurrency = cur;
+  }
+  if (idx('taxesCurrency') != null) {
+    const cur = (fields[idx('taxesCurrency')!] ?? '').trim();
+    if (cur) row.taxesCurrency = cur;
+  }
   // PP-parity columns: accept-and-ignore. WKN/Time/Date-of-Quote are read
   // here so that strict schema modes don't reject them. They do not influence
   // the resulting NormalizedTradeRow.
