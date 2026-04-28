@@ -546,13 +546,26 @@ export async function previewTradeImport(
     rowNum++; // native-ok
   }
 
-  // Extract unique securities for matching
+  // Extract unique securities for matching, plus collect distinct CGA values
+  // per csvName for new-security currency resolution.
   const uniqueSecurities = new Map<string, { isin?: string; ticker?: string }>();
+  const csvCurrenciesByName = new Map<string, Set<string>>();
   for (const row of normalizedRows) {
-    if (row.securityName && !uniqueSecurities.has(row.securityName)) {
+    if (!row.securityName) continue;
+    if (!uniqueSecurities.has(row.securityName)) {
       uniqueSecurities.set(row.securityName, { isin: row.isin, ticker: row.ticker });
     }
+    if (row.currencyGrossAmount) {
+      const set = csvCurrenciesByName.get(row.securityName) ?? new Set<string>();
+      set.add(row.currencyGrossAmount);
+      csvCurrenciesByName.set(row.securityName, set);
+    }
   }
+  const buildCsvCurrencies = (csvName: string): string[] | undefined => {
+    const set = csvCurrenciesByName.get(csvName);
+    if (!set || set.size === 0) return undefined;
+    return Array.from(set).sort();
+  };
 
   // Auto-match securities. Skip the DB round-trips for names the client has
   // already resolved (user picked existing or flagged create-new on Step 3)
@@ -568,7 +581,12 @@ export async function previewTradeImport(
 
   for (const [csvName, info] of uniqueSecurities) {
     if (clientResolved.has(csvName)) {
-      unmatchedSecurities.push({ csvName, csvIsin: info.isin, csvTicker: info.ticker });
+      unmatchedSecurities.push({
+        csvName,
+        csvIsin: info.isin,
+        csvTicker: info.ticker,
+        csvCurrencies: buildCsvCurrencies(csvName),
+      });
       continue;
     }
 
@@ -599,9 +617,15 @@ export async function previewTradeImport(
         csvIsin: info.isin,
         csvTicker: info.ticker,
         suggestedMatch: { id: match.uuid, name: match.name, isin: match.isin },
+        csvCurrencies: buildCsvCurrencies(csvName),
       });
     } else {
-      unmatchedSecurities.push({ csvName, csvIsin: info.isin, csvTicker: info.ticker });
+      unmatchedSecurities.push({
+        csvName,
+        csvIsin: info.isin,
+        csvTicker: info.ticker,
+        csvCurrencies: buildCsvCurrencies(csvName),
+      });
     }
   }
 

@@ -353,6 +353,65 @@ function createTestDb(): Database.Database {
       expect(result.summary.valid).toBe(1);
       expect(result.summary.errors).toBe(0);
     });
+
+    describe('csvCurrencies enrichment (BUG-146)', () => {
+      const cgaInput = (tempFileId: string) => ({
+        tempFileId,
+        delimiter: ',' as const,
+        columnMapping: {
+          date: 0, type: 1, security: 2, shares: 3, amount: 4,
+          fxRate: 5, grossAmount: 6, currencyGrossAmount: 7,
+        },
+        dateFormat: 'yyyy-MM-dd',
+        decimalSeparator: '.' as const,
+        thousandSeparator: '' as const,
+        targetSecuritiesAccountId: 'port-1',
+      });
+
+      it('emits csvCurrencies sorted + deduped when CGA column is mapped', async () => {
+        const csvContent = [
+          'date,type,security,shares,amount,fxRate,grossAmount,currencyGrossAmount',
+          '2024-01-15,BUY,NewCorp,5,500,0.92,460,USD',
+          '2024-01-16,BUY,NewCorp,3,300,0.92,276,USD',
+          '2024-02-10,BUY,OtherCorp,2,200,0.92,184,USD',
+        ].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csvContent, 'utf-8'), 'cga-1.csv');
+
+        const result = await previewTradeImport(sqlite, cgaInput(tempFileId));
+
+        const newCorp = result.unmatchedSecurities.find((s) => s.csvName === 'NewCorp');
+        const otherCorp = result.unmatchedSecurities.find((s) => s.csvName === 'OtherCorp');
+        expect(newCorp?.csvCurrencies).toEqual(['USD']);
+        expect(otherCorp?.csvCurrencies).toEqual(['USD']);
+      });
+
+      it('emits csvCurrencies as sorted distinct array for conflicting CGA values', async () => {
+        const csvContent = [
+          'date,type,security,shares,amount,fxRate,grossAmount,currencyGrossAmount',
+          '2024-01-15,BUY,NewCorp,5,500,0.92,460,USD',
+          '2024-01-16,BUY,NewCorp,3,300,1.00,300,EUR',
+        ].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csvContent, 'utf-8'), 'cga-2.csv');
+
+        const result = await previewTradeImport(sqlite, cgaInput(tempFileId));
+
+        const newCorp = result.unmatchedSecurities.find((s) => s.csvName === 'NewCorp');
+        expect(newCorp?.csvCurrencies).toEqual(['EUR', 'USD']);
+      });
+
+      it('omits csvCurrencies when CGA column is unmapped', async () => {
+        const csvContent = [
+          'date,type,security,shares,amount',
+          '2024-01-15,BUY,NewCorp,5,500',
+        ].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csvContent, 'utf-8'), 'cga-3.csv');
+
+        const result = await previewTradeImport(sqlite, baseInput(tempFileId));
+
+        const newCorp = result.unmatchedSecurities.find((s) => s.csvName === 'NewCorp');
+        expect(newCorp?.csvCurrencies).toBeUndefined();
+      });
+    });
   });
 
   describe('Cross-currency CSV import (PP-aligned)', () => {
