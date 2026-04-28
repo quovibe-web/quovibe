@@ -197,3 +197,38 @@ describe('autodetectCsvFormat — header column mapping', () => {
     expect(datumCol).toBe(0);
   });
 });
+
+describe('autodetectCsvFormat — PP-parity columns (BUG-125)', () => {
+  it('maps WKN header alias', () => {
+    const result = autodetectCsvFormat(
+      ['Date', 'Type', 'Security Name', 'WKN', 'Value'],
+      [['2026-01-15', 'BUY', 'Apple Inc', 'A0YEDG', '1500']],
+    );
+    expect(result.columnMapping['wkn']).toBe(3);
+  });
+
+  it('maps Time header in 4 languages', () => {
+    for (const [, label] of [
+      ['en', 'Time'],
+      ['it', 'Ora'],
+      ['de', 'Zeit'],
+      ['fr', 'Heure'],
+    ] as const) {
+      const result = autodetectCsvFormat(
+        ['Date', label, 'Type', 'Value'],
+        [['2026-01-15', '14:30', 'BUY', '1500']],
+      );
+      expect(result.columnMapping['time']).toBe(1);
+    }
+  });
+
+  it('maps Date of Quote header in 3 languages', () => {
+    for (const label of ['Date of Quote', 'Data quotazione', 'Datum der Notierung']) {
+      const result = autodetectCsvFormat(
+        [label, 'Close'],
+        [['2026-01-15', '191.62']],
+      );
+      expect(result.columnMapping['dateOfQuote']).toBe(0);
+    }
+  });
+});
