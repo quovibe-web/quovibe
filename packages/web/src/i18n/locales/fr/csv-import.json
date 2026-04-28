@@ -73,6 +73,9 @@
   "securities.status.new": "Nouveau",
   "securities.loading": "Chargement de l'aperçu...",
   "securities.none": "Aucun titre à associer.",
+  "securities.currency.label": "Devise",
+  "securities.currency.conflict": "Le CSV indique {{currencies}} pour {{name}} — en choisir une",
+  "securities.currency.fallback": "Par défaut {{currency}} — confirmer ou modifier",
 
   "preview.title": "Aperçu et confirmation",
   "preview.summary": "Résumé de l'import",

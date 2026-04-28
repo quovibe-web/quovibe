@@ -73,6 +73,9 @@
   "securities.status.new": "Neu",
   "securities.loading": "Vorschau wird geladen...",
   "securities.none": "Keine Wertpapiere zum Abgleichen.",
+  "securities.currency.label": "Währung",
+  "securities.currency.conflict": "CSV meldet {{currencies}} für {{name}} — eine auswählen",
+  "securities.currency.fallback": "Standardmäßig {{currency}} — bestätigen oder ändern",
 
   "preview.title": "Vorschau & Bestätigen",
   "preview.summary": "Import-Zusammenfassung",

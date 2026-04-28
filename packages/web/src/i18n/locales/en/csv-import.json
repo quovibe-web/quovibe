@@ -73,6 +73,9 @@
   "securities.status.new": "New",
   "securities.loading": "Loading preview...",
   "securities.none": "No securities to match.",
+  "securities.currency.label": "Currency",
+  "securities.currency.conflict": "CSV reports {{currencies}} for {{name}} — pick one",
+  "securities.currency.fallback": "Defaulted to {{currency}} — confirm or change",
 
   "preview.title": "Preview & Confirm",
   "preview.summary": "Import Summary",

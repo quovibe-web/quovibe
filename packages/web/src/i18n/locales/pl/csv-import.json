@@ -73,6 +73,9 @@
   "securities.status.new": "Nowy",
   "securities.loading": "Ładowanie podglądu...",
   "securities.none": "Brak papierów wartościowych do dopasowania.",
+  "securities.currency.label": "Waluta",
+  "securities.currency.conflict": "CSV podaje {{currencies}} dla {{name}} — wybierz jedną",
+  "securities.currency.fallback": "Domyślnie {{currency}} — potwierdź lub zmień",
 
   "preview.title": "Podgląd i potwierdzenie",
   "preview.summary": "Podsumowanie importu",

@@ -73,6 +73,9 @@
   "securities.status.new": "Novo",
   "securities.loading": "A carregar pré-visualização...",
   "securities.none": "Nenhum título para associar.",
+  "securities.currency.label": "Moeda",
+  "securities.currency.conflict": "CSV reporta {{currencies}} para {{name}} — escolha uma",
+  "securities.currency.fallback": "Predefinido como {{currency}} — confirme ou altere",
 
   "preview.title": "Pré-visualização e confirmação",
   "preview.summary": "Resumo da importação",

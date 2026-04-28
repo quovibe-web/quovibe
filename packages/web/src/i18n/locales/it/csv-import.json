@@ -73,6 +73,9 @@
   "securities.status.new": "Nuovo",
   "securities.loading": "Caricamento anteprima...",
   "securities.none": "Nessun titolo da abbinare.",
+  "securities.currency.label": "Valuta",
+  "securities.currency.conflict": "Il CSV riporta {{currencies}} per {{name}} — scegline una",
+  "securities.currency.fallback": "Predefinito a {{currency}} — conferma o cambia",
 
   "preview.title": "Anteprima e Conferma",
   "preview.summary": "Riepilogo Importazione",

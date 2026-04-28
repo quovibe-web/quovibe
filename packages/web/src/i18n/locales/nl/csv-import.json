@@ -73,6 +73,9 @@
   "securities.status.new": "Nieuw",
   "securities.loading": "Voorbeeld laden...",
   "securities.none": "Geen effecten om te koppelen.",
+  "securities.currency.label": "Valuta",
+  "securities.currency.conflict": "CSV meldt {{currencies}} voor {{name}} — kies er één",
+  "securities.currency.fallback": "Standaard {{currency}} — bevestigen of wijzigen",
 
   "preview.title": "Voorbeeld en bevestigen",
   "preview.summary": "Importoverzicht",
