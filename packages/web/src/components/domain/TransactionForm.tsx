@@ -114,6 +114,9 @@ interface TransactionFormProps {
   // it and surfaces them inline via `<FormMessage>`. Generic non-field codes
   // are NOT consumed here — the global MutationCache toast still handles them.
   serverError?: unknown;
+  /** Called whenever the form's dirty state changes. Lets parent dialogs
+   *  drive unsaved-changes guards without coupling to RHF internals. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 function defaultFormValues(
@@ -147,6 +150,7 @@ export function TransactionForm({
   hideSubmitButton,
   formRef,
   serverError,
+  onDirtyChange,
 }: TransactionFormProps) {
   const { t, i18n } = useTranslation('transactions');
   const cfg = FIELD_CONFIG[type];
@@ -217,6 +221,11 @@ export function TransactionForm({
       form.setError(field, { type: 'server', message });
     }
   }, [serverError, form]);
+
+  // Propagate dirty state to parent so edit dialogs can drive unsaved-changes guards.
+  useEffect(() => {
+    onDirtyChange?.(form.formState.isDirty);
+  }, [form.formState.isDirty, onDirtyChange]);
 
   const watchedAccountId = useWatch({ control: form.control, name: 'accountId' }) ?? '';
   const watchedCrossAccountId = useWatch({ control: form.control, name: 'crossAccountId' }) ?? '';
