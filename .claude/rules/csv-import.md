@@ -399,3 +399,53 @@ cost basis with no separate gate. The regression-guard test in
 regression guard` both pin this invariant; any future code that reaches
 for `parseNumberWithSuffix` outside the price-volume path must make those
 suites go red first.
+
+## Default-Type inference (BUG-132)
+
+When the user does NOT map the `type` column at column-map time,
+`parseTradeRow` infers the transaction type per row using the
+`inferTransactionType` helper (`packages/shared/src/csv/infer-type.ts`).
+The rules mirror Portfolio Performance's Account-importer §1.2 inference
+table:
+
+| sign(amount) | hasSecurity | → inferred type |
+|---|---|---|
+| > 0 | yes | `DIVIDEND` |
+| < 0 | yes | `REMOVAL` |
+| > 0 | no  | `DEPOSIT` |
+| < 0 | no  | `REMOVAL` |
+| = 0 | any | `DEPOSIT` (fallback) |
+
+`hasSecurity` is true when the row provides a non-empty `securityName`,
+`isin`, or `ticker`. `sign(amount)` is read from the parsed-but-unsigned
+amount (sign is stripped by Math.abs downstream in
+`csv-trade-mapper.ts`, but parseTradeRow inspects it before that).
+
+**Trigger condition is column-mapping-level, not cell-level.** When
+`columnMapping` does not contain the `type` key, every row is inferred.
+When `type` IS mapped but the cell is empty or unrecognized,
+`UNKNOWN_TYPE` still fires — the strict path is preserved. This keeps
+the user's intent unambiguous: omitting the column = "I want defaults",
+mapping it = "I want strict validation".
+
+**Account-mode rules are preferred over Portfolio-mode rules** (which
+would infer SELL/BUY) because they are the more permissive shape for
+typical broker exports that omit the Type column. PP's Portfolio-mode
+rules require the two-mode wizard surface (BUG-127/128, deferred) to
+let the user pick which inference set runs.
+
+`type` is therefore NOT in `requiredTradeColumns`. The required set is
+`['date', 'security', 'amount']`; the column-map step's "Next" gate
+respects this without further work.
+
+Tests that lock the contract:
+- `packages/shared/src/csv/infer-type.test.ts` — pure-helper matrix
+  coverage for every (sign × hasSecurity) cell.
+- `packages/api/src/services/csv/csv-import.service.test.ts >
+  Default-Type inference (type column unmapped)` — the four inference
+  outcomes plus two strict-path negative cases (empty cell, garbage
+  cell — both still UNKNOWN_TYPE when type column is mapped).
+
+Any regression that reverts the column-mapping check, hardcodes a
+default that ignores `(amount, hasSecurity)`, or re-adds `type` to
+`requiredTradeColumns` must make those suites go red first.
