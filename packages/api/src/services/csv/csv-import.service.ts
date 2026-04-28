@@ -6,6 +6,7 @@ import type BetterSqlite3 from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
 import {
   parseDate, parseNumber, parseNumberWithSuffix, normalizeTransactionType,
+  inferTransactionType,
   ppRateToQvRate, verifyGrossRateValue,
   autodetectCsvFormat,
   CROSS_CURRENCY_FX_TYPES, TransactionType,
@@ -240,25 +241,36 @@ function parseTradeRow(
     return { row: rowNum, column: 'date', value: rawDate, code: 'INVALID_DATE', message: 'csvImport.errors.invalidDate' };
   }
 
-  const rawType = idx('type') != null ? fields[idx('type')!] ?? '' : '';
-  const txType = normalizeTransactionType(rawType);
-  if (!txType) {
-    return { row: rowNum, column: 'type', value: rawType, code: 'UNKNOWN_TYPE', message: 'csvImport.errors.unknownType' };
-  }
-
   const rawAmount = idx('amount') != null ? fields[idx('amount')!] ?? '' : '';
   const amount = parseNumber(rawAmount, opts.decimalSeparator, opts.thousandSeparator);
   if (amount == null) {
     return { row: rowNum, column: 'amount', value: rawAmount, code: 'INVALID_NUMBER', message: 'csvImport.errors.invalidNumber' };
   }
 
+  const securityName = idx('security') != null ? (fields[idx('security')!] ?? '').trim() : '';
+  const isin = idx('isin') != null ? ((fields[idx('isin')!] ?? '').trim() || undefined) : undefined;
+  const ticker = idx('ticker') != null ? ((fields[idx('ticker')!] ?? '').trim() || undefined) : undefined;
+  const hasSecurity = securityName !== '' || isin != null || ticker != null;
+
+  let txType: string | null;
+  if (idx('type') == null) {
+    // Type column unmapped → infer from sign(amount) × hasSecurity.
+    txType = inferTransactionType(amount, hasSecurity);
+  } else {
+    const rawType = fields[idx('type')!] ?? '';
+    txType = normalizeTransactionType(rawType);
+    if (!txType) {
+      return { row: rowNum, column: 'type', value: rawType, code: 'UNKNOWN_TYPE', message: 'csvImport.errors.unknownType' };
+    }
+  }
+
   const row: NormalizedTradeRow = {
     rowNumber: rowNum,
     date,
     type: txType,
-    securityName: idx('security') != null ? (fields[idx('security')!] ?? '').trim() : '',
-    isin: idx('isin') != null ? ((fields[idx('isin')!] ?? '').trim() || undefined) : undefined,
-    ticker: idx('ticker') != null ? ((fields[idx('ticker')!] ?? '').trim() || undefined) : undefined,
+    securityName,
+    isin,
+    ticker,
     amount,
   };
 
