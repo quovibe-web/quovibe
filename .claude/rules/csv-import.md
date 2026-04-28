@@ -382,3 +382,20 @@ These columns are wire-accepted (parse-and-discard in
 `csv-import.service.ts > parseTradeRow`) and 8-language `HEADER_ALIASES`
 entries exist in `csv-autodetect.ts`. Re-importing a PP export that
 includes them no longer fails the column-required pre-check.
+
+## Volume-suffix parsing (BUG-161)
+
+Investing.com price-history CSVs use `K` / `M` / `B` shorthand suffixes in
+the `Volume` column (`45.6M`, `1.23B`, `999K`). The price flow accepts them
+via `parseNumberWithSuffix` in `packages/shared/src/csv/csv-normalizer.ts`.
+The helper is opt-in: only `executePriceImport`'s volume-column reader
+calls it; `close` / `high` / `low` still use the strict `parseNumber`.
+
+**The trade flow (`parseTradeRow`) MUST NEVER call `parseNumberWithSuffix`.**
+The same suffix in a `shares` or `amount` column would silently 1000× the
+cost basis with no separate gate. The regression-guard test in
+`csv-normalizer.test.ts > parseNumber regression` and the
+`previewTradeImport` test in `csv-import.service.test.ts > BUG-161
+regression guard` both pin this invariant; any future code that reaches
+for `parseNumberWithSuffix` outside the price-volume path must make those
+suites go red first.
