@@ -96,6 +96,9 @@
   "result.transactions": "{{count}} transacties geïmporteerd",
   "result.securities": "{{count}} nieuwe effecten aangemaakt",
   "result.errors": "{{count}} rijen met fouten",
+  "result.skippedDuplicates": "{{count}} rijen overgeslagen als duplicaten",
+  "result.allDuplicates": "Alle {{count}} rijen waren duplicaten — niets te importeren",
+  "summary.duplicates": "Duplicaten",
 
   "prices.title": "Historische koersen importeren",
   "prices.description": "Koershistorie importeren vanuit CSV",

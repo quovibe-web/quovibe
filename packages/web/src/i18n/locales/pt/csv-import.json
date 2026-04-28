@@ -96,6 +96,9 @@
   "result.transactions": "{{count}} transações importadas",
   "result.securities": "{{count}} novos ativos criados",
   "result.errors": "{{count}} linhas com erros",
+  "result.skippedDuplicates": "{{count}} linhas ignoradas como duplicadas",
+  "result.allDuplicates": "As {{count}} linhas eram duplicadas — nada a importar",
+  "summary.duplicates": "Duplicados",
 
   "prices.title": "Importar cotações históricas",
   "prices.description": "Importar histórico de cotações do CSV",

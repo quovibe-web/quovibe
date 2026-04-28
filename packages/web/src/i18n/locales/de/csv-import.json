@@ -96,6 +96,9 @@
   "result.transactions": "{{count}} Transaktionen importiert",
   "result.securities": "{{count}} neue Wertpapiere erstellt",
   "result.errors": "{{count}} Zeilen mit Fehlern",
+  "result.skippedDuplicates": "{{count}} Zeilen als Duplikate übersprungen",
+  "result.allDuplicates": "Alle {{count}} Zeilen waren Duplikate — nichts zu importieren",
+  "summary.duplicates": "Duplikate",
 
   "prices.title": "Historische Kurse importieren",
   "prices.description": "Kurshistorie aus CSV importieren",

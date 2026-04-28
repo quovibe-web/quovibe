@@ -96,6 +96,9 @@
   "result.transactions": "{{count}} transactions importées",
   "result.securities": "{{count}} nouveaux titres créés",
   "result.errors": "{{count}} lignes avec des erreurs",
+  "result.skippedDuplicates": "{{count}} lignes ignorées comme doublons",
+  "result.allDuplicates": "Toutes les {{count}} lignes étaient des doublons — rien à importer",
+  "summary.duplicates": "Doublons",
 
   "prices.title": "Importer les cours historiques",
   "prices.description": "Importer l'historique des cours depuis CSV",

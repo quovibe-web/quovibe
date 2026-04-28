@@ -96,6 +96,9 @@
   "result.transactions": "{{count}} transactions imported",
   "result.securities": "{{count}} new securities created",
   "result.errors": "{{count}} rows had errors",
+  "result.skippedDuplicates": "{{count}} rows skipped as duplicates",
+  "result.allDuplicates": "All {{count}} rows were duplicates — nothing to import",
+  "summary.duplicates": "Duplicates",
 
   "prices.title": "Import Historical Prices",
   "prices.description": "Import price history from CSV",

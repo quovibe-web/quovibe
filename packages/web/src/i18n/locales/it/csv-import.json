@@ -96,6 +96,9 @@
   "result.transactions": "{{count}} transazioni importate",
   "result.securities": "{{count}} nuovi titoli creati",
   "result.errors": "{{count}} righe con errori",
+  "result.skippedDuplicates": "{{count}} righe saltate come duplicate",
+  "result.allDuplicates": "Tutte le {{count}} righe erano duplicate — niente da importare",
+  "summary.duplicates": "Duplicati",
 
   "prices.title": "Importa Prezzi Storici",
   "prices.description": "Importa lo storico dei prezzi da CSV",
