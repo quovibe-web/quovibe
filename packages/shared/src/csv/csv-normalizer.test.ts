@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
   parseDate,
   parseNumber,
+  parseNumberWithSuffix,
   normalizeTransactionType,
   detectDelimiter,
 } from './csv-normalizer';
@@ -139,5 +140,39 @@ describe('detectDelimiter', () => {
 
   it('defaults to comma for ambiguous input', () => {
     expect(detectDelimiter('single_column')).toBe(',');
+  });
+});
+
+describe('parseNumberWithSuffix (BUG-161)', () => {
+  it('strips K suffix and multiplies by 1e3', () => {
+    expect(parseNumberWithSuffix('999K', '.', '')).toBe(999000);
+  });
+  it('strips M suffix and multiplies by 1e6', () => {
+    expect(parseNumberWithSuffix('45.6M', '.', '')).toBe(45600000);
+  });
+  it('strips B suffix and multiplies by 1e9', () => {
+    expect(parseNumberWithSuffix('1.23B', '.', '')).toBe(1230000000);
+  });
+  it('accepts lowercase suffixes', () => {
+    expect(parseNumberWithSuffix('45.6m', '.', '')).toBe(45600000);
+  });
+  it('handles locale: de-DE-style with thousand sep + comma decimal + K', () => {
+    expect(parseNumberWithSuffix('1.234,5K', ',', '.')).toBe(1234500);
+  });
+  it('returns null for non-numeric body', () => {
+    expect(parseNumberWithSuffix('abcM', '.', '')).toBeNull();
+  });
+  it('parses bare numbers without a suffix', () => {
+    expect(parseNumberWithSuffix('1500', '.', '')).toBe(1500);
+  });
+  it('rejects empty string', () => {
+    expect(parseNumberWithSuffix('', '.', '')).toBeNull();
+  });
+});
+
+describe('parseNumber (regression guard for trade flow)', () => {
+  it('returns null for suffix strings — does NOT silently 1000× cost basis', () => {
+    expect(parseNumber('45.6M', '.', '')).toBeNull();
+    expect(parseNumber('1.23B', '.', '')).toBeNull();
   });
 });

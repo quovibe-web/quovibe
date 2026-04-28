@@ -4,6 +4,7 @@ export { transactionTypeAliases } from './type-aliases';
 export {
   parseDate,
   parseNumber,
+  parseNumberWithSuffix,
   normalizeTransactionType,
   detectDelimiter,
 } from './csv-normalizer';
