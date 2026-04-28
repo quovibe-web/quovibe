@@ -654,6 +654,83 @@ function createTestDb(): Database.Database {
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0]?.code).toBe('MISSING_SHARES');
     });
+
+    describe('Default-Type inference (type column unmapped)', () => {
+      // Exercises the Account-mode inference rules in parseTradeRow.
+      // Trigger: columnMapping omits 'type'. Expected: each row's type is
+      // derived from sign(amount) × hasSecurity.
+
+      it('positive amount + has security (csvName) → DIVIDEND', async () => {
+        const csv = ['date,security,amount', '2024-01-02,Apple Inc,150.00'].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'inf-divp.csv');
+        const result = await previewTradeImport(sqlite, {
+          ...baseInput(tempFileId),
+          columnMapping: { date: 0, security: 1, amount: 2 },
+          securityMapping: { 'Apple Inc': 'sec-1' },
+        });
+        expect(result.summary.errors).toBe(0);
+        expect(result.summary.valid).toBe(1);
+        expect(result.rows[0]?.type).toBe('DIVIDEND');
+      });
+
+      it('negative amount + has security → REMOVAL', async () => {
+        const csv = ['date,security,amount', '2024-01-02,Apple Inc,-150.00'].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'inf-remn.csv');
+        const result = await previewTradeImport(sqlite, {
+          ...baseInput(tempFileId),
+          columnMapping: { date: 0, security: 1, amount: 2 },
+          securityMapping: { 'Apple Inc': 'sec-1' },
+        });
+        expect(result.summary.errors).toBe(0);
+        expect(result.rows[0]?.type).toBe('REMOVAL');
+      });
+
+      it('positive amount + no security → DEPOSIT', async () => {
+        const csv = ['date,amount', '2024-01-02,1000.00'].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'inf-dep.csv');
+        const result = await previewTradeImport(sqlite, {
+          ...baseInput(tempFileId),
+          columnMapping: { date: 0, amount: 1 },
+        });
+        expect(result.summary.errors).toBe(0);
+        expect(result.rows[0]?.type).toBe('DEPOSIT');
+      });
+
+      it('negative amount + no security → REMOVAL', async () => {
+        const csv = ['date,amount', '2024-01-02,-500.00'].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'inf-remns.csv');
+        const result = await previewTradeImport(sqlite, {
+          ...baseInput(tempFileId),
+          columnMapping: { date: 0, amount: 1 },
+        });
+        expect(result.summary.errors).toBe(0);
+        expect(result.rows[0]?.type).toBe('REMOVAL');
+      });
+
+      it('mapped type column with empty cell still emits UNKNOWN_TYPE — strict path preserved', async () => {
+        const csv = ['date,type,security,amount', '2024-01-02,,Apple Inc,150.00'].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'inf-strict.csv');
+        const result = await previewTradeImport(sqlite, {
+          ...baseInput(tempFileId),
+          columnMapping: { date: 0, type: 1, security: 2, amount: 3 },
+          securityMapping: { 'Apple Inc': 'sec-1' },
+        });
+        expect(result.summary.errors).toBe(1);
+        expect(result.errors[0]?.code).toBe('UNKNOWN_TYPE');
+      });
+
+      it('mapped type column with garbage cell still emits UNKNOWN_TYPE', async () => {
+        const csv = ['date,type,security,amount', '2024-01-02,xyzpdq,Apple Inc,150.00'].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'inf-strict2.csv');
+        const result = await previewTradeImport(sqlite, {
+          ...baseInput(tempFileId),
+          columnMapping: { date: 0, type: 1, security: 2, amount: 3 },
+          securityMapping: { 'Apple Inc': 'sec-1' },
+        });
+        expect(result.summary.errors).toBe(1);
+        expect(result.errors[0]?.code).toBe('UNKNOWN_TYPE');
+      });
+    });
   });
 
   describe('Cross-currency CSV import (PP-aligned)', () => {
