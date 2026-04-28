@@ -59,6 +59,10 @@
   "columns.field.wkn": "WKN",
   "columns.field.time": "Ora",
   "columns.field.dateOfQuote": "Data quotazione",
+  "columns.field.feesFx": "Commissioni in valuta estera",
+  "columns.field.taxesFx": "Tasse in valuta estera",
+  "columns.field.feesCurrency": "Valuta commissioni",
+  "columns.field.taxesCurrency": "Valuta tasse",
 
   "securities.title": "Abbina Titoli",
   "securities.description": "Abbina i titoli del CSV a quelli esistenti o creane di nuovi",

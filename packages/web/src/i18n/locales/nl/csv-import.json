@@ -59,6 +59,10 @@
   "columns.field.wkn": "WKN",
   "columns.field.time": "Tijd",
   "columns.field.dateOfQuote": "Datum van notering",
+  "columns.field.feesFx": "Kosten vreemde valuta",
+  "columns.field.taxesFx": "Belastingen vreemde valuta",
+  "columns.field.feesCurrency": "Valuta kosten",
+  "columns.field.taxesCurrency": "Valuta belastingen",
 
   "securities.title": "Effecten koppelen",
   "securities.description": "CSV-effecten koppelen aan bestaande of nieuwe maken",

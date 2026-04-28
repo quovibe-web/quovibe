@@ -59,6 +59,10 @@
   "columns.field.wkn": "WKN",
   "columns.field.time": "Heure",
   "columns.field.dateOfQuote": "Date de cotation",
+  "columns.field.feesFx": "Frais en devise étrangère",
+  "columns.field.taxesFx": "Taxes en devise étrangère",
+  "columns.field.feesCurrency": "Devise des frais",
+  "columns.field.taxesCurrency": "Devise des taxes",
 
   "securities.title": "Correspondance des titres",
   "securities.description": "Faire correspondre les titres CSV aux titres existants ou en créer de nouveaux",

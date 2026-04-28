@@ -59,6 +59,10 @@
   "columns.field.wkn": "WKN",
   "columns.field.time": "Czas",
   "columns.field.dateOfQuote": "Data notowania",
+  "columns.field.feesFx": "Opłaty w obcej walucie",
+  "columns.field.taxesFx": "Podatki w obcej walucie",
+  "columns.field.feesCurrency": "Waluta opłat",
+  "columns.field.taxesCurrency": "Waluta podatków",
 
   "securities.title": "Dopasuj papiery wartościowe",
   "securities.description": "Dopasuj papiery wartościowe z CSV do istniejących lub utwórz nowe",

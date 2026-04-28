@@ -59,6 +59,10 @@
   "columns.field.wkn": "WKN",
   "columns.field.time": "Zeit",
   "columns.field.dateOfQuote": "Datum der Notierung",
+  "columns.field.feesFx": "Gebühren in Fremdwährung",
+  "columns.field.taxesFx": "Steuern in Fremdwährung",
+  "columns.field.feesCurrency": "Währung Gebühren",
+  "columns.field.taxesCurrency": "Währung Steuern",
 
   "securities.title": "Wertpapiere abgleichen",
   "securities.description": "CSV-Wertpapiere mit vorhandenen abgleichen oder neu erstellen",

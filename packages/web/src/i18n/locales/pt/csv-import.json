@@ -59,6 +59,10 @@
   "columns.field.wkn": "WKN",
   "columns.field.time": "Hora",
   "columns.field.dateOfQuote": "Data da cotação",
+  "columns.field.feesFx": "Taxas em moeda estrangeira",
+  "columns.field.taxesFx": "Impostos em moeda estrangeira",
+  "columns.field.feesCurrency": "Moeda das taxas",
+  "columns.field.taxesCurrency": "Moeda dos impostos",
 
   "securities.title": "Associar ativos",
   "securities.description": "Associar ativos do CSV aos existentes ou criar novos",

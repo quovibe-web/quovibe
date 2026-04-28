@@ -59,6 +59,10 @@
   "columns.field.wkn": "WKN",
   "columns.field.time": "Time",
   "columns.field.dateOfQuote": "Date of Quote",
+  "columns.field.feesFx": "Fees Foreign Currency",
+  "columns.field.taxesFx": "Taxes Foreign Currency",
+  "columns.field.feesCurrency": "Fees Currency",
+  "columns.field.taxesCurrency": "Taxes Currency",
 
   "securities.title": "Match Securities",
   "securities.description": "Match CSV securities to existing ones or create new",
