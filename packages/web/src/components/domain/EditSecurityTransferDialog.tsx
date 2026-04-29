@@ -45,14 +45,19 @@ export function EditSecurityTransferDialog({ open, onOpenChange, transaction }: 
     if (!transaction || !txDetail) return undefined;
 
     const sharesNum = transaction.shares != null ? Math.abs(parseFloat(String(transaction.shares))) : 0;
-    // SECURITY_TRANSFER: amount encodes gross value (shares × price). amount may be 0
-    // per ppxml2db convention, in which case price field stays empty.
-    const amountNum = transaction.amount != null ? Math.abs(parseFloat(String(transaction.amount))) : 0;
-    const priceStr = sharesNum > 0 && amountNum > 0 ? String(amountNum / sharesNum) : undefined;
 
     // Fees from unit data if present.
     const feeUnit = txDetail.units?.find((u) => u.type === 'FEE');
     const feeAmount = feeUnit?.amount != null ? Math.abs(parseFloat(String(feeUnit.amount))) : 0;
+
+    // SECURITY_TRANSFER is INFLOW: server stores xact.amount = gross - fees
+    // (transaction.service.ts > computeNetAmountDb). The form's price × shares
+    // means *gross*, so back-compute gross = stored_amount + fees to keep the
+    // round-trip identity when the user clicks Save without changes. amount
+    // may be 0 per ppxml2db convention, in which case price stays empty.
+    const storedAmount = transaction.amount != null ? Math.abs(parseFloat(String(transaction.amount))) : 0;
+    const grossAmount = storedAmount + feeAmount;
+    const priceStr = sharesNum > 0 && grossAmount > 0 ? String(grossAmount / sharesNum) : undefined;
 
     return {
       date: transaction.date ?? undefined,

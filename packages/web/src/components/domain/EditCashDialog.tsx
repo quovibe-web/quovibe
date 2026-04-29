@@ -46,23 +46,30 @@ export function EditCashDialog({ open, onOpenChange, transaction }: Props) {
   const initialValues = useMemo<Partial<TransactionFormValues> | undefined>(() => {
     if (!transaction) return undefined;
 
+    // API serializes amount as number despite TS declaration — coerce to string for Zod.
+    const storedAmount = transaction.amount != null ? parseFloat(String(transaction.amount)) : 0;
+
     const base = {
       date: transaction.date ?? undefined,
       accountId: transaction.account ?? undefined,
-      // API serializes amount as number despite TS declaration — coerce to string for Zod.
-      amount: transaction.amount != null ? String(transaction.amount) : undefined,
       note: transaction.note ?? undefined,
     };
 
     // DIVIDEND carries a required security + optional fees/taxes from units.
+    // The server packs xact.amount = gross - fees - taxes for INFLOW types
+    // (transaction.service.ts > computeNetAmountDb). The form's amount field
+    // means *gross* — back-compute it from the stored net so the round-trip
+    // is identity-preserving when the user clicks Save without changes.
     if (transaction.type === 'DIVIDEND') {
       const fx = extractFxFromUnits(txDetail?.units);
       const feeUnit = txDetail?.units?.find((u) => u.type === 'FEE');
       const taxUnit = txDetail?.units?.find((u) => u.type === 'TAX');
       const feeAmount = feeUnit?.amount != null ? Math.abs(parseFloat(String(feeUnit.amount))) : 0;
       const taxAmount = taxUnit?.amount != null ? Math.abs(parseFloat(String(taxUnit.amount))) : 0;
+      const grossAmount = storedAmount + feeAmount + taxAmount;
       return {
         ...base,
+        amount: storedAmount > 0 || grossAmount > 0 ? String(grossAmount) : undefined,
         securityId: (transaction.security ?? transaction.securityId) || undefined,
         fees: feeAmount > 0 ? String(feeAmount) : undefined,
         taxes: taxAmount > 0 ? String(taxAmount) : undefined,
@@ -72,7 +79,13 @@ export function EditCashDialog({ open, onOpenChange, transaction }: Props) {
       };
     }
 
-    return base;
+    // Cash-only types without fee/tax units (DEPOSIT, INTEREST, ...) — stored
+    // amount equals gross because no fees are subtracted (FIELD_CONFIG hides
+    // those fields and preparePayload never sends them).
+    return {
+      ...base,
+      amount: transaction.amount != null ? String(transaction.amount) : undefined,
+    };
   }, [transaction, txDetail]);
 
   const { run, inFlight } = useGuardedSubmit(async (values: TransactionFormValues) => {
