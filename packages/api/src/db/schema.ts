@@ -5,7 +5,8 @@
 // merge-time by `bootstrap-parity.test.ts` (Gate 2): any column added/removed
 // here without the matching change in `bootstrap.sql` (or the
 // `VENDOR_COLUMN_PATCHES` map in `apply-bootstrap.ts` for vendor tables) will
-// fail CI. Never add `CREATE TABLE` / `ALTER` outside those two locations.
+// fail CI. Never add table-creation or alter-table DDL outside those two
+// locations (governance gate G12 enforces this at the file-content level).
 import {
   sqliteTable, text, integer, primaryKey,
 } from 'drizzle-orm/sqlite-core';
