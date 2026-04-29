@@ -50,7 +50,7 @@ export function EditRemovalDialog({ open, onOpenChange, transaction }: Props) {
       amount: transaction.amount != null ? String(transaction.amount) : undefined,
       note: transaction.note ?? undefined,
     };
-  }, [transaction, txDetail]);
+  }, [transaction]);
 
   const { run, inFlight } = useGuardedSubmit(async (values: TransactionFormValues) => {
     if (!transaction) return;

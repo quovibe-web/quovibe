@@ -2,7 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import {
-  DATA_DIR, DEMO_SOURCE_PATH, resolvePortfolioPath, isPortfolioFilename,
+  DATA_DIR, DEMO_SOURCE_PATH, resolvePortfolioPath,
 } from '../config';
 import { atomicCopy, sweepStaleTmp, ensureDir } from '../lib/atomic-fs';
 import { getSettings, updateSettings, loadSettings } from './settings.service';

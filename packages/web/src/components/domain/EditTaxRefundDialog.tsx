@@ -54,7 +54,7 @@ export function EditTaxRefundDialog({ open, onOpenChange, transaction }: Props) 
       securityId: (transaction.security ?? transaction.securityId) || undefined,
       note: transaction.note ?? undefined,
     };
-  }, [transaction, txDetail]);
+  }, [transaction]);
 
   const { run, inFlight } = useGuardedSubmit(async (values: TransactionFormValues) => {
     if (!transaction) return;
