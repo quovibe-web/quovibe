@@ -3,12 +3,17 @@
 // LIMIT_FILE_SIZE failures into structured CsvImportError codes that
 // handleError maps to 400. Any regression that drops the wrapper or reverts the
 // error codes will fail these tests.
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import path from 'path';
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import request from 'supertest';
 import Database from 'better-sqlite3';
+
+// Each test boots a fresh Express app + portfolio bootstrap. On slower CI
+// runners that cold-start cost can edge past the 5s vitest default,
+// triggering false-positive timeouts. 20s is generous but still bounded.
+vi.setConfig({ testTimeout: 20000 });
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'qv-csv-hard-'));
 process.env.QUOVIBE_DATA_DIR = tmp;
