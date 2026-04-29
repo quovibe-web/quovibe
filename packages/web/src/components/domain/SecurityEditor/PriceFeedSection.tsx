@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useTestFetchPrices, useFetchPrices } from '@/api/use-securities';
 import { usePortfolio } from '@/api/use-portfolio';
-import { apiFetch } from '@/api/fetch';
+import { useScopedApi } from '@/api/use-scoped-api';
 import { formatDate } from '@/lib/formatters';
 import { SectionHeader } from './SectionHeader';
 import { CsvPriceImportDialog } from '@/components/domain/csv-import/CsvPriceImportDialog';
@@ -39,6 +39,7 @@ export function PriceFeedSection({ securityId, ticker, values, status, onChange 
   const [testResult, setTestResult] = useState<TestFetchResponse | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
   const [fetchMode, setFetchMode] = useState<'merge' | 'replace'>('merge');
+  const api = useScopedApi();
 
   const provider = (values.feed || '') as FeedProvider;
   const latestProvider = values.latestFeed as FeedProvider;
@@ -71,7 +72,7 @@ export function PriceFeedSection({ securityId, ticker, values, status, onChange 
 
   async function handleFetchAndSave() {
     if (securityId) {
-      await apiFetch(`/api/securities/${securityId}`, {
+      await api.fetch(`/api/securities/${securityId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,0 +1,92 @@
+{
+  "topbar": {
+    "status": "Lokale sessie",
+    "versionPrefix": "v"
+  },
+  "hero": {
+    "eyebrow": "Welkom",
+    "headlinePre": "Jouw portefeuille, in ",
+    "headlineEmphasis": "focus",
+    "headlineSuffix": ".",
+    "lede": "Volg posities, rendementen en cashflows met de precisie van institutionele tools — volledig offline, volledig van jou.",
+    "metrics": {
+      "offline": "Lokaal · Offline",
+      "methods": "TTWROR · IRR · FIFO",
+      "ppCompatible": "Portfolio Performance-compatibel"
+    }
+  },
+  "cards": {
+    "fresh": {
+      "title": "Opnieuw beginnen",
+      "body": "Een gloednieuwe lege portefeuille aanmaken en gaandeweg transacties toevoegen.",
+      "cta": "Portefeuille aanmaken",
+      "badge": "Aanbevolen"
+    },
+    "demo": {
+      "title": "Probeer de demo",
+      "body": "Verken de app met een realistische voorbeeldportefeuille die je vrij kunt bewerken.",
+      "cta": "Demo openen",
+      "badge": "Voorbeeldgegevens"
+    },
+    "import": {
+      "title": "Bestaande data importeren",
+      "body": "Importeer vanuit Portfolio Performance of herstel een quovibe-back-up.",
+      "cta": "Kies een bron",
+      "badge": "PP XML · .db"
+    }
+  },
+  "footer": {
+    "copyright": "© {{year}} quovibe",
+    "docs": "Documentatie",
+    "shortcutsLabel": "Sneltoetsen",
+    "shortcutsKey": "⌘K"
+  },
+  "errors": {
+    "demoFailed": "Kon de demo niet openen: {{msg}}",
+    "createFailed": "Kon de portefeuille niet aanmaken: {{msg}}",
+    "duplicateName": "Er bestaat al een portefeuille met deze naam."
+  },
+  "recent": {
+    "heading": "Verder met een portefeuille",
+    "lastOpened": "Laatst geopend {{date}}",
+    "neverOpened": "Aangemaakt op {{date}}",
+    "demoTag": "Demo"
+  },
+  "hub": {
+    "title": "Bestaande data importeren",
+    "subtitle": "Importeer data uit een externe bron. Er wordt een nieuwe portefeuille voor je aangemaakt.",
+    "backToWelcome": "Terug naar welkom",
+    "fileChangeHint": "klik om te wijzigen",
+    "sources": {
+      "ppXml": {
+        "title": "Portfolio Performance (XML)",
+        "body": "Een XML-export uit de Portfolio Performance-desktop-app. Zorg dat de ID-attributen zijn opgenomen.",
+        "pickFile": "Sleep het XML-bestand hierheen of klik om te bladeren",
+        "submit": "Importeren en doorgaan",
+        "nameOptional": "Portefeuillenaam (optioneel — standaard: bestandsnaam)"
+      },
+      "quovibeDb": {
+        "title": "Herstel uit quovibe-back-up",
+        "body": "Importeer een eerder uit quovibe geëxporteerd .db-bestand. Handig bij machinewissel of bij herstel uit een back-up.",
+        "pickFile": "Sleep het .db-bestand hierheen of klik om te bladeren",
+        "submit": "Herstellen en doorgaan"
+      },
+      "csvHint": {
+        "title": "CSV-import",
+        "body": "CSV-import vereist een bestaande portefeuille. Begin opnieuw en open daarna Instellingen → CSV importeren vanuit je nieuwe portefeuille."
+      }
+    },
+    "errors": {
+      "fileRequired": "Kies eerst een bestand.",
+      "importFailed": "Import mislukt: {{msg}}",
+      "invalidFile": "Geen geldige XML-export. Een .xml-bestand uit Portfolio Performance wordt verwacht.",
+      "tooLarge": "Het bestand overschrijdt de maximale uploadgrootte.",
+      "binary": "Het bestand lijkt binair of beschadigd te zijn. Een XML-export als platte tekst wordt verwacht.",
+      "invalidXml": "Het bestand is geen geldig XML. Exporteer opnieuw vanuit Portfolio Performance en probeer het opnieuw.",
+      "invalidFormat": "De XML is geen Portfolio Performance-export (ontbrekend <client>-hoofdelement of ID-attributen). Exporteer opnieuw met IDs ingeschakeld.",
+      "encrypted": "Het bestand lijkt versleuteld. Exporteer opnieuw vanuit Portfolio Performance en kies XML-formaat met ID-attributen.",
+      "importInProgress": "Een andere import is al bezig. Wacht tot deze is voltooid en probeer het opnieuw.",
+      "conversionFailed": "Conversie mislukt. Je bestaande portefeuilles zijn onveranderd."
+    }
+  }
+}

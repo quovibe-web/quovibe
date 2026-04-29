@@ -38,6 +38,8 @@
   },
   "form": {
     "dateTime": "Data e hora",
+    "time": "Hora",
+    "openCalendar": "Abrir calendário",
     "datePlaceholder": "dd.MM.aaaa",
     "quantity": "Quantidade",
     "price": "Preço",
@@ -102,6 +104,10 @@
     "sourceDestMustDiffer": "A origem e o destino devem ser diferentes",
     "sharesMustBePositive": "As unidades devem ser superiores a 0",
     "amountMustBePositive": "O montante deve ser superior a 0",
+    "priceMustBePositive": "O preço deve ser superior a 0",
+    "feesMustBeNonNegative": "As comissões devem ser 0 ou superiores",
+    "taxesMustBeNonNegative": "Os impostos devem ser 0 ou superiores",
+    "fxRateMustBePositive": "A taxa de câmbio deve ser superior a 0",
     "nameRequired": "O nome é obrigatório",
     "noteRequired": "A nota é obrigatória.",
     "ratioRequired": "O rácio de desdobramento é obrigatório (ex. 2:1).",
@@ -111,6 +117,9 @@
     "edit": "Editar",
     "delete": "Eliminar",
     "new": "Novo"
+  },
+  "a11y": {
+    "rowActions": "Ações para {{type}} de {{date}}"
   },
   "editTitles": {
     "buy": "Editar compra",
@@ -133,6 +142,7 @@
   },
   "transactionType": "Tipo de transação",
   "newTransaction": "Nova transação",
+  "newTransactionDescription": "Criar uma compra, venda, depósito, transferência ou outra operação.",
   "subtitle": "Browse and manage all portfolio transactions",
   "noLinkedDeposit": "Esta conta de títulos não tem uma conta de caixa associada.",
   "empty": {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ListX, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { dateColumnMeta, textColumnMeta, currencyColumnMeta, sharesColumnMeta } from '@/lib/column-factories';
@@ -43,11 +44,11 @@ import {
 import { DataTable } from '@/components/shared/DataTable';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { SharesDisplay } from '@/components/shared/SharesDisplay';
-import { useTransactions, useDeleteTransaction } from '@/api/use-transactions';
+import { useTransactions, useDeleteTransaction, useExportTransactions } from '@/api/use-transactions';
 import { EditRemovalDialog } from '@/components/domain/EditRemovalDialog';
 import { EditBuyDialog } from '@/components/domain/EditBuyDialog';
 import { EditSellDialog } from '@/components/domain/EditSellDialog';
-import { EditTransferOutboundDialog } from '@/components/domain/EditTransferOutboundDialog';
+import { EditTransferDialog } from '@/components/domain/EditTransferDialog';
 import { EditTaxRefundDialog } from '@/components/domain/EditTaxRefundDialog';
 import { EditCashDialog } from '@/components/domain/EditCashDialog';
 import { EditDeliveryDialog } from '@/components/domain/EditDeliveryDialog';
@@ -75,6 +76,7 @@ import { TransactionForm, type TransactionFormValues } from '@/components/domain
 import { TypeBadge } from '@/components/shared/TypeBadge';
 import { AccountAvatar } from '@/components/shared/AccountAvatar';
 import { useCreateTransaction } from '@/api/use-transactions';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { preparePayload } from '@/lib/transaction-payload';
 import { getTransactionCashflowSign } from '@/lib/transaction-display';
 
@@ -237,6 +239,10 @@ function buildColumns(
               size="icon"
               className="h-7 w-7"
               onClick={(e) => e.stopPropagation()}
+              aria-label={t('a11y.rowActions', {
+                type: t('types.' + txTypeKey(row.original.type)),
+                date: formatDate(row.original.date),
+              })}
             >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
@@ -272,6 +278,7 @@ const PAGE_SIZE = 25;
 
 
 export default function Transactions() {
+  useDocumentTitle('Transactions');
   const { t } = useTranslation('transactions');
   const { t: tCommon } = useTranslation('common');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -290,8 +297,20 @@ export default function Transactions() {
   const [newTxType, setNewTxType] = useState<TransactionType>(TransactionType.BUY);
   const newTxFormRef = useRef<HTMLFormElement>(null);
   const createMutation = useCreateTransaction();
+  const { run: handleNewTxSubmit, inFlight: createInFlight } = useGuardedSubmit(
+    async (values: TransactionFormValues) => {
+      try {
+        await createMutation.mutateAsync(preparePayload(values));
+        toast.success(tCommon('toasts.transactionCreated'));
+        setNewSheetOpen(false);
+      } catch {
+        // Global MutationCache error toast handles user-visible feedback.
+      }
+    },
+  );
 
   const deleteMutation = useDeleteTransaction();
+  const fetchAllTransactions = useExportTransactions();
 
   const columnVisibilityGroups = useMemo<ColumnVisibilityGroup[]>(() => [
     { label: t('columnGroups.core'), columns: ['date', 'type', 'securityName', 'accountName'] },
@@ -383,7 +402,6 @@ export default function Transactions() {
         setDeleteTarget(null);
       },
       onError: () => {
-        toast.error(tCommon('toasts.errorDeleting'));
         setDeleteTarget(null);
       },
     });
@@ -394,15 +412,6 @@ export default function Transactions() {
     setAccountFilter('ALL');
     setSecurityFilter('ALL');
     setSearchInput('');
-  }
-
-  function handleNewTxSubmit(values: TransactionFormValues) {
-    createMutation.mutate(preparePayload(values), {
-      onSuccess: () => {
-        toast.success(tCommon('toasts.transactionCreated'));
-        setNewSheetOpen(false);
-      },
-    });
   }
 
   return (
@@ -483,7 +492,7 @@ export default function Transactions() {
         onOpenChange={(open) => { if (!open) setEditTarget(null); }}
         transaction={editTarget}
       />
-      <EditTransferOutboundDialog
+      <EditTransferDialog
         open={!!editTarget && editTarget.type === 'TRANSFER_BETWEEN_ACCOUNTS'}
         onOpenChange={(open) => { if (!open) setEditTarget(null); }}
         transaction={editTarget}
@@ -559,6 +568,9 @@ export default function Transactions() {
           enableColumnVisibility
           columnVisibilityGroups={columnVisibilityGroups}
           enableExport
+          exportFetcher={() =>
+            fetchAllTransactions(filters) as Promise<TransactionListItem[]>
+          }
         />
         )}
         {!isLoading && transactions.length > 0 && (
@@ -612,12 +624,12 @@ export default function Transactions() {
         <SheetContent side="right" className="sm:max-w-lg w-full flex flex-col">
           <SheetHeader>
             <SheetTitle>{t('newTransaction')}</SheetTitle>
-            <SheetDescription>{t('subtitle')}</SheetDescription>
+            <SheetDescription>{t('newTransactionDescription')}</SheetDescription>
           </SheetHeader>
           <div className="px-4 pb-2">
-            <Label className="mb-1.5 block">{t('transactionType')}</Label>
+            <Label htmlFor="new-tx-type" className="mb-1.5 block">{t('transactionType')}</Label>
             <Select value={newTxType} onValueChange={(v) => setNewTxType(v as TransactionType)}>
-              <SelectTrigger>
+              <SelectTrigger id="new-tx-type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -632,9 +644,10 @@ export default function Transactions() {
               key={newTxType}
               type={newTxType}
               onSubmit={handleNewTxSubmit}
-              isSubmitting={createMutation.isPending}
+              isSubmitting={createInFlight || createMutation.isPending}
               hideSubmitButton
               formRef={newTxFormRef}
+              serverError={createMutation.error}
             />
           </ScrollArea>
           <SheetFooter className="border-t px-4 py-3 flex-row justify-end gap-2">
@@ -643,7 +656,7 @@ export default function Transactions() {
             </Button>
             <Button
               onClick={() => newTxFormRef.current?.requestSubmit()}
-              disabled={createMutation.isPending}
+              disabled={createInFlight || createMutation.isPending}
             >
               {createMutation.isPending ? t('common:saving') : t('common:save')}
             </Button>

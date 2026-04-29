@@ -14,7 +14,8 @@
     "analytics": "Auswertungen",
     "assetAllocation": "Klassifizierungen",
     "dataSeries": "Datenreihen",
-    "settings": "Einstellungen",
+    "settings": "Portfolio-Einstellungen",
+    "preferences": "Einstellungen",
     "watchlists": "Watchlists"
   },
   "period": "Zeitraum",
@@ -33,8 +34,7 @@
   "theme": {
     "light": "Helles Design",
     "system": "Systemdesign",
-    "dark": "Dunkles Design",
-    "toggle": "Design wechseln"
+    "dark": "Dunkles Design"
   },
   "more": "Mehr",
   "morePeriods": "Weitere Perioden",

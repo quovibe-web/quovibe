@@ -6,7 +6,7 @@ import { Landmark } from 'lucide-react';
 import { CostMethod } from '@quovibe/shared';
 import type { CalculationBreakdownResponse } from '@quovibe/shared';
 import { useAccounts, accountsKeys } from '@/api/use-accounts';
-import { apiFetch } from '@/api/fetch';
+import { useScopedApi } from '@/api/use-scoped-api';
 import type { AccountHoldingsResponse } from '@/api/types';
 import { useReportingPeriod, performanceKeys } from '@/api/use-performance';
 import { AccountSummaryStrip } from '@/components/domain/AccountSummaryStrip';
@@ -24,8 +24,10 @@ import { cn } from '@/lib/utils';
 import { usePrivacy } from '@/context/privacy-context';
 import { formatPercentage, formatCurrency } from '@/lib/formatters';
 import { useBaseCurrency } from '@/hooks/use-base-currency';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export default function AccountsHub() {
+  useDocumentTitle('Accounts');
   const { t } = useTranslation('accounts');
 
   // 1. State
@@ -37,6 +39,7 @@ export default function AccountsHub() {
   const { isPrivate } = usePrivacy();
   const baseCurrency = useBaseCurrency();
   const { periodStart, periodEnd } = useReportingPeriod();
+  const api = useScopedApi();
 
   // 2. Fetch accounts
   const { data: accounts = [], isLoading } = useAccounts(showRetired);
@@ -47,14 +50,14 @@ export default function AccountsHub() {
   // 4. Prefetch holdings and performance for all portfolios
   const holdingsQueries = useQueries({
     queries: portfolios.map(p => ({
-      queryKey: accountsKeys.holdings(p.id),
-      queryFn: () => apiFetch<AccountHoldingsResponse>(`/api/accounts/${p.id}/holdings`),
+      queryKey: accountsKeys.holdings(api.portfolioId, p.id),
+      queryFn: () => api.fetch<AccountHoldingsResponse>(`/api/accounts/${p.id}/holdings`),
     })),
   });
 
   const perfQueries = useQueries({
     queries: portfolios.map(p => ({
-      queryKey: performanceKeys.calculation(periodStart, periodEnd, true, CostMethod.MOVING_AVERAGE, p.id, true),
+      queryKey: performanceKeys.calculation(api.portfolioId, periodStart, periodEnd, true, CostMethod.MOVING_AVERAGE, p.id, true),
       queryFn: () => {
         const params = new URLSearchParams({
           periodStart,
@@ -64,7 +67,7 @@ export default function AccountsHub() {
           filter: p.id,
           withReference: 'true',
         });
-        return apiFetch<CalculationBreakdownResponse>(`/api/performance/calculation?${params}`);
+        return api.fetch<CalculationBreakdownResponse>(`/api/performance/calculation?${params}`);
       },
     })),
   });
@@ -205,7 +208,7 @@ export default function AccountsHub() {
                       return (
                         <button
                           key={unit.portfolio.id}
-                          onClick={() => navigate(`/accounts/${unit.portfolio.id}`)}
+                          onClick={() => navigate(`/p/${api.portfolioId}/accounts/${unit.portfolio.id}`)}
                           className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
                         >
                           <div className="flex-1 min-w-0">
@@ -241,7 +244,7 @@ export default function AccountsHub() {
                     {standaloneDeposits.map(d => (
                       <button
                         key={d.id}
-                        onClick={() => navigate(`/accounts/${d.id}`)}
+                        onClick={() => navigate(`/p/${api.portfolioId}/accounts/${d.id}`)}
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
                       >
                         <div className="flex-1 min-w-0">

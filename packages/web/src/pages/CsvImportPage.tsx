@@ -1,6 +1,7 @@
 // packages/web/src/pages/CsvImportPage.tsx
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { CsvUploadStep } from '@/components/domain/csv-import/CsvUploadStep';
 import { CsvColumnMapStep } from '@/components/domain/csv-import/CsvColumnMapStep';
 import { CsvSecurityMatchStep } from '@/components/domain/csv-import/CsvSecurityMatchStep';
@@ -20,12 +21,16 @@ export interface WizardState {
 
   // Step 2 output
   columnMapping: Record<string, number>;
-  targetPortfolioId: string;
 
   // Step 3 output
   previewResult: TradePreviewResult | null;
   securityMapping: Record<string, string>;
   newSecurities: Array<{ name: string; isin?: string; ticker?: string; currency: string }>;
+
+  // BUG-54/55 Phase 6 — picked inner securities-account UUID. Resolved by
+  // CsvSecurityMatchStep on mount (auto-pick when N=1, picker when N>1).
+  // Phase 5 redirect handles N=0 before the user can reach this wizard.
+  targetSecuritiesAccountId: string | null;
 }
 
 const initialState: WizardState = {
@@ -36,13 +41,14 @@ const initialState: WizardState = {
   decimalSeparator: '.',
   thousandSeparator: '',
   columnMapping: {},
-  targetPortfolioId: '',
   previewResult: null,
   securityMapping: {},
   newSecurities: [],
+  targetSecuritiesAccountId: null,
 };
 
 export default function CsvImportPage() {
+  useDocumentTitle('CSV Import');
   const { t } = useTranslation('csv-import');
   const [step, setStep] = useState(0);
   const [state, setState] = useState<WizardState>(initialState);

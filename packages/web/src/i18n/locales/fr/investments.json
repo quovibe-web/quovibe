@@ -64,13 +64,17 @@
     "clearFilter": "Tout afficher"
   },
   "search": {
-    "placeholder": "Rechercher par nom, ISIN ou ticker…"
+    "placeholder": "Rechercher par nom, ISIN ou ticker…",
+    "noResults": "Aucun résultat pour '{{query}}'",
+    "noResultsHint": "Essayez un autre nom, ISIN ou ticker."
   },
   "totals": {
     "label": "Total ({{count}} titres)"
   },
   "empty": {
     "title": "Aucun titre",
-    "description": "Ajoutez votre premier titre pour commencer"
+    "description": "Ajoutez votre premier titre pour commencer",
+    "noMatches": "Aucun titre dans ce compte",
+    "noMatchesHint": "Modifiez le filtre de compte pour voir d'autres positions."
   }
 }

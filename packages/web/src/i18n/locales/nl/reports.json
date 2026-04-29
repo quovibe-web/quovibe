@@ -109,6 +109,7 @@
   },
   "assetAllocation": {
     "title": "Taxonomieën",
+    "subtitle": "Allocation and rebalancing by taxonomy",
     "noTaxonomies": "Geen taxonomieën gedefinieerd. Importeer een portefeuille met taxonomiegegevens om deze weergave te gebruiken.",
     "date": "Datum",
     "columns": {
@@ -127,7 +128,7 @@
     },
     "expandAll": "Alles uitvouwen",
     "collapseAll": "Alles samenvouwen",
-    "subtitle": "Allocation and rebalancing by taxonomy"
+    "withoutClassification": "Zonder Classificatie"
   },
   "taxonomySeries": {
     "title": "Gegevensreeksen",
@@ -144,6 +145,7 @@
     "dividends": "Dividenden",
     "fees": "Vergoedingen",
     "selectTaxonomy": "Taxonomie",
+    "categoryLabel": "Categorie",
     "subtitle": "Performance trends by category"
   },
   "taxonomyNodePicker": {
@@ -219,6 +221,50 @@
     "editWeightDescription": "Stel het doelgewichtpercentage in",
     "assignCategoryDescription": "Selecteer een categorie om toe te wijzen",
     "deleteError": "Fout bij het verwijderen van de classificatie",
-    "renameDescription": "Voer een nieuwe naam in voor deze classificatie"
+    "renameDescription": "Voer een nieuwe naam in voor deze classificatie",
+    "emptyCategories": {
+      "title": "Deze classificatie heeft nog geen categorieën.",
+      "cta": "Eerste categorie toevoegen"
+    },
+    "resetTargets": {
+      "button": "Doelen herstellen",
+      "confirmTitle": "Doelen herstellen naar opgeslagen waarden?",
+      "confirmBody": "Vervangt de huidige doelen door de waarden die aanwezig waren bij het laden van de weergave.",
+      "confirmAction": "Herstellen"
+    },
+    "deleteCategoryDetailed": {
+      "title": "\"{{name}}\" verwijderen?",
+      "assignments_one": "{{count}} toewijzing wordt verwijderd.",
+      "assignments_other": "{{count}} toewijzingen worden verwijderd.",
+      "subcategories_one": "{{count}} subcategorie wordt naar de ouder verplaatst.",
+      "subcategories_other": "{{count}} subcategorieën worden naar de ouder verplaatst.",
+      "empty": "Deze categorie is leeg."
+    },
+    "renormalize": {
+      "checkbox": "Gewichten van betrokken items proportioneel herverdelen",
+      "hint": "Bestaande totalen blijven op de waarden van vóór het verwijderen."
+    }
+  },
+  "taxonomyUi": {
+    "chartMode": {
+      "donut": "Donut",
+      "treemap": "Treemap",
+      "off": "Geen"
+    },
+    "columns": {
+      "target": "Doel %",
+      "actual": "Actueel %",
+      "delta": "Δ",
+      "split": "Verdeling"
+    },
+    "withoutClassification": {
+      "empty": "Alles geclassificeerd ✓"
+    },
+    "allocationSumWarning": "Onderliggende elementen tellen op tot {{sum}}%. Moeten 100% zijn.",
+    "picker": {
+      "searchPlaceholder": "Categorieën zoeken...",
+      "noMatches": "Geen categorie komt overeen met \"{{query}}\"",
+      "breadcrumbSeparator": " › "
+    }
   }
 }

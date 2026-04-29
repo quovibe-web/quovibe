@@ -1,0 +1,92 @@
+{
+  "topbar": {
+    "status": "Sessão local",
+    "versionPrefix": "v"
+  },
+  "hero": {
+    "eyebrow": "Bem-vindo",
+    "headlinePre": "A tua carteira, em ",
+    "headlineEmphasis": "foco",
+    "headlineSuffix": ".",
+    "lede": "Acompanha posições, rendibilidades e fluxos de caixa com o rigor de ferramentas institucionais — totalmente offline, totalmente teu.",
+    "metrics": {
+      "offline": "Local · Offline",
+      "methods": "TTWROR · TIR · FIFO",
+      "ppCompatible": "Compatível com Portfolio Performance"
+    }
+  },
+  "cards": {
+    "fresh": {
+      "title": "Começar do zero",
+      "body": "Cria uma carteira vazia de raiz e adiciona transações à medida que avanças.",
+      "cta": "Criar carteira",
+      "badge": "Recomendado"
+    },
+    "demo": {
+      "title": "Experimentar a demo",
+      "body": "Explora a app com uma carteira de exemplo realista que podes editar livremente.",
+      "cta": "Abrir demo",
+      "badge": "Dados de exemplo"
+    },
+    "import": {
+      "title": "Importar dados existentes",
+      "body": "Importa do Portfolio Performance ou restaura uma cópia de segurança do quovibe.",
+      "cta": "Escolher uma fonte",
+      "badge": "PP XML · .db"
+    }
+  },
+  "footer": {
+    "copyright": "© {{year}} quovibe",
+    "docs": "Documentação",
+    "shortcutsLabel": "Atalhos",
+    "shortcutsKey": "⌘K"
+  },
+  "errors": {
+    "demoFailed": "Não foi possível abrir a demo: {{msg}}",
+    "createFailed": "Não foi possível criar a carteira: {{msg}}",
+    "duplicateName": "Já existe uma carteira com este nome."
+  },
+  "recent": {
+    "heading": "Continuar com uma carteira",
+    "lastOpened": "Última abertura {{date}}",
+    "neverOpened": "Criada em {{date}}",
+    "demoTag": "Demo"
+  },
+  "hub": {
+    "title": "Importar dados existentes",
+    "subtitle": "Importa dados de uma fonte externa. Será criada uma nova carteira.",
+    "backToWelcome": "Voltar às boas-vindas",
+    "fileChangeHint": "clica para alterar",
+    "sources": {
+      "ppXml": {
+        "title": "Portfolio Performance (XML)",
+        "body": "Uma exportação XML da app desktop Portfolio Performance. Garante que os atributos ID estão incluídos.",
+        "pickFile": "Arrasta o ficheiro XML aqui ou clica para procurar",
+        "submit": "Importar e continuar",
+        "nameOptional": "Nome da carteira (opcional — por omissão: nome do ficheiro)"
+      },
+      "quovibeDb": {
+        "title": "Restaurar a partir de backup quovibe",
+        "body": "Importa um ficheiro .db anteriormente exportado do quovibe. Útil para mudar de máquina ou recuperar de uma cópia de segurança.",
+        "pickFile": "Arrasta o ficheiro .db aqui ou clica para procurar",
+        "submit": "Restaurar e continuar"
+      },
+      "csvHint": {
+        "title": "Importar CSV",
+        "body": "A importação CSV requer uma carteira existente. Começa do zero e depois abre Definições → Importar CSV a partir da nova carteira."
+      }
+    },
+    "errors": {
+      "fileRequired": "Seleciona primeiro um ficheiro.",
+      "importFailed": "Importação falhou: {{msg}}",
+      "invalidFile": "Exportação XML inválida. É esperado um ficheiro .xml do Portfolio Performance.",
+      "tooLarge": "O ficheiro excede o tamanho máximo permitido.",
+      "binary": "O ficheiro parece binário ou corrompido. É esperada uma exportação XML em texto simples.",
+      "invalidXml": "O ficheiro não é um XML válido. Reexporta do Portfolio Performance e tenta novamente.",
+      "invalidFormat": "O XML não é uma exportação de Portfolio Performance (falta o elemento raiz <client> ou os atributos ID). Reexporta com os IDs ativados.",
+      "encrypted": "O ficheiro parece encriptado. Reexporta do Portfolio Performance escolhendo o formato XML com atributos ID.",
+      "importInProgress": "Outra importação já está em curso. Aguarda a conclusão e tenta novamente.",
+      "conversionFailed": "Conversão falhou. As tuas carteiras existentes não foram alteradas."
+    }
+  }
+}

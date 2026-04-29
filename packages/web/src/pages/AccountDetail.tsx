@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { usePortfolio } from '@/context/PortfolioContext';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -30,6 +31,8 @@ import { cn, txTypeKey } from '@/lib/utils';
 import { StockSplitDialog } from '@/components/domain/StockSplitDialog';
 import { CorporateEventDialog } from '@/components/domain/CorporateEventDialog';
 import { AccountDetailTabs } from '@/components/domain/AccountDetailTabs';
+import { ChangeReferenceAccountDialog } from '@/components/domain/ChangeReferenceAccountDialog';
+import { Pencil } from 'lucide-react';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
 import {
   Select,
@@ -49,21 +52,37 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { TransactionForm, type TransactionFormValues } from '@/components/domain/TransactionForm';
 import { useCreateTransaction } from '@/api/use-transactions';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { preparePayload } from '@/lib/transaction-payload';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export default function AccountDetail() {
+  useDocumentTitle('Account');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const portfolio = usePortfolio();
   const { t } = useTranslation('accounts');
   const { t: tCommon } = useTranslation('common');
   const { t: tTx } = useTranslation('transactions');
   const [splitOpen, setSplitOpen] = useState(false);
   const [eventOpen, setEventOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [changeRefOpen, setChangeRefOpen] = useState(false);
   const [newSheetOpen, setNewSheetOpen] = useState(false);
   const [newTxType, setNewTxType] = useState<TransactionType>(TransactionType.BUY);
   const newTxFormRef = useRef<HTMLFormElement>(null);
   const createMutation = useCreateTransaction();
+  const { run: handleNewTxSubmit, inFlight: createInFlight } = useGuardedSubmit(
+    async (values: TransactionFormValues) => {
+      try {
+        await createMutation.mutateAsync(preparePayload(values));
+        toast.success(tCommon('toasts.transactionCreated'));
+        setNewSheetOpen(false);
+      } catch {
+        // Global MutationCache error toast handles user-visible feedback.
+      }
+    },
+  );
 
   const { data: account, isLoading, isFetching } = useAccountDetail(id ?? '');
   const { data: allAccounts = [], isLoading: accountsLoading } = useAccounts(true);
@@ -91,10 +110,9 @@ export default function AccountDetail() {
     deleteAccount.mutate(account!.id, {
       onSuccess: () => {
         toast.success(tCommon('toasts.accountDeleted'));
-        navigate('/accounts');
+        navigate(`/p/${portfolio.id}/accounts`);
       },
-      onError: (err) => {
-        toast.error((err as Error).message ?? tCommon('toasts.errorDeleting'));
+      onError: () => {
         setShowDeleteDialog(false);
       },
     });
@@ -103,18 +121,6 @@ export default function AccountDetail() {
   function openNewTransaction(type: TransactionType) {
     setNewTxType(type);
     setNewSheetOpen(true);
-  }
-
-  function handleNewTxSubmit(values: TransactionFormValues) {
-    createMutation.mutate(preparePayload(values), {
-      onSuccess: () => {
-        toast.success(tCommon('toasts.transactionCreated'));
-        setNewSheetOpen(false);
-      },
-      onError: (err) => {
-        toast.error((err as Error).message ?? tCommon('toasts.errorDeleting'));
-      },
-    });
   }
 
   return (
@@ -254,9 +260,16 @@ export default function AccountDetail() {
               {
                 label: t('detail.referenceAccount'),
                 value: (
-                  <span className="text-sm font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setChangeRefOpen(true)}
+                    disabled={account.isRetired}
+                    className="inline-flex items-center gap-1 text-sm font-semibold hover:text-primary disabled:cursor-not-allowed disabled:hover:text-foreground"
+                    aria-label={t('actions.changeReferenceAccount')}
+                  >
                     {depositAccount?.name ?? account.referenceAccountId}
-                  </span>
+                    {!account.isRetired && <Pencil className="h-3 w-3 opacity-60" />}
+                  </button>
                 ),
               },
             ]}
@@ -292,6 +305,15 @@ export default function AccountDetail() {
       </AlertDialog>
       <StockSplitDialog open={splitOpen} onOpenChange={setSplitOpen} />
       <CorporateEventDialog open={eventOpen} onOpenChange={setEventOpen} />
+      {isPortfolio && account.referenceAccountId && (
+        <ChangeReferenceAccountDialog
+          open={changeRefOpen}
+          onOpenChange={setChangeRefOpen}
+          securitiesAccountId={account.id}
+          currentReferenceAccountId={account.referenceAccountId}
+          currency={account.currency ?? depositAccount?.currency ?? 'EUR'}
+        />
+      )}
       {/* New Transaction Sheet */}
       <Sheet open={newSheetOpen} onOpenChange={setNewSheetOpen}>
         <SheetContent side="right" className="sm:max-w-lg w-full flex flex-col">
@@ -316,10 +338,11 @@ export default function AccountDetail() {
               key={newTxType}
               type={newTxType}
               onSubmit={handleNewTxSubmit}
-              isSubmitting={createMutation.isPending}
+              isSubmitting={createInFlight || createMutation.isPending}
               hideSubmitButton
               formRef={newTxFormRef}
               preselectedAccountId={id}
+              serverError={createMutation.error}
             />
           </ScrollArea>
           <SheetFooter className="border-t px-4 py-3 flex-row justify-end gap-2">
@@ -328,7 +351,7 @@ export default function AccountDetail() {
             </Button>
             <Button
               onClick={() => newTxFormRef.current?.requestSubmit()}
-              disabled={createMutation.isPending}
+              disabled={createInFlight || createMutation.isPending}
             >
               {createMutation.isPending ? tCommon('saving') : tCommon('save')}
             </Button>

@@ -9,8 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FadeIn } from '@/components/shared/FadeIn';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
-import NumberFlow from '@number-flow/react';
-import i18n from '@/i18n';
+import { AccessibleNumberFlow } from '@/components/shared/AccessibleNumberFlow';
 
 const CASH_COLOR = '#D0A215';
 const INVESTED_COLOR = '#8B7EC8';
@@ -93,10 +92,9 @@ export default function WidgetCashDrag() {
       >
         <div className="text-3xl font-bold tabular-nums" style={{ color: CASH_COLOR }}>
           {isPrivate ? '••••' : (
-            <NumberFlow
+            <AccessibleNumberFlow
               className="muted-fraction"
               value={cashRatio}
-              locales={i18n.language}
               format={{ style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }}
             />
           )}

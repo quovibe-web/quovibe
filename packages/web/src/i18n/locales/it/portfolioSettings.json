@@ -1,0 +1,53 @@
+{
+  "current": "Portafoglio corrente",
+  "real": "Reale",
+  "builtInPlayground": "Ambiente di prova integrato",
+  "createdOn": "Creato il {{date}}",
+  "updates": "Aggiornamenti",
+  "updatePrices": "Aggiorna tutti i prezzi",
+  "export": "Esporta questo portafoglio",
+  "demoExplainer": "Un ambiente persistente in cui puoi aggiungere, modificare ed eliminare liberamente. Puoi anche esportare la tua demo modificata: il file scaricato diventa un normale portafoglio dopo la re-importazione, lasciando intatto il dataset demo integrato. La demo stessa non può essere rinominata né eliminata — è un dataset integrato, non un artefatto utente.",
+  "rename": {
+    "cta": "Rinomina",
+    "title": "Rinomina portafoglio",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "success": "Portafoglio rinominato.",
+    "error": "Rinomina fallita: {{msg}}"
+  },
+  "delete": {
+    "cta": "Elimina questo portafoglio",
+    "title": "Eliminare \"{{name}}\"?",
+    "body": "Questa azione rimuoverà definitivamente tutti i conti, le transazioni e i dati di questo portafoglio. Non può essere annullata.",
+    "cancel": "Annulla",
+    "confirm": "Elimina",
+    "success": "Portafoglio eliminato.",
+    "error": "Eliminazione fallita: {{msg}}"
+  },
+  "data": {
+    "sections": {
+      "accounting": "Contabilità",
+      "priceFeeds": "Fonti prezzi"
+    },
+    "fields": {
+      "costMethod": "Metodo di costo",
+      "costMethodDescription": "Come viene calcolato il costo base dei titoli.",
+      "costMethodFifo": "FIFO",
+      "costMethodMovingAverage": "Media mobile",
+      "currency": "Valuta di base",
+      "currencyDescription": "Tutti i valori vengono convertiti in questa valuta per i totali di portafoglio.",
+      "calendar": "Calendario",
+      "calendarDescription": "Calendario di borsa che determina i giorni di festa del mercato. Scegli \"Predefinito (globale)\" per usare il calendario predefinito del sistema.",
+      "calendarDefault": "Predefinito (globale)",
+      "calendarUnknown": "sconosciuto",
+      "alphaVantageApiKey": "Chiave API Alpha Vantage",
+      "alphaVantageApiKeyDescription": "Necessaria per recuperare quotazioni da Alpha Vantage.",
+      "alphaVantageApiKeyConfigured": "Una chiave è configurata. Inserisci un nuovo valore per sostituirla.",
+      "alphaVantageApiKeyPlaceholder": "Inserisci la chiave API…",
+      "alphaVantageApiKeyShow": "Mostra chiave API",
+      "alphaVantageApiKeyHide": "Nascondi chiave API",
+      "alphaVantageRateLimit": "Limite di velocità Alpha Vantage",
+      "alphaVantageRateLimitDescription": "Chiamate al minuto consentite dal tuo piano Alpha Vantage."
+    }
+  }
+}

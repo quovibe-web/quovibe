@@ -38,6 +38,8 @@
   },
   "form": {
     "dateTime": "Datum & Uhrzeit",
+    "time": "Uhrzeit",
+    "openCalendar": "Kalender öffnen",
     "datePlaceholder": "TT.MM.JJJJ",
     "quantity": "Anzahl",
     "price": "Kurs",
@@ -102,6 +104,10 @@
     "sourceDestMustDiffer": "Quelle und Ziel müssen unterschiedlich sein",
     "sharesMustBePositive": "Anteile müssen größer als 0 sein",
     "amountMustBePositive": "Betrag muss größer als 0 sein",
+    "priceMustBePositive": "Preis muss größer als 0 sein",
+    "feesMustBeNonNegative": "Gebühren müssen 0 oder größer sein",
+    "taxesMustBeNonNegative": "Steuern müssen 0 oder größer sein",
+    "fxRateMustBePositive": "Wechselkurs muss größer als 0 sein",
     "nameRequired": "Name ist erforderlich",
     "noteRequired": "Notiz ist erforderlich.",
     "ratioRequired": "Split-Verhältnis ist erforderlich (z.B. 2:1).",
@@ -111,6 +117,9 @@
     "edit": "Bearbeiten",
     "delete": "Löschen",
     "new": "Neu"
+  },
+  "a11y": {
+    "rowActions": "Aktionen für {{type}} am {{date}}"
   },
   "editTitles": {
     "buy": "Kauf bearbeiten",
@@ -133,6 +142,7 @@
   },
   "transactionType": "Buchungstyp",
   "newTransaction": "Neue Buchung",
+  "newTransactionDescription": "Neuen Kauf, Verkauf, Einzahlung, Überweisung oder andere Buchung anlegen.",
   "subtitle": "Browse and manage all portfolio transactions",
   "noLinkedDeposit": "Dieses Depot hat kein verknüpftes Verrechnungskonto.",
   "empty": {

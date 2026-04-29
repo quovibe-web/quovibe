@@ -64,13 +64,17 @@
     "clearFilter": "Mostrar todos"
   },
   "search": {
-    "placeholder": "Buscar por nombre, ISIN o ticker…"
+    "placeholder": "Buscar por nombre, ISIN o ticker…",
+    "noResults": "Sin resultados para '{{query}}'",
+    "noResultsHint": "Prueba con otro nombre, ISIN o ticker."
   },
   "totals": {
     "label": "Total ({{count}} valores)"
   },
   "empty": {
     "title": "Sin valores",
-    "description": "Añade tu primer valor para empezar"
+    "description": "Añade tu primer valor para empezar",
+    "noMatches": "Sin valores en esta cuenta",
+    "noMatchesHint": "Ajusta el filtro de cuenta para ver otras posiciones."
   }
 }

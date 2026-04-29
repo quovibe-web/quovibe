@@ -1,4 +1,12 @@
 {
+  "empty": {
+    "title": "Welcome to your new portfolio.",
+    "importHeader": "Import transactions",
+    "importCsv": "Import from CSV",
+    "addManually": "Add account / transaction manually",
+    "wantToSee": "Want to see the app in action first?",
+    "tryDemo": "Try the demo instead"
+  },
   "title": "Dashboard",
   "hero": {
     "portfolioValue": "Portfoliowert",
@@ -25,6 +33,8 @@
   "dataSeriesMenuItem": "Datenreihen...",
   "period": "Zeitraum...",
   "deleteWidget": "Löschen",
+  "deleteWidgetConfirm": "Dieses Widget entfernen?",
+  "deleteWidgetConfirmDesc": "Dadurch wird \"{{name}}\" aus diesem Dashboard entfernt. Du kannst es jederzeit aus dem Widget-Katalog wieder hinzufügen.",
   "emptyDashboard": "Dieses Dashboard hat noch keine Widgets.",
   "unknownWidget": "Widget-Typ \"{{type}}\" nicht gefunden",
   "widgetCatalog": "Widget catalog",
@@ -32,7 +42,6 @@
     "searchPlaceholder": "Search widgets...",
     "all": "All",
     "performance": "Performance",
-    "reports": "Reports",
     "chart": "Charts",
     "risk": "Risk",
     "info": "Info",
@@ -117,7 +126,12 @@
       "noHoldings": "Keine Positionen in diesem Zeitraum",
       "loadError": "Fehler beim Laden der Positionen",
       "showMore_one": "+ {{count}} weitere",
-      "showMore_other": "+ {{count}} weitere"
+      "showMore_other": "+ {{count}} weitere",
+      "headers": {
+        "weight": "Gewichtung",
+        "marketValue": "Wert",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "Keine Daten für diesen Zeitraum",

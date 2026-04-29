@@ -1381,15 +1381,14 @@ export function getPortfolioCalc(
 
   // Scoped deposit account IDs (for cash balance)
   const scopedDepositAccIds = scope ? scope.depositAccIds : data.depositAccIds;
-  const scopedActiveDepositAccIds = new Set(
-    [...scopedDepositAccIds].filter((id) => !data.retiredAccIds.has(id)),
-  );
 
-  // Aggregate
+  // Aggregate. MVB/MVE include retired securities and retired deposit accounts
+  // that still hold shares or have a non-zero balance — they're still the user's
+  // property and must count toward NAV. Statement-of-assets uses the same rule,
+  // so Dashboard / Investments / Allocation / Analytics-Calculation all agree,
+  // and MVB + Σ components = MVE holds arithmetically (BUG-33 / BUG-34).
   let totalMVB = new Decimal(0);
   let totalMVE = new Decimal(0);
-  let displayMVB = new Decimal(0); // Only active (non-retired) securities — for initialValue display
-  let displayMVE = new Decimal(0); // Only active (non-retired) securities — for finalValue display
   let totalUnrealized = new Decimal(0);
   let totalRealized = new Decimal(0);
   let totalFxGains = new Decimal(0);
@@ -1407,10 +1406,6 @@ export function getPortfolioCalc(
     const sw = scope?.securityWeights?.get(sr.securityId) ?? new Decimal(1);
     totalMVB = totalMVB.plus(sr.mvb.times(sw));
     totalMVE = totalMVE.plus(sr.mve.times(sw));
-    if (!data.retiredSecIds.has(sr.securityId)) {
-      displayMVB = displayMVB.plus(sr.mvb.times(sw));
-      displayMVE = displayMVE.plus(sr.mve.times(sw));
-    }
     totalUnrealized = totalUnrealized.plus(sr.unrealizedGain.times(sw));
     totalRealized = totalRealized.plus(sr.realizedGain.times(sw));
     totalFxGains = totalFxGains.plus(sr.foreignCurrencyGains.times(sw));
@@ -1578,24 +1573,14 @@ export function getPortfolioCalc(
       const balEnd = fetchDepositCashBalance(sqlite, new Set([accId]), period.end).times(aw);
       totalMVB = totalMVB.plus(bal);
       totalMVE = totalMVE.plus(balEnd);
-      if (!data.retiredAccIds.has(accId)) {
-        displayMVB = displayMVB.plus(bal);
-        displayMVE = displayMVE.plus(balEnd);
-      }
     }
   } else {
     const cashAtStart = scopedDepositAccIds.size > 0
       ? fetchDepositCashBalance(sqlite, scopedDepositAccIds, period.start) : new Decimal(0);
     const cashAtEnd = scopedDepositAccIds.size > 0
       ? fetchDepositCashBalance(sqlite, scopedDepositAccIds, period.end) : new Decimal(0);
-    const displayCashAtStart = scopedActiveDepositAccIds.size > 0
-      ? fetchDepositCashBalance(sqlite, scopedActiveDepositAccIds, period.start) : new Decimal(0);
-    const displayCashAtEnd = scopedActiveDepositAccIds.size > 0
-      ? fetchDepositCashBalance(sqlite, scopedActiveDepositAccIds, period.end) : new Decimal(0);
     totalMVB = totalMVB.plus(cashAtStart);
     totalMVE = totalMVE.plus(cashAtEnd);
-    displayMVB = displayMVB.plus(displayCashAtStart);
-    displayMVE = displayMVE.plus(displayCashAtEnd);
   }
 
   // Cash FX gains — compute for each foreign deposit account in scope
@@ -1792,7 +1777,7 @@ export function getPortfolioCalc(
 
   return {
     baseCurrency,
-    initialValue: displayMVB.toString(),
+    initialValue: totalMVB.toString(),
     capitalGains: {
       unrealized: totalUnrealized.toString(),
       realized: totalRealized.toString(),
@@ -1831,7 +1816,7 @@ export function getPortfolioCalc(
       total: performanceNeutralTransfers.toString(),
       items: pntItems,
     },
-    finalValue: displayMVE.toString(),
+    finalValue: totalMVE.toString(),
     irr: irrResult?.toString() ?? null,
     irrConverged: irrResult !== null,
     irrError: null,

@@ -13,6 +13,8 @@
     "edit": "Modifica",
     "updatePrices": "Aggiorna Tutti i Prezzi",
     "updating": "Aggiornamento…",
+    "refreshQuote": "Aggiorna Quotazione",
+    "refreshing": "Aggiornamento…",
     "addInstrument": "+ Aggiungi Strumento",
     "delete": "Elimina"
   },
@@ -144,6 +146,9 @@
     "performance": "Performance",
     "priceHistory": "Storico Prezzi",
     "transactions": "Transazioni",
+    "taxonomies": "Tassonomie",
+    "notClassified": "Non ancora classificato.",
+    "classify": "Classifica →",
     "noTransactions": "Nessuna transazione per questo titolo",
     "noPrices": "Nessuno storico prezzi disponibile",
     "configureFeed": "Configura feed prezzi →",

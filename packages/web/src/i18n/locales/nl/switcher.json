@@ -1,0 +1,10 @@
+{
+  "noPortfolio": "Geen portefeuille",
+  "newPortfolio": "+ Nieuwe portefeuille…",
+  "tryDemo": "🧪 Demo proberen",
+  "allPortfolios": "Alle portefeuilles…",
+  "demoBadge": "Demo",
+  "errors": {
+    "demoFailed": "Kan de demo niet openen: {{msg}}"
+  }
+}

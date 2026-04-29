@@ -63,6 +63,7 @@ export function TableToolbar({
             value={searchValue ?? ''}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={searchPlaceholder ?? t('search', { defaultValue: 'Search…' })}
+            aria-label={searchPlaceholder ?? t('search', { defaultValue: 'Search…' })}
             className="pl-9 pr-8 h-9"
           />
           {searchValue && (

@@ -1,0 +1,40 @@
+{
+  "dialog": {
+    "title": "Portefeuille aanmaken",
+    "description": "Geef je portefeuille een naam en stel de eerste effectenrekening en geldrekening in."
+  },
+  "setupPage": {
+    "title": "{{name}} verder instellen",
+    "description": "Deze portefeuille heeft een effectenrekening en een geldrekening nodig voordat je hem kunt gebruiken."
+  },
+  "fields": {
+    "name": "Portefeuillenaam",
+    "namePlaceholder": "Mijn portefeuille",
+    "baseCurrency": "Basisvaluta",
+    "securitiesAccountName": "Naam effectenrekening",
+    "securitiesAccountPlaceholder": "Hoofdeffectenrekening",
+    "primaryDepositName": "Naam geldrekening",
+    "primaryDepositPlaceholder": "Geld",
+    "extraDepositName": "Naam extra geldrekening",
+    "extraDepositCurrency": "Valuta"
+  },
+  "advanced": {
+    "toggle": "Geavanceerd",
+    "description": "Voeg extra geldrekeningen toe (voor portefeuilles met meerdere valuta's). Je kunt ze ook later toevoegen in het onderdeel Rekeningen.",
+    "addDeposit": "Rekening toevoegen",
+    "removeDeposit": "Verwijderen"
+  },
+  "submit": {
+    "create": "Portefeuille aanmaken",
+    "finishSetup": "Instelling voltooien",
+    "submitting": "Opslaan…"
+  },
+  "errors": {
+    "duplicateName": "Elke rekening moet een unieke naam hebben.",
+    "alreadySetup": "Deze portefeuille is al ingesteld. Doorverwijzen…",
+    "createFailed": "Kon portefeuille niet aanmaken: {{msg}}",
+    "setupFailed": "Kon instelling niet voltooien: {{msg}}",
+    "fillRequired": "Vul alle verplichte velden in om door te gaan.",
+    "required": "Verplicht"
+  }
+}

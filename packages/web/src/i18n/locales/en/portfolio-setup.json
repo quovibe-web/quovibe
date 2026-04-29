@@ -1,0 +1,40 @@
+{
+  "dialog": {
+    "title": "Create portfolio",
+    "description": "Give your portfolio a name and set up its first securities account and cash account."
+  },
+  "setupPage": {
+    "title": "Finish setting up {{name}}",
+    "description": "This portfolio needs a securities account and a cash account before you can use it."
+  },
+  "fields": {
+    "name": "Portfolio name",
+    "namePlaceholder": "My Portfolio",
+    "baseCurrency": "Base currency",
+    "securitiesAccountName": "Securities account name",
+    "securitiesAccountPlaceholder": "Main Securities",
+    "primaryDepositName": "Deposit account name",
+    "primaryDepositPlaceholder": "Cash",
+    "extraDepositName": "Extra deposit name",
+    "extraDepositCurrency": "Currency"
+  },
+  "advanced": {
+    "toggle": "Advanced",
+    "description": "Add extra cash accounts (for multi-currency portfolios). You can also add these later in the Accounts section.",
+    "addDeposit": "Add deposit",
+    "removeDeposit": "Remove"
+  },
+  "submit": {
+    "create": "Create portfolio",
+    "finishSetup": "Finish setup",
+    "submitting": "Saving…"
+  },
+  "errors": {
+    "duplicateName": "Each account must have a unique name.",
+    "alreadySetup": "This portfolio is already set up. Redirecting…",
+    "createFailed": "Could not create portfolio: {{msg}}",
+    "setupFailed": "Could not finish setup: {{msg}}",
+    "fillRequired": "Please fill all required fields before continuing.",
+    "required": "Required"
+  }
+}

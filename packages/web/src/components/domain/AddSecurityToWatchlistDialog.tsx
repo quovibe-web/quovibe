@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { apiFetch } from '@/api/fetch';
+import { useScopedApi } from '@/api/use-scoped-api';
 import { useAddWatchlistSecurity } from '@/api/use-watchlists';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -32,10 +32,11 @@ export function AddSecurityToWatchlistDialog({ open, onOpenChange, watchlistId, 
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const addMutation = useAddWatchlistSecurity();
+  const api = useScopedApi();
 
   const { data } = useQuery({
-    queryKey: ['securities', 'list'],
-    queryFn: () => apiFetch<{ data: Security[] }>('/api/securities'),
+    queryKey: ['portfolios', api.portfolioId, 'securities', 'list'],
+    queryFn: () => api.fetch<{ data: Security[] }>('/api/securities'),
     enabled: open,
   });
   const allSecurities = data?.data ?? [];
@@ -83,6 +84,9 @@ export function AddSecurityToWatchlistDialog({ open, onOpenChange, watchlistId, 
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{t('addDialog.title')}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {t('addDialog.description')}
+          </DialogDescription>
         </DialogHeader>
 
         <Input

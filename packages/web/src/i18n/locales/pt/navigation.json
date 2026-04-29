@@ -14,7 +14,8 @@
     "analytics": "Análises",
     "assetAllocation": "Taxonomias",
     "dataSeries": "Séries de dados",
-    "settings": "Definições",
+    "settings": "Definições da carteira",
+    "preferences": "Preferências",
     "watchlists": "Listas de acompanhamento"
   },
   "period": "Período",
@@ -33,8 +34,7 @@
   "theme": {
     "light": "Tema claro",
     "system": "Tema do sistema",
-    "dark": "Tema escuro",
-    "toggle": "Mudar tema"
+    "dark": "Tema escuro"
   },
   "more": "Mais",
   "morePeriods": "Mais períodos",

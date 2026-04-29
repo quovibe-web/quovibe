@@ -27,7 +27,8 @@
     "changeLogo": "Change logo",
     "retire": "Retire account",
     "reactivateAccount": "Reactivate account",
-    "fetchLogo": "Fetch logo"
+    "fetchLogo": "Fetch logo",
+    "changeReferenceAccount": "Change reference deposit"
   },
   "menu": {
     "stockSplit": "Stock Split…",
@@ -76,12 +77,17 @@
     "newDepositAccount": "New deposit account",
     "depositAccountName": "Deposit Account Name",
     "depositNamePlaceholder": "e.g. My Cash Account",
-    "depositCurrency": "Currency"
+    "depositCurrency": "Currency",
+    "changeReferenceAccountTitle": "Change reference deposit account",
+    "changeReferenceAccountDescription": "Pick the cash account that will be this securities account's default counter-entry. Only {{currency}} accounts are listed.",
+    "newDepositCurrencyNote": "The new deposit account will be created in {{currency}}."
   },
   "toasts": {
     "depositCreated": "Deposit account created",
     "securitiesCreated": "Securities account created",
-    "errorCreating": "Error creating account"
+    "errorCreating": "Error creating account",
+    "duplicateName": "An account with this name already exists in this portfolio.",
+    "referenceUpdated": "Reference account updated"
   },
   "clickToChangeLogo": "Click to change logo",
   "hub": {

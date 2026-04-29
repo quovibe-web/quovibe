@@ -14,7 +14,8 @@
     "analytics": "Analyses",
     "assetAllocation": "Taxonomieën",
     "dataSeries": "Gegevensreeksen",
-    "settings": "Instellingen",
+    "settings": "Portefeuille-instellingen",
+    "preferences": "Voorkeuren",
     "watchlists": "Volglijsten"
   },
   "period": "Periode",
@@ -33,8 +34,7 @@
   "theme": {
     "light": "Licht thema",
     "system": "Systeemthema",
-    "dark": "Donker thema",
-    "toggle": "Thema wisselen"
+    "dark": "Donker thema"
   },
   "more": "Meer",
   "morePeriods": "Meer perioden",

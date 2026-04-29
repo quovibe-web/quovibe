@@ -1,8 +1,13 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { PortfolioLayout } from '@/layouts/PortfolioLayout';
+import { UserSettingsLayout } from '@/layouts/UserSettingsLayout';
+import { ErrorFallback } from '@/components/shared/ErrorFallback';
+import { RootRedirect } from '@/components/shared/RootRedirect';
+import { appendSearch } from '@/lib/router-helpers';
+
 const AccountsHub = lazy(() => import('./pages/AccountsHub'));
 const Watchlists = lazy(() => import('./pages/Watchlists'));
-import { Shell } from '@/components/layout/Shell';
 import Dashboard from '@/pages/Dashboard';
 import Investments from '@/pages/Investments';
 import SecurityDetail from '@/pages/SecurityDetail';
@@ -13,37 +18,63 @@ import Calculation from '@/pages/Calculation';
 import PerformanceChart from '@/pages/PerformanceChart';
 import AssetAllocation from '@/pages/AssetAllocation';
 import Payments from '@/pages/Payments';
-import Settings from '@/pages/Settings';
+import UserSettings from '@/pages/UserSettings';
+import PortfolioSettings from '@/pages/PortfolioSettings';
 import TaxonomySeries from '@/pages/TaxonomySeries';
-import ImportPage from '@/pages/ImportPage';
 import CsvImportPage from '@/pages/CsvImportPage';
 import Analytics from '@/pages/Analytics';
-import { ErrorFallback } from '@/components/shared/ErrorFallback';
+import Welcome from '@/pages/Welcome';
+import ImportHub from '@/pages/ImportHub';
+import PortfolioSetupPage from '@/pages/PortfolioSetupPage';
+
+/**
+ * URL-alias redirect that preserves `location.search`. Use this instead of
+ * plain Navigate for every alias (an in-app URL that rewrites to another
+ * in-app URL). Error redirects (invalid state → /welcome) keep plain Navigate.
+ * See `.claude/rules/frontend.md` → "Routing / Redirects".
+ */
+function RedirectWithSearch({ to }: { to: string }) {
+  const { search } = useLocation();
+  return <Navigate to={appendSearch(to, search)} replace />;
+}
 
 function RedirectSecurityDetail() {
-  const { id } = useParams();
-  return <Navigate to={`/investments/${id}`} replace />;
+  const { id, portfolioId } = useParams();
+  const { search } = useLocation();
+  return <Navigate to={`/p/${portfolioId}/investments/${id}${search}`} replace />;
 }
 
 function RedirectPerfSecurities() {
+  const { portfolioId } = useParams();
   const [searchParams] = useSearchParams();
   const target = new URLSearchParams(searchParams);
   target.set('view', 'performance');
-  return <Navigate to={`/investments?${target.toString()}`} replace />;
+  return <Navigate to={`/p/${portfolioId}/investments?${target.toString()}`} replace />;
 }
 
 export const router = createBrowserRouter([
+  { path: '/', element: <RootRedirect />, errorElement: <ErrorFallback /> },
+  { path: '/welcome', element: <Welcome />, errorElement: <ErrorFallback /> },
+  { path: '/import', element: <ImportHub />, errorElement: <ErrorFallback /> },
+  // Setup redirect target for legacy N=0 portfolios. Sibling of the
+  // PortfolioLayout-wrapped /p/:portfolioId branch — NOT a child — because
+  // PortfolioLayout itself redirects on N=0, so /setup must be reachable
+  // without going through that layout (otherwise infinite loop).
+  { path: '/p/:portfolioId/setup', element: <PortfolioSetupPage />, errorElement: <ErrorFallback /> },
   {
-    path: '/import',
-    element: <ImportPage />,  // standalone, no sidebar/shell
+    path: '/settings',
+    element: <UserSettingsLayout />,
     errorElement: <ErrorFallback />,
+    children: [{ index: true, element: <UserSettings /> }],
   },
   {
-    path: '/',
-    element: <Shell />,
+    path: '/p/:portfolioId',
+    element: <PortfolioLayout />,
     errorElement: <ErrorFallback />,
     children: [
-      { index: true, element: <Dashboard /> },
+      { index: true, element: <RedirectWithSearch to="dashboard" /> },
+      { path: 'dashboard', element: <Dashboard /> },                     // redirects to :dashboardId → Task 5b.3
+      { path: 'dashboard/:dashboardId', element: <Dashboard /> },
       { path: 'watchlists', element: <Suspense fallback={<div />}><Watchlists /></Suspense> },
       { path: 'investments', element: <Investments /> },
       { path: 'investments/:id', element: <SecurityDetail /> },
@@ -56,28 +87,30 @@ export const router = createBrowserRouter([
         path: 'analytics',
         element: <Analytics />,
         children: [
-          { index: true, element: <Navigate to="/analytics/calculation" replace /> },
+          { index: true, element: <RedirectWithSearch to="calculation" /> },
           { path: 'calculation', element: <Calculation /> },
           { path: 'chart', element: <PerformanceChart /> },
           { path: 'income', element: <Payments /> },
         ],
       },
-      { path: 'performance', element: <Navigate to="/analytics/calculation" replace /> },
-      { path: 'performance/calculation', element: <Navigate to="/analytics/calculation" replace /> },
-      { path: 'performance/chart', element: <Navigate to="/analytics/chart" replace /> },
-      { path: 'performance/taxonomy-series', element: <Navigate to="/taxonomies/data-series" replace /> },
-      { path: 'analytics/data-series', element: <Navigate to="/taxonomies/data-series" replace /> },
-      { path: 'reports/payments', element: <Navigate to="/analytics/income" replace /> },
-      { path: 'reports/statement', element: <Navigate to="/investments" replace /> },
-      { path: 'reports/holdings', element: <Navigate to="/investments" replace /> },
       { path: 'allocation', element: <AssetAllocation /> },
       { path: 'taxonomies/data-series', element: <TaxonomySeries /> },
-      { path: 'reports/asset-allocation', element: <Navigate to="/allocation" replace /> },
-      { path: 'reports/dividends', element: <Navigate to="/analytics/income" replace /> },
-      { path: 'securities', element: <Navigate to="/investments" replace /> },
       { path: 'securities/:id', element: <RedirectSecurityDetail /> },
       { path: 'import/csv', element: <CsvImportPage /> },
-      { path: 'settings', element: <Settings /> },
+      { path: 'settings/data', element: <PortfolioSettings /> },
+      // Legacy aliases retained under portfolio scope
+      { path: 'performance', element: <RedirectWithSearch to="../analytics/calculation" /> },
+      { path: 'performance/calculation', element: <RedirectWithSearch to="../analytics/calculation" /> },
+      { path: 'performance/chart', element: <RedirectWithSearch to="../analytics/chart" /> },
+      { path: 'performance/taxonomy-series', element: <RedirectWithSearch to="../taxonomies/data-series" /> },
+      { path: 'reports/payments', element: <RedirectWithSearch to="../analytics/income" /> },
+      { path: 'reports/statement', element: <RedirectWithSearch to="../investments" /> },
+      { path: 'reports/holdings', element: <RedirectWithSearch to="../investments" /> },
+      { path: 'reports/asset-allocation', element: <RedirectWithSearch to="../allocation" /> },
+      { path: 'reports/dividends', element: <RedirectWithSearch to="../analytics/income" /> },
+      { path: 'securities', element: <RedirectWithSearch to="../investments" /> },
+      { path: 'analytics/data-series', element: <RedirectWithSearch to="../taxonomies/data-series" /> },
+      { path: 'settings', element: <RedirectWithSearch to="data" /> },      // legacy: /settings used to be portfolio-level; now data
     ],
   },
 ]);

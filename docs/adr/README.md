@@ -59,3 +59,5 @@ Each file follows the naming convention `ADR-NNN-slug.md`:
 | 012 | [ADR-012-sidecar-settings-file.md](./ADR-012-sidecar-settings-file.md) | Sidecar settings file for quovibe-only state | accepted | 2026-03-19 |
 | 013 | [ADR-013-auto-logo-resolution.md](./ADR-013-auto-logo-resolution.md) | Stateless logo resolver endpoint for automatic logo fetching | accepted | 2026-04-08 |
 | 014 | [ADR-014-multi-currency.md](./ADR-014-multi-currency.md) | Introduction of custom `vf_exchange_rate` table | accepted | 2026-04-13 |
+| 015 | [ADR-015-db-bootstrap-architecture.md](./ADR-015-db-bootstrap-architecture.md) | DB Bootstrap & Portfolio Lifecycle — multi-portfolio, URL-scoped routing, connection pool, demo lifecycle, no daemons | accepted | 2026-04-15 |
+| 016 | [ADR-016-portfolio-scoped-state-locality.md](./ADR-016-portfolio-scoped-state-locality.md) | Portfolio-scoped state locality — no module-scope caches; typed `PortfolioCache<T>`; ESLint rule + regression harness | accepted | 2026-04-16 |

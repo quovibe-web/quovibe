@@ -16,9 +16,9 @@ build/
 .env.local
 .env.*.local
 
-# Database — all runtime DBs and WAL artifacts, except schema.db (schema-only bootstrap template)
-data/
-!data/schema.db
+# Database — all runtime DBs and WAL artifacts, except demo.db (ADR-015 §3.17 bootstrap artifact)
+data/*
+!data/demo.db
 
 # Sidecar settings (generated at runtime, not versioned)
 quovibe.settings.json
@@ -83,6 +83,7 @@ docs/pp-verified/
 
 # Development session log — internal only
 docs/CHANGELOG-SESSIONS.md
+.cache-diff.txt
 
 # Engine governance rules — internal Claude Code instructions, never published
 # (references pp-reference docs which are also gitignored)
@@ -97,10 +98,21 @@ docs/quovibe-sessions-v2.md
 .claude/skills/
 skills-lock.json
 .playwright-mcp/
+.playwright-mcp/sidecar-snapshots/
+.playwright-mcp/test-backups/
+.playwright-mcp/snapshots/
+.playwright-mcp/network/
 docs/superpowers/
 
-# E2E tests (Playwright — excluded from public repo)
-packages/web/e2e/
+# E2E tests (Playwright — excluded from public repo).
+# Keep the specs/ directory itself tracked (via .gitkeep) so playwright.config.ts
+# can resolve `testDir: './e2e/specs'` without the folder existing locally.
+!packages/web/e2e/
+!packages/web/e2e/specs/
+packages/web/e2e/*
+!packages/web/e2e/specs/
+packages/web/e2e/specs/*
+!packages/web/e2e/specs/.gitkeep
 packages/e2e/
 
 # Playwright
@@ -125,3 +137,7 @@ trans_sample/
 !docs/screenshots/quowatch.png
 *.mp4
 *.zip
+
+# Local scratch artifacts (Portfolio Performance export + stray Playwright snapshots)
+/PP.xml
+/p2-*.yml

@@ -4,7 +4,7 @@ import type { VisibilityState } from '@tanstack/react-table';
 import type { TableLayoutEntry } from '@quovibe/shared';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Briefcase, X } from 'lucide-react';
+import { Briefcase, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/shared/DataTable';
 import { TableToolbar } from '@/components/shared/TableToolbar';
@@ -33,7 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { useSecurities, useFetchAllPrices, useDeleteSecurity, SecurityHasTransactionsError } from '@/api/use-securities';
+import { useSecurities, useFetchAllPrices, useDeleteSecurity } from '@/api/use-securities';
 import { useAccountDetail, useAccountHoldings } from '@/api/use-accounts';
 import { useStatementOfAssets, useHoldings } from '@/api/use-reports';
 import { useReportingPeriod, usePerformanceSecurities } from '@/api/use-performance';
@@ -54,8 +54,37 @@ import {
 import { formatPercentage } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { StatementSecurityEntry, SecurityPerfResponse, HoldingsItem } from '@/api/types';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+
+interface FetchStatusProps {
+  totalFetched: number;
+  totalLabel: string;
+  errorsLabel: string;
+  errors: { key: string; label: string; error: string }[];
+}
+
+function FetchStatus({ totalFetched, totalLabel, errorsLabel, errors }: FetchStatusProps) {
+  return (
+    <div className="text-sm text-muted-foreground">
+      {totalFetched} {totalLabel}
+      {errors.length > 0 && (
+        <>
+          <span className="text-destructive ml-2">({errors.length} {errorsLabel})</span>
+          <ul className="mt-1 space-y-0.5">
+            {errors.map(e => (
+              <li key={e.key} className="text-destructive">
+                <span className="font-medium">{e.label}</span>: {e.error}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function Investments() {
+  useDocumentTitle('Investments');
   const { t } = useTranslation('investments');
   const { t: tCommon } = useTranslation('common');
   const { t: tSecurities } = useTranslation('securities');
@@ -241,16 +270,18 @@ export default function Investments() {
     return securities.filter(s => heldIds.has(s.id));
   }, [securities, accountFilterId, filterHoldings]);
 
+  const trimmedSearchQuery = searchQuery.trim();
+
   // Client-side search filter (name, ISIN, ticker)
   const filteredSecurities = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = trimmedSearchQuery.toLowerCase();
     if (!q) return accountFiltered;
     return accountFiltered.filter(s =>
       s.name.toLowerCase().includes(q) ||
       (s.isin && s.isin.toLowerCase().includes(q)) ||
       (s.ticker && s.ticker.toLowerCase().includes(q))
     );
-  }, [accountFiltered, searchQuery]);
+  }, [accountFiltered, trimmedSearchQuery]);
 
   // Derived data
   const statementMap = useMemo(() => {
@@ -348,14 +379,9 @@ export default function Investments() {
         toast.success(tCommon('toasts.securityDeleted'));
         setDeleteTarget(null);
       },
-      onError: (err) => {
-        if (err instanceof SecurityHasTransactionsError) {
-          toast.error(tSecurities('errors.hasTransactions', { count: err.count }));
-        } else {
-          toast.error((err as Error).message ?? tCommon('toasts.errorDeleting'));
-        }
-        setDeleteTarget(null);
-      },
+      // Error toast is handled by the global MutationCache handler
+      // (query-client.ts → errors:server.*). We only clear the dialog state.
+      onError: () => { setDeleteTarget(null); },
     });
   }
 
@@ -363,13 +389,17 @@ export default function Investments() {
     fetchAll.mutate();
   };
 
+  // Empty-portfolio state: hide controls and summary; only EmptyState owns the page (BUG-44).
+  // Scope: only when not filtering to an account and the underlying securities list is truly empty.
+  const isEmptyPortfolio = !accountFilterId && !secLoading && securities.length === 0;
+
   return (
     <div className="qv-page space-y-6">
       {/* Page Header */}
       <PageHeader
         title={t('title')}
         subtitle={t('subtitle')}
-        actions={<>
+        actions={isEmptyPortfolio ? undefined : <>
           {/* Chart mode toggle */}
           <SegmentedControl
             segments={chartModes}
@@ -384,29 +414,19 @@ export default function Investments() {
         </>}
       />
 
-      {/* Fetch prices status */}
-      {fetchAll.isSuccess && fetchAll.data && (
-        <div className="text-sm text-muted-foreground">
-          {fetchAll.data.totalFetched} {tSecurities('updateResults.pricesUpdated')}
-          {fetchAll.data.totalErrors > 0 && (
-            <>
-              <span className="text-destructive ml-2">({fetchAll.data.totalErrors} {tSecurities('updateResults.errors')})</span>
-              <ul className="mt-1 space-y-0.5">
-                {fetchAll.data.results
-                  .filter(r => r.error)
-                  .map(r => (
-                    <li key={r.securityId} className="text-destructive">
-                      <span className="font-medium">{r.name}</span>: {r.error}
-                    </li>
-                  ))}
-              </ul>
-            </>
-          )}
-        </div>
+      {!isEmptyPortfolio && fetchAll.isSuccess && fetchAll.data && (
+        <FetchStatus
+          totalFetched={fetchAll.data.totalFetched}
+          totalLabel={tSecurities('updateResults.pricesUpdated')}
+          errorsLabel={tSecurities('updateResults.errors')}
+          errors={fetchAll.data.results
+            .filter(r => r.error)
+            .map(r => ({ key: r.securityId, label: r.name, error: r.error! }))}
+        />
       )}
 
       {/* Summary strip — global or per-account */}
-      {((!accountFilterId && !summaryLoading && statement) || (accountFilterId && filterHoldings)) && (
+      {!isEmptyPortfolio && ((!accountFilterId && !summaryLoading && statement) || (accountFilterId && filterHoldings)) && (
         <SummaryStrip
           columns={4}
           items={[
@@ -422,10 +442,12 @@ export default function Investments() {
             },
             {
               label: t('summary.holdings'),
+              // Card describes the portfolio (or the filtered account) — never the search query (BUG-24).
+              // Excludes zero-share / closed positions to align with the pie-chart legend (BUG-25).
               value: <span className="text-2xl font-semibold tabular-nums">
                 {accountFilterId
-                  ? filterHoldings!.holdings.length
-                  : filteredSecurities.filter(s => !s.isRetired).length}
+                  ? filterHoldings!.holdings.filter(h => parseFloat(h.shares) > 0).length
+                  : accountFiltered.filter(s => !s.isRetired && parseFloat(s.shares ?? '0') > 0).length}
               </span>,
             },
             {
@@ -453,7 +475,7 @@ export default function Investments() {
                 return (
                   <>
                     <span className="text-lg font-semibold truncate block">
-                      {isPrivate ? '••••••' : top.name}
+                      {top.name}
                     </span>
                     <span className="text-sm text-muted-foreground tabular-nums">
                       {isPrivate ? '••••' : formatPercentage(parseFloat(top.percentage) / 100)}
@@ -467,7 +489,7 @@ export default function Investments() {
       )}
 
       {/* Allocation chart — global or per-account */}
-      {chartMode !== 'off' && chartItems.length > 0 && (!accountFilterId ? !summaryLoading : !!filterHoldings) && (
+      {!isEmptyPortfolio && chartMode !== 'off' && chartItems.length > 0 && (!accountFilterId ? !summaryLoading : !!filterHoldings) && (
         <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '180ms' }}>
           <CardContent className="pt-6">
             <TaxonomyChart
@@ -494,25 +516,41 @@ export default function Investments() {
       )}
 
       {/* Toolbar: search + show retired */}
-      <TableToolbar
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder={t('search.placeholder')}
-      >
-        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-          <Checkbox checked={showRetired} onCheckedChange={(v) => setShowRetired(v === true)} />
-          {t('showRetired')}
-        </label>
-      </TableToolbar>
+      {!isEmptyPortfolio && (
+        <TableToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={t('search.placeholder')}
+        >
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+            <Checkbox checked={showRetired} onCheckedChange={(v) => setShowRetired(v === true)} />
+            {t('showRetired')}
+          </label>
+        </TableToolbar>
+      )}
 
       {/* Securities table or empty state */}
       {filteredSecurities.length === 0 && !tableLoading ? (
-        <EmptyState
-          icon={Briefcase}
-          title={t('empty.title')}
-          description={t('empty.description')}
-          action={<Button onClick={() => setWizardOpen(true)}>{tSecurities('actions.addInstrument')}</Button>}
-        />
+        isEmptyPortfolio ? (
+          <EmptyState
+            icon={Briefcase}
+            title={t('empty.title')}
+            description={t('empty.description')}
+            action={<Button onClick={() => setWizardOpen(true)}>{tSecurities('actions.addInstrument')}</Button>}
+          />
+        ) : trimmedSearchQuery ? (
+          <EmptyState
+            icon={Search}
+            title={t('search.noResults', { query: trimmedSearchQuery })}
+            description={t('search.noResultsHint')}
+          />
+        ) : (
+          <EmptyState
+            icon={Briefcase}
+            title={t('empty.noMatches')}
+            description={t('empty.noMatchesHint')}
+          />
+        )
       ) : (
         <FadeIn>
           <div className={cn(isFetching && !tableLoading && 'opacity-60 transition-opacity duration-200')}>

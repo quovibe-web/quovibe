@@ -9,17 +9,54 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useExecuteCsvTrades, useCreateCsvConfig } from '@/api/use-csv-import';
+import { usePortfolio } from '@/context/PortfolioContext';
 import type { WizardState } from '@/pages/CsvImportPage';
-import type { TradeExecuteResult } from '@quovibe/shared';
+import type { TradeExecuteResult, CsvErrorCode } from '@quovibe/shared';
+
+// Maps RowError codes (emitted by packages/api/src/services/csv/*) to the
+// csv-import:errors.* i18n keys. The server's `message` field is an historical
+// i18n path string (e.g. "csvImport.errors.missingSecurity") that doesn't
+// resolve against any namespace on the client — we translate by `code` instead
+// (BUG-99). Keep the mapping aligned with `csvErrorCodes` in
+// packages/shared/src/csv/csv-types.ts.
+const ROW_ERROR_I18N: Partial<Record<CsvErrorCode, string>> = {
+  INVALID_DATE: 'errors.invalidDate',
+  INVALID_NUMBER: 'errors.invalidNumber',
+  UNKNOWN_TYPE: 'errors.unknownType',
+  INVALID_PRICE: 'errors.invalidPrice',
+  MISSING_SECURITY: 'errors.missingSecurity',
+  MISSING_SHARES: 'errors.missingShares',
+  MISSING_CROSS_ACCOUNT: 'errors.missingCrossAccount',
+  FX_RATE_REQUIRED: 'errors.fxRateRequired',
+  INVALID_FX_RATE: 'errors.invalidFxRate',
+  FX_VERIFICATION_FAILED: 'errors.fxVerificationFailed',
+  CURRENCY_MISMATCH: 'errors.currencyMismatch',
+  INSUFFICIENT_SHARES: 'errors.insufficientShares',
+};
 
 interface Props {
   state: WizardState;
   onBack: () => void;
 }
 
+// Maps server-side CsvImportError codes (thrown by apiFetch as Error.message)
+// to i18n keys. Keep the code-list aligned with .claude/rules/csv-import.md.
+function mapExecuteError(message: string): string {
+  switch (message) {
+    case 'INVALID_SECURITIES_ACCOUNT': return 'errors.invalidSecuritiesAccount';
+    case 'NO_REFERENCE_ACCOUNT': return 'errors.noReferenceAccount';
+    case 'TEMP_FILE_EXPIRED': return 'errors.tempExpired';
+    case 'IMPORT_IN_PROGRESS': return 'errors.importInProgress';
+    case 'FX_RATE_REQUIRED': return 'errors.fxRateRequired';
+    case 'INSUFFICIENT_SHARES': return 'errors.insufficientShares';
+    default: return 'errors.importFailed';
+  }
+}
+
 export function CsvPreviewStep({ state, onBack }: Props) {
   const { t } = useTranslation('csv-import');
   const navigate = useNavigate();
+  const portfolio = usePortfolio();
   const executeMutation = useExecuteCsvTrades();
   const createConfig = useCreateCsvConfig();
 
@@ -29,7 +66,25 @@ export function CsvPreviewStep({ state, onBack }: Props) {
   const [configName, setConfigName] = useState('');
   const [result, setResult] = useState<TradeExecuteResult | null>(null);
 
-  if (!preview) return null;
+  // Defence-in-depth: if we somehow reach Step 4 without a preview (e.g. state
+  // corruption or future routing change), show a readable fallback instead of
+  // the silent blank that masked BUG-52. Under the normal flow,
+  // CsvSecurityMatchStep now disables Next when the preview mutation fails,
+  // so this branch should be unreachable via the UI.
+  if (!preview) {
+    return (
+      <div className="space-y-6">
+        <Alert variant="destructive" role="alert">
+          <AlertDescription className="flex items-start justify-between gap-4">
+            <span>{t('errors.previewFailed')}</span>
+            <Button size="sm" variant="outline" onClick={onBack}>
+              {t('nav.back')}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   const validRows = preview.rows.filter((r) => !r.error);
   const selectedCount = validRows.filter((r) => !excludedRows.has(r.rowNumber)).length;
@@ -44,15 +99,17 @@ export function CsvPreviewStep({ state, onBack }: Props) {
   };
 
   const handleImport = () => {
+    if (!state.targetSecuritiesAccountId) return; // gated by Next-button on Step 3
     executeMutation.mutate({
       tempFileId: state.parseResult!.tempFileId,
       config: {
+        delimiter: state.delimiter,
         columnMapping: state.columnMapping,
         dateFormat: state.dateFormat,
         decimalSeparator: state.decimalSeparator,
         thousandSeparator: state.thousandSeparator,
       },
-      targetPortfolioId: state.targetPortfolioId,
+      targetSecuritiesAccountId: state.targetSecuritiesAccountId,
       securityMapping: state.securityMapping,
       newSecurities: state.newSecurities,
       excludedRows: Array.from(excludedRows),
@@ -78,12 +135,25 @@ export function CsvPreviewStep({ state, onBack }: Props) {
 
   // Success state
   if (result) {
+    // skippedDuplicates is xact-row count; BUY/SELL emit 2 legs per input
+    // row, so ceil(/2) is a close-enough input-row-level number for UI.
+    const skippedInputRows = Math.ceil(result.skippedDuplicates / 2);
+    const allDuplicates = result.imported === 0 && result.skippedDuplicates > 0;
     return (
       <div className="space-y-6">
         <Alert>
           <AlertDescription className="space-y-1">
-            <p className="font-medium">{t('result.success')}</p>
-            <p>{t('result.transactions', { count: result.created.transactions })}</p>
+            <p className="font-medium">
+              {allDuplicates ? t('result.allDuplicates', { count: skippedInputRows }) : t('result.success')}
+            </p>
+            {!allDuplicates && (
+              <p>{t('result.transactions', { count: result.created.transactions })}</p>
+            )}
+            {result.skippedDuplicates > 0 && !allDuplicates && (
+              <p className="text-amber-700 dark:text-amber-400">
+                {t('result.skippedDuplicates', { count: skippedInputRows })}
+              </p>
+            )}
             {result.created.securities > 0 && (
               <p>{t('result.securities', { count: result.created.securities })}</p>
             )}
@@ -92,7 +162,7 @@ export function CsvPreviewStep({ state, onBack }: Props) {
             )}
           </AlertDescription>
         </Alert>
-        <Button onClick={() => navigate('/transactions')}>
+        <Button onClick={() => navigate(`/p/${portfolio.id}/transactions`)}>
           {t('nav.viewTransactions', 'View Transactions')}
         </Button>
       </div>
@@ -102,13 +172,21 @@ export function CsvPreviewStep({ state, onBack }: Props) {
   return (
     <div className="space-y-6">
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className={preview.summary.duplicates > 0 ? 'grid grid-cols-4 gap-4' : 'grid grid-cols-3 gap-4'}>
         <Card>
           <CardContent className="pt-4 text-center">
             <div className="text-2xl font-bold">{preview.summary.valid}</div>
             <div className="text-sm text-muted-foreground">{t('preview.valid')}</div>
           </CardContent>
         </Card>
+        {preview.summary.duplicates > 0 && (
+          <Card>
+            <CardContent className="pt-4 text-center">
+              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{preview.summary.duplicates}</div>
+              <div className="text-sm text-muted-foreground">{t('summary.duplicates', { count: preview.summary.duplicates })}</div>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardContent className="pt-4 text-center">
             <div className="text-2xl font-bold text-destructive">{preview.summary.errors}</div>
@@ -134,12 +212,18 @@ export function CsvPreviewStep({ state, onBack }: Props) {
           <CardHeader><CardTitle>{t('preview.errors')}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-1 max-h-40 overflow-y-auto">
-              {preview.errors.map((err, i) => (
-                <div key={i} className="text-sm text-destructive">
-                  Row {err.row}: {err.column ? `[${err.column}] ` : ''}{err.message}
-                  {err.value ? ` (${err.value})` : ''}
-                </div>
-              ))}
+              {preview.errors.map((err, i) => {
+                const i18nKey = ROW_ERROR_I18N[err.code];
+                const translated = i18nKey
+                  ? t(i18nKey, { value: err.value ?? '', field: err.column ?? '' })
+                  : err.code;
+                return (
+                  <div key={i} className="text-sm text-destructive">
+                    {t('preview.rowErrorPrefix', { row: err.row })}
+                    {err.column ? ` [${err.column}] ` : ' '}{translated}
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -210,6 +294,15 @@ export function CsvPreviewStep({ state, onBack }: Props) {
           />
         )}
       </div>
+
+      {/* Execute-mutation error (surfaced inline in addition to the global toast) */}
+      {executeMutation.isError && (
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>
+            {t(mapExecuteError(executeMutation.error?.message ?? ''))}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Navigation */}
       <div className="flex justify-between">

@@ -27,7 +27,8 @@
     "changeLogo": "Alterar logótipo",
     "retire": "Arquivar conta",
     "reactivateAccount": "Reativar conta",
-    "fetchLogo": "Buscar logo"
+    "fetchLogo": "Buscar logo",
+    "changeReferenceAccount": "Alterar conta de referência"
   },
   "menu": {
     "stockSplit": "Desdobramento de ações…",
@@ -76,12 +77,17 @@
     "newDepositAccount": "Nova conta de caixa",
     "depositAccountName": "Nome da conta de caixa",
     "depositNamePlaceholder": "ex. A minha conta à ordem",
-    "depositCurrency": "Moeda"
+    "depositCurrency": "Moeda",
+    "changeReferenceAccountTitle": "Alterar conta de depósito de referência",
+    "changeReferenceAccountDescription": "Escolha a conta à vista padrão desta conta de títulos. Apenas são listadas contas em {{currency}}.",
+    "newDepositCurrencyNote": "A nova conta de depósito será criada em {{currency}}."
   },
   "toasts": {
     "depositCreated": "Conta de caixa criada",
     "securitiesCreated": "Conta de títulos criada",
-    "errorCreating": "Erro ao criar a conta"
+    "errorCreating": "Erro ao criar a conta",
+    "duplicateName": "Já existe uma conta com este nome nesta carteira.",
+    "referenceUpdated": "Conta de referência atualizada"
   },
   "clickToChangeLogo": "Clique para alterar o logótipo",
   "hub": {

@@ -38,6 +38,8 @@
   },
   "form": {
     "dateTime": "Data i godzina",
+    "time": "Godzina",
+    "openCalendar": "Otwórz kalendarz",
     "datePlaceholder": "dd.MM.rrrr",
     "quantity": "Ilość",
     "price": "Cena",
@@ -102,6 +104,10 @@
     "sourceDestMustDiffer": "Źródło i cel muszą się różnić",
     "sharesMustBePositive": "Udziały muszą być większe niż 0",
     "amountMustBePositive": "Kwota musi być większa niż 0",
+    "priceMustBePositive": "Cena musi być większa niż 0",
+    "feesMustBeNonNegative": "Opłaty muszą wynosić 0 lub więcej",
+    "taxesMustBeNonNegative": "Podatki muszą wynosić 0 lub więcej",
+    "fxRateMustBePositive": "Kurs wymiany musi być większy niż 0",
     "nameRequired": "Nazwa jest wymagana",
     "noteRequired": "Notatka jest wymagana.",
     "ratioRequired": "Stosunek podziału jest wymagany (np. 2:1).",
@@ -111,6 +117,9 @@
     "edit": "Edytuj",
     "delete": "Usuń",
     "new": "Nowy"
+  },
+  "a11y": {
+    "rowActions": "Akcje dla {{type}} z dnia {{date}}"
   },
   "editTitles": {
     "buy": "Edytuj kupno",
@@ -133,6 +142,7 @@
   },
   "transactionType": "Typ transakcji",
   "newTransaction": "Nowa transakcja",
+  "newTransactionDescription": "Utwórz zakup, sprzedaż, wpłatę, przelew lub inną transakcję.",
   "subtitle": "Browse and manage all portfolio transactions",
   "noLinkedDeposit": "Ten rachunek papierów wartościowych nie ma powiązanego rachunku gotówkowego.",
   "empty": {

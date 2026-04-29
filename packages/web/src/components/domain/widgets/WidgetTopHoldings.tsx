@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useHoldings } from '@/api/use-reports';
 import { usePerformanceSecurities } from '@/api/use-performance';
 import { useSecurities } from '@/api/use-securities';
+import { usePortfolio } from '@/context/PortfolioContext';
 import { usePrivacy } from '@/context/privacy-context';
 import { useWidgetKpiMeta } from '@/hooks/use-widget-kpi-meta';
 import { useWidgetConfig } from '@/context/widget-config-context';
@@ -75,10 +76,7 @@ function HoldingRow({
               style={{ width: `${Math.min(100, weight)}%` }}
             />
           </div>
-          <span
-            className="text-[10px] tabular-nums text-muted-foreground"
-            style={{ filter: isPrivate ? 'blur(6px) saturate(0)' : 'none', transition: 'filter 0.2s' }}
-          >
+          <span className="text-[10px] tabular-nums text-muted-foreground">
             {isPrivate ? '••%' : `${weight.toFixed(1)}%`}
           </span>
         </div>
@@ -92,13 +90,9 @@ function HoldingRow({
       {/* TTWROR */}
       <div
         className="w-[62px] shrink-0 text-right text-[11px] font-semibold tabular-nums overflow-hidden"
-        style={{
-          color: isPrivate ? undefined : ttwrorColor,
-          filter: isPrivate ? 'blur(6px) saturate(0)' : 'none',
-          transition: 'filter 0.2s',
-        }}
+        style={{ color: isPrivate ? undefined : ttwrorColor }}
       >
-        {ttwrorVal === null ? '—' : formatPercentage(ttwrorVal)}
+        {ttwrorVal === null ? '—' : isPrivate ? '••••' : formatPercentage(ttwrorVal)}
       </div>
     </button>
   );
@@ -107,6 +101,7 @@ function HoldingRow({
 export default function WidgetTopHoldings() {
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
+  const portfolio = usePortfolio();
   const { isPrivate } = usePrivacy();
   const { periodOverride } = useWidgetConfig();
   const { periodStart: urlStart, periodEnd: urlEnd } = useReportingPeriod();
@@ -169,6 +164,14 @@ export default function WidgetTopHoldings() {
   return (
     <FadeIn>
       <div className="flex flex-col px-1">
+        {/* Column headers — mirror HoldingRow column widths */}
+        <div className="flex items-center gap-2 h-5 px-1 -mx-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="w-4 shrink-0" />
+          <span className="w-6 shrink-0" />
+          <span className="flex-1 min-w-0 truncate">{t('widget.topHoldings.headers.weight')}</span>
+          <span className="w-[88px] shrink-0 text-right">{t('widget.topHoldings.headers.marketValue')}</span>
+          <span className="w-[62px] shrink-0 text-right">{t('widget.topHoldings.headers.ttwror')}</span>
+        </div>
         {topHoldings.map((item, index) => (
           <HoldingRow
             key={item.securityId}
@@ -177,14 +180,14 @@ export default function WidgetTopHoldings() {
             logoUrl={logoMap.get(item.securityId)}
             ttwror={perfMap.get(item.securityId)}
             isPrivate={isPrivate}
-            onClick={() => navigate(`/investments/${item.securityId}`)}
+            onClick={() => navigate(`/p/${portfolio.id}/investments/${item.securityId}`)}
           />
         ))}
 
         {remaining > 0 && (
           <button
             type="button"
-            onClick={() => navigate('/investments')}
+            onClick={() => navigate(`/p/${portfolio.id}/investments`)}
             className="mt-1 text-[11px] text-primary hover:underline text-left pl-6"
           >
             {t('widget.topHoldings.showMore', { count: remaining })}

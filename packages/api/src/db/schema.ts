@@ -1,3 +1,12 @@
+// Drizzle ORM view of the schema. Hand-maintained.
+//
+// DDL source of truth is `packages/api/src/db/bootstrap.sql` (ADR-015) — this
+// file mirrors it for the ORM/typing layer only. Parity is enforced at
+// merge-time by `bootstrap-parity.test.ts` (Gate 2): any column added/removed
+// here without the matching change in `bootstrap.sql` (or the
+// `VENDOR_COLUMN_PATCHES` map in `apply-bootstrap.ts` for vendor tables) will
+// fail CI. Never add table-creation or alter-table DDL outside those two
+// locations (governance gate G12 enforces this at the file-content level).
 import {
   sqliteTable, text, integer, primaryKey,
 } from 'drizzle-orm/sqlite-core';
@@ -99,6 +108,12 @@ export const latestPrices = sqliteTable('latest_price', {
     .primaryKey(),
   date: text('tstamp').notNull(),
   value: integer('value').notNull(),
+  // OHLC columns populated by ppxml2db.py from the PP-XML `<latest>` elements.
+  // Nullable — older exports and non-equity tickers (ETFs, indices) commonly
+  // omit them.
+  high: integer('high'),
+  low: integer('low'),
+  volume: integer('volume'),
 });
 
 // ─── TRANSACTIONS (sistema a doppia entrata) ──────
@@ -237,13 +252,43 @@ export const taxonomyAssignmentData = sqliteTable('taxonomy_assignment_data', {
   value: text('value').notNull(),
 });
 
-// ─── CSV IMPORT CONFIG ───────────────────────────
+// ─── QUOVIBE-OWNED TABLES (vf_*) ─────────────────
 
-export const csvImportConfigs = sqliteTable('csv_import_config', {
+export const vfCsvImportConfigs = sqliteTable('vf_csv_import_config', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  type: text('type').notNull(),        // 'TRADES' | 'PRICES'
-  config: text('config').notNull(),    // JSON blob
+  type: text('type').notNull(),
+  config: text('config').notNull(),
   createdAt: text('createdAt').notNull(),
+  updatedAt: text('updatedAt').notNull(),
+});
+
+export const vfExchangeRates = sqliteTable('vf_exchange_rate', {
+  date: text('date').notNull(),
+  fromCurrency: text('from_currency').notNull(),
+  toCurrency: text('to_currency').notNull(),
+  rate: text('rate').notNull(),
+}, (t) => ({ pk: primaryKey({ columns: [t.date, t.fromCurrency, t.toCurrency] }) }));
+
+export const vfPortfolioMeta = sqliteTable('vf_portfolio_meta', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+});
+
+export const vfDashboards = sqliteTable('vf_dashboard', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  position: integer('position').notNull(),
+  widgetsJson: text('widgets_json').notNull(),
+  schemaVersion: integer('schema_version').notNull().default(1),
+  columns: integer('columns').notNull().default(3),
+  createdAt: text('createdAt').notNull(),
+  updatedAt: text('updatedAt').notNull(),
+});
+
+export const vfChartConfigs = sqliteTable('vf_chart_config', {
+  chartId: text('chart_id').primaryKey(),
+  configJson: text('config_json').notNull(),
+  schemaVersion: integer('schema_version').notNull().default(1),
   updatedAt: text('updatedAt').notNull(),
 });

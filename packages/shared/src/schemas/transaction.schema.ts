@@ -1,17 +1,14 @@
 import { z } from 'zod';
 import { TransactionType } from '../enums';
+import {
+  AMOUNT_REQUIRED_TYPES,
+  PRICED_SHARE_TYPES,
+  SECURITY_REQUIRED_TYPES,
+} from '../transaction-gating';
 
-const SHARE_TYPES = new Set<TransactionType>([
-  TransactionType.BUY, TransactionType.SELL,
-  TransactionType.DELIVERY_INBOUND, TransactionType.DELIVERY_OUTBOUND,
+const CROSS_ACCOUNT_DISTINCT_TYPES = new Set<TransactionType>([
+  TransactionType.TRANSFER_BETWEEN_ACCOUNTS,
   TransactionType.SECURITY_TRANSFER,
-]);
-
-const CASH_TYPES = new Set<TransactionType>([
-  TransactionType.DEPOSIT, TransactionType.REMOVAL,
-  TransactionType.DIVIDEND, TransactionType.INTEREST, TransactionType.INTEREST_CHARGE,
-  TransactionType.FEES, TransactionType.FEES_REFUND,
-  TransactionType.TAXES, TransactionType.TAX_REFUND,
 ]);
 
 export const createTransactionSchema = z.object({
@@ -31,18 +28,46 @@ export const createTransactionSchema = z.object({
   feesFx: z.number().min(0).optional(),
   taxesFx: z.number().min(0).optional(),
 }).superRefine((data, ctx) => {
-  if (SHARE_TYPES.has(data.type) && (data.shares == null || data.shares <= 0)) {
+  if (PRICED_SHARE_TYPES.has(data.type) && (data.shares == null || data.shares <= 0)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'shares is required and must be positive for this transaction type',
       path: ['shares'],
     });
   }
-  if (CASH_TYPES.has(data.type) && data.amount === 0) {
+  // BUG-106: PRICED_SHARE_TYPES + DIVIDEND must carry a securityId. Schema-only
+  // gate; service-layer FK constraint would otherwise fire as 500/foreign-key.
+  if (SECURITY_REQUIRED_TYPES.has(data.type) && !data.securityId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'securityId is required for this transaction type',
+      path: ['securityId'],
+    });
+  }
+  // BUG-113: SECURITY_TRANSFER, DELIVERY_INBOUND, DELIVERY_OUTBOUND record share
+  // moves with no cash component (ppxml2db convention) — they are excluded from
+  // AMOUNT_REQUIRED_TYPES and may carry `amount = 0`.
+  if (AMOUNT_REQUIRED_TYPES.has(data.type) && data.amount <= 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'amount must be greater than 0 for this transaction type',
       path: ['amount'],
+    });
+  }
+  // BUG-01: transfer types must specify two distinct accounts. When
+  // crossAccountId is missing the service layer already raises a clearer
+  // "crossAccountId is required" error, so only assert distinctness when both
+  // are present.
+  if (
+    CROSS_ACCOUNT_DISTINCT_TYPES.has(data.type) &&
+    data.accountId &&
+    data.crossAccountId &&
+    data.accountId === data.crossAccountId
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Source and destination accounts must differ',
+      path: ['crossAccountId'],
     });
   }
 });

@@ -8,7 +8,7 @@ import { convertPriceFromDb } from '../services/unit-conversion';
 import { fetchNetSharesPerSecurity } from '../services/performance.service';
 import { fetchSecurityPrices, testFetchPrices } from '../services/prices.service';
 import type { TestFetchConfig } from '../services/prices.service';
-import { getDb, getSqlite } from '../helpers/request';
+import { getDb, getSqlite, isDemoPortfolio } from '../helpers/request';
 import { securitySearchRouter } from './security-search';
 import {
   createSecurity as createSecurityService,
@@ -16,6 +16,7 @@ import {
   updateSecurityTaxonomies,
   updateSecurityFeedConfig,
   deleteSecurity as deleteSecurityService,
+  SecurityServiceError,
 } from '../services/securities.service';
 
 export const securitiesRouter: RouterType = Router();
@@ -257,15 +258,23 @@ const createSecurity: RequestHandler = async (req, res) => {
   const sqlite = getSqlite(req);
   const id = uuidv4();
 
-  createSecurityService(sqlite, {
-    id, name: input.name, isin: input.isin ?? null, ticker: input.ticker ?? null,
-    wkn: input.wkn ?? null, currency: input.currency, note: input.note ?? null,
-    isRetired: input.isRetired ?? false, feedUrl: input.feedUrl ?? null,
-    feed: input.feed ?? null, latestFeedUrl: input.latestFeedUrl ?? null,
-    latestFeed: input.latestFeed ?? null, feedTickerSymbol: input.feedTickerSymbol ?? null,
-    calendar: input.calendar ?? null, onlineId: input.onlineId ?? null,
-    pathToDate: input.pathToDate, pathToClose: input.pathToClose,
-  });
+  try {
+    createSecurityService(sqlite, {
+      id, name: input.name, isin: input.isin ?? null, ticker: input.ticker ?? null,
+      wkn: input.wkn ?? null, currency: input.currency, note: input.note ?? null,
+      isRetired: input.isRetired ?? false, feedUrl: input.feedUrl ?? null,
+      feed: input.feed ?? null, latestFeedUrl: input.latestFeedUrl ?? null,
+      latestFeed: input.latestFeed ?? null, feedTickerSymbol: input.feedTickerSymbol ?? null,
+      calendar: input.calendar ?? null, onlineId: input.onlineId ?? null,
+      pathToDate: input.pathToDate, pathToClose: input.pathToClose,
+    });
+  } catch (err) {
+    if (err instanceof SecurityServiceError && err.code === 'DUPLICATE_ISIN') {
+      res.status(409).json({ error: 'DUPLICATE_ISIN' });
+      return;
+    }
+    throw err;
+  }
 
   const rows = await db.select().from(securities).where(eq(securities.id, id));
   if (rows.length === 0) {
@@ -292,7 +301,15 @@ const updateSecurity: RequestHandler = async (req, res) => {
     return;
   }
 
-  updateSecurityService(sqlite, id, input);
+  try {
+    updateSecurityService(sqlite, id, input);
+  } catch (err) {
+    if (err instanceof SecurityServiceError && err.code === 'DUPLICATE_ISIN') {
+      res.status(409).json({ error: 'DUPLICATE_ISIN' });
+      return;
+    }
+    throw err;
+  }
 
   const updated = await db.select().from(securities).where(eq(securities.id, id));
   if (updated.length === 0) {
@@ -356,6 +373,11 @@ const fetchSecurityPricesHandler: RequestHandler = async (req, res) => {
   const sqlite = getSqlite(req);
   const id = req.params['id'] as string;
 
+  if (isDemoPortfolio(req)) {
+    res.status(403).json({ error: 'DEMO_PORTFOLIO_FETCH_BLOCKED' });
+    return;
+  }
+
   const row = sqlite
     .prepare('SELECT uuid, feed FROM security WHERE uuid = ?')
     .get(id) as { uuid: string; feed: string | null } | undefined;
@@ -366,7 +388,7 @@ const fetchSecurityPricesHandler: RequestHandler = async (req, res) => {
   }
 
   if (!row.feed) {
-    res.status(400).json({ error: 'Security has no feed configured' });
+    res.status(400).json({ error: 'SECURITY_NO_FEED_CONFIGURED' });
     return;
   }
 

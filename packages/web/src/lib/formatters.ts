@@ -1,8 +1,11 @@
-import { it, de, fr, es, nl, pl, pt, enUS } from 'date-fns/locale';
+import { it, de, fr, es, nl, pl, pt, enGB } from 'date-fns/locale';
 import type { Locale } from 'date-fns';
 import i18n from '../i18n';
 
-const DATE_LOCALES: Record<string, Locale> = { it, de, fr, es, nl, pl, pt, en: enUS };
+// `en` maps to en-GB so date-fns `P` ('dd/MM/yyyy') agrees with Intl's en-GB
+// output in formatDate below — otherwise table cells and form inputs would
+// disagree within the same UI (BUG-12).
+const DATE_LOCALES: Record<string, Locale> = { it, de, fr, es, nl, pl, pt, en: enGB };
 
 /** Map i18next language codes to BCP 47 locale tags for Intl APIs. */
 const INTL_LOCALE_MAP: Record<string, string> = {
@@ -17,7 +20,7 @@ export function getIntlLocale(language?: string): string {
 
 export function getDateLocale(language?: string): Locale {
   const lang = language ?? i18n.language;
-  return DATE_LOCALES[lang] ?? DATE_LOCALES[lang.split('-')[0]] ?? enUS;
+  return DATE_LOCALES[lang] ?? DATE_LOCALES[lang.split('-')[0]] ?? enGB;
 }
 
 export interface FormatCurrencyOptions {
@@ -53,6 +56,11 @@ export function formatPercentage(value: number, decimals = 2): string {
   }).format(value);
 }
 
+export function formatNumber(value: number, options: Intl.NumberFormatOptions): string {
+  return new Intl.NumberFormat(i18n.language, options).format(value);
+}
+
+// quovibe:allow-module-state — Intl.DateTimeFormat cache keyed by locale; portfolio-agnostic (ADR-016).
 const dtfCache = new Map<string, Intl.DateTimeFormat>();
 function getCachedDTF(locale: string, withTime: boolean): Intl.DateTimeFormat {
   const key = `${locale}|${withTime}`;

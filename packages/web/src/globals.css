@@ -4,6 +4,7 @@
   /* Typography */
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-display: 'DM Serif Display', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* ──────────────────────────────────────────────
      Brand palette (light mode defaults)
@@ -283,6 +284,10 @@ html.dark {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@utility qv-stagger-fade {
+  animation: qv-stagger-in 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 /* Shimmer for skeletons */

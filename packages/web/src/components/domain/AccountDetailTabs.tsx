@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ListX, TrendingUp } from 'lucide-react';
@@ -96,6 +96,7 @@ export function AccountDetailTabs({ accountId, depositAccountId, isPortfolio }: 
   );
 
   const location = useLocation();
+  const { portfolioId } = useParams<{ portfolioId: string }>();
   const periodSearch = location.search;
 
   const defaultTab = 'cash';
@@ -141,7 +142,7 @@ export function AccountDetailTabs({ accountId, depositAccountId, isPortfolio }: 
     <div className="space-y-4">
       {isPortfolio && (
         <Link
-          to={`/investments${periodSearch ? periodSearch + '&' : '?'}account=${accountId}`}
+          to={`/p/${portfolioId}/investments${periodSearch ? periodSearch + '&' : '?'}account=${accountId}`}
           className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-lg border border-border w-fit transition-colors"
         >
           <TrendingUp className="h-4 w-4" />

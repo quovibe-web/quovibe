@@ -1,0 +1,40 @@
+{
+  "dialog": {
+    "title": "Crea portafoglio",
+    "description": "Dai un nome al tuo portafoglio e configura il primo conto titoli e conto liquidità."
+  },
+  "setupPage": {
+    "title": "Completa la configurazione di {{name}}",
+    "description": "Questo portafoglio richiede un conto titoli e un conto liquidità prima di poter essere utilizzato."
+  },
+  "fields": {
+    "name": "Nome portafoglio",
+    "namePlaceholder": "Il mio portafoglio",
+    "baseCurrency": "Valuta di base",
+    "securitiesAccountName": "Nome conto titoli",
+    "securitiesAccountPlaceholder": "Titoli principale",
+    "primaryDepositName": "Nome conto deposito",
+    "primaryDepositPlaceholder": "Liquidità",
+    "extraDepositName": "Nome deposito aggiuntivo",
+    "extraDepositCurrency": "Valuta"
+  },
+  "advanced": {
+    "toggle": "Avanzate",
+    "description": "Aggiungi conti liquidità extra (per portafogli multi-valuta). Puoi aggiungerli anche in seguito dalla sezione Conti.",
+    "addDeposit": "Aggiungi deposito",
+    "removeDeposit": "Rimuovi"
+  },
+  "submit": {
+    "create": "Crea portafoglio",
+    "finishSetup": "Completa configurazione",
+    "submitting": "Salvataggio…"
+  },
+  "errors": {
+    "duplicateName": "Ogni conto deve avere un nome univoco.",
+    "alreadySetup": "Questo portafoglio è già configurato. Reindirizzamento…",
+    "createFailed": "Impossibile creare il portafoglio: {{msg}}",
+    "setupFailed": "Impossibile completare la configurazione: {{msg}}",
+    "fillRequired": "Compila tutti i campi obbligatori per continuare.",
+    "required": "Obbligatorio"
+  }
+}

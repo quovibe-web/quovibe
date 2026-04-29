@@ -7,16 +7,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/hooks/use-language';
-import { useUpdateSettings } from '@/api/use-portfolio';
+import { useUpdatePreferences } from '@/api/use-preferences';
 
 export function LanguageSwitcher() {
   const { language, setLanguage, availableLanguages } = useLanguage();
-  const { mutate: updateSettings } = useUpdateSettings();
+  const { mutate: updatePreferences } = useUpdatePreferences();
   const current = availableLanguages.find((l) => l.code === language) ?? availableLanguages[0];
 
   function handleLanguageChange(code: string) {
     setLanguage(code as typeof language);
-    updateSettings({ language: code });
+    updatePreferences({ language: code });
   }
 
   return (

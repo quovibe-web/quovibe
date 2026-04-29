@@ -1,0 +1,92 @@
+{
+  "topbar": {
+    "status": "Sesja lokalna",
+    "versionPrefix": "v"
+  },
+  "hero": {
+    "eyebrow": "Witaj",
+    "headlinePre": "Twój portfel, w ",
+    "headlineEmphasis": "centrum uwagi",
+    "headlineSuffix": ".",
+    "lede": "Śledź pozycje, stopy zwrotu i przepływy pieniężne z precyzją narzędzi instytucjonalnych — w pełni offline, w pełni Twoje.",
+    "metrics": {
+      "offline": "Lokalnie · Offline",
+      "methods": "TTWROR · IRR · FIFO",
+      "ppCompatible": "Zgodne z Portfolio Performance"
+    }
+  },
+  "cards": {
+    "fresh": {
+      "title": "Zacznij od nowa",
+      "body": "Utwórz zupełnie nowy pusty portfel i dodawaj transakcje w miarę potrzeb.",
+      "cta": "Utwórz portfel",
+      "badge": "Zalecane"
+    },
+    "demo": {
+      "title": "Wypróbuj demo",
+      "body": "Poznaj aplikację z realistycznym przykładowym portfelem, który możesz dowolnie edytować.",
+      "cta": "Otwórz demo",
+      "badge": "Dane przykładowe"
+    },
+    "import": {
+      "title": "Zaimportuj istniejące dane",
+      "body": "Zaimportuj z Portfolio Performance lub przywróć kopię zapasową quovibe.",
+      "cta": "Wybierz źródło",
+      "badge": "PP XML · .db"
+    }
+  },
+  "footer": {
+    "copyright": "© {{year}} quovibe",
+    "docs": "Dokumentacja",
+    "shortcutsLabel": "Skróty",
+    "shortcutsKey": "⌘K"
+  },
+  "errors": {
+    "demoFailed": "Nie udało się otworzyć dema: {{msg}}",
+    "createFailed": "Nie udało się utworzyć portfela: {{msg}}",
+    "duplicateName": "Portfel o tej nazwie już istnieje."
+  },
+  "recent": {
+    "heading": "Kontynuuj z portfelem",
+    "lastOpened": "Ostatnio otwarty {{date}}",
+    "neverOpened": "Utworzono {{date}}",
+    "demoTag": "Demo"
+  },
+  "hub": {
+    "title": "Zaimportuj istniejące dane",
+    "subtitle": "Zaimportuj dane ze źródła zewnętrznego. Zostanie utworzony nowy portfel.",
+    "backToWelcome": "Powrót do powitania",
+    "fileChangeHint": "kliknij, aby zmienić",
+    "sources": {
+      "ppXml": {
+        "title": "Portfolio Performance (XML)",
+        "body": "Eksport XML z aplikacji desktop Portfolio Performance. Upewnij się, że atrybuty ID są dołączone.",
+        "pickFile": "Upuść plik XML tutaj lub kliknij, aby przeglądać",
+        "submit": "Zaimportuj i kontynuuj",
+        "nameOptional": "Nazwa portfela (opcjonalnie — domyślnie: nazwa pliku)"
+      },
+      "quovibeDb": {
+        "title": "Przywróć z kopii zapasowej quovibe",
+        "body": "Zaimportuj plik .db wcześniej wyeksportowany z quovibe. Przydatne przy zmianie komputera lub przywracaniu z kopii zapasowej.",
+        "pickFile": "Upuść plik .db tutaj lub kliknij, aby przeglądać",
+        "submit": "Przywróć i kontynuuj"
+      },
+      "csvHint": {
+        "title": "Import CSV",
+        "body": "Import CSV wymaga istniejącego portfela. Zacznij od nowa, a następnie otwórz Ustawienia → Importuj CSV z nowego portfela."
+      }
+    },
+    "errors": {
+      "fileRequired": "Najpierw wybierz plik.",
+      "importFailed": "Import nie powiódł się: {{msg}}",
+      "invalidFile": "Nieprawidłowy eksport XML. Wymagany plik .xml z Portfolio Performance.",
+      "tooLarge": "Plik przekracza dozwolony rozmiar przesyłki.",
+      "binary": "Plik wygląda na binarny lub uszkodzony. Wymagany eksport XML w postaci zwykłego tekstu.",
+      "invalidXml": "Plik nie jest prawidłowym XML. Wyeksportuj ponownie z Portfolio Performance i spróbuj ponownie.",
+      "invalidFormat": "XML nie jest eksportem z Portfolio Performance (brak elementu głównego <client> lub atrybutów ID). Wyeksportuj ponownie z włączonymi ID.",
+      "encrypted": "Plik wydaje się zaszyfrowany. Wyeksportuj ponownie z Portfolio Performance wybierając format XML z atrybutami ID.",
+      "importInProgress": "Inny import już trwa. Poczekaj na zakończenie i spróbuj ponownie.",
+      "conversionFailed": "Konwersja nie powiodła się. Twoje istniejące portfele pozostały nietknięte."
+    }
+  }
+}

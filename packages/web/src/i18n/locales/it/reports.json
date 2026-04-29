@@ -62,8 +62,7 @@
       "error": "Impossibile caricare i dettagli",
       "byTitle": "per titolo",
       "byAccount": "per conto"
-    },
-    "subtitle": "Dividendi, interessi e altri proventi"
+    }
   },
   "returnsHeatmap": {
     "title": "Heatmap Rendimenti",
@@ -110,6 +109,7 @@
   },
   "assetAllocation": {
     "title": "Tassonomie",
+    "subtitle": "Allocazione e ribilanciamento per tassonomia",
     "noTaxonomies": "Nessuna tassonomia definita. Importa un portafoglio con dati tassonomici per utilizzare questa vista.",
     "date": "Data",
     "columns": {
@@ -128,7 +128,7 @@
     },
     "expandAll": "Espandi tutto",
     "collapseAll": "Comprimi tutto",
-    "subtitle": "Allocazione e ribilanciamento per tassonomia"
+    "withoutClassification": "Senza Classificazione"
   },
   "taxonomySeries": {
     "title": "Serie Dati",
@@ -145,6 +145,7 @@
     "dividends": "Dividendi",
     "fees": "Commissioni",
     "selectTaxonomy": "Tassonomia",
+    "categoryLabel": "Categoria",
     "subtitle": "Andamento performance per categoria"
   },
   "taxonomyNodePicker": {
@@ -220,6 +221,50 @@
     "editWeightDescription": "Imposta la percentuale di peso obiettivo",
     "assignCategoryDescription": "Seleziona una categoria da assegnare",
     "deleteError": "Errore durante l'eliminazione della tassonomia",
-    "renameDescription": "Inserisci un nuovo nome per questa tassonomia"
+    "renameDescription": "Inserisci un nuovo nome per questa tassonomia",
+    "emptyCategories": {
+      "title": "Questa tassonomia non ha ancora categorie.",
+      "cta": "Aggiungi la prima categoria"
+    },
+    "resetTargets": {
+      "button": "Ripristina obiettivi",
+      "confirmTitle": "Ripristinare gli obiettivi ai valori salvati?",
+      "confirmBody": "Questo sostituisce gli obiettivi correnti con i valori presenti al caricamento della vista.",
+      "confirmAction": "Ripristina"
+    },
+    "deleteCategoryDetailed": {
+      "title": "Eliminare \"{{name}}\"?",
+      "assignments_one": "{{count}} assegnazione verrà rimossa.",
+      "assignments_other": "{{count}} assegnazioni verranno rimosse.",
+      "subcategories_one": "{{count}} sottocategoria verrà spostata al genitore.",
+      "subcategories_other": "{{count}} sottocategorie verranno spostate al genitore.",
+      "empty": "Questa categoria è vuota."
+    },
+    "renormalize": {
+      "checkbox": "Ridistribuisci proporzionalmente i pesi degli elementi interessati",
+      "hint": "I totali esistenti rimangono ai valori pre-eliminazione."
+    }
+  },
+  "taxonomyUi": {
+    "chartMode": {
+      "donut": "Ciambella",
+      "treemap": "Mappa",
+      "off": "Nessuno"
+    },
+    "columns": {
+      "target": "Obiettivo %",
+      "actual": "Reale %",
+      "delta": "Δ",
+      "split": "Ripartizione"
+    },
+    "withoutClassification": {
+      "empty": "Tutto classificato ✓"
+    },
+    "allocationSumWarning": "I figli sommano a {{sum}}%. Dovrebbero sommare a 100%.",
+    "picker": {
+      "searchPlaceholder": "Cerca categorie...",
+      "noMatches": "Nessuna categoria corrisponde a \"{{query}}\"",
+      "breadcrumbSeparator": " › "
+    }
   }
 }

@@ -1,110 +1,78 @@
-# Language Convention
+# Quovibe — Claude Code instructions
 
-- The user writes in English — always respond in English.
-- All documentation, comments, and file content must be written in English.
+Lean root memory. Per-package detail lives in `.claude/rules/*.md` (auto-loaded by glob) and `docs/architecture/*.md`. Do not duplicate those here.
 
-# IMPORTANT # Reference Documentation
+## Conventions
 
-- Architecture docs are in `docs/architecture/`. Read only the file relevant to your task:
+- Respond in English. All code, comments, and docs in English.
+- When invoking the `simplify` skill, pass `model: "opus"` to every Agent call it spawns.
 
-  | Package touched | Read first |
-  |----------------|------------|
-  | `packages/engine` | `engine-algorithms.md` + `cashflow-model.md` |
-  | `packages/api` | `api-routes.md` + `api-services.md` |
-  | `packages/web` | `frontend-pages.md` |
-  | `packages/shared` | `transaction-types.md` + `cashflow-model.md` |
-  | DB/schema work | `database-schema.md` + `double-entry.md` |
-  | DevOps/Docker | `operations.md` |
+## IMPORTANT — Reference docs to read first
 
-- Before implementing business logic or math, consult the reference docs (gitignored, local dev only). Do not hallucinate formulas.
-- NEVER modify the database schema without explicit permission.
+Read only the file relevant to the package you touch.
 
-## pp-reference Lookup (All Packages)
+| Package / area | Read first |
+|---|---|
+| `packages/engine` | `docs/architecture/engine-algorithms.md` + `cashflow-model.md` |
+| `packages/api` | `api-routes.md` + `api-services.md` |
+| `packages/web` | `frontend-pages.md` + `table-architecture.md` |
+| `packages/shared` | `transaction-types.md` + `cashflow-model.md` |
+| DB / schema | `database-schema.md` + `double-entry.md` |
+| DevOps / Docker | `operations.md` |
+| Stack details | `stack.md` |
+| Monorepo layout | `monorepo-structure.md` |
 
-When modifying **any** business logic — regardless of package — that involves accounts, transactions,
-cashflows, pricing, performance, or data structures:
+ADR index: `docs/adr/README.md`. Architecture index: `docs/architecture/README.md`.
 
-1. **Search first, read surgically:** use keyword search in `docs/pp-reference/` to find the 2-3
-   most relevant files. Never bulk-load the folder.
-2. **Topic hints:**
-   - Account structure / deposit accounts → `account`, `deposit-account`, `security-account`
-   - Transactions / fees / taxes / dividends → `transaction`, `taxes`, `fees`, `dividend`
-   - Performance / returns → `performance`, `ttwror`, `irr`, `calculation`
-   - Valuation / cost basis → `cost-methodology`, `fifo`, `average`, `purchase-value`
-   - Currencies → `currency`, `exchange`
-   - Transfers → `transfer`, `neutral-transfer`
-3. **Zero hallucinations:** if the rule is not found in pp-reference, ask before inventing behavior.
-4. **No upstream references:** never mention upstream projects in code, comments, or tests.
+**NEVER modify the database schema without explicit permission.** Schema source of truth is `packages/api/src/db/bootstrap.sql` (ADR-015) — see `.claude/rules/db-schema.md`.
 
-## Stack
+## pp-reference lookup (gitignored, business-logic only)
 
-- TypeScript 5.9 monorepo (pnpm 9 workspaces)
-- Backend: Express 5.2 + Drizzle ORM 0.45 + better-sqlite3 12.8
-- Frontend: React 19.2 + Vite 8.0 + React Router 7.13 + shadcn/ui + Tailwind 4.2
-- Tables: TanStack Table 8.21, State: TanStack Query 5.95, Charts: Recharts 3.8
-- Math: decimal.js 10.6 (never native floating point for financial calculations)
-- Date: date-fns 4.1
-- Test: Vitest 4.1
-- Validation: Zod 3.25 (schemas shared front/back)
-- i18n: i18next 25.10 + react-i18next 16.6
-- Forms: react-hook-form 7.72
+Before writing logic that touches accounts, transactions, cashflows, pricing, performance, valuation, currencies, or transfers:
 
-## Monorepo Structure
+1. Search `docs/pp-reference/` by keyword — never bulk-load the folder.
+2. Topic hints: `account`/`deposit-account`/`security-account`, `transaction`/`taxes`/`fees`/`dividend`, `performance`/`ttwror`/`irr`, `cost-methodology`/`fifo`/`average`, `currency`/`exchange`, `transfer`/`neutral-transfer`.
+3. If a rule is not found in pp-reference, ask before inventing behavior.
+4. Never mention upstream projects in code, comments, or tests (enforced by G3, G10).
 
-- packages/shared — types, enums, Zod schemas, cashflow rules
-- packages/engine — pure financial logic (zero I/O dependencies)
-- packages/api — Express 5 REST API + Drizzle ORM
-- packages/web — React SPA
-- data/ — portfolio.db (SQLite from ppxml2db)
+## Load-bearing invariants
+
+- Use `decimal.js` for ALL financial math. Native floats only with `// native-ok` (loop counters, indices).
+- Engine (`packages/engine`) has zero I/O. ESLint enforces; ADR-003.
+- Explicit types everywhere. No `any`.
+- **No module-scope DB handles** (ADR-015). Prepare statements inside the function that receives `sqlite`.
+- **No module-scope mutable state holding portfolio data** (ADR-016). Flow via params, `req`, or `PortfolioCache<T>`. Enforced by `quovibe/no-portfolio-scope-module-state` ESLint rule + `cross-portfolio-isolation.test.ts`.
+- Every API write goes through a service method — routes never call `db.insert/update/delete` directly (G14).
+
+Per-package detail: `.claude/rules/{api,engine,frontend,shared,db-schema,double-entry,latest-price,csv-import,xml-import,portfolio-creation}.md` — these auto-load by glob.
 
 ## Commands
 
-- Build: `pnpm build`
-- Dev: `pnpm dev`
-- Test: `pnpm test`
-- Test engine: `pnpm test --filter @quovibe/engine`
-- Lint: `pnpm lint`
-
-## Git Flow
-
-- Branch strategy: `feature/*` → `development` → `main` (public, squash-merged)
-- Never commit or push directly to `main` or `development`
-- `main` is the **public branch**: every merge from `development` must be a **squash merge** — one clean commit per feature/release. This keeps the public history readable and free of internal development noise.
-- `development` accumulates feature branches freely; its history does not need to be clean.
-- Version tags (e.g. `v1.0.0`) are applied on `main` after the squash merge. Tags trigger the Docker image build and push to GHCR via GitHub Actions.
-- Squash merge command: `git checkout main && git merge --squash development && git commit -m "feat: ..."`
-
-## Core Rules
-
-- Financial calculations follow standard formulas (TTWROR, IRR, FIFO, Moving Average)
-- Use decimal.js for ALL financial calculations
-- The engine (packages/engine) does not access the DB — it receives data and returns results
-- Explicit types everywhere, never `any`
-- DB schema, unit conventions, and double-entry details: see `.claude/rules/db-schema.md` and `.claude/rules/double-entry.md`
-
-## Quality Checks
-
-| Command | Description |
-|---------|-------------|
+| Command | What it does |
+|---|---|
 | `pnpm build` | Build all packages |
-| `pnpm test` | Run all tests (Vitest) |
-| `pnpm lint` | Lint all packages (max 50 warnings) |
-| `pnpm lint:engine` | ESLint zero tolerance: no I/O imports in the engine |
-| `pnpm check:governance` | 14 governance checks (doc alignment, upstream ban, service rules, no direct DB writes in routes) |
-| `pnpm check:arch` | 10 architecture checks (dependency boundaries, import rules) |
-| `pnpm check:all` | test + lint:engine + governance + architecture |
-| `pnpm preflight` | Pre-session gate: build → test → lint → governance → arch |
-| `pnpm postflight` | Post-session gate: same checks + changelog draft |
-| `pnpm ci` | Full CI pipeline: typecheck → lint → governance → arch → vitest |
+| `pnpm dev` | Run dev servers (parallel) |
+| `pnpm test` | Vitest, all packages |
+| `pnpm lint` | ESLint (max 50 warnings) |
+| `pnpm lint:engine` | Zero-tolerance engine I/O lint |
+| `pnpm check:governance` | 14 governance checks (G1–G14) |
+| `pnpm check:arch` | 9 architecture checks (A1–A9; A10 retired in ADR-015) |
+| `pnpm check:bootstrap` | Gate 1 — `bootstrap.sql` parity vs ppxml2db |
+| `pnpm regen-bootstrap` | Regenerate `bootstrap.sql` §1+§2 from `ppxml2db_init.py` |
+| `pnpm check:all` | build + test + lint:engine + governance + arch + bootstrap |
+| `pnpm preflight` | Pre-session gate (full check suite) |
+| `pnpm postflight` | Post-session gate + changelog draft |
+| `pnpm ci` | Full CI pipeline |
+
+## Git flow
+
+- `feature/*` → `development` → `main`. Never commit or push directly to `main` or `development`.
+- `main` is public; merges from `development` MUST be **squash merges** — one commit per feature/release.
+- Tags (`vX.Y.Z`) on `main` trigger Docker image build + GHCR push via GitHub Actions.
+- Squash command: `git checkout main && git merge --squash development && git commit -m "feat: ..."`
 
 ## Governance
 
-The project uses a 3-tier governance system to prevent drift between documentation and code:
-
-1. **Claude Code rules** (`.claude/rules/*.md`) — 12 rule files scoped by glob pattern, loaded automatically by context. See `docs/architecture/README.md` for the full inventory.
-2. **Automated scripts** — `scripts/check-governance.ts` (14 checks: doc↔filesystem alignment, upstream reference ban, service-layer rules, no direct DB writes in routes) and `scripts/check-architecture.ts` (10 checks: dependency whitelists, import boundary enforcement, Zod schema usage). Run via `pnpm check:governance` and `pnpm check:arch`.
-3. **Session lifecycle** — `scripts/preflight.sh` must pass before starting work; `scripts/postflight.sh` must pass before closing a session. Both run the full check suite.
-
-ESLint provides an additional enforcement layer for engine I/O isolation (ADR-003): `no-restricted-imports` is set to **error** for all `packages/engine/src/**` files.
-
-Architecture docs index and ADRs: `docs/architecture/README.md` — `docs/adr/README.md`
+- 15 glob-scoped rule files in `.claude/rules/` auto-load by context.
+- `scripts/check-governance.ts` (G1–G14) and `scripts/check-architecture.ts` (A1–A9) gate doc↔code drift, dependency boundaries, upstream-reference ban, service-layer rules, no direct DB writes in routes.
+- `pnpm preflight` before starting work, `pnpm postflight` before closing a session.

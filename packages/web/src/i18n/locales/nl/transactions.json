@@ -38,6 +38,8 @@
   },
   "form": {
     "dateTime": "Datum & Tijd",
+    "time": "Tijd",
+    "openCalendar": "Kalender openen",
     "datePlaceholder": "dd.MM.jjjj",
     "quantity": "Aantal",
     "price": "Koers",
@@ -102,6 +104,10 @@
     "sourceDestMustDiffer": "Bron en doel moeten verschillend zijn",
     "sharesMustBePositive": "Aandelen moeten groter zijn dan 0",
     "amountMustBePositive": "Bedrag moet groter zijn dan 0",
+    "priceMustBePositive": "Prijs moet groter zijn dan 0",
+    "feesMustBeNonNegative": "Kosten moeten 0 of hoger zijn",
+    "taxesMustBeNonNegative": "Belastingen moeten 0 of hoger zijn",
+    "fxRateMustBePositive": "Wisselkoers moet groter zijn dan 0",
     "nameRequired": "Naam is verplicht",
     "noteRequired": "Notitie is verplicht.",
     "ratioRequired": "Splitverhouding is verplicht (bijv. 2:1).",
@@ -111,6 +117,9 @@
     "edit": "Bewerken",
     "delete": "Verwijderen",
     "new": "Nieuw"
+  },
+  "a11y": {
+    "rowActions": "Acties voor {{type}} op {{date}}"
   },
   "editTitles": {
     "buy": "Koop bewerken",
@@ -133,6 +142,7 @@
   },
   "transactionType": "Transactietype",
   "newTransaction": "Nieuwe transactie",
+  "newTransactionDescription": "Maak een aankoop, verkoop, storting, overboeking of andere transactie aan.",
   "subtitle": "Browse and manage all portfolio transactions",
   "noLinkedDeposit": "Deze effectenrekening heeft geen gekoppelde geldrekening.",
   "empty": {

@@ -1,0 +1,10 @@
+{
+  "noPortfolio": "Sin cartera",
+  "newPortfolio": "+ Nueva cartera…",
+  "tryDemo": "🧪 Probar la demo",
+  "allPortfolios": "Todas las carteras…",
+  "demoBadge": "Demo",
+  "errors": {
+    "demoFailed": "No se pudo abrir la demo: {{msg}}"
+  }
+}

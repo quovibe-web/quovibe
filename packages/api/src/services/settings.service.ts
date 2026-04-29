@@ -10,9 +10,8 @@
  */
 
 import fs from 'fs';
-import path from 'path';
 import type BetterSqlite3 from 'better-sqlite3';
-import { DB_PATH } from '../config';
+import { SIDECAR_PATH } from '../config';
 import {
   quovibeSettingsSchema,
   DEFAULT_SETTINGS,
@@ -22,9 +21,9 @@ import {
   DEFAULT_CHART_CONFIG,
 } from '@quovibe/shared';
 
-const SIDECAR_FILENAME = 'quovibe.settings.json';
-const sidecarPath = path.join(path.dirname(DB_PATH), SIDECAR_FILENAME);
+const sidecarPath = SIDECAR_PATH;
 
+// quovibe:allow-module-state — user-level sidecar settings cache; contains no portfolio-scoped data (ADR-016).
 let cached: QuovibeSettings = { ...DEFAULT_SETTINGS };
 
 /**
@@ -41,6 +40,35 @@ export function loadSettings(): void {
   try {
     const raw = fs.readFileSync(sidecarPath, 'utf-8');
     const parsed = JSON.parse(raw);
+
+    // Back-compat: legacy files only had `version` — treat as schemaVersion=1.
+    if (parsed.schemaVersion === undefined) {
+      parsed.schemaVersion = parsed.version ?? 1;
+    }
+
+    // Fail-safe: a newer quovibe wrote a sidecar shape this older app can't read.
+    if (typeof parsed.schemaVersion === 'number' && parsed.schemaVersion > 1) {
+      throw new Error(
+        `[quovibe] sidecar schemaVersion=${parsed.schemaVersion} is newer than this app. ` +
+        `Upgrade quovibe or restore a prior quovibe.settings.json from backup.`,
+      );
+    }
+
+    // Back-compat: migrate `app.activePortfolioId` (pre-URL-scoped) → `app.defaultPortfolioId`
+    if (parsed.app && typeof parsed.app.activePortfolioId === 'string' && !parsed.app.defaultPortfolioId) {
+      parsed.app.defaultPortfolioId = parsed.app.activePortfolioId;
+      delete parsed.app.activePortfolioId;
+    }
+    // Back-compat: `app.autoFetchPricesOnStartup` (intra-015 draft) → autoFetchPricesOnFirstOpen
+    if (parsed.app && typeof parsed.app.autoFetchPricesOnStartup === 'boolean' && parsed.app.autoFetchPricesOnFirstOpen === undefined) {
+      parsed.app.autoFetchPricesOnFirstOpen = parsed.app.autoFetchPricesOnStartup;
+      delete parsed.app.autoFetchPricesOnStartup;
+    }
+
+    // Drop legacy sidecar-hosted dashboard fields (spec §3.12): dashboards moved to per-portfolio vf_dashboard.
+    if (parsed.dashboards !== undefined) delete parsed.dashboards;
+    if (parsed.activeDashboard !== undefined) delete parsed.activeDashboard;
+
     // Migrate chartConfig v1 → v2 if needed
     if (parsed.chartConfig && !parsed.chartConfig.version) {
       parsed.chartConfig = migrateChartConfigV1toV2(parsed.chartConfig);
@@ -51,6 +79,7 @@ export function loadSettings(): void {
     }
     cached = quovibeSettingsSchema.parse(parsed);
   } catch (err) {
+    if (err instanceof Error && err.message.includes('schemaVersion=')) throw err;
     console.warn(`[quovibe] Failed to parse sidecar ${sidecarPath}, using defaults:`, err);
     cached = { ...DEFAULT_SETTINGS };
   }
@@ -71,24 +100,22 @@ export function updateSettings(partial: {
   app?: Partial<QuovibeSettings['app']>;
   preferences?: Partial<QuovibePreferences>;
   reportingPeriods?: QuovibeSettings['reportingPeriods'];
-  dashboards?: QuovibeSettings['dashboards'];
-  activeDashboard?: string | null;
   investmentsView?: Partial<QuovibeSettings['investmentsView']>;
+  allocationView?: Partial<QuovibeSettings['allocationView']>;
   chartConfig?: Partial<QuovibeSettings['chartConfig']>;
   tableLayouts?: QuovibeSettings['tableLayouts'];
+  portfolios?: QuovibeSettings['portfolios'];
 }): QuovibeSettings {
   const merged = {
     ...cached,
     app: { ...cached.app, ...partial.app },
     preferences: { ...cached.preferences, ...partial.preferences },
     reportingPeriods: partial.reportingPeriods ?? cached.reportingPeriods,
-    dashboards: partial.dashboards ?? cached.dashboards,
-    activeDashboard: partial.activeDashboard !== undefined
-      ? partial.activeDashboard
-      : cached.activeDashboard,
+    portfolios: partial.portfolios ?? cached.portfolios,
     investmentsView: { ...cached.investmentsView, ...partial.investmentsView,
       columns: partial.investmentsView?.columns ?? cached.investmentsView?.columns ?? [],
     },
+    allocationView: { ...cached.allocationView, ...partial.allocationView },
     chartConfig: partial.chartConfig
       ? { version: 2 as const, series: partial.chartConfig.series ?? cached.chartConfig?.series ?? [] }
       : cached.chartConfig ?? { version: 2, series: [] },
@@ -96,9 +123,12 @@ export function updateSettings(partial: {
   };
   const validated = quovibeSettingsSchema.parse(merged);
 
-  // Atomic write: write to .tmp then rename (atomic on Linux/Docker)
+  // Atomic write: write to .tmp → fsync → rename (durable on POSIX + Windows)
   const tmpPath = sidecarPath + '.tmp';
-  fs.writeFileSync(tmpPath, JSON.stringify(validated, null, 2), 'utf-8');
+  const json = JSON.stringify(validated, null, 2);
+  fs.writeFileSync(tmpPath, json, 'utf-8');
+  const fd = fs.openSync(tmpPath, 'r+');
+  try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
   fs.renameSync(tmpPath, sidecarPath);
 
   cached = validated;

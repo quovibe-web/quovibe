@@ -1,0 +1,10 @@
+{
+  "noPortfolio": "No portfolio",
+  "newPortfolio": "+ New portfolio…",
+  "tryDemo": "🧪 Try Demo",
+  "allPortfolios": "All portfolios…",
+  "demoBadge": "Demo",
+  "errors": {
+    "demoFailed": "Could not open the demo: {{msg}}"
+  }
+}

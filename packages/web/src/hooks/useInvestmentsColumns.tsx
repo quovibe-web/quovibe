@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Pencil, RefreshCw, Trash2 } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SecurityListItem, StatementSecurityEntry, SecurityPerfResponse } from '@/api/types';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
@@ -15,6 +15,7 @@ import { usePrivacy } from '@/context/privacy-context';
 import { COLORS } from '@/lib/colors';
 import { textColumnMeta, currencyColumnMeta, percentColumnMeta, sharesColumnMeta, dateColumnMeta } from '@/lib/column-factories';
 import { cn } from '@/lib/utils';
+import { useFetchPrices } from '@/api/use-securities';
 
 interface UseInvestmentsColumnsParams {
   statementMap: Map<string, StatementSecurityEntry>;
@@ -33,6 +34,50 @@ function PctCell({ value }: { value: string }) {
     <span style={{ color: !isPrivate && n >= 0 ? COLORS.profit : COLORS.loss }}>
       {isPrivate ? '••••••' : formatPercentage(n)}
     </span>
+  );
+}
+
+/** Row actions dropdown — isolated so useFetchPrices can be bound per-row. */
+function SecurityRowActions({
+  id,
+  onEdit,
+  onDelete,
+}: {
+  id: string;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { t } = useTranslation('securities');
+  const { t: tCommon } = useTranslation('common');
+  const fetchPrices = useFetchPrices(id);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} onCloseAutoFocus={(e) => e.preventDefault()}>
+        <DropdownMenuItem
+          disabled={fetchPrices.isPending}
+          onSelect={(e) => {
+            e.preventDefault();
+            fetchPrices.mutate('merge');
+          }}
+        >
+          <RefreshCw className={cn('mr-2 h-4 w-4', fetchPrices.isPending && 'animate-spin')} />
+          {fetchPrices.isPending ? t('actions.refreshing') : t('actions.refreshQuote')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onEdit(id)}>
+          <Pencil className="mr-2 h-4 w-4" />
+          {tCommon('edit')}
+        </DropdownMenuItem>
+        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(id)}>
+          <Trash2 className="mr-2 h-4 w-4" />
+          {tCommon('delete')}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -463,23 +508,7 @@ export function useInvestmentsColumns({
         enableSorting: false,
         meta: { sticky: 'right', locked: true },
         cell: ({ row }) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} onCloseAutoFocus={(e) => e.preventDefault()}>
-              <DropdownMenuItem onClick={() => onEdit(row.original.id)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                {tCommon('edit')}
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(row.original.id)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                {tCommon('delete')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <SecurityRowActions id={row.original.id} onEdit={onEdit} onDelete={onDelete} />
         ),
       },
     ];

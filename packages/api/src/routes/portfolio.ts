@@ -4,10 +4,9 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { updateSettingsSchema } from '@quovibe/shared';
-import type { QuovibePreferences } from '@quovibe/shared';
 import { configEntries } from '../db/schema';
 import { getDb, getSqlite } from '../helpers/request';
-import { getSettings, updatePreferences, updateAppState } from '../services/settings.service';
+import { getSettings, updateAppState } from '../services/settings.service';
 
 // quovibe stores its own settings in the `property` table (same key space as baseCurrency).
 // Keys are prefixed with 'portfolio.' to namespace from legacy properties.
@@ -15,12 +14,6 @@ const QUOVIBE_SETTING_KEYS = ['portfolio.costMethod', 'portfolio.currency', 'por
 // Legacy property key for base currency — read alongside quovibe settings so the frontend
 // can pre-populate the currency field after a fresh import (before the user saves via quovibe).
 const PP_CURRENCY_KEY = 'baseCurrency';
-
-const SIDECAR_FIELDS = [
-  'language', 'theme', 'sharesPrecision', 'quotesPrecision',
-  'showCurrencyCode', 'showPaSuffix', 'privacyMode', 'activeReportingPeriodId',
-  'defaultDataSeriesTaxonomyId',
-] as const;
 
 export const portfolioRouter: RouterType = Router();
 
@@ -107,16 +100,10 @@ const updateSettings: RequestHandler = async (req, res) => {
     upsert('provider.alphavantage.rateLimit', input.alphaVantageRateLimit);
   }
 
-  // Write sidecar fields
-  const sidecarUpdate: Record<string, unknown> = {};
-  for (const field of SIDECAR_FIELDS) {
-    if (input[field] !== undefined) {
-      sidecarUpdate[field] = input[field];
-    }
-  }
-  if (Object.keys(sidecarUpdate).length > 0) {
-    updatePreferences(sidecarUpdate as Partial<QuovibePreferences>);
-  }
+  // User-level sidecar fields (theme, language, activeReportingPeriodId, ...)
+  // are written through PUT /api/settings/preferences; this portfolio-scoped
+  // endpoint must not mutate user-global state (BUG-56). The shared schema
+  // is .strict() so any sidecar field name in the body rejects with 400.
 
   // Return updated config (same shape as getPortfolio)
   const rows = await db.select().from(configEntries);

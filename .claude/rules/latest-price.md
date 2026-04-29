@@ -1,4 +1,4 @@
-globs: packages/api/src/services/performance.*,packages/api/src/services/statement-cache.*,packages/api/src/routes/securities.*
+globs: packages/api/src/services/performance.*,packages/api/src/services/reports.service.*,packages/api/src/services/rebalancing.service.*,packages/api/src/routes/securities.*
 ---
 # Market Value and latest_price Rules (CRITICAL)
 
@@ -29,7 +29,13 @@ and **must win** for live display and MVE, even when both share the same date.
 
 ## ppxml2db price schema
 - `price` — daily historical (can be stale by days/weeks)
-- `latest_price` — last known quote (also has `tstamp` = quote date)
+- `latest_price` — last known quote (also has `tstamp` = quote date) plus
+  nullable OHLC columns `high`, `low`, `volume` (added by
+  `apply-bootstrap.ts > VENDOR_COLUMN_PATCHES`, populated by `ppxml2db.py`
+  from `<latest>` XML nodes). OHLC is for **chart display only** —
+  performance, MVE, Statement of Assets, and rebalancing calculations all
+  use `value` exclusively. Do not branch financial logic on
+  `high` / `low` / `volume`.
 
 ## Injection Rule
 

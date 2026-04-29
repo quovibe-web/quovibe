@@ -1,16 +1,17 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import type { ColumnDef } from '@tanstack/react-table';
 import { parseISO, isAfter, isBefore, startOfDay } from 'date-fns';
-import { TrendingUp, ListX, ArrowLeft } from 'lucide-react';
+import { TrendingUp, ListX, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/shared/DataTable';
 import { dateColumnMeta, textColumnMeta, currencyColumnMeta, sharesColumnMeta } from '@/lib/column-factories';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { useSecurityDetail } from '@/api/use-securities';
+import { useSecurityDetail, useFetchPrices } from '@/api/use-securities';
 import { SecurityEditor, type EditorSection } from '@/components/domain/SecurityEditor';
 import { PriceChart } from '@/components/domain/PriceChart';
 import { useTransactions } from '@/api/use-transactions';
@@ -21,6 +22,7 @@ import { usePrivacy } from '@/context/privacy-context';
 import { SharesDisplay } from '@/components/shared/SharesDisplay';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
 import { ChartSkeleton } from '@/components/shared/ChartSkeleton';
+import { TaxonomyAssignmentsCard } from '@/components/domain/SecurityDetail/TaxonomyAssignmentsCard';
 import { cn } from '@/lib/utils';
 import { getTransactionCashflowSign } from '@/lib/transaction-display';
 import { TypeBadge } from '@/components/shared/TypeBadge';
@@ -80,6 +82,7 @@ function PerfMetric({ label, value, type, currency, isPrivate, converged, notCon
 }
 
 export default function SecurityDetail() {
+  useDocumentTitle('Security');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation('securities');
@@ -87,6 +90,7 @@ export default function SecurityDetail() {
   const { t: tTx } = useTranslation('transactions');
   const { isPrivate } = usePrivacy();
   const { data: security, isLoading, isFetching } = useSecurityDetail(id ?? '');
+  const fetchPrices = useFetchPrices(id ?? '');
   const { data: perfData } = usePerformanceSecurities();
   const { data: txPage, isLoading: txLoading } = useTransactions({ security: id }, 1, 9999);
   const transactions = (txPage?.data ?? []) as TransactionListItem[];
@@ -197,7 +201,18 @@ export default function SecurityDetail() {
           <h1 className="text-lg font-semibold text-foreground tracking-tight">{security.name}</h1>
           <span className="text-sm text-muted-foreground">{[security.isin, security.ticker, security.currency].filter(Boolean).join(' · ')}</span>
         </div>
-        <Button variant="outline" onClick={() => openEditor()}>{tCommon('edit')}</Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="gap-1.5"
+            disabled={fetchPrices.isPending || !id}
+            onClick={() => fetchPrices.mutate('merge')}
+          >
+            <RefreshCw className={cn('h-4 w-4', fetchPrices.isPending && 'animate-spin')} />
+            {fetchPrices.isPending ? t('actions.refreshing') : t('actions.refreshQuote')}
+          </Button>
+          <Button variant="outline" onClick={() => openEditor()}>{tCommon('edit')}</Button>
+        </div>
       </div>
 
       {/* Hero metrics: Market Value + Unrealized P&L */}
@@ -238,6 +253,12 @@ export default function SecurityDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Taxonomies — classification surfaced read-only here, edit via the Editor modal */}
+      <TaxonomyAssignmentsCard
+        assignments={security.taxonomyAssignments ?? []}
+        onClassify={() => openEditor('taxonomies')}
+      />
 
       {/* Performance card */}
       {perf && (

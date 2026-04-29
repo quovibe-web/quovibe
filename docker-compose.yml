@@ -7,15 +7,18 @@ services:
     volumes:
       - quovibe_data:/app/data
     environment:
-      - DB_PATH=/app/data/portfolio.db
       - NODE_ENV=production
+      # Optional overrides (defaults documented in docs/architecture/operations.md):
+      # - LOG_LEVEL=info
+      # - DB_BACKUP_MAX=10
+      # - PRICE_FETCH_INTERVAL_MS=900000
     restart: unless-stopped
     stop_grace_period: 15s
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/portfolio"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+    # Healthcheck is declared in the Dockerfile (HEALTHCHECK instruction) so it
+    # also applies to bare `docker run`. Override here only if intentionally
+    # diverging from the image-level definition.
+    mem_limit: 512m
+    cpus: 1.0
 
 volumes:
   quovibe_data:

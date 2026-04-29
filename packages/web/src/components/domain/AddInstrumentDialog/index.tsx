@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSecuritySearch, usePreviewPrices, useCreateSecurity, useSecurities } from '@/api/use-securities';
-import { apiFetch } from '@/api/fetch';
+import { useScopedApi } from '@/api/use-scoped-api';
 import { useResolveLogo } from '@/api/use-logo';
 import { useDebounce } from '@/hooks/use-debounce';
 import { InstrumentSearch } from './InstrumentSearch';
@@ -48,6 +48,7 @@ export function AddInstrumentDialog({
   const { t } = useTranslation('securities');
   const { t: tCommon } = useTranslation('common');
   const queryClient = useQueryClient();
+  const api = useScopedApi();
   const { data: existingSecurities = [] } = useSecurities();
 
   // Track if dialog is still open during async operations
@@ -185,15 +186,14 @@ export function AddInstrumentDialog({
 
       // Import prices if available
       if (previewData && previewData.prices.length > 0) {
-        await apiFetch<{ ok: boolean; count: number }>(`/api/securities/${newId}/prices/import`, {
+        await api.fetch<{ ok: boolean; count: number }>(`/api/securities/${newId}/prices/import`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prices: previewData.prices }),
         });
         // Invalidate caches after price import (creation mutation already invalidated securities)
-        queryClient.invalidateQueries({ queryKey: ['reports'] });
-        queryClient.invalidateQueries({ queryKey: ['performance'] });
-        queryClient.invalidateQueries({ queryKey: ['holdings'] });
+        queryClient.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'reports'] });
+        queryClient.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'performance'] });
       }
 
       // Dialog may have been closed during async operation
@@ -211,16 +211,16 @@ export function AddInstrumentDialog({
       const ticker = selectedResult.symbol;
       void resolveLogoMutation.mutateAsync({ ticker, instrumentType: instrType })
         .then(({ logoUrl }) =>
-          apiFetch(`/api/securities/${secId}/logo`, {
+          api.fetch(`/api/securities/${secId}/logo`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ logoUrl }),
           }),
         )
         .then(() => {
-          queryClient.invalidateQueries({ queryKey: ['securities'] });
-          queryClient.invalidateQueries({ queryKey: ['securities', secId] });
-          queryClient.invalidateQueries({ queryKey: ['watchlists'] });
+          queryClient.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'securities'] });
+          queryClient.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'securities', secId] });
+          queryClient.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'watchlists'] });
         })
         .catch(() => toast.warning(tCommon('toasts.logoNotFound')));
     } catch (e) {

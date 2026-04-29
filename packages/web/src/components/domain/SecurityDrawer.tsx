@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { useSecurityDrawerData } from '@/hooks/useSecurityDrawerData';
 import { usePrivacy } from '@/context/privacy-context';
+import { usePortfolio } from '@/context/PortfolioContext';
 import { formatPercentage, formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { SecurityPerfResponse, StatementSecurityEntry } from '@/api/types';
@@ -41,6 +42,7 @@ export function SecurityDrawer({
   periodSearch,
 }: SecurityDrawerProps) {
   const navigate = useNavigate();
+  const portfolio = usePortfolio();
   const { t } = useTranslation('investments');
   const { isPrivate } = usePrivacy();
 
@@ -234,7 +236,7 @@ export function SecurityDrawer({
               <Button
                 onClick={() => {
                   onClose();
-                  navigate(`/investments/${securityId}${periodSearch}`);
+                  navigate(`/p/${portfolio.id}/investments/${securityId}${periodSearch}`);
                 }}
                 className="flex-1 gap-2"
               >

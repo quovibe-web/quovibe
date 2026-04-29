@@ -1,0 +1,53 @@
+{
+  "current": "Current portfolio",
+  "real": "Real",
+  "builtInPlayground": "Built-in playground",
+  "createdOn": "Created {{date}}",
+  "updates": "Updates",
+  "updatePrices": "Update all prices",
+  "export": "Export this portfolio",
+  "demoExplainer": "A persistent sandbox you can freely add to, edit, and delete from. You can also export your modified demo — the download becomes a regular portfolio on re-import, leaving the built-in demo fixture untouched. The demo itself can't be renamed or deleted — it's a built-in fixture, not a user artifact.",
+  "rename": {
+    "cta": "Rename",
+    "title": "Rename portfolio",
+    "cancel": "Cancel",
+    "save": "Save",
+    "success": "Portfolio renamed.",
+    "error": "Rename failed: {{msg}}"
+  },
+  "delete": {
+    "cta": "Delete this portfolio",
+    "title": "Delete \"{{name}}\"?",
+    "body": "This will permanently remove all accounts, transactions, and data for this portfolio. This cannot be undone.",
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "success": "Portfolio deleted.",
+    "error": "Delete failed: {{msg}}"
+  },
+  "data": {
+    "sections": {
+      "accounting": "Contabilidad",
+      "priceFeeds": "Fuentes de precios"
+    },
+    "fields": {
+      "costMethod": "Método de coste",
+      "costMethodDescription": "Cómo se calcula el coste base de los valores.",
+      "costMethodFifo": "FIFO",
+      "costMethodMovingAverage": "Media móvil",
+      "currency": "Moneda base",
+      "currencyDescription": "Todos los valores se convierten a esta moneda para los totales de la cartera.",
+      "calendar": "Calendario",
+      "calendarDescription": "Calendario bursátil que determina los días festivos del mercado. Elige \"Predeterminado (global)\" para usar el calendario predeterminado del sistema.",
+      "calendarDefault": "Predeterminado (global)",
+      "calendarUnknown": "desconocido",
+      "alphaVantageApiKey": "Clave API de Alpha Vantage",
+      "alphaVantageApiKeyDescription": "Necesaria para obtener cotizaciones desde Alpha Vantage.",
+      "alphaVantageApiKeyConfigured": "Hay una clave configurada. Introduce un nuevo valor para sustituirla.",
+      "alphaVantageApiKeyPlaceholder": "Introduce la clave API…",
+      "alphaVantageApiKeyShow": "Mostrar clave API",
+      "alphaVantageApiKeyHide": "Ocultar clave API",
+      "alphaVantageRateLimit": "Límite de tasa de Alpha Vantage",
+      "alphaVantageRateLimitDescription": "Llamadas por minuto permitidas por tu plan de Alpha Vantage."
+    }
+  }
+}

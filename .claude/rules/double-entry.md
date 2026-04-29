@@ -24,6 +24,81 @@ When a transaction is created against a portfolio, the service layer routes it a
 | C — shares only | DELIVERY_INBOUND, DELIVERY_OUTBOUND | **1 row**: account=portfolio |
 | D — transfer | SECURITY_TRANSFER, TRANSFER_BETWEEN_ACCOUNTS | use crossAccountId |
 
+### Transfer invariants (BUG-01 / BUG-04)
+
+Group D transfers have two structural invariants the write path must enforce:
+
+1. `accountId !== crossAccountId` — a transfer to itself is nonsense. Enforced in
+   `createTransactionSchema.superRefine` (shared), so it rejects at the Zod boundary
+   with 400 before the service ever runs.
+2. Both accounts must be holders of the transferred asset class:
+   - `TRANSFER_BETWEEN_ACCOUNTS` → both sides must be DEPOSIT (`type = 'account'`).
+   - `SECURITY_TRANSFER` → both sides must be SECURITIES (`type = 'portfolio'`).
+   Enforced in `enforceAccountTypeGuards` in `routes/transactions.ts`, which applies
+   `isTransactionTypeAllowed` symmetrically to `accountId` and `crossAccountId`. 422
+   on violation.
+
+The `isPortfolioRouting` bypass in that guard only applies to types in
+`CASH_ONLY_ROUTED_TYPES` (shared) — the types the service actually auto-routes to
+`referenceAccount`. A transfer from a portfolio does NOT route to its reference
+account; it is simply invalid and must be rejected.
+
+## Per-type invariant matrix (BUG-106 / BUG-107 / BUG-111 / BUG-112 / BUG-113)
+
+The transaction write path enforces a per-type matrix across THREE layers
+because `@quovibe/shared` is I/O-free and cannot read `account.type` /
+`account.currency` / `security.currency`. The single source of truth for the
+type-grouping sets lives in `packages/shared/src/transaction-gating.ts`;
+`createTransactionSchema` and `routes/transactions.ts` both import from there.
+
+| Type                       | `securityId` | `shares` | `amount` | source `accountId` | dest `crossAccountId` | `fxRate` required when             |
+|---------------------------|:------------:|:--------:|:--------:|--------------------|-----------------------|------------------------------------|
+| BUY                       | **req**      | > 0      | > 0      | portfolio          | deposit (auto-route)  | cash.currency ≠ security.currency  |
+| SELL                      | **req**      | > 0      | > 0      | portfolio          | deposit (auto-route)  | cash.currency ≠ security.currency  |
+| DIVIDEND                  | **req**      | —        | > 0      | deposit *or* portfolio (auto-route) | —    | —                                  |
+| DEPOSIT / REMOVAL         | —            | —        | > 0      | deposit *or* portfolio (auto-route) | —    | —                                  |
+| INTEREST / INTEREST_CHARGE| —            | —        | > 0      | deposit *or* portfolio (auto-route) | —    | —                                  |
+| FEES / FEES_REFUND        | —            | —        | > 0      | deposit *or* portfolio (auto-route) | —    | —                                  |
+| TAXES / TAX_REFUND        | —            | —        | > 0      | deposit *or* portfolio (auto-route) | —    | —                                  |
+| TRANSFER_BETWEEN_ACCOUNTS | —            | —        | > 0      | deposit            | deposit               | source.currency ≠ dest.currency    |
+| SECURITY_TRANSFER         | **req**      | > 0      | **= 0**  | portfolio          | portfolio             | —                                  |
+| DELIVERY_INBOUND          | **req**      | > 0      | **= 0**  | portfolio          | —                     | —                                  |
+| DELIVERY_OUTBOUND         | **req**      | > 0      | **= 0**  | portfolio          | —                     | —                                  |
+
+### Where each row is enforced
+
+- **Schema layer** (`packages/shared/src/schemas/transaction.schema.ts`):
+  - `securityId` requirement → `SECURITY_REQUIRED_TYPES` set (BUG-106).
+  - `amount > 0` requirement → `AMOUNT_REQUIRED_TYPES` set; SECURITY_TRANSFER /
+    DELIVERY_INBOUND / DELIVERY_OUTBOUND are deliberately excluded so they
+    accept `amount = 0` (BUG-113).
+  - `shares > 0` requirement → `PRICED_SHARE_TYPES` set.
+  - Cross-account distinctness for transfer types (BUG-01).
+- **Route layer** (`packages/api/src/routes/transactions.ts`):
+  - `enforceAccountTypeGuards` checks both source and destination accounts
+    against the type-allowlist (BUG-04). Removing BUY/SELL from
+    `DEPOSIT_TYPES` is what closes BUG-107: the existing guard then rejects
+    a deposit `accountId` for BUY/SELL with 422
+    `TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE`.
+  - `enforceCrossCurrencyFxRate` (run after the type guard) requires
+    `fxRate` when:
+    - `TRANSFER_BETWEEN_ACCOUNTS` source/destination currencies differ
+      (BUG-111), OR
+    - BUY/SELL cash-side (resolved to `crossAccountId` or
+      `referenceAccount`) currency differs from `security.currency`
+      (BUG-112).
+    Returns 400 `FX_RATE_REQUIRED`.
+
+The `CROSS_CURRENCY_FX_TYPES` constant in `transaction-gating.ts`
+documents the same invariant — keep it in sync if a new type is ever
+added that crosses currency legs.
+
+The CSV import path enforces a parallel gate: see
+`.claude/rules/csv-import.md` "Cross-currency CSV import" for the four
+CSV-side error codes (`FX_RATE_REQUIRED`, `INVALID_FX_RATE`,
+`FX_VERIFICATION_FAILED`, `CURRENCY_MISMATCH`) and the hard-abort posture
+on execute. Both paths consume the same `CROSS_CURRENCY_FX_TYPES` set.
+
 ## Double-entry BUY/SELL
 
 For BUY and SELL, `createTransaction` / `updateTransaction` must create **2 xact rows**:

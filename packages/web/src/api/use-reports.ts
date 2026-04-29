@@ -1,50 +1,56 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { apiFetch } from './fetch';
+import { useScopedApi } from './use-scoped-api';
 import { useReportingPeriod } from './use-performance';
 import type { StatementOfAssetsResponse, HoldingsResponse, PaymentsResponse, AssetAllocationResponse } from './types';
 import type { PaymentBreakdownResponse } from '@quovibe/shared';
 
 export const reportsKeys = {
-  statement: (date: string) => ['reports', 'statement', date] as const,
-  holdings: (date: string) => ['reports', 'holdings', date] as const,
-  payments: (start: string, end: string, groupBy: string) =>
-    ['reports', 'payments', start, end, groupBy] as const,
+  statement: (pid: string, date: string) =>
+    ['portfolios', pid, 'reports', 'statement', date] as const,
+  holdings: (pid: string, date: string) =>
+    ['portfolios', pid, 'reports', 'holdings', date] as const,
+  payments: (pid: string, start: string, end: string, groupBy: string) =>
+    ['portfolios', pid, 'reports', 'payments', start, end, groupBy] as const,
   paymentsBreakdown: (
+    pid: string,
     bucket: string | null,
     type: string,
     groupBy: string,
     start: string,
     end: string,
-  ) => ['reports', 'paymentsBreakdown', bucket, type, groupBy, start, end] as const,
-  assetAllocation: (date: string, taxonomyId: string) =>
-    ['reports', 'assetAllocation', date, taxonomyId] as const,
+  ) => ['portfolios', pid, 'reports', 'paymentsBreakdown', bucket, type, groupBy, start, end] as const,
+  assetAllocation: (pid: string, date: string, taxonomyId: string) =>
+    ['portfolios', pid, 'reports', 'assetAllocation', date, taxonomyId] as const,
 };
 
 export function useStatementOfAssets(date?: string, options?: { enabled?: boolean }) {
+  const api = useScopedApi();
   const today = new Date().toISOString().slice(0, 10);
   const d = date ?? today;
   return useQuery({
-    queryKey: reportsKeys.statement(d),
-    queryFn: () => apiFetch<StatementOfAssetsResponse>(`/api/reports/statement-of-assets?date=${d}`),
+    queryKey: reportsKeys.statement(api.portfolioId, d),
+    queryFn: () => api.fetch<StatementOfAssetsResponse>(`/api/reports/statement-of-assets?date=${d}`),
     placeholderData: keepPreviousData,
     enabled: options?.enabled ?? true,
   });
 }
 
 export function useHoldings(date?: string) {
+  const api = useScopedApi();
   const today = new Date().toISOString().slice(0, 10);
   const d = date ?? today;
   return useQuery({
-    queryKey: reportsKeys.holdings(d),
-    queryFn: () => apiFetch<HoldingsResponse>(`/api/reports/holdings?date=${d}`),
+    queryKey: reportsKeys.holdings(api.portfolioId, d),
+    queryFn: () => api.fetch<HoldingsResponse>(`/api/reports/holdings?date=${d}`),
   });
 }
 
 export function useAssetAllocation(date: string, taxonomyId: string | undefined) {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: reportsKeys.assetAllocation(date, taxonomyId ?? ''),
+    queryKey: reportsKeys.assetAllocation(api.portfolioId, date, taxonomyId ?? ''),
     queryFn: () =>
-      apiFetch<AssetAllocationResponse>(
+      api.fetch<AssetAllocationResponse>(
         `/api/reports/holdings?date=${date}&taxonomy=${taxonomyId}`,
       ),
     enabled: !!taxonomyId,
@@ -53,12 +59,13 @@ export function useAssetAllocation(date: string, taxonomyId: string | undefined)
 }
 
 export function usePayments(groupBy: string) {
+  const api = useScopedApi();
   const { periodStart, periodEnd } = useReportingPeriod();
   return useQuery({
-    queryKey: reportsKeys.payments(periodStart, periodEnd, groupBy),
+    queryKey: reportsKeys.payments(api.portfolioId, periodStart, periodEnd, groupBy),
     queryFn: () =>
-      apiFetch<PaymentsResponse>(
-        `/api/reports/payments?periodStart=${periodStart}&periodEnd=${periodEnd}&groupBy=${groupBy}`
+      api.fetch<PaymentsResponse>(
+        `/api/reports/payments?periodStart=${periodStart}&periodEnd=${periodEnd}&groupBy=${groupBy}`,
       ),
     placeholderData: keepPreviousData,
   });
@@ -69,12 +76,13 @@ export function usePaymentsBreakdown(
   type: 'DIVIDEND' | 'INTEREST',
   groupBy: 'month' | 'quarter' | 'year',
 ) {
+  const api = useScopedApi();
   const { periodStart, periodEnd } = useReportingPeriod();
   return useQuery({
-    queryKey: reportsKeys.paymentsBreakdown(bucket, type, groupBy, periodStart, periodEnd),
+    queryKey: reportsKeys.paymentsBreakdown(api.portfolioId, bucket, type, groupBy, periodStart, periodEnd),
     queryFn: () => {
       if (!bucket) throw new Error('bucket is required');
-      return apiFetch<PaymentBreakdownResponse>(
+      return api.fetch<PaymentBreakdownResponse>(
         `/api/reports/payments/breakdown?bucket=${encodeURIComponent(bucket)}&type=${type}&groupBy=${groupBy}&periodStart=${periodStart}&periodEnd=${periodEnd}`,
       );
     },

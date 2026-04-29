@@ -1,11 +1,11 @@
 import { Router, type RequestHandler, type Router as RouterType } from 'express';
-import type BetterSqlite3 from 'better-sqlite3';
 import { convertPriceFromDb } from '../services/unit-conversion';
+import { getSqlite } from '../helpers/request';
 
 export const debugRouter: RouterType = Router();
 
 debugRouter.get('/db-sample', (async (req, res) => {
-  const sqlite = req.app.locals.sqlite as BetterSqlite3.Database;
+  const sqlite = getSqlite(req);
 
   const xacts = sqlite
     .prepare(`SELECT uuid, type, date, currency, amount, shares FROM xact LIMIT 5`)

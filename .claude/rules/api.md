@@ -13,3 +13,18 @@ globs: packages/api/**
 - For transaction and account routing rules see `.claude/rules/double-entry.md`.
 - For market value and latest_price injection rules see `.claude/rules/latest-price.md`.
 - For DB schema conventions see `.claude/rules/db-schema.md`.
+- For CSV upload boundary conventions (error codes, multer wrapping, Step-1 sniff) see `.claude/rules/csv-import.md`.
+- For portfolio creation, the M3 fresh-portfolio dialog, the legacy N=0 setup-redirect endpoint, and the wire-contract rename `targetSecuritiesAccountId` see `.claude/rules/portfolio-creation.md`.
+
+## Portfolio-scoped state (ADR-016)
+
+Portfolio data flows only through function parameters (`sqlite`, `req`) and
+per-request scopes. **No module-scope mutable state may hold portfolio
+data.** The sanctioned patterns are: function parameters (default), a `Map`
+attached to `req` for intra-request memoization, or
+`PortfolioCache<T>` (typed `WeakMap<Database, T>` in
+`packages/api/src/helpers/portfolio-cache.ts`) for profiling-justified
+cross-request caches. Enforced at commit-time by the
+`quovibe/no-portfolio-scope-module-state` ESLint rule and at merge-time
+by `packages/api/src/__tests__/cross-portfolio-isolation.test.ts`. See
+ADR-016 for rationale.

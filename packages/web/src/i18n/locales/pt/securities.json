@@ -13,6 +13,8 @@
     "edit": "Editar",
     "updatePrices": "Atualizar todos os preços",
     "updating": "A atualizar…",
+    "refreshQuote": "Atualizar cotação",
+    "refreshing": "A atualizar…",
     "addInstrument": "+ Adicionar instrumento",
     "delete": "Eliminar"
   },
@@ -144,6 +146,9 @@
     "performance": "Desempenho",
     "priceHistory": "Histórico de preços",
     "transactions": "Transações",
+    "taxonomies": "Taxonomias",
+    "notClassified": "Ainda não classificado.",
+    "classify": "Classificar →",
     "noTransactions": "Sem transações para este instrumento",
     "noPrices": "Sem histórico de preços disponível",
     "configureFeed": "Configurar feed de preços →",

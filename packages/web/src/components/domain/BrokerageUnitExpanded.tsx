@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TrendingUp } from 'lucide-react';
 
@@ -14,6 +14,7 @@ export function BrokerageUnitExpanded({ unit }: BrokerageUnitExpandedProps) {
   const { t } = useTranslation('accounts');
   const { isPrivate } = usePrivacy();
   const location = useLocation();
+  const { portfolioId } = useParams<{ portfolioId: string }>();
   const periodSearch = location.search;
 
   const { portfolio, deposit } = unit;
@@ -62,7 +63,7 @@ export function BrokerageUnitExpanded({ unit }: BrokerageUnitExpandedProps) {
       {/* Navigation links */}
       <div className="flex gap-2">
         <Link
-          to={`/investments${periodSearch ? periodSearch + '&' : '?'}account=${portfolio.id}`}
+          to={`/p/${portfolioId}/investments${periodSearch ? periodSearch + '&' : '?'}account=${portfolio.id}`}
           onClick={(e) => e.stopPropagation()}
           className="flex-1 flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-lg border border-border transition-colors"
         >
@@ -70,7 +71,7 @@ export function BrokerageUnitExpanded({ unit }: BrokerageUnitExpandedProps) {
           {t('expanded.viewHoldings')} →
         </Link>
         <Link
-          to={`/accounts/${portfolio.id}${periodSearch}`}
+          to={`/p/${portfolioId}/accounts/${portfolio.id}${periodSearch}`}
           onClick={(e) => e.stopPropagation()}
           className="flex-1 flex items-center justify-center py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-lg border border-border transition-colors"
         >

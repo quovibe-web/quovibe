@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiFetch } from './fetch';
+import { useScopedApi } from './use-scoped-api';
 import type { AttributeTypeItem } from './types';
 
 export function useAttributeTypes() {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: ['attribute-types', 'security'] as const,
-    queryFn: () => apiFetch<AttributeTypeItem[]>('/api/attribute-types'),
+    queryKey: ['portfolios', api.portfolioId, 'attribute-types', 'security'] as const,
+    queryFn: () => api.fetch<AttributeTypeItem[]>('/api/attribute-types'),
     staleTime: 10 * 60 * 1000, // attribute types rarely change
   });
 }

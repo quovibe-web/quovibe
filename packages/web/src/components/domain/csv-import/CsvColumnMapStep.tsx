@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { useAccounts } from '@/api/use-accounts';
+import { useSecuritiesAccounts } from '@/api/use-securities-accounts';
+import { usePortfolio } from '@/context/PortfolioContext';
 import { tradeColumnFields, requiredTradeColumns } from '@quovibe/shared';
 import type { WizardState } from '@/pages/CsvImportPage';
 
@@ -19,57 +20,34 @@ interface Props {
 export function CsvColumnMapStep({ state, onUpdate, onBack, onNext }: Props) {
   const { t } = useTranslation('csv-import');
   const { data: accounts } = useAccounts();
+  const portfolio = usePortfolio();
+  // BUG-98: Step 2's deposit hint used to look up `accounts.find(a => a.id ===
+  // portfolio.id)` — comparing an inner account.uuid to the outer metadata
+  // UUID, which never matches. Use the same securities-accounts hook Step 3
+  // uses for its N=1/N>1 logic so the hint stays consistent with what the
+  // import actually targets, then follow referenceAccountId to the deposit.
+  const secAccounts = useSecuritiesAccounts(portfolio.id);
 
   const headers = state.parseResult?.headers ?? [];
 
-  const portfolios = useMemo(
-    () => (accounts ?? []).filter((a) => a.type === 'portfolio' && !a.isRetired),
-    [accounts],
-  );
-
   const depositName = useMemo(() => {
-    if (!state.targetPortfolioId || !accounts) return null;
-    const portfolio = accounts.find((a) => a.id === state.targetPortfolioId);
-    if (!portfolio?.referenceAccountId) return null;
-    const deposit = accounts.find((a) => a.id === portfolio.referenceAccountId);
-    return deposit?.name ?? null;
-  }, [state.targetPortfolioId, accounts]);
+    if (!accounts || !secAccounts.data) return null;
+    // Prefer the user's explicit pick; fall back to N=1 auto-pick if the pick
+    // is stale (not found in current list) or absent.
+    const pick = state.targetSecuritiesAccountId
+      ? secAccounts.data.find((a) => a.id === state.targetSecuritiesAccountId)
+      : undefined;
+    const selectedSec = pick ?? (secAccounts.data.length === 1 ? secAccounts.data[0] : null);
+    if (!selectedSec?.referenceAccountId) return null;
+    return accounts.find((a) => a.id === selectedSec.referenceAccountId)?.name ?? null;
+  }, [accounts, secAccounts.data, state.targetSecuritiesAccountId]);
 
   const requiredSet = new Set<string>(requiredTradeColumns);
 
-  const allRequiredMapped =
-    requiredTradeColumns.every((f) => state.columnMapping[f] != null) &&
-    state.targetPortfolioId !== '';
+  const allRequiredMapped = requiredTradeColumns.every((f) => state.columnMapping[f] != null);
 
   return (
     <div className="space-y-6">
-      {/* Portfolio selector */}
-      <Card>
-        <CardContent className="pt-6 space-y-2">
-          <Label>{t('columns.portfolio')} *</Label>
-          <Select
-            value={state.targetPortfolioId}
-            onValueChange={(v) => onUpdate({ targetPortfolioId: v })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={t('columns.selectPortfolio')} />
-            </SelectTrigger>
-            <SelectContent>
-              {portfolios.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {depositName && (
-            <p className="text-xs text-muted-foreground">
-              {t('columns.depositHint', { name: depositName })}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Column mapping */}
       <Card>
         <CardHeader>
@@ -77,6 +55,11 @@ export function CsvColumnMapStep({ state, onUpdate, onBack, onNext }: Props) {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4">{t('columns.description')}</p>
+          {depositName && (
+            <p className="text-xs text-muted-foreground mb-4">
+              {t('columns.depositHint', { name: depositName })}
+            </p>
+          )}
           <div className="space-y-3">
             {headers.map((header, colIndex) => (
               <div key={colIndex} className="flex items-center gap-4">

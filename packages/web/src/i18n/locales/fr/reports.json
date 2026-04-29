@@ -109,6 +109,7 @@
   },
   "assetAllocation": {
     "title": "Taxonomies",
+    "subtitle": "Allocation and rebalancing by taxonomy",
     "noTaxonomies": "Aucune taxonomie définie. Importez un portefeuille avec des données de taxonomie pour utiliser cette vue.",
     "date": "Date",
     "columns": {
@@ -127,7 +128,7 @@
     },
     "expandAll": "Tout développer",
     "collapseAll": "Tout réduire",
-    "subtitle": "Allocation and rebalancing by taxonomy"
+    "withoutClassification": "Sans Classification"
   },
   "taxonomySeries": {
     "title": "Séries de données",
@@ -144,6 +145,7 @@
     "dividends": "Dividendes",
     "fees": "Frais",
     "selectTaxonomy": "Taxonomie",
+    "categoryLabel": "Catégorie",
     "subtitle": "Performance trends by category"
   },
   "taxonomyNodePicker": {
@@ -219,6 +221,50 @@
     "editWeightDescription": "Définir le pourcentage de pondération cible",
     "assignCategoryDescription": "Sélectionnez une catégorie à attribuer",
     "deleteError": "Erreur lors de la suppression de la taxonomie",
-    "renameDescription": "Saisissez un nouveau nom pour cette taxonomie"
+    "renameDescription": "Saisissez un nouveau nom pour cette taxonomie",
+    "emptyCategories": {
+      "title": "Cette taxonomie n'a pas encore de catégories.",
+      "cta": "Ajouter la première catégorie"
+    },
+    "resetTargets": {
+      "button": "Réinitialiser les cibles",
+      "confirmTitle": "Réinitialiser les cibles aux valeurs enregistrées ?",
+      "confirmBody": "Remplace les cibles actuelles par les valeurs présentes au chargement de la vue.",
+      "confirmAction": "Réinitialiser"
+    },
+    "deleteCategoryDetailed": {
+      "title": "Supprimer « {{name}} » ?",
+      "assignments_one": "{{count}} affectation sera supprimée.",
+      "assignments_other": "{{count}} affectations seront supprimées.",
+      "subcategories_one": "{{count}} sous-catégorie sera déplacée vers le parent.",
+      "subcategories_other": "{{count}} sous-catégories seront déplacées vers le parent.",
+      "empty": "Cette catégorie est vide."
+    },
+    "renormalize": {
+      "checkbox": "Redistribuer proportionnellement les poids des éléments concernés",
+      "hint": "Les totaux existants restent aux valeurs d'avant suppression."
+    }
+  },
+  "taxonomyUi": {
+    "chartMode": {
+      "donut": "Donut",
+      "treemap": "Treemap",
+      "off": "Aucun"
+    },
+    "columns": {
+      "target": "Cible %",
+      "actual": "Réel %",
+      "delta": "Δ",
+      "split": "Répartition"
+    },
+    "withoutClassification": {
+      "empty": "Tout classifié ✓"
+    },
+    "allocationSumWarning": "Les enfants totalisent {{sum}}%. Devraient totaliser 100%.",
+    "picker": {
+      "searchPlaceholder": "Rechercher des catégories...",
+      "noMatches": "Aucune catégorie ne correspond à \"{{query}}\"",
+      "breadcrumbSeparator": " › "
+    }
   }
 }

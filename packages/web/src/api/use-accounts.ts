@@ -1,40 +1,47 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { apiFetch } from './fetch';
+import { useScopedApi } from './use-scoped-api';
 import type { AccountListItem, TransactionListItem, AccountHoldingsResponse } from './types';
 
 export const accountsKeys = {
-  all: (includeRetired = false) => ['accounts', { includeRetired }] as const,
-  detail: (id: string) => ['accounts', id] as const,
-  transactions: (id: string) => ['accounts', id, 'transactions'] as const,
-  holdings: (id: string) => ['accounts', id, 'holdings'] as const,
+  prefix: (pid: string) => ['portfolios', pid, 'accounts'] as const,
+  all: (pid: string, includeRetired = false) =>
+    ['portfolios', pid, 'accounts', { includeRetired }] as const,
+  detail: (pid: string, id: string) =>
+    ['portfolios', pid, 'accounts', id] as const,
+  transactions: (pid: string, id: string) =>
+    ['portfolios', pid, 'accounts', id, 'transactions'] as const,
+  holdings: (pid: string, id: string) =>
+    ['portfolios', pid, 'accounts', id, 'holdings'] as const,
 };
 
 export function useAccounts(includeRetired = false) {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: accountsKeys.all(includeRetired),
+    queryKey: accountsKeys.all(api.portfolioId, includeRetired),
     queryFn: () =>
-      apiFetch<AccountListItem[]>(
-        `/api/accounts${includeRetired ? '?includeRetired=true' : ''}`
+      api.fetch<AccountListItem[]>(
+        `/api/accounts${includeRetired ? '?includeRetired=true' : ''}`,
       ),
     placeholderData: keepPreviousData,
   });
 }
 
 export function useAccountDetail(id: string) {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: accountsKeys.detail(id),
-    queryFn: () => apiFetch<AccountListItem>(`/api/accounts/${id}`),
+    queryKey: accountsKeys.detail(api.portfolioId, id),
+    queryFn: () => api.fetch<AccountListItem>(`/api/accounts/${id}`),
     enabled: !!id,
     placeholderData: keepPreviousData,
   });
 }
 
 export function useAccountTransactions(id: string, page = 1, limit = 25) {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: [...accountsKeys.transactions(id), page, limit],
+    queryKey: [...accountsKeys.transactions(api.portfolioId, id), page, limit],
     queryFn: () =>
-      apiFetch<{ data: TransactionListItem[]; page: number; limit: number; total: number }>(
+      api.fetch<{ data: TransactionListItem[]; page: number; limit: number; total: number }>(
         `/api/accounts/${id}/transactions?page=${page}&limit=${limit}`,
       ),
     enabled: !!id,
@@ -43,98 +50,126 @@ export function useAccountTransactions(id: string, page = 1, limit = 25) {
 }
 
 export function useCreateAccount() {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { name: string; type: string; currency?: string; referenceAccountId?: string }) =>
-      apiFetch<AccountListItem>('/api/accounts', { method: 'POST', body: JSON.stringify(data) }),
+      api.fetch<AccountListItem>('/api/accounts', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: accountsKeys.all() });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'accounts'] });
     },
   });
 }
 
 export function useDeleteAccount() {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      apiFetch<void>(`/api/accounts/${id}`, { method: 'DELETE' }),
-    onSuccess: (_data, id) => {
-      qc.invalidateQueries({ queryKey: accountsKeys.all() });
-      qc.invalidateQueries({ queryKey: accountsKeys.all(true) });
-      qc.invalidateQueries({ queryKey: accountsKeys.detail(id) });
+      api.fetch<void>(`/api/accounts/${id}`, { method: 'DELETE' }),
+    // BUG-63 Leg 2: without optimistic removal + removeQueries, the post-DELETE
+    // invalidateQueries on the accounts prefix also invalidates the deleted id's
+    // /holdings|/transactions queries (still mounted in AccountsHub's useQueries
+    // until the list refetch lands), which refetch against the just-deleted id
+    // and emit a 404 console.error. We strip the id from every list variant
+    // here so AccountsHub's `portfolios.map(p => holdings(p.id))` shrinks on the
+    // next render (unmounting the observer), then evict all child caches under
+    // the deleted id's prefix so they can't re-subscribe.
+    onMutate: async (id: string) => {
+      const pid = api.portfolioId;
+      await qc.cancelQueries({ queryKey: accountsKeys.prefix(pid) });
+      const snapshots = qc.getQueriesData<AccountListItem[]>({ queryKey: accountsKeys.prefix(pid) });
+      for (const [key, data] of snapshots) {
+        if (Array.isArray(data)) {
+          qc.setQueryData(key, data.filter((a) => a.id !== id));
+        }
+      }
+      qc.removeQueries({ queryKey: accountsKeys.detail(pid, id) });
+      return { snapshots };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.snapshots) {
+        for (const [key, data] of ctx.snapshots) {
+          qc.setQueryData(key, data);
+        }
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: accountsKeys.prefix(api.portfolioId) });
     },
   });
 }
 
 export function useDeactivateAccount() {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      apiFetch<AccountListItem>(`/api/accounts/${id}`, {
+      api.fetch<AccountListItem>(`/api/accounts/${id}`, {
         method: 'PUT',
         body: JSON.stringify({ isRetired: true }),
       }),
-    onSuccess: (_data, id) => {
-      qc.invalidateQueries({ queryKey: accountsKeys.all() });
-      qc.invalidateQueries({ queryKey: accountsKeys.all(true) });
-      qc.invalidateQueries({ queryKey: accountsKeys.detail(id) });
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'accounts'] });
     },
   });
 }
 
 export function useUpdateAccountLogo() {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, logoUrl }: { id: string; logoUrl: string | null }) =>
-      apiFetch(`/api/accounts/${id}/logo`, { method: 'PUT', body: JSON.stringify({ logoUrl }) }),
+      api.fetch(`/api/accounts/${id}/logo`, { method: 'PUT', body: JSON.stringify({ logoUrl }) }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['accounts'] });
-    },
-    onError: (err: Error) => {
-      console.error('[useUpdateAccountLogo] failed:', err.message);
-      toast.error(`Logo upload failed: ${err.message}`);
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'accounts'] });
     },
   });
 }
 
 export function useReactivateAccount() {
+  const api = useScopedApi();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      apiFetch<AccountListItem>(`/api/accounts/${id}`, {
+      api.fetch<AccountListItem>(`/api/accounts/${id}`, {
         method: 'PUT',
         body: JSON.stringify({ isRetired: false }),
       }),
-    onSuccess: (_data, id) => {
-      qc.invalidateQueries({ queryKey: accountsKeys.all() });
-      qc.invalidateQueries({ queryKey: accountsKeys.all(true) });
-      qc.invalidateQueries({ queryKey: accountsKeys.detail(id) });
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'accounts'] });
     },
   });
 }
 
 export function useAccountHoldings(accountId: string) {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: accountsKeys.holdings(accountId),
-    queryFn: () => apiFetch<AccountHoldingsResponse>(`/api/accounts/${accountId}/holdings`),
+    queryKey: accountsKeys.holdings(api.portfolioId, accountId),
+    queryFn: () => api.fetch<AccountHoldingsResponse>(`/api/accounts/${accountId}/holdings`),
     enabled: !!accountId,
     placeholderData: keepPreviousData,
   });
 }
 
 export function useUpdateAccount() {
+  const api = useScopedApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { name?: string } }) =>
-      apiFetch(`/api/accounts/${id}`, {
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { name?: string; referenceAccountId?: string; isRetired?: boolean };
+    }) =>
+      api.fetch<AccountListItem>(`/api/accounts/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: accountsKeys.all() });
-      queryClient.invalidateQueries({ queryKey: accountsKeys.all(true) });
-      queryClient.invalidateQueries({ queryKey: accountsKeys.detail(variables.id) });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'accounts'] });
     },
   });
 }

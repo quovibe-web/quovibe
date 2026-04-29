@@ -26,6 +26,8 @@ must be added here to pass the automated check.
 | `updateAssignment` | taxonomy_assignment | Verified |
 | `deleteAssignment` | taxonomy_assignment, taxonomy_assignment_data | Verified |
 | `reorderTaxonomy` | taxonomy_data | Verified |
+| `reorderCategory` | taxonomy_category | Verified (unit tests) |
+| `updateCategoryAllocationsBulk` | taxonomy_category | Verified |
 
 ## settings.service.ts
 
@@ -46,8 +48,14 @@ must be added here to pass the automated check.
 
 | Method | Tables written | Audit status |
 |--------|---------------|--------------|
-| `fetchExchangeRates` | exchange_rate (virtual table) | Verified |
-| `fetchAllExchangeRates` | exchange_rate (virtual table) | Verified (delegates to fetchExchangeRates) |
+| `fetchAllExchangeRates` | vf_exchange_rate | Verified (single ECB XML fetch covering every foreign currency, per-currency Yahoo fallback). Called by `fx-scheduler.service.ts` ticks. |
+| `fetchSinglePairOnDemand` | vf_exchange_rate | Verified (lazy-fill on `GET /api/p/:pid/prices/exchange-rates` cache miss; ECB cross-rate then Yahoo fallback). |
+
+## fx-scheduler.service.ts
+
+| Method | Tables written | Audit status |
+|--------|---------------|--------------|
+| `startFxScheduler` / `stopFxScheduler` | (none directly — schedules `fetchAllExchangeRates` ticks) | Verified (per-portfolio timer; cadence = next 17:00 Europe/Berlin or +6h cap; eager-fires `fetchAllExchangeRates` once on first start per portfolio per process — mirrors PP `StartupAddon.update`-then-`schedule` order; pool reopen skips eager via process-scope dedup Set; demo portfolios skipped; closure-local ownership guard against stop+restart races). |
 
 ## import.service.ts
 
@@ -67,6 +75,7 @@ must be added here to pass the automated check.
 
 | Method | Tables written | Audit status |
 |--------|---------------|--------------|
+| `createAccount` | account | Verified — moved from route handler to enforce service-layer rule (BUG-06) |
 | `updateAccountFields` | account | Verified — moved from route handler to enforce service-layer rule |
 | `deleteAccountById` | account_attr, taxonomy_assignment_data, taxonomy_assignment, account | Verified — moved from route handler |
 
@@ -87,3 +96,36 @@ must be added here to pass the automated check.
 | `updateSecurityTaxonomies` | taxonomy_assignment_data, taxonomy_assignment | Verified — moved from route handler |
 | `updateSecurityFeedConfig` | security, security_prop | Verified — moved from route handler |
 | `deleteSecurity` | security_attr, security_prop, taxonomy_assignment_data, taxonomy_assignment, price, latest_price, security_event, watchlist_security, security | Verified — moved from route handler |
+
+## portfolio-registry.ts
+
+Registry mutations operate on the `quovibe.settings.json` sidecar, not a DB table.
+They update the `portfolios[]` index and `app.defaultPortfolioId` pointer.
+
+| Method | Target | Audit status |
+|--------|--------|--------------|
+| `upsertPortfolioEntry` | sidecar portfolios[] | Verified (ADR-015 §3.14) |
+| `removePortfolioEntry` | sidecar portfolios[] + app.defaultPortfolioId fallback | Verified (ADR-015 §3.14) |
+
+## portfolio-manager.ts
+
+Orchestrates per-portfolio DB lifecycle (bootstrap, clone, rename, delete). All
+DB mutations are `applyBootstrap` + `vf_portfolio_meta` writes on newly created
+.db files; the sidecar is updated via portfolio-registry.
+
+| Method | Target | Audit status |
+|--------|--------|--------------|
+| `createPortfolio` | new portfolio-<uuid>.db (applyBootstrap + vf_portfolio_meta) + sidecar | Verified (ADR-015 §3.4a) |
+| `renamePortfolio` | vf_portfolio_meta (name) + sidecar entry | Verified (ADR-015 §3.4b) |
+| `deletePortfolio` | filesystem (portfolio .db + .bak.*) + sidecar | Verified (ADR-015 §3.4b) |
+
+## dashboard.service.ts
+
+Per-portfolio REST collection backed by `vf_dashboard`. All writes go through
+the per-portfolio pool handle, never the route handler.
+
+| Method | Tables written | Audit status |
+|--------|---------------|--------------|
+| `createDashboard` | vf_dashboard | Verified (ADR-015 §3.4c) |
+| `updateDashboard` | vf_dashboard | Verified (ADR-015 §3.4c) |
+| `deleteDashboard` | vf_dashboard | Verified (ADR-015 §3.4c) |

@@ -1,4 +1,12 @@
 {
+  "empty": {
+    "title": "Welcome to your new portfolio.",
+    "importHeader": "Import transactions",
+    "importCsv": "Import from CSV",
+    "addManually": "Add account / transaction manually",
+    "wantToSee": "Want to see the app in action first?",
+    "tryDemo": "Try the demo instead"
+  },
   "title": "Tableau de bord",
   "hero": {
     "portfolioValue": "Valeur du portefeuille",
@@ -25,6 +33,8 @@
   "dataSeriesMenuItem": "Séries de données...",
   "period": "Période...",
   "deleteWidget": "Supprimer",
+  "deleteWidgetConfirm": "Supprimer ce widget ?",
+  "deleteWidgetConfirmDesc": "Cela supprimera \"{{name}}\" de ce tableau de bord. Vous pouvez le rajouter depuis le catalogue de widgets.",
   "emptyDashboard": "Ce tableau de bord n'a pas encore de widgets.",
   "unknownWidget": "Type de widget \"{{type}}\" introuvable",
   "widgetCatalog": "Widget catalog",
@@ -32,7 +42,6 @@
     "searchPlaceholder": "Search widgets...",
     "all": "All",
     "performance": "Performance",
-    "reports": "Reports",
     "chart": "Charts",
     "risk": "Risk",
     "info": "Info",
@@ -117,7 +126,12 @@
       "noHoldings": "Aucune position dans cette période",
       "loadError": "Erreur lors du chargement des positions",
       "showMore_one": "+ {{count}} de plus",
-      "showMore_other": "+ {{count}} de plus"
+      "showMore_other": "+ {{count}} de plus",
+      "headers": {
+        "weight": "Poids",
+        "marketValue": "Valeur",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "Aucune donnée pour cette période",

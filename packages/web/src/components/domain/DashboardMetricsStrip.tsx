@@ -1,14 +1,13 @@
-import NumberFlow from '@number-flow/react';
 import { Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useCalculation } from '@/api/use-performance';
 import { usePrivacy } from '@/context/privacy-context';
+import { AccessibleNumberFlow } from '@/components/shared/AccessibleNumberFlow';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { MetricsStripSettings } from './MetricsStripSettings';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import i18n from '@/i18n';
 
 const DEFAULT_METRICS = ['ttwror', 'delta', 'irr', 'max-drawdown'];
 
@@ -143,10 +142,9 @@ export function DashboardMetricsStrip({ metricIds, onMetricIdsChange }: MetricsS
                 ) : resolved.format === 'currency' ? (
                   <CurrencyDisplay value={resolved.value} colorize className="text-lg font-semibold" />
                 ) : (
-                  <NumberFlow
+                  <AccessibleNumberFlow
                     className="muted-fraction"
                     value={resolved.value}
-                    locales={i18n.language}
                     format={{ style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }}
                   />
                 )}

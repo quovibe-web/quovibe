@@ -109,6 +109,7 @@
   },
   "assetAllocation": {
     "title": "Klassifizierungen",
+    "subtitle": "Allocation and rebalancing by taxonomy",
     "noTaxonomies": "Keine Taxonomien definiert. Importieren Sie ein Portfolio mit Taxonomiedaten, um diese Ansicht zu verwenden.",
     "date": "Datum",
     "columns": {
@@ -127,7 +128,7 @@
     },
     "expandAll": "Alle ausklappen",
     "collapseAll": "Alle einklappen",
-    "subtitle": "Allocation and rebalancing by taxonomy"
+    "withoutClassification": "Ohne Klassifizierung"
   },
   "taxonomySeries": {
     "title": "Datenreihen",
@@ -144,6 +145,7 @@
     "dividends": "Dividenden",
     "fees": "Gebühren",
     "selectTaxonomy": "Taxonomie",
+    "categoryLabel": "Kategorie",
     "subtitle": "Performance trends by category"
   },
   "taxonomyNodePicker": {
@@ -219,6 +221,50 @@
     "editWeightDescription": "Zielgewichtung in Prozent festlegen",
     "assignCategoryDescription": "Wählen Sie eine Kategorie zum Zuweisen",
     "deleteError": "Fehler beim Löschen der Klassifizierung",
-    "renameDescription": "Geben Sie einen neuen Namen für diese Klassifizierung ein"
+    "renameDescription": "Geben Sie einen neuen Namen für diese Klassifizierung ein",
+    "emptyCategories": {
+      "title": "Diese Klassifizierung hat noch keine Kategorien.",
+      "cta": "Erste Kategorie hinzufügen"
+    },
+    "resetTargets": {
+      "button": "Ziele zurücksetzen",
+      "confirmTitle": "Ziele auf gespeicherte Werte zurücksetzen?",
+      "confirmBody": "Ersetzt die aktuellen Ziele durch die Werte, die beim Laden der Ansicht vorhanden waren.",
+      "confirmAction": "Zurücksetzen"
+    },
+    "deleteCategoryDetailed": {
+      "title": "„{{name}}“ löschen?",
+      "assignments_one": "{{count}} Zuweisung wird entfernt.",
+      "assignments_other": "{{count}} Zuweisungen werden entfernt.",
+      "subcategories_one": "{{count}} Unterkategorie wird dem übergeordneten Element zugeordnet.",
+      "subcategories_other": "{{count}} Unterkategorien werden dem übergeordneten Element zugeordnet.",
+      "empty": "Diese Kategorie ist leer."
+    },
+    "renormalize": {
+      "checkbox": "Gewichte der betroffenen Elemente proportional neu verteilen",
+      "hint": "Bestehende Summen bleiben auf den Werten vor dem Löschen."
+    }
+  },
+  "taxonomyUi": {
+    "chartMode": {
+      "donut": "Donut",
+      "treemap": "Treemap",
+      "off": "Keine"
+    },
+    "columns": {
+      "target": "Ziel %",
+      "actual": "Ist %",
+      "delta": "Δ",
+      "split": "Aufteilung"
+    },
+    "withoutClassification": {
+      "empty": "Alles klassifiziert ✓"
+    },
+    "allocationSumWarning": "Unterelemente summieren zu {{sum}}%. Sollten 100% ergeben.",
+    "picker": {
+      "searchPlaceholder": "Kategorien suchen...",
+      "noMatches": "Keine Kategorie entspricht \"{{query}}\"",
+      "breadcrumbSeparator": " › "
+    }
   }
 }

@@ -1,22 +1,36 @@
+import { z } from 'zod';
 import { Router, type RequestHandler, type Router as RouterType } from 'express';
-import { reportingPeriodDefSchema, resolveReportingPeriod, investmentsViewSchema, chartConfigV2Schema, tableIdSchema, tableLayoutEntrySchema } from '@quovibe/shared';
+import { reportingPeriodDefSchema, resolveReportingPeriod, investmentsViewSchema, allocationViewSchema, chartConfigV2Schema, tableIdSchema, tableLayoutEntrySchema, preferencesSchema } from '@quovibe/shared';
 import { getSettings, updateSettings } from '../services/settings.service';
-import { getSqlite } from '../helpers/request';
 
 export const settingsRouter: RouterType = Router();
 
+// GET /api/settings — full sidecar payload for the user-level settings page.
+// Read-only; Zod validation not needed.
+settingsRouter.get('/', (_req, res) => {
+  const s = getSettings();
+  res.json({ preferences: s.preferences, app: s.app });
+});
+
+// PUT /api/settings/preferences — partial merge into the sidecar's preferences section.
+const putPreferencesSchema = preferencesSchema.removeDefault().partial();
+settingsRouter.put('/preferences', (req, res) => {
+  const parsed = putPreferencesSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'INVALID_PREFERENCES', details: parsed.error.format() });
+    return;
+  }
+  const updated = updateSettings({ preferences: parsed.data });
+  res.json(updated.preferences);
+});
+
 /** GET /api/settings/reporting-periods */
-const getReportingPeriods: RequestHandler = (req, res) => {
+const getReportingPeriods: RequestHandler = (_req, res) => {
   const { reportingPeriods } = getSettings();
 
-  // Resolve the portfolio's calendar from DB for trading-day fallback
-  const sqlite = getSqlite(req);
-  let globalCalendar = 'default';
-  try {
-    const row = sqlite.prepare('SELECT value FROM property WHERE name = ?')
-      .get('portfolio.calendar') as { value: string } | undefined;
-    if (row) globalCalendar = row.value;
-  } catch { /* use default */ }
+  // Per ADR-015 the settings router is not portfolio-scoped. Calendar lookup
+  // falls back to 'default'; period definitions may override via period.calendarId.
+  const globalCalendar = 'default';
 
   const today = new Date().toISOString().slice(0, 10);
   const resolved = reportingPeriods.map((period) => {
@@ -100,6 +114,23 @@ settingsRouter.put('/investments-view', (req, res) => {
   const body = investmentsViewSchema.removeDefault().partial().parse(req.body);
   const updated = updateSettings({ investmentsView: body });
   res.json(updated.investmentsView);
+});
+
+// GET /api/settings/allocation-view
+settingsRouter.get('/allocation-view', (_req, res) => {
+  const { allocationView } = getSettings();
+  res.json(allocationView ?? { chartMode: 'pie' });
+});
+
+// PUT /api/settings/allocation-view
+settingsRouter.put('/allocation-view', (req, res) => {
+  const parsed = allocationViewSchema.removeDefault().partial().safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'INVALID_ALLOCATION_VIEW', details: parsed.error.format() });
+    return;
+  }
+  const updated = updateSettings({ allocationView: parsed.data });
+  res.json(updated.allocationView);
 });
 
 // GET /api/settings/chart-config
@@ -208,3 +239,22 @@ settingsRouter.delete('/table-layouts/:tableId', (req, res) => {
   updateSettings({ tableLayouts: rest });
   res.json({ ok: true });
 });
+
+// PUT /api/settings/auto-fetch — toggle the prices auto-fetch app flag.
+// Body shape: { autoFetchPricesOnFirstOpen: boolean }; response echoes the same shape.
+function makeAppFlagPut<K extends 'autoFetchPricesOnFirstOpen'>(
+  key: K,
+): RequestHandler {
+  const schema = z.object({ [key]: z.boolean() } as Record<K, z.ZodBoolean>);
+  return (req, res) => {
+    const p = schema.safeParse(req.body);
+    if (!p.success) { res.status(400).json({ error: 'INVALID_INPUT' }); return; }
+    const current = getSettings();
+    const updated = updateSettings({
+      app: { ...current.app, [key]: (p.data as Record<K, boolean>)[key] },
+    });
+    res.json({ [key]: updated.app[key] });
+  };
+}
+
+settingsRouter.put('/auto-fetch', makeAppFlagPut('autoFetchPricesOnFirstOpen'));

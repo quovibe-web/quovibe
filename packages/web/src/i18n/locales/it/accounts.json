@@ -27,7 +27,8 @@
     "changeLogo": "Cambia logo",
     "retire": "Archivia conto",
     "reactivateAccount": "Riattiva conto",
-    "fetchLogo": "Recupera logo"
+    "fetchLogo": "Recupera logo",
+    "changeReferenceAccount": "Cambia conto di riferimento"
   },
   "menu": {
     "stockSplit": "Frazionamento Azionario…",
@@ -76,12 +77,17 @@
     "newDepositAccount": "Nuovo conto deposito",
     "depositAccountName": "Nome Conto Deposito",
     "depositNamePlaceholder": "es. Il Mio Conto Liquidità",
-    "depositCurrency": "Valuta"
+    "depositCurrency": "Valuta",
+    "changeReferenceAccountTitle": "Cambia conto deposito di riferimento",
+    "changeReferenceAccountDescription": "Scegli il conto liquidità predefinito per questo conto titoli. Sono elencati solo i conti in {{currency}}.",
+    "newDepositCurrencyNote": "Il nuovo conto deposito sarà creato in {{currency}}."
   },
   "toasts": {
     "depositCreated": "Conto deposito creato",
     "securitiesCreated": "Conto titoli creato",
-    "errorCreating": "Errore nella creazione del conto"
+    "errorCreating": "Errore nella creazione del conto",
+    "duplicateName": "Esiste già un conto con questo nome in questo portafoglio.",
+    "referenceUpdated": "Conto di riferimento aggiornato"
   },
   "clickToChangeLogo": "Clicca per cambiare logo",
   "hub": {

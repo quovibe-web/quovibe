@@ -80,3 +80,39 @@ export function detectDelimiter(headerLine: string): CsvDelimiter {
 
   return bestDelimiter;
 }
+
+/**
+ * Like parseNumber, but accepts a trailing K/M/B suffix (case-insensitive)
+ * and multiplies the parsed value by 1e3 / 1e6 / 1e9 respectively.
+ *
+ * INTENTIONAL CONSTRAINT: this helper is reserved for the price-flow
+ * `volume` column only. The trade flow MUST keep using `parseNumber`,
+ * because the same suffix in a `shares` or `amount` column would silently
+ * 1000× the cost basis.
+ */
+export function parseNumberWithSuffix(
+  raw: string,
+  decimalSeparator: '.' | ',',
+  thousandSeparator: '' | '.' | ',' | ' ',
+): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  let multiplier = 1; // native-ok
+  let body = trimmed;
+  const lastChar = body[body.length - 1]?.toLowerCase();
+  if (lastChar === 'k') {
+    multiplier = 1_000; // native-ok
+    body = body.slice(0, -1);
+  } else if (lastChar === 'm') {
+    multiplier = 1_000_000; // native-ok
+    body = body.slice(0, -1);
+  } else if (lastChar === 'b') {
+    multiplier = 1_000_000_000; // native-ok
+    body = body.slice(0, -1);
+  }
+
+  const base = parseNumber(body, decimalSeparator, thousandSeparator);
+  if (base == null) return null;
+  return base * multiplier; // native-ok — multiplier is exact integer
+}

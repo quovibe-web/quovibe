@@ -1,0 +1,92 @@
+{
+  "topbar": {
+    "status": "Local session",
+    "versionPrefix": "v"
+  },
+  "hero": {
+    "eyebrow": "Welcome",
+    "headlinePre": "Your portfolio, in ",
+    "headlineEmphasis": "focus",
+    "headlineSuffix": ".",
+    "lede": "Track holdings, returns, and cashflows with the rigour of institutional tools — fully offline, fully yours.",
+    "metrics": {
+      "offline": "Local · Offline",
+      "methods": "TTWROR · IRR · FIFO",
+      "ppCompatible": "Portfolio Performance compatible"
+    }
+  },
+  "cards": {
+    "fresh": {
+      "title": "Start fresh",
+      "body": "Create a brand-new empty portfolio and add transactions as you go.",
+      "cta": "Create portfolio",
+      "badge": "Recommended"
+    },
+    "demo": {
+      "title": "Try the demo",
+      "body": "Explore the app with a realistic sample portfolio you can edit freely.",
+      "cta": "Open demo",
+      "badge": "Sample data"
+    },
+    "import": {
+      "title": "Import existing data",
+      "body": "Bring data in from Portfolio Performance or restore a quovibe backup.",
+      "cta": "Choose a source",
+      "badge": "PP XML · .db"
+    }
+  },
+  "footer": {
+    "copyright": "© {{year}} quovibe",
+    "docs": "Docs",
+    "shortcutsLabel": "Shortcuts",
+    "shortcutsKey": "⌘K"
+  },
+  "errors": {
+    "demoFailed": "Could not open the demo: {{msg}}",
+    "createFailed": "Could not create the portfolio: {{msg}}",
+    "duplicateName": "A portfolio with this name already exists."
+  },
+  "recent": {
+    "heading": "Continue with a portfolio",
+    "lastOpened": "Last opened {{date}}",
+    "neverOpened": "Created {{date}}",
+    "demoTag": "Demo"
+  },
+  "hub": {
+    "title": "Import existing data",
+    "subtitle": "Bring data in from an external source. A new portfolio will be created for you.",
+    "backToWelcome": "Back to welcome",
+    "fileChangeHint": "click to change",
+    "sources": {
+      "ppXml": {
+        "title": "Portfolio Performance (XML)",
+        "body": "An XML export from the Portfolio Performance desktop app. Make sure ID attributes are included.",
+        "pickFile": "Drop XML file here or click to browse",
+        "submit": "Import and continue",
+        "nameOptional": "Portfolio name (optional — defaults to file name)"
+      },
+      "quovibeDb": {
+        "title": "Restore from quovibe backup",
+        "body": "Import a .db file previously exported from quovibe. Useful when migrating machines or recovering from backup.",
+        "pickFile": "Drop .db file here or click to browse",
+        "submit": "Restore and continue"
+      },
+      "csvHint": {
+        "title": "CSV import",
+        "body": "CSV import requires an existing portfolio. Start fresh first, then open Settings → Import CSV from inside your new portfolio."
+      }
+    },
+    "errors": {
+      "fileRequired": "Pick a file first.",
+      "importFailed": "Import failed: {{msg}}",
+      "invalidFile": "Not a valid XML export. Expected a .xml file from Portfolio Performance.",
+      "tooLarge": "File exceeds the upload size limit.",
+      "binary": "File appears to be binary or corrupted. Expected a plain-text XML export.",
+      "invalidXml": "The file is not valid XML. Re-export from Portfolio Performance and try again.",
+      "invalidFormat": "The XML is not a Portfolio Performance export (missing <client> root or ID attributes). Re-export with IDs enabled.",
+      "encrypted": "The file appears to be encrypted. Re-export from Portfolio Performance choosing XML format with ID attributes.",
+      "importInProgress": "Another import is already running. Wait for it to finish and try again.",
+      "conversionFailed": "Conversion failed. Your existing portfolios are untouched."
+    }
+  }
+}

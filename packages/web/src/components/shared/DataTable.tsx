@@ -46,7 +46,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useTableLayout, type TableLayoutDefaults } from '@/api/use-table-layout';
 import { usePrivacy } from '@/context/privacy-context';
-import { exportTableToCSV } from '@/lib/table-export';
+import { exportTableToCSV, exportRowsToCSV } from '@/lib/table-export';
 import {
   Tooltip,
   TooltipContent,
@@ -97,6 +97,13 @@ interface DataTableProps<TData, TValue> {
   // --- Export ---
   /** Shows CSV export button */
   enableExport?: boolean;
+  /**
+   * When provided, the export button awaits this fetcher (e.g. server-paginated
+   * tables fetching the full filtered dataset) and builds the CSV from its
+   * rows instead of the in-memory `data` slice. Column visibility/order/headers
+   * still come from the table state. (BUG-60)
+   */
+  exportFetcher?: () => Promise<TData[]>;
 
   // --- Virtualization ---
   /** Enable row virtualization for large datasets.
@@ -371,6 +378,7 @@ export function DataTable<TData, TValue>({
   enableColumnVisibility: enableColVis = false,
   columnVisibilityGroups,
   enableExport = false,
+  exportFetcher,
   enableVirtualization = false,
   columnVisibility: extColumnVisibility,
   onColumnVisibilityChange: extOnColumnVisibilityChange,
@@ -381,6 +389,9 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const { t } = useTranslation('common');
   const { isPrivate } = usePrivacy();
+
+  // --- Export pending (used to disable button while exportFetcher resolves) ---
+  const [isExporting, setIsExporting] = useState(false);
 
   // --- Responsive viewport detection ---
   const [isMobile, setIsMobile] = useState(false);
@@ -1085,8 +1096,23 @@ export function DataTable<TData, TValue>({
                     variant="outline"
                     size="sm"
                     className="gap-2"
-                    disabled={isPrivate}
-                    onClick={() => exportTableToCSV(table, tableId ?? 'export')}
+                    disabled={isPrivate || isExporting}
+                    onClick={async () => {
+                      if (!exportFetcher) {
+                        exportTableToCSV(table, tableId ?? 'export');
+                        return;
+                      }
+                      setIsExporting(true);
+                      try {
+                        const rows = await exportFetcher();
+                        exportRowsToCSV(table, rows, tableId ?? 'export');
+                      } catch {
+                        // Global error toast (via QueryClient) handles user-facing
+                        // surface; here we just release the disabled state.
+                      } finally {
+                        setIsExporting(false);
+                      }
+                    }}
                   >
                     <Download className="h-4 w-4" />
                     {t('exportCsv')}

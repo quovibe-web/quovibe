@@ -30,6 +30,7 @@ export function ChartExportButton({ chartRef, filename }: ChartExportButtonProps
       const dataUrl = await toPng(chartRef.current, {
         pixelRatio: 2,
         backgroundColor: `hsl(${bgColor})`,
+        skipFonts: true,
         filter: (node) => {
           // Hide Lightweight Charts native tooltip overlays during export (can cause artifacts)
           if (node instanceof HTMLElement && node.className && typeof node.className === 'string' && node.className.startsWith('tv-lightweight-charts')) {

@@ -1,4 +1,12 @@
 {
+  "empty": {
+    "title": "Welcome to your new portfolio.",
+    "importHeader": "Import transactions",
+    "importCsv": "Import from CSV",
+    "addManually": "Add account / transaction manually",
+    "wantToSee": "Want to see the app in action first?",
+    "tryDemo": "Try the demo instead"
+  },
   "title": "Panel",
   "hero": {
     "portfolioValue": "Wartość portfela",
@@ -25,6 +33,8 @@
   "dataSeriesMenuItem": "Serie danych...",
   "period": "Okres...",
   "deleteWidget": "Usuń",
+  "deleteWidgetConfirm": "Usunąć ten widget?",
+  "deleteWidgetConfirmDesc": "Spowoduje to usunięcie \"{{name}}\" z tego panelu. Możesz dodać go ponownie z katalogu widgetów.",
   "emptyDashboard": "Ten panel nie ma jeszcze widgetów.",
   "unknownWidget": "Typ widgetu \"{{type}}\" nie znaleziony",
   "widgetCatalog": "Widget catalog",
@@ -32,7 +42,6 @@
     "searchPlaceholder": "Search widgets...",
     "all": "All",
     "performance": "Performance",
-    "reports": "Reports",
     "chart": "Charts",
     "risk": "Risk",
     "info": "Info",
@@ -121,7 +130,12 @@
       "showMore_one": "+ {{count}} więcej",
       "showMore_few": "+ {{count}} więcej",
       "showMore_many": "+ {{count}} więcej",
-      "showMore_other": "+ {{count}} więcej"
+      "showMore_other": "+ {{count}} więcej",
+      "headers": {
+        "weight": "Waga",
+        "marketValue": "Wartość",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "Brak danych dla tego okresu",

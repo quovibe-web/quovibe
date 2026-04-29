@@ -13,6 +13,8 @@
     "edit": "Bearbeiten",
     "updatePrices": "Alle Kurse aktualisieren",
     "updating": "Aktualisieren…",
+    "refreshQuote": "Kurs aktualisieren",
+    "refreshing": "Aktualisieren…",
     "addInstrument": "+ Instrument hinzufügen",
     "delete": "Löschen"
   },
@@ -144,6 +146,9 @@
     "performance": "Performance",
     "priceHistory": "Kursverlauf",
     "transactions": "Buchungen",
+    "taxonomies": "Taxonomien",
+    "notClassified": "Noch nicht klassifiziert.",
+    "classify": "Klassifizieren →",
     "noTransactions": "Keine Buchungen für dieses Wertpapier",
     "noPrices": "Kein Kursverlauf verfügbar",
     "configureFeed": "Preisfeed konfigurieren →",

@@ -1,11 +1,12 @@
 import { z } from 'zod';
+import { nonBlankString } from './utils';
 
 export const createWatchlistSchema = z.object({
-  name: z.string().min(1).max(100),
+  name: nonBlankString(100),
 });
 
 export const updateWatchlistSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
+  name: nonBlankString(100).optional(),
 });
 
 export const addWatchlistSecuritySchema = z.object({

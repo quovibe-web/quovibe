@@ -1,0 +1,53 @@
+{
+  "current": "Current portfolio",
+  "real": "Real",
+  "builtInPlayground": "Built-in playground",
+  "createdOn": "Created {{date}}",
+  "updates": "Updates",
+  "updatePrices": "Update all prices",
+  "export": "Export this portfolio",
+  "demoExplainer": "A persistent sandbox you can freely add to, edit, and delete from. You can also export your modified demo — the download becomes a regular portfolio on re-import, leaving the built-in demo fixture untouched. The demo itself can't be renamed or deleted — it's a built-in fixture, not a user artifact.",
+  "rename": {
+    "cta": "Rename",
+    "title": "Rename portfolio",
+    "cancel": "Cancel",
+    "save": "Save",
+    "success": "Portfolio renamed.",
+    "error": "Rename failed: {{msg}}"
+  },
+  "delete": {
+    "cta": "Delete this portfolio",
+    "title": "Delete \"{{name}}\"?",
+    "body": "This will permanently remove all accounts, transactions, and data for this portfolio. This cannot be undone.",
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "success": "Portfolio deleted.",
+    "error": "Delete failed: {{msg}}"
+  },
+  "data": {
+    "sections": {
+      "accounting": "Buchhaltung",
+      "priceFeeds": "Kursfeeds"
+    },
+    "fields": {
+      "costMethod": "Kostenmethode",
+      "costMethodDescription": "Wie die Anschaffungskosten von Wertpapieren berechnet werden.",
+      "costMethodFifo": "FIFO",
+      "costMethodMovingAverage": "Gleitender Durchschnitt",
+      "currency": "Basiswährung",
+      "currencyDescription": "Alle Werte werden für Portfoliosummen in diese Währung umgerechnet.",
+      "calendar": "Kalender",
+      "calendarDescription": "Handelskalender, der die Markt-Feiertage bestimmt. Wähle \"Standard (global)\", um den Standardkalender des Systems zu verwenden.",
+      "calendarDefault": "Standard (global)",
+      "calendarUnknown": "unbekannt",
+      "alphaVantageApiKey": "Alpha-Vantage-API-Schlüssel",
+      "alphaVantageApiKeyDescription": "Erforderlich, um Kurse von Alpha Vantage abzurufen.",
+      "alphaVantageApiKeyConfigured": "Ein Schlüssel ist konfiguriert. Gib einen neuen Wert ein, um ihn zu ersetzen.",
+      "alphaVantageApiKeyPlaceholder": "API-Schlüssel eingeben…",
+      "alphaVantageApiKeyShow": "API-Schlüssel anzeigen",
+      "alphaVantageApiKeyHide": "API-Schlüssel verbergen",
+      "alphaVantageRateLimit": "Alpha-Vantage-Ratenlimit",
+      "alphaVantageRateLimitDescription": "Anrufe pro Minute, die dein Alpha-Vantage-Plan zulässt."
+    }
+  }
+}

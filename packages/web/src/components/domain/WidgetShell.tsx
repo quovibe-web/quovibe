@@ -15,6 +15,16 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Check } from 'lucide-react';
 import type { WidgetDefBase } from '@quovibe/shared';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
@@ -25,7 +35,7 @@ import { WatchlistWidgetConfigDialog } from './WatchlistWidgetConfigDialog';
 import { useWidgetConfig } from '@/context/widget-config-context';
 import { useResolveSeriesLabel } from '@/api/use-performance';
 import { useWidgetKpiMeta } from '@/hooks/use-widget-kpi-meta';
-import { useDashboardConfig, useSaveDashboard } from '@/api/use-dashboard-config';
+import { useDashboard, useUpdateDashboard, type DashboardItem } from '@/api/use-dashboards';
 import { formatPeriodShortLabel } from '@/lib/period-utils';
 
 /* ── Toolbar portal context ──────────────────────────────────────── */
@@ -89,8 +99,20 @@ export function WidgetShell({
   const [dataSeriesOpen, setDataSeriesOpen] = useState(false);
   const [periodDialogOpen, setPeriodDialogOpen] = useState(false);
   const [optionsDialogOpen, setOptionsDialogOpen] = useState(false);
-  const { data: dashConfig } = useDashboardConfig();
-  const saveDashboard = useSaveDashboard();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const { data: dashboard } = useDashboard(dashboardId);
+  const updateDashboard = useUpdateDashboard();
+
+  /** Patch this widget's config on the current dashboard. */
+  function patchWidgetConfig(configUpdater: (cfg: Record<string, unknown>) => Record<string, unknown>) {
+    if (!dashboard) return;
+    const widgets = (dashboard.widgets as DashboardItem['widgets']).map((raw) => {
+      const w = raw as { id: string; config?: Record<string, unknown> };
+      if (w.id !== widgetId) return raw;
+      return { ...w, config: configUpdater(w.config ?? {}) };
+    });
+    updateDashboard.mutate({ id: dashboardId, input: { widgets } });
+  }
   const [editValue, setEditValue] = useState(title);
   const inputRef = useRef<HTMLInputElement>(null);
   const [toolbarEl, setToolbarEl] = useState<HTMLElement | null>(null);
@@ -116,21 +138,7 @@ export function WidgetShell({
 
   function clearPeriodOverride() {
     setPeriodOverride(null);
-    if (!dashConfig) return;
-    const updatedDashboards = dashConfig.dashboards.map((dash) => {
-      if (dash.id !== dashboardId) return dash;
-      return {
-        ...dash,
-        widgets: dash.widgets.map((w) => {
-          if (w.id !== widgetId) return w;
-          return { ...w, config: { ...w.config, periodOverride: null } };
-        }),
-      };
-    });
-    saveDashboard.mutate({
-      dashboards: updatedDashboards,
-      activeDashboard: dashConfig.activeDashboard,
-    });
+    patchWidgetConfig((cfg) => ({ ...cfg, periodOverride: null }));
   }
 
   function commitEdit() {
@@ -277,7 +285,7 @@ export function WidgetShell({
                   </DropdownMenuSub>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+                <DropdownMenuItem variant="destructive" onSelect={() => setDeleteConfirmOpen(true)}>
                   {t('deleteWidget')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -310,21 +318,7 @@ export function WidgetShell({
           onSelect={(watchlistId) => {
             const newOptions = { ...options, watchlistId };
             setOptions(newOptions);
-            if (!dashConfig) return;
-            const updatedDashboards = dashConfig.dashboards.map((dash) => {
-              if (dash.id !== dashboardId) return dash;
-              return {
-                ...dash,
-                widgets: dash.widgets.map((w) => {
-                  if (w.id !== widgetId) return w;
-                  return { ...w, config: { ...w.config, options: newOptions } };
-                }),
-              };
-            });
-            saveDashboard.mutate({
-              dashboards: updatedDashboards,
-              activeDashboard: dashConfig.activeDashboard,
-            });
+            patchWidgetConfig((cfg) => ({ ...cfg, options: newOptions }));
           }}
         />
       ) : (
@@ -335,24 +329,26 @@ export function WidgetShell({
           onSelect={(securityId) => {
             const newOptions = { ...options, benchmarkSecurityId: securityId };
             setOptions(newOptions);
-            if (!dashConfig) return;
-            const updatedDashboards = dashConfig.dashboards.map((dash) => {
-              if (dash.id !== dashboardId) return dash;
-              return {
-                ...dash,
-                widgets: dash.widgets.map((w) => {
-                  if (w.id !== widgetId) return w;
-                  return { ...w, config: { ...w.config, options: newOptions } };
-                }),
-              };
-            });
-            saveDashboard.mutate({
-              dashboards: updatedDashboards,
-              activeDashboard: dashConfig.activeDashboard,
-            });
+            patchWidgetConfig((cfg) => ({ ...cfg, options: newOptions }));
           }}
         />
       )}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('deleteWidgetConfirm')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('deleteWidgetConfirmDesc', { name: title })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('cancel', { ns: 'common' })}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={onDelete}>
+              {t('deleteWidget')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

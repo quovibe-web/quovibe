@@ -109,6 +109,7 @@
   },
   "assetAllocation": {
     "title": "Taxonomías",
+    "subtitle": "Allocation and rebalancing by taxonomy",
     "noTaxonomies": "No hay taxonomías definidas. Importe una cartera con datos de taxonomía para usar esta vista.",
     "date": "Fecha",
     "columns": {
@@ -127,7 +128,7 @@
     },
     "expandAll": "Expandir todo",
     "collapseAll": "Contraer todo",
-    "subtitle": "Allocation and rebalancing by taxonomy"
+    "withoutClassification": "Sin Clasificación"
   },
   "taxonomySeries": {
     "title": "Series de datos",
@@ -144,6 +145,7 @@
     "dividends": "Dividendos",
     "fees": "Comisiones",
     "selectTaxonomy": "Taxonomía",
+    "categoryLabel": "Categoría",
     "subtitle": "Performance trends by category"
   },
   "taxonomyNodePicker": {
@@ -219,6 +221,50 @@
     "editWeightDescription": "Establezca el porcentaje de peso objetivo",
     "assignCategoryDescription": "Seleccione una categoría para asignar",
     "deleteError": "Error al eliminar la taxonomía",
-    "renameDescription": "Introduzca un nuevo nombre para esta taxonomía"
+    "renameDescription": "Introduzca un nuevo nombre para esta taxonomía",
+    "emptyCategories": {
+      "title": "Esta taxonomía aún no tiene categorías.",
+      "cta": "Añadir primera categoría"
+    },
+    "resetTargets": {
+      "button": "Restablecer objetivos",
+      "confirmTitle": "¿Restablecer los objetivos a los valores guardados?",
+      "confirmBody": "Reemplaza los objetivos actuales con los valores existentes al cargar la vista.",
+      "confirmAction": "Restablecer"
+    },
+    "deleteCategoryDetailed": {
+      "title": "¿Eliminar \"{{name}}\"?",
+      "assignments_one": "Se eliminará {{count}} asignación.",
+      "assignments_other": "Se eliminarán {{count}} asignaciones.",
+      "subcategories_one": "Se moverá {{count}} subcategoría al padre.",
+      "subcategories_other": "Se moverán {{count}} subcategorías al padre.",
+      "empty": "Esta categoría está vacía."
+    },
+    "renormalize": {
+      "checkbox": "Redistribuir proporcionalmente los pesos de los elementos afectados",
+      "hint": "Los totales existentes se mantienen en los valores previos a la eliminación."
+    }
+  },
+  "taxonomyUi": {
+    "chartMode": {
+      "donut": "Donut",
+      "treemap": "Mapa de árbol",
+      "off": "Ninguno"
+    },
+    "columns": {
+      "target": "Objetivo %",
+      "actual": "Real %",
+      "delta": "Δ",
+      "split": "Desglose"
+    },
+    "withoutClassification": {
+      "empty": "Todo clasificado ✓"
+    },
+    "allocationSumWarning": "Los elementos secundarios suman {{sum}}%. Deberían sumar 100%.",
+    "picker": {
+      "searchPlaceholder": "Buscar categorías...",
+      "noMatches": "Ninguna categoría coincide con \"{{query}}\"",
+      "breadcrumbSeparator": " › "
+    }
   }
 }

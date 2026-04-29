@@ -76,8 +76,34 @@
     "switchPalette": "Switch to default palette",
     "switchColorblindPalette": "Switch to colorblind-safe palette",
     "year": "Year",
-    "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    "monthsFull": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    "months": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ],
+    "monthsFull": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ],
     "noData": "No data available.",
     "yearTotal": "{{year}} total:"
   },
@@ -101,7 +127,8 @@
       "nonZeroOnly": "Value > 0"
     },
     "expandAll": "Expand all",
-    "collapseAll": "Collapse all"
+    "collapseAll": "Collapse all",
+    "withoutClassification": "Without Classification"
   },
   "taxonomySeries": {
     "title": "Data Series",
@@ -118,7 +145,8 @@
     "gain": "Gain",
     "dividends": "Dividends",
     "fees": "Fees",
-    "selectTaxonomy": "Taxonomy"
+    "selectTaxonomy": "Taxonomy",
+    "categoryLabel": "Category"
   },
   "taxonomyNodePicker": {
     "loading": "Loading…",
@@ -193,6 +221,50 @@
     "editWeightDescription": "Set the target weight percentage",
     "assignCategoryDescription": "Select a category to assign",
     "deleteError": "Error deleting taxonomy",
-    "renameDescription": "Enter a new name for this taxonomy"
+    "renameDescription": "Enter a new name for this taxonomy",
+    "emptyCategories": {
+      "title": "This taxonomy has no categories yet.",
+      "cta": "Add your first category"
+    },
+    "resetTargets": {
+      "button": "Reset targets",
+      "confirmTitle": "Reset targets to saved values?",
+      "confirmBody": "This replaces the current targets with the values that existed when this view was loaded.",
+      "confirmAction": "Reset"
+    },
+    "deleteCategoryDetailed": {
+      "title": "Delete \"{{name}}\"?",
+      "assignments_one": "{{count}} assignment will be removed.",
+      "assignments_other": "{{count}} assignments will be removed.",
+      "subcategories_one": "{{count}} subcategory will be moved to the parent.",
+      "subcategories_other": "{{count}} subcategories will be moved to the parent.",
+      "empty": "This category is empty."
+    },
+    "renormalize": {
+      "checkbox": "Redistribute affected items' weights proportionally",
+      "hint": "Existing totals stay at their pre-delete values."
+    }
+  },
+  "taxonomyUi": {
+    "chartMode": {
+      "donut": "Donut",
+      "treemap": "Treemap",
+      "off": "None"
+    },
+    "columns": {
+      "target": "Target %",
+      "actual": "Actual %",
+      "delta": "Δ",
+      "split": "Split"
+    },
+    "withoutClassification": {
+      "empty": "All classified ✓"
+    },
+    "allocationSumWarning": "Children sum to {{sum}}%. Should sum to 100%.",
+    "picker": {
+      "searchPlaceholder": "Search categories...",
+      "noMatches": "No categories match \"{{query}}\"",
+      "breadcrumbSeparator": " › "
+    }
   }
 }
