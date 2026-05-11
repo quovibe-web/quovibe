@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
+import { ChartExportButton } from '@/components/shared/ChartExportButton';
 import { useWidgetToolbarPortal } from '@/components/domain/WidgetShell';
 
 
@@ -43,6 +44,7 @@ export default function WidgetDrawdownChart() {
   });
 
   const seriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
   // Incremented after each series rebuild to trigger a re-render so legendItems picks up
   // the fresh seriesRef.current (refs don't cause re-renders on their own).
   const [seriesVersion, setSeriesVersion] = useState(0);
@@ -87,7 +89,7 @@ export default function WidgetDrawdownChart() {
     series.applyOptions({
       priceFormat: {
         type: 'custom',
-        formatter: (price: number) => `${(price * 100).toFixed(2)}%`, // native-ok
+        formatter: (price: number) => formatPercentage(price),
       },
     } as Record<string, unknown>);
     series.setData(rawChartData);
@@ -123,12 +125,15 @@ export default function WidgetDrawdownChart() {
   }
 
   const toolbarElement = (
-    <ChartToolbar
-      chartId={CHART_ID}
-      activeType={chartType}
-      hasOhlc={false}
-      onTypeChange={handleTypeChange}
-    />
+    <>
+      <ChartToolbar
+        chartId={CHART_ID}
+        activeType={chartType}
+        hasOhlc={false}
+        onTypeChange={handleTypeChange}
+      />
+      <ChartExportButton chartRef={exportRef} filename="drawdown-chart" />
+    </>
   );
 
   return (
@@ -148,6 +153,7 @@ export default function WidgetDrawdownChart() {
         {!toolbarTarget && toolbarElement}
       </div>
       <div
+        ref={exportRef}
         className={cn(
           'relative flex-1 min-h-0',
           isLoading && 'invisible',

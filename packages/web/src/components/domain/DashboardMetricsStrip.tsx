@@ -1,14 +1,13 @@
-import NumberFlow from '@number-flow/react';
 import { Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useCalculation } from '@/api/use-performance';
 import { usePrivacy } from '@/context/privacy-context';
+import { AccessibleNumberFlow } from '@/components/shared/AccessibleNumberFlow';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { MetricsStripSettings } from './MetricsStripSettings';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import i18n from '@/i18n';
 
 const DEFAULT_METRICS = ['ttwror', 'delta', 'irr', 'max-drawdown'];
 
@@ -42,9 +41,13 @@ function resolveMetric(
     case 'current-drawdown':
       return { value: -parseFloat(data.currentDrawdown as string), format: 'percent' };
     case 'volatility':
-      return { value: parseFloat(data.volatility as string), format: 'percent' };
+      return data.volatility != null
+        ? { value: parseFloat(data.volatility as string), format: 'percent' }
+        : null;
     case 'semivariance':
-      return { value: parseFloat(data.semivariance as string), format: 'percent' };
+      return data.semivariance != null
+        ? { value: parseFloat(data.semivariance as string), format: 'percent' }
+        : null;
     case 'sharpe-ratio':
       return data.sharpeRatio != null
         ? { value: parseFloat(data.sharpeRatio as string), format: 'percent' }
@@ -143,10 +146,8 @@ export function DashboardMetricsStrip({ metricIds, onMetricIdsChange }: MetricsS
                 ) : resolved.format === 'currency' ? (
                   <CurrencyDisplay value={resolved.value} colorize className="text-lg font-semibold" />
                 ) : (
-                  <NumberFlow
-                    className="muted-fraction"
+                  <AccessibleNumberFlow
                     value={resolved.value}
-                    locales={i18n.language}
                     format={{ style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }}
                   />
                 )}

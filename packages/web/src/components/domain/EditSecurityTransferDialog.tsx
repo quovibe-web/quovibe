@@ -1,14 +1,6 @@
-import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import {
   Sheet,
   SheetContent,
@@ -17,20 +9,17 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useAccounts } from '@/api/use-accounts';
-import { useSecurities } from '@/api/use-securities';
-import { useUpdateTransaction } from '@/api/use-transactions';
-import type { TransactionListItem } from '@/api/types';
-import { getDateLocale } from '@/lib/formatters';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { SubmitButton } from '@/components/shared/SubmitButton';
+import { TransactionForm, type TransactionFormValues } from '@/components/domain/TransactionForm';
+import { useUpdateTransaction, useTransactionDetail } from '@/api/use-transactions';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
 import { UnsavedChangesAlert } from '@/components/shared/UnsavedChangesAlert';
+import { TransactionType } from '@/lib/enums';
+import { preparePayload } from '@/lib/transaction-payload';
+import type { TransactionListItem } from '@/api/types';
 
 interface Props {
   open: boolean;
@@ -40,86 +29,71 @@ interface Props {
 
 export function EditSecurityTransferDialog({ open, onOpenChange, transaction }: Props) {
   const { t } = useTranslation('transactions');
-  const { data: accounts = [] } = useAccounts();
-  const { data: securities = [] } = useSecurities();
+  const { t: tCommon } = useTranslation('common');
   const updateMutation = useUpdateTransaction();
-
-  const portfolioAccounts = accounts.filter((a) => a.type === 'portfolio');
-
-  const [fromAccountId, setFromAccountId] = useState('');
-  const [toAccountId, setToAccountId] = useState('');
-  const [securityId, setSecurityId] = useState('');
-  const [date, setDate] = useState<Date>(new Date());
-  const [time, setTime] = useState<string>('00:00');
-  const [calOpen, setCalOpen] = useState(false);
-  const [shares, setShares] = useState('');
-  const [note, setNote] = useState('');
+  const { data: txDetail } = useTransactionDetail(open ? (transaction?.uuid ?? null) : null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [isDirty, setIsDirty] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
+  const [isValid, setIsValid] = useState(false);
   const { guardedOpenChange, showDialog, setShowDialog, discard } =
     useUnsavedChangesGuard(isDirty, onOpenChange);
 
-  useEffect(() => {
+  // Reset dirty when transaction changes (sheet reopened with different row).
+  useEffect(() => { setIsDirty(false); }, [transaction?.uuid]);
+
+  const initialValues = useMemo<Partial<TransactionFormValues> | undefined>(() => {
+    if (!transaction || !txDetail) return undefined;
+
+    const sharesNum = transaction.shares != null ? Math.abs(parseFloat(String(transaction.shares))) : 0;
+
+    // Fees from unit data if present.
+    const feeUnit = txDetail.units?.find((u) => u.type === 'FEE');
+    const feeAmount = feeUnit?.amount != null ? Math.abs(parseFloat(String(feeUnit.amount))) : 0;
+
+    // SECURITY_TRANSFER is INFLOW: server stores xact.amount = gross - fees
+    // (transaction.service.ts > computeNetAmountDb). The form's price × shares
+    // means *gross*, so back-compute gross = stored_amount + fees to keep the
+    // round-trip identity when the user clicks Save without changes. amount
+    // may be 0 per ppxml2db convention, in which case price stays empty.
+    const storedAmount = transaction.amount != null ? Math.abs(parseFloat(String(transaction.amount))) : 0;
+    const grossAmount = storedAmount + feeAmount;
+    const priceStr = sharesNum > 0 && grossAmount > 0 ? String(grossAmount / sharesNum) : undefined;
+
+    return {
+      date: transaction.date ?? undefined,
+      securityId: (transaction.security ?? transaction.securityId) || undefined,
+      accountId: transaction.account ?? undefined,
+      crossAccountId: transaction.crossAccountId ?? undefined,
+      shares: sharesNum > 0 ? String(sharesNum) : undefined,
+      price: priceStr,
+      fees: feeAmount > 0 ? String(feeAmount) : undefined,
+      note: transaction.note ?? undefined,
+    };
+  }, [transaction, txDetail]);
+
+  const { run, inFlight } = useGuardedSubmit(async (values: TransactionFormValues) => {
     if (!transaction) return;
-    setFromAccountId(transaction.account ?? '');
-    setToAccountId(transaction.crossAccountId ?? '');
-    setSecurityId(transaction.security ?? transaction.securityId ?? '');
-    setDate(transaction.date ? new Date(transaction.date) : new Date());
-    setTime(transaction.date && transaction.date.length > 10 ? transaction.date.slice(11, 16) : '00:00');
-    setShares(transaction.shares ? Math.abs(parseFloat(transaction.shares)).toString() : '');
-    setNote(transaction.note ?? '');
-    setIsDirty(false);
-    setError(null);
-  }, [transaction]);
-
-  const sameAccount = fromAccountId && toAccountId && fromAccountId === toAccountId;
-
-  function handleSave() {
-    if (!transaction) return;
-    if (!fromAccountId) { setError(t('validation.selectSourceAccount')); return; }
-    if (!toAccountId) { setError(t('validation.selectDestAccount')); return; }
-    if (sameAccount) { setError(t('validation.sourceDestMustDiffer')); return; }
-    if (!securityId) { setError(t('validation.selectSecurity')); return; }
-    const sharesNum = parseFloat(shares);
-    if (!shares || isNaN(sharesNum) || sharesNum <= 0) { setError(t('validation.sharesMustBePositive')); return; }
-
-    setError(null);
-    updateMutation.mutate(
-      {
+    try {
+      await updateMutation.mutateAsync({
         id: transaction.uuid,
-        data: {
-          type: 'SECURITY_TRANSFER',
-          accountId: fromAccountId,
-          crossAccountId: toAccountId,
-          securityId,
-          date: format(date, 'yyyy-MM-dd') + 'T' + time,
-          shares: sharesNum,
-          amount: 0,
-          note: note || undefined,
-        },
-      },
-      {
-        onSuccess: () => {
-          toast.success(t('common:toasts.transactionUpdated'));
-          setIsDirty(false);
-          onOpenChange(false);
-        },
-        onError: () => {
-          setError(t('common:toasts.errorSaving'));
-        },
-      }
-    );
-  }
+        data: preparePayload(values),
+      });
+      toast.success(tCommon('toasts.transactionUpdated'));
+      setIsDirty(false);
+      onOpenChange(false);
+    } catch {
+      // serverError prop surfaces inline via TransactionForm; suppressGlobalErrorToast
+      // is set on the mutation so the global toast does not double-fire.
+    }
+  });
+
+  const formKey = transaction?.uuid ?? 'none';
+  const saveDisabled = !isValid || inFlight || updateMutation.isPending;
 
   return (
     <>
       <Sheet open={open} onOpenChange={guardedOpenChange}>
-        <SheetContent
-          side="right"
-          className="w-full sm:max-w-lg p-0 flex flex-col"
-          showCloseButton={true}
-        >
+        <SheetContent side="right" className="w-full sm:max-w-lg p-0 flex flex-col" showCloseButton>
           <SheetHeader className="px-6 pt-6 pb-2 shrink-0">
             <SheetTitle>{t('editTitles.securityTransfer')}</SheetTitle>
             <SheetDescription className="sr-only">
@@ -127,121 +101,25 @@ export function EditSecurityTransferDialog({ open, onOpenChange, transaction }: 
             </SheetDescription>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 min-h-0">
-            <div className="space-y-4 py-2">
-              {/* From Account */}
-              <div className="space-y-1">
-                <Label>{t('common:from')}</Label>
-                <Select value={fromAccountId} onValueChange={(v) => { setFromAccountId(v); setIsDirty(true); }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('form.selectSourceAccount')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {portfolioAccounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* To Account */}
-              <div className="space-y-1">
-                <Label>{t('common:to')}</Label>
-                <Select value={toAccountId} onValueChange={(v) => { setToAccountId(v); setIsDirty(true); }}>
-                  <SelectTrigger className={sameAccount ? 'border-destructive' : ''}>
-                    <SelectValue placeholder={t('form.selectDestinationAccount')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {portfolioAccounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {sameAccount && (
-                  <p className="text-xs text-destructive">{t('validation.sourceDestMustDiffer')}</p>
-                )}
-              </div>
-
-              {/* Security */}
-              <div className="space-y-1">
-                <Label>{t('form.security')}</Label>
-                <Select value={securityId} onValueChange={(v) => { setSecurityId(v); setIsDirty(true); }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('form.selectSecurity')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {securities.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Date */}
-              <div className="space-y-1">
-                <Label>{t('common:date')}</Label>
-                <div className="flex items-center gap-2">
-                  <Popover open={calOpen} onOpenChange={setCalOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="flex-1 justify-start">
-                        <CalendarIcon className="h-4 w-4 mr-2" />
-                        {format(date, 'P', { locale: getDateLocale() })}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={(d) => { if (d) { setDate(d); setIsDirty(true); setCalOpen(false); } }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <Input
-                    type="time"
-                    value={time}
-                    onChange={(e) => { setTime(e.target.value); setIsDirty(true); }}
-                    className="w-28"
-                  />
-                </div>
-              </div>
-
-              {/* Shares */}
-              <div className="space-y-1">
-                <Label>{t('columns.shares')}</Label>
-                <Input
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={shares}
-                  onChange={(e) => { setShares(e.target.value); setIsDirty(true); }}
-                  placeholder="0"
-                />
-              </div>
-
-              {/* Note */}
-              <div className="space-y-1">
-                <Label>{t('common:note')}</Label>
-                <Textarea
-                  value={note}
-                  onChange={(e) => { setNote(e.target.value); setIsDirty(true); }}
-                  placeholder={t('form.noteOptionalPlaceholder')}
-                  rows={3}
-                />
-              </div>
-            </div>
-            <div className="h-4" />
-          </div>
-
-          {error && (
-            <p className="text-sm text-destructive px-6 py-1 shrink-0">{error}</p>
-          )}
+          <ScrollArea className="flex-1 min-h-0 px-6">
+            {transaction && txDetail && (
+              <TransactionForm
+                key={formKey}
+                type={TransactionType.SECURITY_TRANSFER}
+                initialValues={initialValues}
+                onSubmit={run}
+                isSubmitting={inFlight || updateMutation.isPending}
+                hideSubmitButton
+                formRef={formRef}
+                serverError={updateMutation.error}
+                onDirtyChange={setIsDirty}
+                onValidityChange={setIsValid}
+              />
+            )}
+            {transaction && !txDetail && (
+              <div className="px-4 py-6 text-sm text-muted-foreground">{tCommon('loading')}</div>
+            )}
+          </ScrollArea>
 
           <SheetFooter className="border-t px-6 py-3 shrink-0 flex flex-row gap-2">
             <Button
@@ -250,25 +128,22 @@ export function EditSecurityTransferDialog({ open, onOpenChange, transaction }: 
               className="flex-1"
               onClick={() => guardedOpenChange(false)}
             >
-              {t('common:cancel')}
+              {tCommon('cancel')}
             </Button>
-            <Button
+            <SubmitButton
               type="button"
               className="flex-1"
-              onClick={handleSave}
-              disabled={updateMutation.isPending || !!sameAccount}
+              mutation={{ isPending: inFlight || updateMutation.isPending }}
+              disabled={saveDisabled}
+              onClick={() => formRef.current?.requestSubmit()}
             >
-              {updateMutation.isPending ? t('common:saving') : t('common:save')}
-            </Button>
+              {tCommon('save')}
+            </SubmitButton>
           </SheetFooter>
         </SheetContent>
       </Sheet>
 
-      <UnsavedChangesAlert
-        open={showDialog}
-        onOpenChange={setShowDialog}
-        onDiscard={discard}
-      />
+      <UnsavedChangesAlert open={showDialog} onOpenChange={setShowDialog} onDiscard={discard} />
     </>
   );
 }

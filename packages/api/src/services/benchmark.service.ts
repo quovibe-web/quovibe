@@ -52,11 +52,11 @@ function resolveSecurityName(row: SecurityRow): string {
  * Daily interval returns the data as-is.
  */
 function sampleSeries(
-  series: Array<{ date: string; cumulative: number }>,
+  series: Array<{ date: string; cumulative: string }>,
   interval: ChartInterval,
   periodStart: string,
   calendarId?: string,
-): Array<{ date: string; cumulative: number }> {
+): Array<{ date: string; cumulative: string }> {
   // Apply calendar filtering (same as portfolio chart) so sampled dates align
   const filtered = calendarId && calendarId !== 'empty'
     ? series.filter(p => isTradingDay(calendarId, p.date))
@@ -64,7 +64,7 @@ function sampleSeries(
 
   if (interval === 'daily') return filtered;
 
-  const sampled: Array<{ date: string; cumulative: number }> = [];
+  const sampled: Array<{ date: string; cumulative: string }> = [];
   let lastMonth = -1;
   let lastWeek = -1;
 
@@ -188,10 +188,10 @@ export function getBenchmarkSeries(
       periodEnd: period.end,
     });
 
-    // Convert Decimal → number for the response
+    // Convert Decimal → string for the response (matches every other performance route)
     const converted = rawSeries.map((p) => ({
       date: p.date,
-      cumulative: p.cumulative.toNumber(),
+      cumulative: p.cumulative.toString(),
     }));
 
     const sampled = sampleSeries(converted, interval, period.start, calendarId);

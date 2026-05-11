@@ -14,7 +14,7 @@
       "balance": "Saldo",
       "currency": "Moneda"
     },
-    "subtitle": "Portfolio snapshot at period end",
+    "subtitle": "Instantánea de la cartera al final del período",
     "empty": "No securities in portfolio"
   },
   "holdings": {
@@ -38,8 +38,12 @@
     "groupBy": {
       "month": "Mes",
       "quarter": "Trimestre",
-      "year": "Año"
+      "year": "Año",
+      "security": "Instrumento",
+      "type": "Tipo"
     },
+    "byTitle": "Desglose por {{groupBy}}",
+    "cashOrNoSecurity": "Efectivo / sin instrumento",
     "earningsChart": "Ingresos (Bruto/Neto)",
     "dividends": "Dividendos",
     "interest": "Intereses",
@@ -62,7 +66,7 @@
       "byTitle": "por valor",
       "byAccount": "por cuenta"
     },
-    "subtitle": "Dividends, interest, and other income"
+    "subtitle": "Dividendos, intereses y otros ingresos"
   },
   "returnsHeatmap": {
     "title": "Mapa de calor de rentabilidades",
@@ -109,7 +113,7 @@
   },
   "assetAllocation": {
     "title": "Taxonomías",
-    "subtitle": "Allocation and rebalancing by taxonomy",
+    "subtitle": "Asignación y reequilibrio por taxonomía",
     "noTaxonomies": "No hay taxonomías definidas. Importe una cartera con datos de taxonomía para usar esta vista.",
     "date": "Fecha",
     "columns": {
@@ -145,7 +149,8 @@
     "dividends": "Dividendos",
     "fees": "Comisiones",
     "selectTaxonomy": "Taxonomía",
-    "subtitle": "Performance trends by category"
+    "categoryLabel": "Categoría",
+    "subtitle": "Tendencias de rendimiento por categoría"
   },
   "taxonomyNodePicker": {
     "loading": "Cargando…",
@@ -220,7 +225,29 @@
     "editWeightDescription": "Establezca el porcentaje de peso objetivo",
     "assignCategoryDescription": "Seleccione una categoría para asignar",
     "deleteError": "Error al eliminar la taxonomía",
-    "renameDescription": "Introduzca un nuevo nombre para esta taxonomía"
+    "renameDescription": "Introduzca un nuevo nombre para esta taxonomía",
+    "emptyCategories": {
+      "title": "Esta taxonomía aún no tiene categorías.",
+      "cta": "Añadir primera categoría"
+    },
+    "resetTargets": {
+      "button": "Restablecer objetivos",
+      "confirmTitle": "¿Restablecer los objetivos a los valores guardados?",
+      "confirmBody": "Reemplaza los objetivos actuales con los valores existentes al cargar la vista.",
+      "confirmAction": "Restablecer"
+    },
+    "deleteCategoryDetailed": {
+      "title": "¿Eliminar \"{{name}}\"?",
+      "assignments_one": "Se eliminará {{count}} asignación.",
+      "assignments_other": "Se eliminarán {{count}} asignaciones.",
+      "subcategories_one": "Se moverá {{count}} subcategoría al padre.",
+      "subcategories_other": "Se moverán {{count}} subcategorías al padre.",
+      "empty": "Esta categoría está vacía."
+    },
+    "renormalize": {
+      "checkbox": "Redistribuir proporcionalmente los pesos de los elementos afectados",
+      "hint": "Los totales existentes se mantienen en los valores previos a la eliminación."
+    }
   },
   "taxonomyUi": {
     "chartMode": {
@@ -241,7 +268,8 @@
     "picker": {
       "searchPlaceholder": "Buscar categorías...",
       "noMatches": "Ninguna categoría coincide con \"{{query}}\"",
-      "breadcrumbSeparator": " › "
+      "breadcrumbSeparator": " › ",
+      "entireTaxonomy": "Taxonomía completa"
     }
   }
 }

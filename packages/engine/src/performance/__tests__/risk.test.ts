@@ -349,18 +349,29 @@ function makeVolInput(data: Array<{ r: number }>): VolatilityInput[] {
 describe('computeVolatility', () => {
   // Volatility and Semivariance calculation
 
-  it('returns zeros for empty input', () => {
+  it('returns null fields for empty input', () => {
     const result = computeVolatility([]);
-    expect(result.volatility.toNumber()).toBe(0);
-    expect(result.semivariance.toNumber()).toBe(0);
-    expect(result.standardDeviation.toNumber()).toBe(0);
+    expect(result.volatility).toBeNull();
+    expect(result.semivariance).toBeNull();
+    expect(result.standardDeviation).toBeNull();
   });
 
-  it('returns zeros for single-point input (n < 2)', () => {
+  it('returns null fields for single-point input (n < 2)', () => {
     const result = computeVolatility(makeVolInput([{ r: 0.01 }]));
-    expect(result.volatility.toNumber()).toBe(0);
-    expect(result.semivariance.toNumber()).toBe(0);
-    expect(result.standardDeviation.toNumber()).toBe(0);
+    expect(result.volatility).toBeNull();
+    expect(result.semivariance).toBeNull();
+    expect(result.standardDeviation).toBeNull();
+  });
+
+  // Null fields are the wire-level "no value" signal that lets consumers render
+  // an em-dash placeholder instead of a misleading 0% (or NaN%, the original
+  // BUG-165 symptom from a downstream parseFloat of an absent field).
+  it('null fields propagate to JSON via toString-or-null without exception', () => {
+    const result = computeVolatility([]);
+    expect(() => result.volatility?.toString() ?? null).not.toThrow();
+    expect(result.volatility?.toString() ?? null).toBeNull();
+    expect(result.semivariance?.toString() ?? null).toBeNull();
+    expect(result.standardDeviation?.toString() ?? null).toBeNull();
   });
 
   // Volatility — annualized standard deviation of returns
@@ -399,10 +410,10 @@ describe('computeVolatility', () => {
     // stdDev = sqrt(0.00036954) = 0.01922...
     // annualized = 0.01922 * sqrt(5) = 0.04298...
 
-    expect(result.standardDeviation.toNumber()).toBeCloseTo(0.01909, 4);
-    expect(result.volatility.toNumber()).toBeCloseTo(0.04268, 3);
-    expect(result.volatility.gt(0)).toBe(true);
-    expect(result.semivariance.gt(0)).toBe(true);
+    expect(result.standardDeviation!.toNumber()).toBeCloseTo(0.01909, 4);
+    expect(result.volatility!.toNumber()).toBeCloseTo(0.04268, 3);
+    expect(result.volatility!.gt(0)).toBe(true);
+    expect(result.semivariance!.gt(0)).toBe(true);
   });
 
   // Semivariance — downside variance of returns
@@ -426,8 +437,8 @@ describe('computeVolatility', () => {
     // semiStdDev = sqrt(0.00016413) = 0.01281...
     // annualized = 0.01281 * sqrt(5) = 0.02864...
 
-    expect(result.semivariance.toNumber()).toBeCloseTo(0.03154, 3);
-    expect(result.semivariance.lt(result.volatility)).toBe(true);
+    expect(result.semivariance!.toNumber()).toBeCloseTo(0.03154, 3);
+    expect(result.semivariance!.lt(result.volatility!)).toBe(true);
   });
 
   // Volatility and Semivariance relationship
@@ -444,7 +455,7 @@ describe('computeVolatility', () => {
     ]);
     const result = computeVolatility(input);
 
-    const ratio = result.volatility.div(result.semivariance).toNumber();
+    const ratio = result.volatility!.div(result.semivariance!).toNumber();
     // Should be close to sqrt(2) ≈ 1.414
     expect(ratio).toBeCloseTo(Math.SQRT2, 1);
   });
@@ -459,9 +470,9 @@ describe('computeVolatility', () => {
     ]);
     const result = computeVolatility(input);
     // Floating-point precision: ln(1.01) repeated yields near-zero variance, not exact zero
-    expect(result.volatility.toNumber()).toBeCloseTo(0, 10);
-    expect(result.semivariance.toNumber()).toBeCloseTo(0, 10);
-    expect(result.standardDeviation.toNumber()).toBeCloseTo(0, 10);
+    expect(result.volatility!.toNumber()).toBeCloseTo(0, 10);
+    expect(result.semivariance!.toNumber()).toBeCloseTo(0, 10);
+    expect(result.standardDeviation!.toNumber()).toBeCloseTo(0, 10);
   });
 });
 

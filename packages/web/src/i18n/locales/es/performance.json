@@ -18,7 +18,7 @@
   },
   "calculation": {
     "title": "Cálculo",
-    "subtitle": "Detailed calculation breakdown",
+    "subtitle": "Detalle del cálculo",
     "preTax": "Antes de impuestos",
     "afterTax": "Después de impuestos",
     "initialValue": "Valor inicial (MVB)",
@@ -77,7 +77,7 @@
   },
   "securities": {
     "title": "Rendimiento — Valores",
-    "subtitle": "Performance breakdown by security",
+    "subtitle": "Desglose de rendimiento por valor",
     "columns": {
       "name": "Nombre",
       "irr": "TIR (ann.)",
@@ -96,7 +96,7 @@
   },
   "chart": {
     "title": "Gráfico de rendimiento",
-    "subtitle": "Time-weighted return over time",
+    "subtitle": "Rendimiento ponderado por tiempo",
     "marketValueAndTtwror": "Valor de mercado & TTWROR",
     "marketValue": "Valor de mercado",
     "ttwror": "TTWROR",
@@ -174,7 +174,7 @@
     "chartDesc": "Valor de mercado y TTWROR en el período"
   },
   "taxonomySeries": {
-    "subtitle": "Performance trends by category"
+    "subtitle": "Tendencias de rendimiento por categoría"
   },
   "analytics": {
     "title": "Análisis",

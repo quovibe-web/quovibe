@@ -1,18 +1,16 @@
 import { useTranslation } from 'react-i18next';
+import type { TooltipContentProps } from 'recharts';
+import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { usePaymentsBreakdown } from '@/api/use-reports';
 import { ChartTooltip } from '@/components/shared/ChartTooltip';
 
-interface PaymentBreakdownTooltipProps {
-  active?: boolean;
-  payload?: Array<{ value?: number }>;
-  label?: string;
+interface PaymentBreakdownTooltipProps extends Partial<TooltipContentProps<ValueType, NameType>> {
   activeBucket: string | null;
   type: 'DIVIDEND' | 'INTEREST';
   groupBy: 'month' | 'quarter' | 'year';
   amountMode: 'gross' | 'net';
-  // Note: no `isPrivate` prop — CurrencyDisplay handles privacy internally via usePrivacy()
 }
 
 export function PaymentBreakdownTooltip({
@@ -29,8 +27,8 @@ export function PaymentBreakdownTooltip({
 
   if (!active) return null;
 
-  // Use payload value for instant display; switch to exact API total when loaded
-  const payloadValue = payload?.[0]?.value ?? 0;
+  const first = payload?.[0];
+  const payloadValue = typeof first?.value === 'number' ? first.value : 0;
   const isBreakdownReady = isSuccess && data && data.bucket === activeBucket;
 
   const totalLabel =
@@ -39,11 +37,9 @@ export function PaymentBreakdownTooltip({
       : t('payments.breakdown.totalNet');
 
   return (
-    <ChartTooltip label={label} className="min-w-[200px]">
-      {/* Phase 2: breakdown rows — visible once activeBucket is set */}
+    <ChartTooltip label={typeof label === 'string' ? label : undefined} className="min-w-[200px]" centered>
       {activeBucket && (
         <>
-          {/* Loading state */}
           {isPending && (
             <>
               {[1, 2, 3].map((i) => (
@@ -55,14 +51,12 @@ export function PaymentBreakdownTooltip({
             </>
           )}
 
-          {/* Error state */}
           {isError && (
             <div className="text-xs text-destructive italic">
               {t('payments.breakdown.error')}
             </div>
           )}
 
-          {/* Success state */}
           {isBreakdownReady && data.items.map((item) => {
             const amount = amountMode === 'gross' ? item.grossAmount : item.netAmount;
             return (
@@ -71,7 +65,7 @@ export function PaymentBreakdownTooltip({
                   {item.name}
                 </span>
                 <span className="text-sm font-semibold tabular-nums whitespace-nowrap">
-                  <CurrencyDisplay value={parseFloat(amount)} currency={item.currencyCode ?? undefined} />
+                  <CurrencyDisplay value={parseFloat(amount)} currency={item.currencyCode ?? undefined} animated={false} />
                 </span>
               </div>
             );
@@ -81,7 +75,6 @@ export function PaymentBreakdownTooltip({
         </>
       )}
 
-      {/* Phase 1: total — always visible for instant feedback */}
       <div className="flex items-center justify-between gap-4">
         <span className="text-xs text-muted-foreground">{totalLabel}</span>
         <span className="text-sm font-semibold tabular-nums">
@@ -89,9 +82,10 @@ export function PaymentBreakdownTooltip({
             <CurrencyDisplay
               value={parseFloat(amountMode === 'gross' ? data.totalGross : data.totalNet)}
               currency={data.items[0]?.currencyCode ?? undefined}
+              animated={false}
             />
           ) : (
-            <CurrencyDisplay value={payloadValue} />
+            <CurrencyDisplay value={payloadValue} animated={false} />
           )}
         </span>
       </div>

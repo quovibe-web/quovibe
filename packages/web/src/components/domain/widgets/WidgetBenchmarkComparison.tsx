@@ -101,7 +101,7 @@ export default function WidgetBenchmarkComparison() {
   const benchmarkTtwror = useMemo(() => {
     const series = benchmarkQuery.data?.benchmarks?.[0]?.series;
     if (!series || series.length === 0) return null;
-    return series[series.length - 1].cumulative; // native-ok (already a number)
+    return parseFloat(series[series.length - 1].cumulative); // native-ok (display-only)
   }, [benchmarkQuery.data]);
 
   const alpha = useMemo(() => {
@@ -117,10 +117,10 @@ export default function WidgetBenchmarkComparison() {
       return [];
     }
 
-    // Build a date → benchmark cumulative map
+    // Build a date → benchmark cumulative map (parse string → number for diff math)
     const bmkMap = new Map<string, number>();
     for (const pt of benchmarkSeries) {
-      bmkMap.set(pt.date, pt.cumulative);
+      bmkMap.set(pt.date, parseFloat(pt.cumulative));
     }
 
     // Build difference series (carry-forward last known benchmark value)
@@ -181,13 +181,7 @@ export default function WidgetBenchmarkComparison() {
   const sparklineColor = alpha !== null && alpha >= 0 ? profit : danger;
 
   return (
-    <div
-      className="flex flex-col gap-1 flex-1"
-      style={{
-        filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
-        transition: 'filter 0.2s ease',
-      }}
-    >
+    <div className="flex flex-col gap-1 flex-1">
       {/* Benchmark label */}
       {benchmarkName && (
         <span className="text-xs text-muted-foreground truncate">
@@ -232,7 +226,14 @@ export default function WidgetBenchmarkComparison() {
 
       {/* Mini sparkline */}
       {sparklineData.length > 1 && (
-        <SparklineContainer data={sparklineData} color={sparklineColor} />
+        <div
+          style={{
+            filter: isPrivate ? 'blur(8px) saturate(0)' : 'none',
+            transition: 'filter 0.2s ease',
+          }}
+        >
+          <SparklineContainer data={sparklineData} color={sparklineColor} />
+        </div>
       )}
     </div>
   );

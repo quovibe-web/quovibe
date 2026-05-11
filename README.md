@@ -102,7 +102,7 @@ pnpm install          # Windows without MSVC: pnpm install --ignore-scripts
 
 ```bash
 cp .env.example .env
-# Set DB_PATH to point to your portfolio.db
+# (Optional) set QUOVIBE_DATA_DIR to override the portfolio storage location.
 ```
 
 ### 3. Build and run
@@ -170,7 +170,7 @@ quovibe supports four import paths:
 
 **CSV import** — import transactions and holdings from CSV files via the import wizard in the app.
 
-**CLI via ppxml2db** — convert your XML to SQLite with [ppxml2db](https://github.com/pfalcon/ppxml2db), then point `DB_PATH` at the resulting `portfolio.db`.
+**CLI via ppxml2db** — convert your XML to SQLite with [ppxml2db](https://github.com/pfalcon/ppxml2db), then place the resulting `portfolio.db` in `QUOVIBE_DATA_DIR` (default: `./data/`) and import it from the Welcome page.
 
 ---
 
@@ -198,14 +198,17 @@ Any reverse proxy works: **nginx**, **Caddy**, **Traefik**, or your router's bui
 
 ## Environment Variables
 
-| Variable    | Default               | Description             |
-|-------------|-----------------------|-------------------------|
-| `DB_PATH`   | `./data/portfolio.db` | Path to SQLite database |
-| `PORT`      | `3000`                | API server port         |
-| `NODE_ENV`  | `development`         | Node environment        |
-| `LOG_LEVEL` | `info`                | Logging verbosity       |
+| Variable              | Default      | Description                                        |
+|-----------------------|--------------|----------------------------------------------------|
+| `QUOVIBE_DATA_DIR`    | `./data`     | Parent of per-portfolio .db files + sidecar        |
+| `QUOVIBE_DEMO_SOURCE` | `./data/demo.db` | Bootstrap source for the "Try demo" flow      |
+| `DB_BACKUP_MAX`       | `3`          | Rotated backups retained per portfolio             |
+| `PORTFOLIO_POOL_MAX`  | `5`          | Max simultaneously open per-portfolio DB handles   |
+| `PORT`                | `3000`       | API server port                                    |
+| `NODE_ENV`            | `development`| Node environment                                   |
+| `LOG_LEVEL`           | `info`       | Logging verbosity                                  |
 
-See [`.env.example`](.env.example) for all options (price feed tuning, cron schedule, backup settings).
+See [`.env.example`](.env.example) for all options (price feed tuning, backup settings).
 
 ---
 
@@ -233,7 +236,7 @@ Architecture Decision Records: [`docs/adr/`](docs/adr/)
 
 ## Quality
 
-1729+ tests · 13 governance checks · 10 architecture boundary rules — all enforced in CI on every push.
+1729+ tests · 14 governance checks · 9 architecture boundary rules — all enforced in CI on every push.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full quality workflow.
 
 ---

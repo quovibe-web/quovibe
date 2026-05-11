@@ -6,6 +6,26 @@ import type { CreateTransactionInput } from '@quovibe/shared';
 import { convertTransactionToDb } from './unit-conversion';
 import { getRate } from './fx.service';
 
+// BUG-108: typed service-layer error so route handlers map FK misses to
+// 400 ACCOUNT_NOT_FOUND / SECURITY_NOT_FOUND instead of leaking the raw
+// SQLite "FOREIGN KEY constraint failed" via the global 500 handler.
+export class TransactionServiceError extends Error {
+  constructor(public readonly code: string, message?: string) {
+    super(message ?? code);
+    this.name = 'TransactionServiceError';
+  }
+}
+
+function assertAccountExists(sqlite: BetterSqlite3.Database, id: string): void {
+  const row = sqlite.prepare('SELECT 1 FROM account WHERE uuid = ?').get(id);
+  if (!row) throw new TransactionServiceError('ACCOUNT_NOT_FOUND');
+}
+
+function assertSecurityExists(sqlite: BetterSqlite3.Database, id: string): void {
+  const row = sqlite.prepare('SELECT 1 FROM security WHERE uuid = ?').get(id);
+  if (!row) throw new TransactionServiceError('SECURITY_NOT_FOUND');
+}
+
 type UnitType = 'FEE' | 'TAX' | 'FOREX';
 
 // ppxml2db convention (see docs/pp-reference/calculation-model.md Section 2):
@@ -96,6 +116,34 @@ const DUAL_ENTRY_TYPES = new Set<TransactionType>([
 ]);
 
 const BUY_SELL_TYPES = new Set<TransactionType>([TransactionType.BUY, TransactionType.SELL]);
+
+// Resolves the destination account for the dual-entry counterpart row.
+// BUY/SELL fall back to the source portfolio's `referenceAccount` when the
+// caller omits `crossAccountId`; transfers always require an explicit cross
+// account. The dedupe SELECT and the dual-entry insert MUST agree on this
+// resolution, otherwise back-to-back parallel POSTs that omit
+// `crossAccountId` bind NULL on the dedupe side while the persisted
+// `xact_cross_entry.to_acc` carries the resolved deposit uuid.
+function resolveDualEntryDestAccount(
+  type: TransactionType,
+  crossAccountId: string | null | undefined,
+  acctRow: { referenceAccount: string | null } | undefined,
+): string | null {
+  if (BUY_SELL_TYPES.has(type)) {
+    return crossAccountId ?? acctRow?.referenceAccount ?? null;
+  }
+  return crossAccountId ?? null;
+}
+
+// BUG-50: short-window natural-key dedupe for POST /transactions.
+// Catches in-flight races (5-parallel POST, double-click, multi-tab resubmit,
+// browser-back resubmit) without blocking legitimate duplicates entered more
+// than DEDUPE_WINDOW_MS apart. The window is intentionally small — the goal is
+// to absorb network/UI races, not to prevent a user from entering two real
+// identical deposits minutes apart. CSV import has its own direct-insert path
+// in csv-import.service.ts and is intentionally not affected — broker
+// statements legitimately ingest identical rows.
+export const DEDUPE_WINDOW_MS = 2000;
 
 interface CrossEntry {
   fromAcc: string;
@@ -244,6 +292,25 @@ function buildUnits(xactId: string, input: CreateTransactionInput): UnitRow[] {
     case TransactionType.DIVIDEND:
       if (taxes && taxes > 0) addUnit('TAX', toDb(taxes));
       if (fees && fees > 0) addUnit('FEE', toDb(fees));
+      // FOREX unit when the dividend's deposit currency differs from the
+      // security's currency. Mirrors the BUY/SELL FOREX block above
+      // byte-for-byte so the engine sees one consistent shape regardless of
+      // transaction kind: `amount` is the deposit-ccy gross (×100),
+      // `forex_amount` is the security-ccy gross (×100), `exchangeRate` is
+      // the qv-convention rate (security-per-deposit). The route gate
+      // (`enforceCrossCurrencyFxRate`) is what guarantees `fxRate` is
+      // present on a cross-currency dividend; this branch is the
+      // persistence half of that contract.
+      if (fxRate) {
+        const grossSecurityHecto = Math.round(
+          parseFloat(new Decimal(amount).times(new Decimal(fxRate)).times(100).toPrecision(15))
+        );
+        addUnit('FOREX', amt, {
+          forex_amount: grossSecurityHecto,
+          forex_currency: fxCurrencyCode ?? null,
+          exchangeRate: String(fxRate),
+        });
+      }
       break;
     case TransactionType.FEES:
     case TransactionType.FEES_REFUND:
@@ -344,6 +411,12 @@ export function createTransaction(
   const xactId = uuidv4();
 
   const doCreate = sqlite.transaction(() => {
+    // BUG-108: pre-validate FK refs so unknown UUIDs surface as structured
+    // 400s instead of leaking raw "FOREIGN KEY constraint failed" at INSERT.
+    if (input.accountId) assertAccountExists(sqlite, input.accountId);
+    if (input.crossAccountId) assertAccountExists(sqlite, input.crossAccountId);
+    if (input.securityId) assertSecurityExists(sqlite, input.securityId);
+
     const { shares: sharesDb } = convertTransactionToDb({
       shares: input.shares != null ? new Decimal(input.shares) : null,
     });
@@ -374,9 +447,9 @@ export function createTransaction(
     }
     if (!currency) currency = 'EUR';
 
-    // For BUY/SELL: look up security currency for FX detection
+    // For BUY/SELL/DIVIDEND: look up security currency for FX detection
     let securityCurrency: string | null = null;
-    if (BUY_SELL_TYPES.has(input.type) && input.securityId) {
+    if ((BUY_SELL_TYPES.has(input.type) || input.type === TransactionType.DIVIDEND) && input.securityId) {
       const secRow = sqlite.prepare('SELECT currency FROM security WHERE uuid = ?').get(input.securityId) as { currency: string | null } | undefined;
       securityCurrency = secRow?.currency ?? null;
     }
@@ -399,6 +472,11 @@ export function createTransaction(
           fxCurrencyCode: securityCurrency!,
         };
       }
+    } else if (isCrossCurrency && input.type === TransactionType.DIVIDEND && input.fxRate) {
+      // DIVIDEND wire amount is already deposit-ccy (no grossDeposit conversion);
+      // stamp security-ccy code so the FOREX xact_unit emitted in buildUnits
+      // carries forex_currency, matching BUY/SELL parity.
+      fxInput = { ...input, fxCurrencyCode: securityCurrency! };
     }
 
     // Compute amounts in deposit currency (after FX conversion)
@@ -418,6 +496,44 @@ export function createTransaction(
     const fromShares = sharesDb ?? 0;
     const feesDb = Math.round(parseFloat(new Decimal(totalFees).times(100).toPrecision(15)));
     const taxesDb = Math.round(parseFloat(new Decimal(totalTaxes).times(100).toPrecision(15)));
+
+    // Natural-key dedupe within DEDUPE_WINDOW_MS. The `acctype` and
+    // `xact_cross_entry.to_acc` discriminators are required because three
+    // enum-form types collapse onto DB-form `TRANSFER_OUT` (see
+    // TYPE_MAP_TO_PPXML2DB above) — keying on `xact.type` alone silently
+    // swallows back-to-back POSTs of distinct logical types. SQLite `IS` is
+    // NULL-safe so non-dual-entry types match each other on both sides as
+    // NULL.
+    const dedupeCrossAcc = resolveDualEntryDestAccount(input.type, input.crossAccountId, acctRow);
+    const windowCutoff = new Date(Date.now() - DEDUPE_WINDOW_MS).toISOString();
+    const dupe = sqlite
+      .prepare(
+        `SELECT x.uuid FROM xact x
+         LEFT JOIN xact_cross_entry ce
+           ON ce.from_xact = x.uuid AND ce.from_xact != ce.to_xact
+         WHERE x.account = ?
+           AND x.date = ?
+           AND x.type = ?
+           AND x.amount = ?
+           AND x.shares = ?
+           AND x.security IS ?
+           AND x.acctype IS ?
+           AND ce.to_acc IS ?
+           AND x.updatedAt >= ?
+         LIMIT 1`,
+      )
+      .get(
+        resolved.effectiveAccountId ?? null,
+        input.date,
+        toDbType(input.type),
+        fromAmount,
+        fromShares,
+        input.securityId ?? null,
+        resolved.acctype ?? null,
+        dedupeCrossAcc,
+        windowCutoff,
+      ) as { uuid: string } | undefined;
+    if (dupe) return dupe.uuid;
 
     sqlite
       .prepare(
@@ -461,9 +577,7 @@ export function createTransaction(
       // (GAP-02 extends this const for SECURITY_TRANSFER in this same block)
 
       // BUY/SELL → crossAccountId overrides referenceAccount; transfers → dest is crossAccountId
-      const destAccountId = BUY_SELL_TYPES.has(input.type)
-        ? (input.crossAccountId ?? acctRow?.referenceAccount ?? null)
-        : (input.crossAccountId ?? null);
+      const destAccountId = resolveDualEntryDestAccount(input.type, input.crossAccountId, acctRow);
 
       if (destAccountId) {
         destXactId = uuidv4();
@@ -524,6 +638,11 @@ export function updateTransaction(
   input: CreateTransactionInput,
 ): string {
   const doUpdate = sqlite.transaction(() => {
+    // BUG-108: pre-validate FK refs (see createTransaction for rationale).
+    if (input.accountId) assertAccountExists(sqlite, input.accountId);
+    if (input.crossAccountId) assertAccountExists(sqlite, input.crossAccountId);
+    if (input.securityId) assertSecurityExists(sqlite, input.securityId);
+
     const { shares: sharesDb } = convertTransactionToDb({
       shares: input.shares != null ? new Decimal(input.shares) : null,
     });
@@ -554,9 +673,9 @@ export function updateTransaction(
     }
     if (!currency) currency = 'EUR';
 
-    // For BUY/SELL: look up security currency for FX detection
+    // For BUY/SELL/DIVIDEND: look up security currency for FX detection
     let securityCurrency: string | null = null;
-    if (BUY_SELL_TYPES.has(input.type) && input.securityId) {
+    if ((BUY_SELL_TYPES.has(input.type) || input.type === TransactionType.DIVIDEND) && input.securityId) {
       const secRow = sqlite.prepare('SELECT currency FROM security WHERE uuid = ?').get(input.securityId) as { currency: string | null } | undefined;
       securityCurrency = secRow?.currency ?? null;
     }
@@ -579,6 +698,11 @@ export function updateTransaction(
           fxCurrencyCode: securityCurrency!,
         };
       }
+    } else if (isCrossCurrency && input.type === TransactionType.DIVIDEND && input.fxRate) {
+      // DIVIDEND wire amount is already deposit-ccy (no grossDeposit conversion);
+      // stamp security-ccy code so the FOREX xact_unit emitted in buildUnits
+      // carries forex_currency, matching BUY/SELL parity.
+      fxInput = { ...input, fxCurrencyCode: securityCurrency! };
     }
 
     // Compute amounts in deposit currency (after FX conversion)
@@ -629,9 +753,7 @@ export function updateTransaction(
         : toDbType(input.type);
 
       // BUY/SELL → crossAccountId overrides referenceAccount; transfers → dest is crossAccountId
-      const destAccountId = BUY_SELL_TYPES.has(input.type)
-        ? (input.crossAccountId ?? acctRow?.referenceAccount ?? null)
-        : (input.crossAccountId ?? null);
+      const destAccountId = resolveDualEntryDestAccount(input.type, input.crossAccountId, acctRow);
 
       if (DUAL_ENTRY_TYPES.has(input.type) && !BUY_SELL_TYPES.has(input.type) && !destAccountId) {
         const err = new Error('crossAccountId is required for transfer types') as Error & { statusCode: number };

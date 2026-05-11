@@ -64,13 +64,17 @@
     "clearFilter": "Pokaż wszystkie"
   },
   "search": {
-    "placeholder": "Szukaj po nazwie, ISIN lub ticker…"
+    "placeholder": "Szukaj po nazwie, ISIN lub ticker…",
+    "noResults": "Brak wyników dla '{{query}}'",
+    "noResultsHint": "Spróbuj innej nazwy, ISIN lub tickera."
   },
   "totals": {
     "label": "Razem ({{count}} papierów)"
   },
   "empty": {
     "title": "Brak papierów wartościowych",
-    "description": "Dodaj swój pierwszy papier wartościowy, aby rozpocząć"
+    "description": "Dodaj swój pierwszy papier wartościowy, aby rozpocząć",
+    "noMatches": "Brak papierów wartościowych na tym koncie",
+    "noMatchesHint": "Dostosuj filtr konta, aby zobaczyć inne pozycje."
   }
 }

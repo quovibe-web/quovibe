@@ -12,6 +12,8 @@ import {
   getAccountHoldings,
   updateAccountFields,
   deleteAccountById,
+  createAccount,
+  AccountServiceError,
 } from '../services/accounts.service';
 
 export const accountsRouter: RouterType = Router();
@@ -196,34 +198,30 @@ const getAccountTransactions: RequestHandler = (req, res) => {
   res.json({ data, page, limit, total });
 };
 
-const createAccount: RequestHandler = async (req, res) => {
+const createAccountHandler: RequestHandler = async (req, res) => {
   const input = createAccountSchema.parse(req.body);
   const db = getDb(req);
   const sqlite = getSqlite(req);
   const id = uuidv4();
-  // Store ppxml2db-compatible type values ('portfolio' / 'account')
-  const dbType = input.type === 'SECURITIES' ? 'portfolio' : 'account';
-
-  const { maxXmlid } = sqlite.prepare('SELECT COALESCE(MAX(_xmlid), 0) as maxXmlid FROM account').get() as { maxXmlid: number };
-  const { maxOrder } = sqlite.prepare('SELECT COALESCE(MAX(_order), 0) as maxOrder FROM account').get() as { maxOrder: number };
-
+  const dbType = input.type;
   // Portfolios don't own a currency — they inherit from referenceAccount
   const dbCurrency = dbType === 'portfolio' ? null : (input.currency ?? 'EUR');
 
-  sqlite.prepare( // db-route-ok
-    `INSERT INTO account (uuid, type, name, currency, isRetired, referenceAccount, updatedAt, _xmlid, _order)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    id,
-    dbType,
-    input.name,
-    dbCurrency,
-    0,
-    input.referenceAccountId ?? null,
-    new Date().toISOString(),
-    maxXmlid + 1,
-    maxOrder + 1,
-  );
+  try {
+    createAccount(sqlite, {
+      id,
+      name: input.name,
+      dbType,
+      dbCurrency,
+      referenceAccountId: input.referenceAccountId ?? null,
+    });
+  } catch (err) {
+    if (err instanceof AccountServiceError && err.code === 'DUPLICATE_NAME') {
+      res.status(409).json({ error: 'DUPLICATE_NAME' });
+      return;
+    }
+    throw err;
+  }
 
   const rows = await db.select().from(accounts).where(eq(accounts.id, id));
   if (rows.length === 0) {
@@ -248,7 +246,7 @@ const updateAccount: RequestHandler = async (req, res) => {
   const existingType = existing[0].type;
   const updateSet = {
     ...(input.name !== undefined && { name: input.name }),
-    ...(input.type !== undefined && { type: input.type === 'SECURITIES' ? 'portfolio' : 'account' }),
+    ...(input.type !== undefined && { type: input.type }),
     // Portfolios don't own a currency — ignore currency updates for portfolio type
     ...(input.currency !== undefined && existingType !== 'portfolio' && { currency: input.currency }),
     ...(input.referenceAccountId !== undefined && {
@@ -259,7 +257,15 @@ const updateAccount: RequestHandler = async (req, res) => {
   };
   // Only run the update if there are actual fields to change
   if (Object.keys(updateSet).length > 0) {
-    await updateAccountFields(db, id, updateSet);
+    try {
+      await updateAccountFields(db, id, updateSet, sqlite);
+    } catch (err) {
+      if (err instanceof AccountServiceError && err.code === 'DUPLICATE_NAME') {
+        res.status(409).json({ error: 'DUPLICATE_NAME' });
+        return;
+      }
+      throw err;
+    }
   }
 
   const updated = await db.select().from(accounts).where(eq(accounts.id, id));
@@ -309,7 +315,7 @@ const getAccountHoldingsHandler: RequestHandler = async (req, res) => {
     return;
   }
   if (rows[0].type !== 'portfolio') {
-    res.status(400).json({ error: 'Account is not a portfolio' });
+    res.status(400).json({ error: 'ACCOUNT_NOT_PORTFOLIO' });
     return;
   }
 
@@ -330,7 +336,7 @@ const deleteAccount: RequestHandler = async (req, res) => {
 
   const txCount = getTransactionCount(sqlite, id);
   if (txCount > 0) {
-    res.status(409).json({ error: 'Account has transactions' });
+    res.status(409).json({ error: 'ACCOUNT_HAS_TRANSACTIONS' });
     return;
   }
 
@@ -339,7 +345,7 @@ const deleteAccount: RequestHandler = async (req, res) => {
     .prepare('SELECT COUNT(*) as cnt FROM account WHERE referenceAccount = ?')
     .get(id) as { cnt: number };
   if (refCount.cnt > 0) {
-    res.status(409).json({ error: 'Account is referenced by a portfolio' });
+    res.status(409).json({ error: 'ACCOUNT_REFERENCED_BY_PORTFOLIO' });
     return;
   }
 
@@ -351,7 +357,7 @@ accountsRouter.get('/', listAccounts);
 accountsRouter.get('/:id/holdings', getAccountHoldingsHandler);
 accountsRouter.get('/:id/transactions', getAccountTransactions);
 accountsRouter.get('/:id', getAccount);
-accountsRouter.post('/', createAccount);
+accountsRouter.post('/', createAccountHandler);
 accountsRouter.put('/:id', updateAccount);
 accountsRouter.put('/:id/logo', express.json({ limit: '2mb' }), updateAccountLogo);
 accountsRouter.delete('/:id', deleteAccount);

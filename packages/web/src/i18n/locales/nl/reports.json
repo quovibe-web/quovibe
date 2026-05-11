@@ -14,7 +14,7 @@
       "balance": "Saldo",
       "currency": "Valuta"
     },
-    "subtitle": "Portfolio snapshot at period end",
+    "subtitle": "Momentopname van portefeuille aan einde periode",
     "empty": "No securities in portfolio"
   },
   "holdings": {
@@ -38,8 +38,12 @@
     "groupBy": {
       "month": "Maand",
       "quarter": "Kwartaal",
-      "year": "Jaar"
+      "year": "Jaar",
+      "security": "Effect",
+      "type": "Type"
     },
+    "byTitle": "Overzicht per {{groupBy}}",
+    "cashOrNoSecurity": "Liquide middelen / geen effect",
     "earningsChart": "Inkomsten (Bruto/Netto)",
     "dividends": "Dividenden",
     "interest": "Rente",
@@ -62,7 +66,7 @@
       "byTitle": "per effect",
       "byAccount": "per rekening"
     },
-    "subtitle": "Dividends, interest, and other income"
+    "subtitle": "Dividenden, rente en andere inkomsten"
   },
   "returnsHeatmap": {
     "title": "Rendementenheatmap",
@@ -109,7 +113,7 @@
   },
   "assetAllocation": {
     "title": "Taxonomieën",
-    "subtitle": "Allocation and rebalancing by taxonomy",
+    "subtitle": "Allocatie en herbalancering per taxonomie",
     "noTaxonomies": "Geen taxonomieën gedefinieerd. Importeer een portefeuille met taxonomiegegevens om deze weergave te gebruiken.",
     "date": "Datum",
     "columns": {
@@ -145,7 +149,8 @@
     "dividends": "Dividenden",
     "fees": "Vergoedingen",
     "selectTaxonomy": "Taxonomie",
-    "subtitle": "Performance trends by category"
+    "categoryLabel": "Categorie",
+    "subtitle": "Prestatietrends per categorie"
   },
   "taxonomyNodePicker": {
     "loading": "Laden…",
@@ -220,7 +225,29 @@
     "editWeightDescription": "Stel het doelgewichtpercentage in",
     "assignCategoryDescription": "Selecteer een categorie om toe te wijzen",
     "deleteError": "Fout bij het verwijderen van de classificatie",
-    "renameDescription": "Voer een nieuwe naam in voor deze classificatie"
+    "renameDescription": "Voer een nieuwe naam in voor deze classificatie",
+    "emptyCategories": {
+      "title": "Deze classificatie heeft nog geen categorieën.",
+      "cta": "Eerste categorie toevoegen"
+    },
+    "resetTargets": {
+      "button": "Doelen herstellen",
+      "confirmTitle": "Doelen herstellen naar opgeslagen waarden?",
+      "confirmBody": "Vervangt de huidige doelen door de waarden die aanwezig waren bij het laden van de weergave.",
+      "confirmAction": "Herstellen"
+    },
+    "deleteCategoryDetailed": {
+      "title": "\"{{name}}\" verwijderen?",
+      "assignments_one": "{{count}} toewijzing wordt verwijderd.",
+      "assignments_other": "{{count}} toewijzingen worden verwijderd.",
+      "subcategories_one": "{{count}} subcategorie wordt naar de ouder verplaatst.",
+      "subcategories_other": "{{count}} subcategorieën worden naar de ouder verplaatst.",
+      "empty": "Deze categorie is leeg."
+    },
+    "renormalize": {
+      "checkbox": "Gewichten van betrokken items proportioneel herverdelen",
+      "hint": "Bestaande totalen blijven op de waarden van vóór het verwijderen."
+    }
   },
   "taxonomyUi": {
     "chartMode": {
@@ -241,7 +268,8 @@
     "picker": {
       "searchPlaceholder": "Categorieën zoeken...",
       "noMatches": "Geen categorie komt overeen met \"{{query}}\"",
-      "breadcrumbSeparator": " › "
+      "breadcrumbSeparator": " › ",
+      "entireTaxonomy": "Volledige taxonomie"
     }
   }
 }

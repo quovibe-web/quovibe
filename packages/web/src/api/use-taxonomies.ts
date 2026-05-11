@@ -1,16 +1,17 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { apiFetch } from './fetch';
+import { useScopedApi } from './use-scoped-api';
 import type { TaxonomyListItem } from './types';
 
 export const taxonomyKeys = {
-  all: ['taxonomies'] as const,
-  tree: (id: string) => ['taxonomies', 'tree', id] as const,
+  all: (pid: string) => ['portfolios', pid, 'taxonomies'] as const,
+  tree: (pid: string, id: string) => ['portfolios', pid, 'taxonomies', 'tree', id] as const,
 };
 
 export function useTaxonomies() {
+  const api = useScopedApi();
   return useQuery({
-    queryKey: taxonomyKeys.all,
-    queryFn: () => apiFetch<TaxonomyListItem[]>('/api/taxonomies'),
+    queryKey: taxonomyKeys.all(api.portfolioId),
+    queryFn: () => api.fetch<TaxonomyListItem[]>('/api/taxonomies'),
     staleTime: 5 * 60 * 1000,
     placeholderData: keepPreviousData,
   });

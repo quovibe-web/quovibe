@@ -14,8 +14,16 @@
     "analytics": "Analizy",
     "assetAllocation": "Taksonomie",
     "dataSeries": "Serie danych",
-    "settings": "Ustawienia",
-    "watchlists": "Listy obserwowanych"
+    "settings": "Ustawienia portfela",
+    "preferences": "Preferencje",
+    "watchlists": "Listy obserwowanych",
+    "income": "Przychody",
+    "chart": "Wykres",
+    "csvImport": "Import CSV",
+    "account": "Konto",
+    "security": "Papier wartościowy",
+    "taxonomySeries": "Seria taksonomii",
+    "newTransaction": "Nowa transakcja"
   },
   "period": "Okres",
   "presets": {
@@ -33,8 +41,7 @@
   "theme": {
     "light": "Jasny motyw",
     "system": "Motyw systemowy",
-    "dark": "Ciemny motyw",
-    "toggle": "Przełącz motyw"
+    "dark": "Ciemny motyw"
   },
   "more": "Więcej",
   "morePeriods": "Więcej okresów",
@@ -49,5 +56,19 @@
     "noResults": "Nie znaleziono wyników.",
     "perfChart": "Wykres wyników",
     "income": "Przychody"
+  },
+  "help": {
+    "button": "Pomoc",
+    "title": "Pomoc i informacje",
+    "description": "Dokumentacja, skróty klawiszowe i informacje o wersji.",
+    "about": "Informacje",
+    "aboutBlurb": "quovibe to otwartoźródłowe narzędzie do analizy portfela. Wersja {{version}}.",
+    "shortcuts": "Skróty klawiszowe",
+    "shortcutPalette": "Otwórz paletę poleceń",
+    "shortcutSidebar": "Przełącz pasek boczny",
+    "links": "Odnośniki",
+    "docs": "Dokumentacja",
+    "releaseNotes": "Informacje o wydaniu",
+    "reportBug": "Zgłoś błąd"
   }
 }

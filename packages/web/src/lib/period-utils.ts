@@ -155,12 +155,20 @@ export function formatPeriodRange(periodStart: string, periodEnd: string, lng?: 
 // Period-sensitive navigation helpers (shared by Sidebar + CommandPalette)
 // ---------------------------------------------------------------------------
 
-const PERIOD_SENSITIVE_PREFIXES = ['/', '/analytics', '/allocation', '/investments', '/accounts', '/taxonomies'];
+// Suffixes (relative to the portfolio scope) that carry period search params.
+// Path shape is always `/p/:portfolioId/<suffix>`, or `/p/:portfolioId` for the
+// portfolio root (= dashboard). Empty string matches the root.
+const PERIOD_SENSITIVE_SUFFIXES = ['', 'analytics', 'allocation', 'investments', 'accounts', 'taxonomies'];
+
+const SCOPED_PATH_RE = /^\/p\/[0-9a-f-]{36}(?:\/(.*))?$/i;
 
 /** Check if a route path should carry period search params. */
 export function isPeriodSensitivePath(path: string): boolean {
-  return PERIOD_SENSITIVE_PREFIXES.some((prefix) =>
-    prefix === '/' ? path === '/' : path.startsWith(prefix),
+  const m = SCOPED_PATH_RE.exec(path);
+  if (!m) return false;
+  const suffix = m[1] ?? '';                         // '' → portfolio root (dashboard)
+  return PERIOD_SENSITIVE_SUFFIXES.some((s) =>
+    s === '' ? suffix === '' : suffix === s || suffix.startsWith(`${s}/`),
   );
 }
 

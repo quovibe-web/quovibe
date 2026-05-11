@@ -1,4 +1,12 @@
 {
+  "empty": {
+    "title": "Welcome to your new portfolio.",
+    "importHeader": "Import transactions",
+    "importCsv": "Import from CSV",
+    "addManually": "Add account / transaction manually",
+    "wantToSee": "Want to see the app in action first?",
+    "tryDemo": "Try the demo instead"
+  },
   "title": "Panel",
   "hero": {
     "portfolioValue": "Valor de la cartera",
@@ -24,20 +32,23 @@
   "widgetSizeLarge": "Grande (3 col.)",
   "dataSeriesMenuItem": "Series de datos...",
   "period": "Período...",
+  "hideWidget": "Ocultar widget",
+  "showWidget": "Mostrar widget",
   "deleteWidget": "Eliminar",
+  "deleteWidgetConfirm": "¿Eliminar este widget?",
+  "deleteWidgetConfirmDesc": "Esto eliminará \"{{name}}\" de este panel. Puedes volver a agregarlo desde el catálogo de widgets.",
   "emptyDashboard": "Este panel aún no tiene widgets.",
   "unknownWidget": "Tipo de widget \"{{type}}\" no encontrado",
-  "widgetCatalog": "Widget catalog",
+  "widgetCatalog": "Catálogo de widgets",
   "catalog": {
-    "searchPlaceholder": "Search widgets...",
-    "all": "All",
-    "performance": "Performance",
-    "reports": "Reports",
-    "chart": "Charts",
-    "risk": "Risk",
-    "info": "Info",
-    "addToDashboard": "Add",
-    "noResults": "No widgets match your search.",
+    "searchPlaceholder": "Buscar widgets...",
+    "all": "Todos",
+    "performance": "Rendimiento",
+    "chart": "Gráficos",
+    "risk": "Riesgo",
+    "info": "Información",
+    "addToDashboard": "Agregar",
+    "noResults": "Ningún widget coincide con tu búsqueda.",
     "description": "Explorar y agregar widgets a tu panel",
     "desc": {
       "market-value": "Current market value of the selected data series at the end of the reporting period.",
@@ -117,7 +128,12 @@
       "noHoldings": "Sin posiciones en este período",
       "loadError": "Error al cargar las posiciones",
       "showMore_one": "+ {{count}} más",
-      "showMore_other": "+ {{count}} más"
+      "showMore_other": "+ {{count}} más",
+      "headers": {
+        "weight": "Peso",
+        "marketValue": "Valor",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "Sin datos para este período",

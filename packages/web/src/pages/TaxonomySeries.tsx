@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavTitle } from '@/hooks/useNavTitle';
 import {
   AreaSeries, LineSeries,
   type ISeriesApi, type SeriesType,
@@ -16,7 +17,8 @@ import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { TaxonomyNodePickerPopover } from '@/components/domain/TaxonomyNodePickerPopover';
 import { useTaxonomies } from '@/api/use-taxonomies';
 import { useTaxonomySeries } from '@/api/use-taxonomy-series';
-import { usePortfolio, useUpdateSettings } from '@/api/use-portfolio';
+import { usePortfolio } from '@/api/use-portfolio';
+import { useUpdatePreferences } from '@/api/use-preferences';
 import { formatPercentage, formatCurrency } from '@/lib/formatters';
 import { useBaseCurrency } from '@/hooks/use-base-currency';
 import { usePrivacy } from '@/context/privacy-context';
@@ -62,6 +64,7 @@ function MetricTile({ label, children }: MetricTileProps) {
 export default function TaxonomySeries() {
   const { t } = useTranslation('reports');
   const { t: tNav } = useTranslation('navigation');
+  useNavTitle('taxonomySeries');
   const { data: taxonomies, isLoading: taxonomiesLoading } = useTaxonomies();
   const { isPrivate } = usePrivacy();
   const baseCurrency = useBaseCurrency();
@@ -73,7 +76,7 @@ export default function TaxonomySeries() {
     () => getSavedChartType(CHART_ID) ?? 'area',
   );
   const { data: portfolioData } = usePortfolio();
-  const { mutate: saveSettings, isPending: savePending } = useUpdateSettings();
+  const { mutate: saveSettings, isPending: savePending } = useUpdatePreferences();
 
   // Auto-select taxonomy on load using sidecar preference, falling back to first
   useEffect(() => {
@@ -240,12 +243,17 @@ export default function TaxonomySeries() {
           </div>
         )}
         {selectedTaxonomyId && (
-          <TaxonomyNodePickerPopover
-            taxonomyId={selectedTaxonomyId}
-            taxonomyName={selectedTaxonomy?.name ?? ''}
-            selectedId={selectedCategoryId}
-            onSelectionChange={setSelectedCategoryId}
-          />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground font-medium">
+              {t('taxonomySeries.categoryLabel')}
+            </span>
+            <TaxonomyNodePickerPopover
+              taxonomyId={selectedTaxonomyId}
+              taxonomyName={selectedTaxonomy?.name ?? ''}
+              selectedId={selectedCategoryId}
+              onSelectionChange={setSelectedCategoryId}
+            />
+          </div>
         )}
       </div>
 

@@ -1,4 +1,12 @@
 {
+  "empty": {
+    "title": "Welcome to your new portfolio.",
+    "importHeader": "Import transactions",
+    "importCsv": "Import from CSV",
+    "addManually": "Add account / transaction manually",
+    "wantToSee": "Want to see the app in action first?",
+    "tryDemo": "Try the demo instead"
+  },
   "title": "Dashboard",
   "hero": {
     "portfolioValue": "Portfoliowert",
@@ -24,20 +32,23 @@
   "widgetSizeLarge": "Groß (3 Sp.)",
   "dataSeriesMenuItem": "Datenreihen...",
   "period": "Zeitraum...",
+  "hideWidget": "Widget ausblenden",
+  "showWidget": "Widget einblenden",
   "deleteWidget": "Löschen",
+  "deleteWidgetConfirm": "Dieses Widget entfernen?",
+  "deleteWidgetConfirmDesc": "Dadurch wird \"{{name}}\" aus diesem Dashboard entfernt. Du kannst es jederzeit aus dem Widget-Katalog wieder hinzufügen.",
   "emptyDashboard": "Dieses Dashboard hat noch keine Widgets.",
   "unknownWidget": "Widget-Typ \"{{type}}\" nicht gefunden",
-  "widgetCatalog": "Widget catalog",
+  "widgetCatalog": "Widget-Katalog",
   "catalog": {
-    "searchPlaceholder": "Search widgets...",
-    "all": "All",
+    "searchPlaceholder": "Widgets suchen...",
+    "all": "Alle",
     "performance": "Performance",
-    "reports": "Reports",
-    "chart": "Charts",
-    "risk": "Risk",
+    "chart": "Diagramme",
+    "risk": "Risiko",
     "info": "Info",
-    "addToDashboard": "Add",
-    "noResults": "No widgets match your search.",
+    "addToDashboard": "Hinzufügen",
+    "noResults": "Keine Widgets entsprechen deiner Suche.",
     "description": "Widgets durchsuchen und zum Dashboard hinzufügen",
     "desc": {
       "market-value": "Current market value of the selected data series at the end of the reporting period.",
@@ -117,7 +128,12 @@
       "noHoldings": "Keine Positionen in diesem Zeitraum",
       "loadError": "Fehler beim Laden der Positionen",
       "showMore_one": "+ {{count}} weitere",
-      "showMore_other": "+ {{count}} weitere"
+      "showMore_other": "+ {{count}} weitere",
+      "headers": {
+        "weight": "Gewichtung",
+        "marketValue": "Wert",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "Keine Daten für diesen Zeitraum",

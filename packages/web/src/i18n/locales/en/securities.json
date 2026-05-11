@@ -13,6 +13,8 @@
     "edit": "Edit",
     "updatePrices": "Update All Prices",
     "updating": "Updating…",
+    "refreshQuote": "Refresh Quote",
+    "refreshing": "Refreshing…",
     "addInstrument": "+ Add Instrument",
     "delete": "Delete"
   },
@@ -144,6 +146,9 @@
     "performance": "Performance",
     "priceHistory": "Price History",
     "transactions": "Transactions",
+    "taxonomies": "Taxonomies",
+    "notClassified": "Not yet classified.",
+    "classify": "Classify →",
     "noTransactions": "No transactions for this security",
     "noPrices": "No price history available",
     "configureFeed": "Configure price feed →",
@@ -285,6 +290,34 @@
     "unsavedKeepEditing": "Keep editing",
     "save": "Save changes",
     "saving": "Saving..."
+  },
+  "attributeType": {
+    "editTitle": "Rename attribute type",
+    "fields": {
+      "name": "Name",
+      "columnLabel": "Column label",
+      "type": "Type"
+    },
+    "types": {
+      "text": "Text",
+      "number": "Number",
+      "percentage": "Percentage",
+      "amount": "Amount",
+      "date": "Date",
+      "boolean": "Yes / No"
+    },
+    "menu": {
+      "aria": "Attribute actions",
+      "rename": "Rename type definition",
+      "removeFromSec": "Remove from this security"
+    },
+    "empty": "No custom attributes.",
+    "empty.cta": "+ Create attribute type",
+    "validation": {
+      "nameRequired": "Name is required.",
+      "nameTooLong": "Name cannot exceed {{max}} characters.",
+      "columnLabelTooLong": "Column label cannot exceed {{max}} characters."
+    }
   },
   "empty": {
     "noSecurities": "No securities yet"

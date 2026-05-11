@@ -1,0 +1,11 @@
+{
+  "preferences": {
+    "title": "Preferencje",
+    "subtitle": "Preferencje osobiste"
+  },
+  "updates": {
+    "title": "Aktualizacje",
+    "autoFetchLabel": "Automatycznie aktualizuj kursy przy pierwszym otwarciu każdego portfela",
+    "autoFetchHint": "Domyślnie wyłączone, aby uniknąć zużywania limitu API Yahoo / AlphaVantage podczas restartów kontenera. Włącz, jeśli chcesz świeże kursy przy każdym otwarciu portfela w nowym procesie."
+  }
+}

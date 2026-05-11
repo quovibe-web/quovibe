@@ -41,7 +41,11 @@
     "previous": "Poprzednia",
     "next": "Następna",
     "pageOf": "Strona {{current}} z {{total}}",
-    "showing": "Showing {{from}}–{{to}} of {{total}}"
+    "showing": "Wyświetlanie {{from}}–{{to}} z {{total}}"
+  },
+  "aria": {
+    "sortAscending": "{{column}} sortowane rosnąco",
+    "sortDescending": "{{column}} sortowane malejąco"
   },
   "transactionCount_one": "{{count}} transakcja",
   "transactionCount_few": "{{count}} transakcje",
@@ -75,6 +79,8 @@
   "resetToDefaults": "Przywróć domyślne",
   "layoutReset": "Układ tabeli przywrócony do domyślnych",
   "columnsHidden_one": "{{count}} ukryta",
+  "columnsHidden_few": "{{count}} ukryte",
+  "columnsHidden_many": "{{count}} ukrytych",
   "columnsHidden_other": "{{count}} ukrytych",
   "resizeColumn": "Zmień rozmiar kolumny",
   "exportCsv": "Eksportuj CSV",

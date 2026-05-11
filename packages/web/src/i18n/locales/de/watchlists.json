@@ -7,13 +7,18 @@
     "delete": "Löschen",
     "deleteConfirmTitle": "Watchlist löschen",
     "deleteConfirmMessage": "Möchten Sie \"{{name}}\" wirklich löschen? Die Wertpapiere werden nicht gelöscht.",
-    "defaultName": "Neue Watchlist"
+    "defaultName": "Neue Watchlist",
+    "newDescription": "Geben Sie Ihrer neuen Watchlist einen Namen."
   },
   "table": {
     "name": "Name",
     "ticker": "Ticker",
     "price": "Kurs",
     "change": "Änderung",
+    "change1d": "1T",
+    "change1w": "1W",
+    "change1m": "1M",
+    "change1y": "1J",
     "trend": "30T-Trend",
     "currency": "Währung",
     "lastQuote": "Letzter Kurs",
@@ -29,6 +34,7 @@
   },
   "addDialog": {
     "title": "Wertpapier zur Watchlist hinzufügen",
+    "description": "Wählen Sie Wertpapiere aus, die dieser Watchlist hinzugefügt werden sollen.",
     "search": "Nach Name, ISIN oder Ticker suchen...",
     "existing": "Vorhandene Wertpapiere",
     "createNew": "Neues Wertpapier erstellen",
@@ -47,5 +53,10 @@
     "selectWatchlist": "Watchlist auswählen",
     "notFound": "Watchlist nicht gefunden",
     "configure": "Konfigurieren"
+  },
+  "columnGroups": {
+    "identity": "Identität",
+    "performance": "Performance",
+    "meta": "Metadaten"
   }
 }

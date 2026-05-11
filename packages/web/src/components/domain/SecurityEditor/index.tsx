@@ -22,7 +22,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useSecurityDetail } from '@/api/use-securities';
-import { apiFetch } from '@/api/fetch';
+import { useScopedApi } from '@/api/use-scoped-api';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
+import { resolveErrorMessage } from '@/api/query-client';
 import { getSecurityCompleteness } from '@/lib/security-completeness';
 import type { SecurityAttribute, TaxonomyAssignment } from '@/api/types';
 import { MasterDataSection, type MasterDataValues } from './MasterDataSection';
@@ -56,6 +58,7 @@ export function SecurityEditor({
 }: SecurityEditorProps) {
   const { t } = useTranslation('securities');
   const qc = useQueryClient();
+  const api = useScopedApi();
 
   const { data: detail } = useSecurityDetail(
     mode === 'edit' && securityId ? securityId : '',
@@ -83,6 +86,11 @@ export function SecurityEditor({
   const [feedData, setFeedData] = useState<PriceFeedValues>(DEFAULT_FEED);
   const [attributes, setAttributes] = useState<SecurityAttribute[]>([]);
   const [taxonomyAssignments, setTaxonomyAssignments] = useState<TaxonomyAssignment[]>([]);
+  // Snapshot of the logo at editor-open time. Save only PUTs /logo when the current
+  // value differs — prevents wiping a logo that an out-of-band background fetch
+  // (e.g. AddInstrumentDialog post-create) wrote while the editor was open. A ref
+  // because reading it at save time never needs to drive a re-render.
+  const initialLogoValueRef = useRef<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -113,6 +121,7 @@ export function SecurityEditor({
         latestFeedUrl: detail.latestFeedUrl ?? '',
       });
       setAttributes(detail.attributes ?? []);
+      initialLogoValueRef.current = detail.attributes?.find(a => a.typeId === 'logo')?.value ?? null;
       setTaxonomyAssignments(detail.taxonomyAssignments ?? []);
       setIsDirty(false);
       setError(null);
@@ -120,6 +129,7 @@ export function SecurityEditor({
       setMasterData(DEFAULT_MASTER);
       setFeedData(DEFAULT_FEED);
       setAttributes([]);
+      initialLogoValueRef.current = null;
       setTaxonomyAssignments([]);
       setIsDirty(false);
       setError(null);
@@ -219,7 +229,7 @@ export function SecurityEditor({
 
       let id: string;
       if (mode === 'create') {
-        const created = await apiFetch<{ id: string }>('/api/securities', {
+        const created = await api.fetch<{ id: string }>('/api/securities', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(masterPayload),
@@ -227,7 +237,7 @@ export function SecurityEditor({
         id = created.id;
         onCreated?.(id);
       } else {
-        await apiFetch(`/api/securities/${securityId}`, {
+        await api.fetch(`/api/securities/${securityId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(masterPayload),
@@ -237,7 +247,7 @@ export function SecurityEditor({
 
       // Save non-logo attributes via full-replace endpoint FIRST
       // (this does DELETE all + INSERT, so it must run before the logo save)
-      await apiFetch(`/api/securities/${id}/attributes`, {
+      await api.fetch(`/api/securities/${id}/attributes`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -247,37 +257,42 @@ export function SecurityEditor({
         }),
       });
 
-      // Save logo via dedicated endpoint (only touches logo row, no full replace)
-      const logoAttr = attributes.find(a => a.typeId === 'logo');
-      await apiFetch(`/api/securities/${id}/logo`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ logoUrl: logoAttr?.value || null }),
-      });
+      // Save logo only when the user touched it. Skipping the PUT preserves any logo
+      // an out-of-band background fetch wrote while the editor was open.
+      const currentLogo = attributes.find(a => a.typeId === 'logo')?.value || null;
+      if (currentLogo !== initialLogoValueRef.current) {
+        await api.fetch(`/api/securities/${id}/logo`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logoUrl: currentLogo }),
+        });
+      }
 
-      await apiFetch(`/api/securities/${id}/taxonomy`, {
+      await api.fetch(`/api/securities/${id}/taxonomy`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ assignments: cleanedAssignments }),
       });
 
-      qc.invalidateQueries({ queryKey: ['securities'] });
-      qc.invalidateQueries({ queryKey: ['securities', id] });
-      qc.invalidateQueries({ queryKey: ['taxonomies'] });
-      qc.invalidateQueries({ queryKey: ['rebalancing'] });
-      qc.invalidateQueries({ queryKey: ['reports'] });
-      qc.invalidateQueries({ queryKey: ['performance'] });
-      qc.invalidateQueries({ queryKey: ['holdings'] });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'securities'] });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'securities', id] });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'taxonomies'] });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'rebalancing'] });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'reports'] });
+      qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'performance'] });
 
       toast.success(t('securityEditor.saved'));
       setIsDirty(false);
       onOpenChange(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('securityEditor.saveError'));
+      // ApiError.message is the raw wire code; resolveErrorMessage applies server.<CODE> i18n.
+      setError(resolveErrorMessage(e));
     } finally {
       setSaving(false);
     }
   }
+
+  const { run: runHandleSave, inFlight: saveInFlight } = useGuardedSubmit(handleSave);
 
   // Compute completeness for section dots (edit mode only)
   const completeness = mode === 'edit' && detail
@@ -331,7 +346,6 @@ export function SecurityEditor({
               attributes={attributes}
               onChange={handleAttributesChange}
               ticker={masterData.ticker}
-              instrumentType={detail?.instrumentType ?? undefined}
             />
 
             <TaxonomiesSection
@@ -359,8 +373,8 @@ export function SecurityEditor({
             <Button
               type="button"
               className="flex-1"
-              onClick={handleSave}
-              disabled={saving}
+              onClick={runHandleSave}
+              disabled={saving || saveInFlight}
             >
               {saving ? t('securityEditor.saving') : t('securityEditor.save')}
             </Button>

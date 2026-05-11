@@ -1,0 +1,12 @@
+{
+  "noPortfolio": "Sin cartera",
+  "newPortfolio": "+ Nueva cartera…",
+  "tryDemo": "🧪 Probar la demo",
+  "allPortfolios": "Todas las carteras…",
+  "demoBadge": "Demo",
+  "moreHidden_one": "{{count}} más oculta — ver Todas las carteras…",
+  "moreHidden_other": "{{count}} más ocultas — ver Todas las carteras…",
+  "errors": {
+    "demoFailed": "No se pudo abrir la demo: {{msg}}"
+  }
+}

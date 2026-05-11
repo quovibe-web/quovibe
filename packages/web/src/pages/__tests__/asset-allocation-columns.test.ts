@@ -27,9 +27,8 @@ describe('useMemo columns (3.4)', () => {
       expect(source).toMatch(/useMemo<ColumnDef<TreeItem>\[\]>/);
     });
 
-    it('useMemo dependency array includes [t, taxonomyId, usedColors, date]', () => {
-      // The closing of the useMemo should have [t, taxonomyId, usedColors, date] as dependency
-      expect(source).toMatch(/\], \[t, taxonomyId, usedColors, date\]\)/);
+    it('useMemo dependency array includes [t, taxonomyId, usedColors, date, siblingStats, sorting, cascadeMap]', () => {
+      expect(source).toMatch(/\], \[t, taxonomyId, usedColors, date, siblingStats, sorting, cascadeMap\]\)/);
     });
 
     it('contains expected column accessorKeys: name, marketValue, percentage', () => {

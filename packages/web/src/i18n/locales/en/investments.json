@@ -64,13 +64,17 @@
     "clearFilter": "Show all"
   },
   "search": {
-    "placeholder": "Search by name, ISIN, or ticker…"
+    "placeholder": "Search by name, ISIN, or ticker…",
+    "noResults": "No results for '{{query}}'",
+    "noResultsHint": "Try a different name, ISIN, or ticker."
   },
   "totals": {
     "label": "Total ({{count}} securities)"
   },
   "empty": {
     "title": "No securities yet",
-    "description": "Add your first security to get started"
+    "description": "Add your first security to get started",
+    "noMatches": "No securities in this account",
+    "noMatchesHint": "Adjust the account filter to see other holdings."
   }
 }

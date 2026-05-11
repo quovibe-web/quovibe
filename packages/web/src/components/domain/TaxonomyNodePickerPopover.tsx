@@ -7,6 +7,7 @@ import { useTaxonomyTree } from '@/api/use-taxonomy-tree';
 import type { TaxonomyTreeCategory } from '@/api/types';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { translateTaxonomyName } from '@/lib/taxonomy-i18n';
 
 // ---------- Pure helpers (exported so tests can call them directly) ----------
 
@@ -86,7 +87,7 @@ export function TaxonomyNodePickerPopover({
   selectedId,
   onSelectionChange,
 }: TaxonomyNodePickerPopoverProps) {
-  const { t } = useTranslation('reports');
+  const { t, i18n } = useTranslation('reports');
   const { data } = useTaxonomyTree(taxonomyId);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -94,7 +95,29 @@ export function TaxonomyNodePickerPopover({
   const listRef = useRef<HTMLDivElement>(null);
   const selectedRowRef = useRef<HTMLButtonElement>(null);
 
-  const flat = useMemo(() => (data ? flattenCategories(data.categories) : []), [data]);
+  const flat = useMemo(
+    () => {
+      if (!data) return [];
+      const real = flattenCategories(data.categories).map((n) => ({
+        ...n,
+        name: translateTaxonomyName(n.name),
+      }));
+      // Surface the invisible root as a synthetic top-of-list entry so users can
+      // select "everything in this taxonomy" — backend's resolveDescendantCategories
+      // walks the entire tree from the root UUID.
+      if (!data.rootId) return real;
+      const entire: FlatNode = {
+        id: data.rootId,
+        name: t('taxonomyUi.picker.entireTaxonomy'),
+        color: null,
+        depth: 0,
+        parentIds: [],
+      };
+      return [entire, ...real];
+    },
+    // i18n.language: re-translate when user switches language
+    [data, i18n.language, t],
+  );
   const nameLookup = useMemo(() => {
     const m = new Map<string, string>();
     for (const n of flat) m.set(n.id, n.name);

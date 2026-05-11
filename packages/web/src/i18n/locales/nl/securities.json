@@ -13,6 +13,8 @@
     "edit": "Bewerken",
     "updatePrices": "Alle koersen bijwerken",
     "updating": "Bijwerken…",
+    "refreshQuote": "Koers vernieuwen",
+    "refreshing": "Bijwerken…",
     "addInstrument": "+ Instrument toevoegen",
     "delete": "Verwijderen"
   },
@@ -144,6 +146,9 @@
     "performance": "Rendement",
     "priceHistory": "Koersverloop",
     "transactions": "Transacties",
+    "taxonomies": "Taxonomieën",
+    "notClassified": "Nog niet geclassificeerd.",
+    "classify": "Classificeren →",
     "noTransactions": "Geen transacties voor dit instrument",
     "noPrices": "Geen koershistorie beschikbaar",
     "configureFeed": "Prijsfeed configureren →",
@@ -285,6 +290,34 @@
     "unsavedKeepEditing": "Doorgaan met bewerken",
     "save": "Wijzigingen opslaan",
     "saving": "Opslaan..."
+  },
+  "attributeType": {
+    "editTitle": "Attribuuttype hernoemen",
+    "fields": {
+      "name": "Naam",
+      "columnLabel": "Kolomlabel",
+      "type": "Type"
+    },
+    "types": {
+      "text": "Tekst",
+      "number": "Getal",
+      "percentage": "Percentage",
+      "amount": "Bedrag",
+      "date": "Datum",
+      "boolean": "Ja / Nee"
+    },
+    "menu": {
+      "aria": "Attribuutacties",
+      "rename": "Typedefinitie hernoemen",
+      "removeFromSec": "Verwijderen uit dit effect"
+    },
+    "empty": "Geen aangepaste attributen.",
+    "empty.cta": "+ Attribuuttype maken",
+    "validation": {
+      "nameRequired": "Naam is verplicht.",
+      "nameTooLong": "Naam mag niet langer zijn dan {{max}} tekens.",
+      "columnLabelTooLong": "Kolomlabel mag niet langer zijn dan {{max}} tekens."
+    }
   },
   "empty": {
     "noSecurities": "Nog geen effecten"

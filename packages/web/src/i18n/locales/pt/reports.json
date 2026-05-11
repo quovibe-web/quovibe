@@ -14,7 +14,7 @@
       "balance": "Saldo",
       "currency": "Moeda"
     },
-    "subtitle": "Portfolio snapshot at period end",
+    "subtitle": "Instantâneo da carteira no fim do período",
     "empty": "No securities in portfolio"
   },
   "holdings": {
@@ -38,8 +38,12 @@
     "groupBy": {
       "month": "Mês",
       "quarter": "Trimestre",
-      "year": "Ano"
+      "year": "Ano",
+      "security": "Instrumento",
+      "type": "Tipo"
     },
+    "byTitle": "Distribuição por {{groupBy}}",
+    "cashOrNoSecurity": "Numerário / sem instrumento",
     "earningsChart": "Rendimentos (Bruto/Líquido)",
     "dividends": "Dividendos",
     "interest": "Juros",
@@ -62,7 +66,7 @@
       "byTitle": "por título",
       "byAccount": "por conta"
     },
-    "subtitle": "Dividends, interest, and other income"
+    "subtitle": "Dividendos, juros e outros rendimentos"
   },
   "returnsHeatmap": {
     "title": "Mapa de calor de retornos",
@@ -109,7 +113,7 @@
   },
   "assetAllocation": {
     "title": "Taxonomias",
-    "subtitle": "Allocation and rebalancing by taxonomy",
+    "subtitle": "Alocação e rebalanceamento por taxonomia",
     "noTaxonomies": "Sem taxonomias definidas. Importe uma carteira com dados de taxonomia para usar esta vista.",
     "date": "Data",
     "columns": {
@@ -145,7 +149,8 @@
     "dividends": "Dividendos",
     "fees": "Taxas",
     "selectTaxonomy": "Taxonomia",
-    "subtitle": "Performance trends by category"
+    "categoryLabel": "Categoria",
+    "subtitle": "Tendências de desempenho por categoria"
   },
   "taxonomyNodePicker": {
     "loading": "A carregar…",
@@ -220,7 +225,29 @@
     "editWeightDescription": "Defina a percentagem de peso objetivo",
     "assignCategoryDescription": "Selecione uma categoria para atribuir",
     "deleteError": "Erro ao eliminar a taxonomia",
-    "renameDescription": "Introduza um novo nome para esta taxonomia"
+    "renameDescription": "Introduza um novo nome para esta taxonomia",
+    "emptyCategories": {
+      "title": "Esta taxonomia ainda não tem categorias.",
+      "cta": "Adicionar primeira categoria"
+    },
+    "resetTargets": {
+      "button": "Repor metas",
+      "confirmTitle": "Repor as metas para os valores gravados?",
+      "confirmBody": "Substitui as metas atuais pelos valores existentes no carregamento da vista.",
+      "confirmAction": "Repor"
+    },
+    "deleteCategoryDetailed": {
+      "title": "Eliminar \"{{name}}\"?",
+      "assignments_one": "{{count}} atribuição será removida.",
+      "assignments_other": "{{count}} atribuições serão removidas.",
+      "subcategories_one": "{{count}} subcategoria será movida para o pai.",
+      "subcategories_other": "{{count}} subcategorias serão movidas para o pai.",
+      "empty": "Esta categoria está vazia."
+    },
+    "renormalize": {
+      "checkbox": "Redistribuir proporcionalmente os pesos dos itens afetados",
+      "hint": "Os totais existentes mantêm-se nos valores pré-eliminação."
+    }
   },
   "taxonomyUi": {
     "chartMode": {
@@ -241,7 +268,8 @@
     "picker": {
       "searchPlaceholder": "Pesquisar categorias...",
       "noMatches": "Nenhuma categoria corresponde a \"{{query}}\"",
-      "breadcrumbSeparator": " › "
+      "breadcrumbSeparator": " › ",
+      "entireTaxonomy": "Taxonomia inteira"
     }
   }
 }

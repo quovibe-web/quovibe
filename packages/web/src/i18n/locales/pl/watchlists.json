@@ -7,13 +7,18 @@
     "delete": "Usuń",
     "deleteConfirmTitle": "Usuń listę",
     "deleteConfirmMessage": "Czy na pewno chcesz usunąć \"{{name}}\"? Papiery wartościowe nie zostaną usunięte.",
-    "defaultName": "Nowa lista"
+    "defaultName": "Nowa lista",
+    "newDescription": "Nadaj nazwę nowej liście."
   },
   "table": {
     "name": "Nazwa",
     "ticker": "Ticker",
     "price": "Kurs",
     "change": "Zmiana",
+    "change1d": "1D",
+    "change1w": "1T",
+    "change1m": "1M",
+    "change1y": "1R",
     "trend": "Trend 30d",
     "currency": "Waluta",
     "lastQuote": "Ostatni kurs",
@@ -29,6 +34,7 @@
   },
   "addDialog": {
     "title": "Dodaj papier wartościowy do listy",
+    "description": "Wybierz papiery wartościowe do dodania do tej listy.",
     "search": "Szukaj po nazwie, ISIN lub tickerze...",
     "existing": "Istniejące papiery wartościowe",
     "createNew": "Utwórz nowy papier wartościowy",
@@ -47,5 +53,10 @@
     "selectWatchlist": "Wybierz listę",
     "notFound": "Lista nie znaleziona",
     "configure": "Konfiguruj"
+  },
+  "columnGroups": {
+    "identity": "Identyfikacja",
+    "performance": "Wyniki",
+    "meta": "Metadane"
   }
 }

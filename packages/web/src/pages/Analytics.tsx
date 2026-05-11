@@ -1,19 +1,20 @@
 import { useState, useCallback, type ReactNode } from 'react';
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { AnalyticsContext } from '@/context/analytics-context';
 import { cn } from '@/lib/utils';
 
 const TABS = [
-  { path: '/analytics/calculation', labelKey: 'analytics.tabs.calculation' },
-  { path: '/analytics/chart', labelKey: 'analytics.tabs.chart' },
-  { path: '/analytics/income', labelKey: 'analytics.tabs.income' },
+  { path: 'calculation', labelKey: 'analytics.tabs.calculation' },
+  { path: 'chart', labelKey: 'analytics.tabs.chart' },
+  { path: 'income', labelKey: 'analytics.tabs.income' },
 ] as const;
 
 export default function Analytics() {
   const { t } = useTranslation('performance');
   const location = useLocation();
+  const { portfolioId } = useParams<{ portfolioId: string }>();
   const [actions, setActionsState] = useState<ReactNode>(null);
   const [subtitle, setSubtitleState] = useState('');
 
@@ -36,7 +37,7 @@ export default function Analytics() {
         {TABS.map((tab) => (
           <NavLink
             key={tab.path}
-            to={{ pathname: tab.path, search: periodSearch }}
+            to={{ pathname: `/p/${portfolioId}/analytics/${tab.path}`, search: periodSearch }}
             className={({ isActive }) =>
               cn(
                 'px-4 py-1.5 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',

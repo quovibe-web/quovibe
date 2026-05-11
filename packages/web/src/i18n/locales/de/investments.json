@@ -64,13 +64,17 @@
     "clearFilter": "Alle anzeigen"
   },
   "search": {
-    "placeholder": "Nach Name, ISIN oder Ticker suchen…"
+    "placeholder": "Nach Name, ISIN oder Ticker suchen…",
+    "noResults": "Keine Ergebnisse für '{{query}}'",
+    "noResultsHint": "Versuchen Sie einen anderen Namen, ISIN oder Ticker."
   },
   "totals": {
     "label": "Gesamt ({{count}} Wertpapiere)"
   },
   "empty": {
     "title": "Noch keine Wertpapiere",
-    "description": "Fügen Sie Ihr erstes Wertpapier hinzu"
+    "description": "Fügen Sie Ihr erstes Wertpapier hinzu",
+    "noMatches": "Keine Wertpapiere in diesem Konto",
+    "noMatchesHint": "Passen Sie den Kontofilter an, um andere Positionen zu sehen."
   }
 }

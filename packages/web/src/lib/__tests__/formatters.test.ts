@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { formatCurrency, formatShares, formatQuote } from '@/lib/formatters';
+import i18n from '@/i18n';
+import { formatCurrency, formatShares, formatQuote, formatPercentage } from '@/lib/formatters';
 
 describe('formatCurrency', () => {
   it('uses currency symbol by default', () => {
@@ -48,6 +49,34 @@ describe('formatShares', () => {
     const result = formatShares(5, { sharesPrecision: 2 });
     // Integer values show 0 fraction digits
     expect(result).toMatch(/^5$/);
+  });
+});
+
+describe('formatPercentage', () => {
+  it('strips CLDR no-break space before % in de-DE', async () => {
+    const prev = i18n.language;
+    await i18n.changeLanguage('de');
+    const result = formatPercentage(0.0515);
+    expect(result).not.toMatch(/[\u00A0\u202F\u2009]%/);
+    expect(result).toMatch(/5,15%/);
+    await i18n.changeLanguage(prev);
+  });
+
+  it('strips CLDR no-break space before % in fr-FR', async () => {
+    const prev = i18n.language;
+    await i18n.changeLanguage('fr');
+    const result = formatPercentage(0.0515);
+    expect(result).not.toMatch(/[\u00A0\u202F\u2009]%/);
+    expect(result).toMatch(/5,15%/);
+    await i18n.changeLanguage(prev);
+  });
+
+  it('keeps en-GB output unchanged (no space before %)', async () => {
+    const prev = i18n.language;
+    await i18n.changeLanguage('en');
+    const result = formatPercentage(0.0515);
+    expect(result).toBe('5.15%');
+    await i18n.changeLanguage(prev);
   });
 });
 

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, Eye, EyeOff, Sun, Moon, Monitor, Plus, MoreHorizontal, Settings, Menu } from 'lucide-react';
+import { CalendarIcon, Eye, EyeOff, Plus, MoreHorizontal, Settings, Menu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -17,16 +17,18 @@ import {
 import { useReportingPeriod } from '@/api/use-performance';
 import { useFirstTransactionDate } from '@/api/use-transactions';
 import { useReportingPeriods } from '@/api/use-reporting-periods';
-import { usePortfolio, useUpdateSettings } from '@/api/use-portfolio';
+import { usePortfolio } from '@/api/use-portfolio';
+import { useUpdatePreferences } from '@/api/use-preferences';
+import { usePortfolio as usePortfolioContext } from '@/context/PortfolioContext';
 import { usePrivacy } from '@/context/privacy-context';
-import { useTheme } from '@/hooks/use-theme';
-import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import { NewPeriodDialog } from '@/components/domain/NewPeriodDialog';
 import { DEFAULT_PERIODS, formatPeriodShortLabel, formatPeriodLabel, getPeriodId, ALL_PERIOD_ID } from '@/lib/period-utils';
 import { resolveReportingPeriod } from '@quovibe/shared';
 import type { ReportingPeriodDef } from '@quovibe/shared';
 import { formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
+import { PortfolioSwitcher } from './PortfolioSwitcher';
+import { DemoBadge } from './DemoBadge';
 
 const today = () => new Date();
 const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
@@ -34,78 +36,31 @@ const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 // Max custom periods to show as pills in the TopBar
 const MAX_PILL_CUSTOM = 2;
 
-/** Privacy + Light/System/Dark toggle group */
-function ToggleGroup() {
+function PrivacyToggle() {
   const { t } = useTranslation('navigation');
   const { isPrivate, togglePrivacy } = usePrivacy();
-  const { theme, setTheme } = useTheme();
-  const { mutate: updateSettings } = useUpdateSettings();
-
-  function handleTheme(next: 'light' | 'dark' | 'system') {
-    setTheme(next);
-    updateSettings({ theme: next });
-  }
+  const { mutate: updatePreferences } = useUpdatePreferences();
+  const label = isPrivate ? t('privacy.disable') : t('privacy.enable');
 
   function handlePrivacy() {
     togglePrivacy();
-    updateSettings({ privacyMode: !isPrivate });
+    updatePreferences({ privacyMode: !isPrivate });
   }
 
   return (
-    <div className="flex items-center gap-0.5 rounded-full bg-muted p-0.5">
-      <button
-        onClick={handlePrivacy}
-        className={cn(
-          'p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-          isPrivate
-            ? 'bg-card text-foreground'
-            : 'text-muted-foreground hover:text-foreground'
-        )}
-        title={isPrivate ? t('privacy.disable') : t('privacy.enable')}
-        aria-label={isPrivate ? t('privacy.disable') : t('privacy.enable')}
-      >
-        {isPrivate ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-      </button>
-      <button
-        onClick={() => handleTheme('light')}
-        className={cn(
-          'hidden md:inline-flex p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-          theme === 'light'
-            ? 'bg-card text-primary'
-            : 'text-muted-foreground hover:text-foreground'
-        )}
-        title={t('theme.light')}
-        aria-label={t('theme.light')}
-      >
-        <Sun className="h-4 w-4" />
-      </button>
-      <button
-        onClick={() => handleTheme('system')}
-        className={cn(
-          'hidden md:inline-flex p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-          theme === 'system'
-            ? 'bg-card text-primary'
-            : 'text-muted-foreground hover:text-foreground'
-        )}
-        title={t('theme.system')}
-        aria-label={t('theme.system')}
-      >
-        <Monitor className="h-4 w-4" />
-      </button>
-      <button
-        onClick={() => handleTheme('dark')}
-        className={cn(
-          'hidden md:inline-flex p-1.5 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-          theme === 'dark'
-            ? 'bg-card text-primary'
-            : 'text-muted-foreground hover:text-foreground'
-        )}
-        title={t('theme.dark')}
-        aria-label={t('theme.dark')}
-      >
-        <Moon className="h-4 w-4" />
-      </button>
-    </div>
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      onClick={handlePrivacy}
+      className={cn(
+        'text-muted-foreground hover:text-foreground',
+        isPrivate && 'bg-muted text-foreground hover:bg-muted',
+      )}
+      title={label}
+      aria-label={label}
+    >
+      {isPrivate ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+    </Button>
   );
 }
 
@@ -126,7 +81,8 @@ function PeriodSelector() {
   const { data: firstDateData } = useFirstTransactionDate();
   const { data: periodsData } = useReportingPeriods();
   const { data: portfolioData } = usePortfolio();
-  const { mutate: updateSettings } = useUpdateSettings();
+  const currentPortfolio = usePortfolioContext();
+  const { mutate: updatePreferences } = useUpdatePreferences();
 
 
   const [overflowOpen, setOverflowOpen] = useState(false);
@@ -211,13 +167,13 @@ function PeriodSelector() {
   function selectPeriod(def: ReportingPeriodDef) {
     const resolved = resolveReportingPeriod(def, todayStr);
     setPeriod(resolved.periodStart, resolved.periodEnd);
-    updateSettings({ activeReportingPeriodId: getPeriodId(def) });
+    updatePreferences({ activeReportingPeriodId: getPeriodId(def) });
   }
 
   function selectAll() {
     if (!firstDateData?.date) return;
     setPeriod(firstDateData.date, todayStr);
-    updateSettings({ activeReportingPeriodId: ALL_PERIOD_ID });
+    updatePreferences({ activeReportingPeriodId: ALL_PERIOD_ID });
   }
 
   return (
@@ -376,7 +332,7 @@ function PeriodSelector() {
               {/* Manage periods */}
               <button
                 className="w-full text-left px-2.5 py-1.5 rounded-md text-sm hover:bg-muted flex items-center gap-1.5"
-                onClick={() => { navigate('/settings?tab=portfolio'); setOverflowOpen(false); }}
+                onClick={() => { navigate(`/p/${currentPortfolio.id}/settings/data?tab=periods`); setOverflowOpen(false); }}
               >
                 <Settings className="h-3.5 w-3.5" />
                 {t('managePeriods')}
@@ -394,9 +350,9 @@ function PeriodSelector() {
       {/* Mobile period — compact tappable display */}
       <Sheet>
         <SheetTrigger asChild>
-          <button className="md:hidden flex items-center gap-1.5 text-xs text-muted-foreground font-mono tabular-nums px-2 py-1 rounded-md hover:bg-muted/50 transition-colors">
-            <CalendarIcon className="h-3.5 w-3.5" />
-            {formatDate(periodStart ?? '')} — {formatDate(periodEnd ?? '')}
+          <button className="md:hidden flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground font-mono tabular-nums px-2 py-1 rounded-md hover:bg-muted/50 transition-colors">
+            <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{formatDate(periodStart ?? '')} — {formatDate(periodEnd ?? '')}</span>
           </button>
         </SheetTrigger>
         <SheetContent side="bottom" className="h-auto rounded-t-2xl">
@@ -487,7 +443,7 @@ interface TopBarProps {
 export function TopBar({ onMenuClick, isScrolled = false }: TopBarProps) {
   return (
     <header className={cn(
-      "h-14 flex items-center gap-3 px-4 lg:px-6 shrink-0 transition-all duration-300 ease-out border-b",
+      "h-14 flex items-center gap-2 md:gap-3 px-4 lg:px-6 shrink-0 min-w-0 transition-all duration-300 ease-out border-b",
       isScrolled
         ? "bg-[var(--qv-bg)]/80 backdrop-blur-xl border-border shadow-sm supports-not-[backdrop-filter]:bg-[var(--qv-bg)]"
         : "bg-background border-transparent"
@@ -517,11 +473,10 @@ export function TopBar({ onMenuClick, isScrolled = false }: TopBarProps) {
 
       <PeriodSelector />
 
-      <div className="ml-auto flex items-center gap-1">
-        <div className="hidden md:block">
-          <LanguageSwitcher />
-        </div>
-        <ToggleGroup />
+      <div className="ml-auto flex min-w-0 items-center gap-1">
+        <DemoBadge />
+        <PortfolioSwitcher />
+        <PrivacyToggle />
       </div>
     </header>
   );

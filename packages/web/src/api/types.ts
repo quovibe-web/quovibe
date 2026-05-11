@@ -137,7 +137,6 @@ export interface SecurityListItem {
   ticker: string | null;
   currency: string;
   isRetired: boolean;
-  instrumentType?: string | null;
   latestPrice?: string | null;
   latestDate?: string | null;
   logoUrl?: string | null;
@@ -150,6 +149,9 @@ export interface AttributeTypeItem {
   columnLabel: string | null;
   type: string;
   converterClass: string;
+  friendlyType: string;
+  target: string;
+  usageCount: number;
 }
 
 export interface SecurityAttribute {

@@ -7,18 +7,28 @@
     "delete": "Delete",
     "deleteConfirmTitle": "Delete Watchlist",
     "deleteConfirmMessage": "Are you sure you want to delete \"{{name}}\"? The securities will not be deleted.",
-    "defaultName": "New Watchlist"
+    "defaultName": "New Watchlist",
+    "newDescription": "Give your new watchlist a name."
   },
   "table": {
     "name": "Name",
     "ticker": "Ticker",
     "price": "Price",
     "change": "Change",
+    "change1d": "1D",
+    "change1w": "1W",
+    "change1m": "1M",
+    "change1y": "1Y",
     "trend": "30d Trend",
     "currency": "Currency",
     "lastQuote": "Last Quote",
     "noData": "No data",
     "noQuotes": "No quotes"
+  },
+  "columnGroups": {
+    "identity": "Identity",
+    "performance": "Performance",
+    "meta": "Metadata"
   },
   "actions": {
     "addSecurity": "Add Security",
@@ -29,6 +39,7 @@
   },
   "addDialog": {
     "title": "Add Security to Watchlist",
+    "description": "Select securities to add to this watchlist.",
     "search": "Search by name, ISIN, or ticker...",
     "existing": "Existing Securities",
     "createNew": "Create New Security",

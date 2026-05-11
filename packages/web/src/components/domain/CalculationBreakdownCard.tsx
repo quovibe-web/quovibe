@@ -1,9 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useParams } from 'react-router-dom';
 import { useWidgetConfig } from '@/context/widget-config-context';
 import { useCalculation, useReportingPeriod } from '@/api/use-performance';
+import { usePortfolioRegistry } from '@/api/use-portfolios';
 import { CALCULATION_ROWS } from '@/lib/calculation-rows';
 import type { RowDef } from '@/lib/calculation-rows';
+import { buildCalculationCsv, downloadCalculationCsv, slugifyFilename } from '@/lib/analytics-export';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { MetricCardSkeleton } from '@/components/shared/MetricCardSkeleton';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
@@ -18,7 +21,8 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ChevronRight, ChevronDown, ChevronsUpDown, ChevronsDownUp } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ChevronRight, ChevronDown, ChevronsUpDown, ChevronsDownUp, Download } from 'lucide-react';
 import { formatPercentage } from '@/lib/formatters';
 import { formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
@@ -163,6 +167,11 @@ function MetricChip({ label, value }: { label: string; value: string }) {
 
 function FullView({ data, isLoading, isError, error }: ViewProps) {
   const { t } = useTranslation('performance');
+  const { t: tCommon } = useTranslation('common');
+  const { isPrivate } = usePrivacy();
+  const { portfolioId } = useParams<{ portfolioId: string }>();
+  const registry = usePortfolioRegistry();
+  const { periodStart, periodEnd } = useReportingPeriod();
 
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
@@ -186,6 +195,16 @@ function FullView({ data, isLoading, isError, error }: ViewProps) {
   const expandAll = () => setExpandedRows(new Set(expandableKeys));
   const collapseAll = () => setExpandedRows(new Set());
 
+  const handleExport = () => {
+    if (!data || isPrivate) return;
+    const portfolioName =
+      registry.data?.portfolios.find((p) => p.id === portfolioId)?.name ?? 'portfolio';
+    const slug = slugifyFilename(portfolioName);
+    const filename = `analytics-calculation-${slug}-${periodStart}-${periodEnd}`;
+    const csv = buildCalculationCsv(data, t, data.irrConverged);
+    downloadCalculationCsv(csv, filename);
+  };
+
   if (isLoading) {
     return <SectionSkeleton rows={9} />;
   }
@@ -205,18 +224,39 @@ function FullView({ data, isLoading, isError, error }: ViewProps) {
   return (
     <div className="max-w-lg">
     <div className="space-y-1">
-      {expandableKeys.length > 0 && (
-        <div className="flex items-center gap-1 mb-4">
-          <Button variant="ghost" size="sm" onClick={expandAll}>
-            <ChevronsUpDown size={14} className="mr-1" />
-            {t('calculation.expandAll')}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={collapseAll}>
-            <ChevronsDownUp size={14} className="mr-1" />
-            {t('calculation.collapseAll')}
-          </Button>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-1">
+          {expandableKeys.length > 0 && (
+            <>
+              <Button variant="ghost" size="sm" onClick={expandAll}>
+                <ChevronsUpDown size={14} className="mr-1" />
+                {t('calculation.expandAll')}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={collapseAll}>
+                <ChevronsDownUp size={14} className="mr-1" />
+                {t('calculation.collapseAll')}
+              </Button>
+            </>
+          )}
         </div>
-      )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleExport}
+              disabled={isPrivate}
+              aria-label={tCommon('exportCsv')}
+            >
+              <Download className="h-4 w-4" />
+              <span className="ml-1">{tCommon('exportCsv')}</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isPrivate ? tCommon('exportDisabledPrivacy') : tCommon('exportCsv')}
+          </TooltipContent>
+        </Tooltip>
+      </div>
 
       {CALCULATION_ROWS.map((row) => {
         const total = row.extractTotal(data);

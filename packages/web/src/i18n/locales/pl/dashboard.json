@@ -1,4 +1,12 @@
 {
+  "empty": {
+    "title": "Welcome to your new portfolio.",
+    "importHeader": "Import transactions",
+    "importCsv": "Import from CSV",
+    "addManually": "Add account / transaction manually",
+    "wantToSee": "Want to see the app in action first?",
+    "tryDemo": "Try the demo instead"
+  },
   "title": "Panel",
   "hero": {
     "portfolioValue": "Wartość portfela",
@@ -24,20 +32,23 @@
   "widgetSizeLarge": "Duży (3 kol.)",
   "dataSeriesMenuItem": "Serie danych...",
   "period": "Okres...",
+  "hideWidget": "Ukryj widget",
+  "showWidget": "Pokaż widget",
   "deleteWidget": "Usuń",
+  "deleteWidgetConfirm": "Usunąć ten widget?",
+  "deleteWidgetConfirmDesc": "Spowoduje to usunięcie \"{{name}}\" z tego panelu. Możesz dodać go ponownie z katalogu widgetów.",
   "emptyDashboard": "Ten panel nie ma jeszcze widgetów.",
   "unknownWidget": "Typ widgetu \"{{type}}\" nie znaleziony",
-  "widgetCatalog": "Widget catalog",
+  "widgetCatalog": "Katalog widgetów",
   "catalog": {
-    "searchPlaceholder": "Search widgets...",
-    "all": "All",
-    "performance": "Performance",
-    "reports": "Reports",
-    "chart": "Charts",
-    "risk": "Risk",
-    "info": "Info",
-    "addToDashboard": "Add",
-    "noResults": "No widgets match your search.",
+    "searchPlaceholder": "Szukaj widgetów...",
+    "all": "Wszystkie",
+    "performance": "Wydajność",
+    "chart": "Wykresy",
+    "risk": "Ryzyko",
+    "info": "Informacje",
+    "addToDashboard": "Dodaj",
+    "noResults": "Żaden widget nie pasuje do wyszukiwania.",
     "description": "Przeglądaj i dodawaj widgety do panelu",
     "desc": {
       "market-value": "Current market value of the selected data series at the end of the reporting period.",
@@ -121,7 +132,12 @@
       "showMore_one": "+ {{count}} więcej",
       "showMore_few": "+ {{count}} więcej",
       "showMore_many": "+ {{count}} więcej",
-      "showMore_other": "+ {{count}} więcej"
+      "showMore_other": "+ {{count}} więcej",
+      "headers": {
+        "weight": "Waga",
+        "marketValue": "Wartość",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "Brak danych dla tego okresu",
@@ -169,6 +185,8 @@
     "createTaxonomyLink": "Utwórz jedną w Asset Allocation.",
     "noSecurities": "Brak papierów wartościowych w portfelu.",
     "showMore_one": "Pokaż {{count}} więcej…",
+    "showMore_few": "Pokaż {{count}} więcej…",
+    "showMore_many": "Pokaż {{count}} więcej…",
     "showMore_other": "Pokaż {{count}} więcej…"
   },
   "periodOverride": {

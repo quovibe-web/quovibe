@@ -2,7 +2,7 @@ import Decimal from 'decimal.js';
 import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
-import { apiFetch } from './fetch';
+import { useScopedApi } from './use-scoped-api';
 import { useFirstTransactionDate } from './use-transactions';
 import { useWidgetCalculation } from '@/hooks/use-widget-calculation';
 import type { ChartPointResponse } from './types';
@@ -37,8 +37,8 @@ export function computeATH(points: ChartPointResponse[]): ATHResult {
 }
 
 export const athKeys = {
-  chart: (inception: string, today: string) =>
-    ['ath', 'chart', inception, today] as const,
+  chart: (pid: string, inception: string, today: string) =>
+    ['portfolios', pid, 'ath', 'chart', inception, today] as const,
 };
 
 export interface AllTimeHighResult {
@@ -55,15 +55,16 @@ export interface AllTimeHighResult {
  * Both sub-queries are deduplicated by React Query key.
  */
 export function useAllTimeHigh(): AllTimeHighResult {
+  const api = useScopedApi();
   const { data: firstDateData, isLoading: dateLoading } = useFirstTransactionDate();
   const inception = firstDateData?.date ?? null;
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const chartQuery = useQuery({
-    queryKey: athKeys.chart(inception ?? '', todayStr),
+    queryKey: athKeys.chart(api.portfolioId, inception ?? '', todayStr),
     queryFn: () =>
-      apiFetch<ChartPointResponse[]>(
-        `/api/performance/chart?periodStart=${inception}&periodEnd=${todayStr}&interval=daily`
+      api.fetch<ChartPointResponse[]>(
+        `/api/performance/chart?periodStart=${inception}&periodEnd=${todayStr}&interval=daily`,
       ),
     enabled: inception !== null,
     staleTime: 5 * 60 * 1000,

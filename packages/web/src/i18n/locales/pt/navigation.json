@@ -14,8 +14,16 @@
     "analytics": "Análises",
     "assetAllocation": "Taxonomias",
     "dataSeries": "Séries de dados",
-    "settings": "Definições",
-    "watchlists": "Listas de acompanhamento"
+    "settings": "Definições da carteira",
+    "preferences": "Preferências",
+    "watchlists": "Listas de acompanhamento",
+    "income": "Rendimentos",
+    "chart": "Gráfico",
+    "csvImport": "Importação CSV",
+    "account": "Conta",
+    "security": "Valor mobiliário",
+    "taxonomySeries": "Série de taxonomia",
+    "newTransaction": "Nova transação"
   },
   "period": "Período",
   "presets": {
@@ -33,8 +41,7 @@
   "theme": {
     "light": "Tema claro",
     "system": "Tema do sistema",
-    "dark": "Tema escuro",
-    "toggle": "Mudar tema"
+    "dark": "Tema escuro"
   },
   "more": "Mais",
   "morePeriods": "Mais períodos",
@@ -49,5 +56,19 @@
     "noResults": "Nenhum resultado encontrado.",
     "perfChart": "Gráfico de desempenho",
     "income": "Rendimentos"
+  },
+  "help": {
+    "button": "Ajuda",
+    "title": "Ajuda e sobre",
+    "description": "Documentação, atalhos de teclado e informações de versão.",
+    "about": "Sobre",
+    "aboutBlurb": "quovibe é uma ferramenta open-source para análise de carteiras. Versão {{version}}.",
+    "shortcuts": "Atalhos de teclado",
+    "shortcutPalette": "Abrir paleta de comandos",
+    "shortcutSidebar": "Alternar barra lateral",
+    "links": "Hiperligações",
+    "docs": "Documentação",
+    "releaseNotes": "Notas de versão",
+    "reportBug": "Comunicar erro"
   }
 }

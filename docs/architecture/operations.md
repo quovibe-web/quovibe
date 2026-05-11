@@ -28,7 +28,6 @@ services:
     ports: ["${PORT:-3000}:3000"]
     volumes: ["./data:/app/data"]
     environment:
-      - DB_PATH=/app/data/portfolio.db
       - NODE_ENV=production
     restart: unless-stopped
 ```
@@ -47,9 +46,11 @@ pnpm test         # Vitest on the entire monorepo
 ## Environment Variables
 
 ```bash
-# Database
-DB_PATH=./data/portfolio.db
-DB_BACKUP_MAX=3                    # Max backups to keep
+# Database (ADR-015: per-portfolio .db files under QUOVIBE_DATA_DIR)
+# QUOVIBE_DATA_DIR=./data              # parent of portfolio-<uuid>.db + sidecar
+# QUOVIBE_DEMO_SOURCE=./data/demo.db   # source for "Try demo" clone
+DB_BACKUP_MAX=3                        # Max backups to keep per portfolio
+PORTFOLIO_POOL_MAX=5                   # Max simultaneously open DB handles
 
 # Server
 PORT=3000

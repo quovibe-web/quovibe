@@ -1,3 +1,4 @@
+export * from './utils';
 export * from './transaction.schema';
 export * from './security.schema';
 export * from './account.schema';
@@ -11,3 +12,7 @@ export * from './benchmark.schema';
 export * from './prices.schema';
 export * from './watchlist.schema';
 export * from './logo.schema';
+export * from './portfolio.schema';
+export * from './dashboard-wire.schema';
+export * from './csv-import.schema';
+export * from './attribute-type.schema';

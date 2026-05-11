@@ -1,15 +1,29 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  parseISO,
+  format,
+  getYear,
+  getQuarter,
+  eachMonthOfInterval,
+  eachQuarterOfInterval,
+  eachYearOfInterval,
+} from 'date-fns';
+import { useNavTitle } from '@/hooks/useNavTitle';
+import {
   BarChart,
   Bar,
+  Cell,
   CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import type { TooltipContentProps } from 'recharts';
+import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -19,15 +33,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
-import { usePayments, reportsKeys } from '@/api/use-reports';
+import { usePayments, paymentsBreakdownQueryOptions } from '@/api/use-reports';
 import { useReportingPeriod } from '@/api/use-performance';
-import { apiFetch } from '@/api/fetch';
+import { useScopedApi } from '@/api/use-scoped-api';
 import { PaymentBreakdownTooltip } from '@/components/domain/PaymentBreakdownTooltip';
-import type { PaymentBreakdownResponse } from '@quovibe/shared';
-import { formatDate } from '@/lib/formatters';
+import { AggregatedPaymentTooltip } from '@/components/domain/AggregatedPaymentTooltip';
+import { formatDate, formatNumber } from '@/lib/formatters';
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { useChartTheme } from '@/hooks/use-chart-theme';
+import { useActiveBar } from '@/hooks/use-active-bar';
 import { ChartSkeleton } from '@/components/shared/ChartSkeleton';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
 import { FadeIn } from '@/components/shared/FadeIn';
@@ -36,7 +51,63 @@ import { useAnalyticsContext } from '@/context/analytics-context';
 import { cn, txTypeKey } from '@/lib/utils';
 import type { PaymentGroup } from '@/api/types';
 
+const compactNumberFormat = (v: number) =>
+  formatNumber(v, { notation: 'compact', maximumFractionDigits: 1 });
+
+const ANCHORED_TOOLTIP_WRAPPER_STYLE: CSSProperties = {
+  outline: 'none',
+  pointerEvents: 'none',
+  transition: 'none',
+};
+
+type RechartsTooltipContentProps = TooltipContentProps<ValueType, NameType>;
+
 type AmountMode = 'gross' | 'net';
+
+type TimeGroupByMode = 'month' | 'quarter' | 'year';
+
+type GroupByMode = TimeGroupByMode | 'security' | 'type';
+
+// Mirror the backend bucketKey() shape in packages/api/src/services/reports.service.ts:
+// year → "yyyy", quarter → "yyyy-Qn", month → "yyyy-MM".
+function bucketKeyForDate(d: Date, groupBy: TimeGroupByMode): string {
+  if (groupBy === 'year') return String(getYear(d));
+  if (groupBy === 'quarter') return `${getYear(d)}-Q${getQuarter(d)}`;
+  return format(d, 'yyyy-MM');
+}
+
+function padBuckets(
+  groups: PaymentGroup[],
+  amountMode: AmountMode,
+  groupBy: TimeGroupByMode,
+  periodStart: string,
+  periodEnd: string,
+): Array<{ bucket: string; total: number }> {
+  const start = parseISO(periodStart);
+  const end = parseISO(periodEnd);
+  if (!(start instanceof Date) || !(end instanceof Date) || isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+    return [];
+  }
+
+  const valueByBucket = new Map<string, number>();
+  for (const g of groups) {
+    valueByBucket.set(g.bucket, parseFloat(amountMode === 'gross' ? g.totalGross : g.totalNet));
+  }
+
+  const dates =
+    groupBy === 'month'
+      ? eachMonthOfInterval({ start, end })
+      : groupBy === 'quarter'
+        ? eachQuarterOfInterval({ start, end })
+        : eachYearOfInterval({ start, end });
+
+  return dates
+    .map((d) => {
+      const bucket = bucketKeyForDate(d, groupBy);
+      return { bucket, total: valueByBucket.get(bucket) ?? 0 };
+    })
+    .sort((a, b) => a.bucket.localeCompare(b.bucket));
+}
 
 function PaymentBarChart({
   groups,
@@ -53,50 +124,29 @@ function PaymentBarChart({
   title: string;
   isPrivate: boolean;
   type: 'DIVIDEND' | 'INTEREST';
-  groupBy: 'month' | 'quarter' | 'year';
+  groupBy: TimeGroupByMode;
 }) {
-  const { i18n } = useTranslation('common');
   const { gridColor, gridOpacity, tickColor, isDark } = useChartTheme();
-  const [activeBucket, setActiveBucket] = useState<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
   const { periodStart, periodEnd } = useReportingPeriod();
+  const api = useScopedApi();
 
-  const chartData = groups.map((g) => ({
-    bucket: g.bucket,
-    total: parseFloat(amountMode === 'gross' ? g.totalGross : g.totalNet),
-  }));
+  // Pad missing buckets with zero totals so the x-axis is a continuous timeline
+  // instead of skipping months/quarters that had no payments.
+  const chartData = useMemo(
+    () => padBuckets(groups, amountMode, groupBy, periodStart, periodEnd),
+    [groups, amountMode, groupBy, periodStart, periodEnd],
+  );
 
-  const handleMouseMove = useCallback((state: { activeLabel?: string }) => {
-    const bucket = state?.activeLabel ?? null;
-    if (!bucket) return;
-    // Prefetch immediately — fetch starts 250ms before debounce fires
-    queryClient.prefetchQuery({
-      queryKey: reportsKeys.paymentsBreakdown(bucket, type, groupBy, periodStart, periodEnd),
-      queryFn: () =>
-        apiFetch<PaymentBreakdownResponse>(
-          `/api/reports/payments/breakdown?bucket=${encodeURIComponent(bucket)}&type=${type}&groupBy=${groupBy}&periodStart=${periodStart}&periodEnd=${periodEnd}`,
-        ),
-      staleTime: 5 * 60 * 1000,
-    });
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setActiveBucket(bucket);
-    }, 250);
-  }, [queryClient, periodStart, periodEnd, type, groupBy]);
+  const { activeBar, barHandlers, tooltipProps } = useActiveBar((bucket) => {
+    queryClient.prefetchQuery(
+      paymentsBreakdownQueryOptions(api, bucket, type, groupBy, periodStart, periodEnd),
+    );
+  });
 
-  const handleMouseLeave = useCallback(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setActiveBucket(null);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
-
-  if (chartData.length === 0) return null;
+  // Preserve "no data at all → hide chart" UX: only render when the API returned
+  // at least one bucket. Padding only fills gaps between real payments.
+  if (groups.length === 0 || chartData.length === 0) return null;
 
   return (
     <Card>
@@ -109,8 +159,6 @@ function PaymentBarChart({
             <BarChart
               data={chartData}
               margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
             >
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} strokeOpacity={gridOpacity} vertical={false} />
               <XAxis
@@ -125,20 +173,16 @@ function PaymentBarChart({
                 tickLine={false}
                 axisLine={false}
                 tickMargin={4}
-                tickFormatter={(v: number) =>
-                  new Intl.NumberFormat(i18n.language, {
-                    notation: 'compact',
-                    maximumFractionDigits: 1,
-                  }).format(v)
-                }
+                tickFormatter={compactNumberFormat}
               />
               <Tooltip
+                {...tooltipProps}
                 cursor={false}
-                wrapperStyle={{ outline: 'none' }}
-                content={(props) => (
+                wrapperStyle={ANCHORED_TOOLTIP_WRAPPER_STYLE}
+                content={(props: RechartsTooltipContentProps) => (
                   <PaymentBreakdownTooltip
                     {...props}
-                    activeBucket={activeBucket}
+                    activeBucket={activeBar?.bucket ?? null}
                     type={type}
                     groupBy={groupBy}
                     amountMode={amountMode}
@@ -152,7 +196,147 @@ function PaymentBarChart({
                 animationDuration={600}
                 animationEasing="ease-out"
                 activeBar={{ style: { filter: isDark ? 'brightness(1.6) saturate(1.5)' : 'brightness(1.15) saturate(1.2)', transition: 'filter 0.15s ease' } }}
+                {...barHandlers}
               />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Aggregated-chart helpers ────────────────────────────────────────────────
+
+function aggregateBySecurity(
+  combinedGroups: PaymentGroup[],
+  amountMode: AmountMode,
+  cashLabel: string,
+): Array<{ bucket: string; total: number }> {
+  const totals = new Map<string, number>();
+  for (const group of combinedGroups) {
+    for (const payment of group.payments) {
+      const key = payment.securityName ?? cashLabel;
+      const amount = parseFloat(amountMode === 'gross' ? payment.grossAmount : payment.netAmount);
+      totals.set(key, (totals.get(key) ?? 0) + amount);
+    }
+  }
+  return Array.from(totals.entries())
+    .map(([bucket, total]) => ({ bucket, total }))
+    .sort((a, b) => b.total - a.total);
+}
+
+function aggregateByType(
+  combinedGroups: PaymentGroup[],
+  amountMode: AmountMode,
+  dividendLabel: string,
+  interestLabel: string,
+): Array<{ bucket: string; total: number; isDividend: boolean }> {
+  let dividendTotal = 0;
+  let interestTotal = 0;
+  for (const group of combinedGroups) {
+    for (const payment of group.payments) {
+      const amount = parseFloat(amountMode === 'gross' ? payment.grossAmount : payment.netAmount);
+      if (payment.type === 'DIVIDEND') {
+        dividendTotal += amount;
+      } else {
+        interestTotal += amount;
+      }
+    }
+  }
+  const result: Array<{ bucket: string; total: number; isDividend: boolean }> = [];
+  if (dividendTotal > 0) result.push({ bucket: dividendLabel, total: dividendTotal, isDividend: true });
+  if (interestTotal > 0) result.push({ bucket: interestLabel, total: interestTotal, isDividend: false });
+  return result;
+}
+
+// ─── AggregatedBarChart ───────────────────────────────────────────────────────
+
+function AggregatedBarChart({
+  combinedGroups,
+  groupBy,
+  amountMode,
+  isPrivate,
+  dividendColor,
+  interestColor,
+}: {
+  combinedGroups: PaymentGroup[];
+  groupBy: 'security' | 'type';
+  amountMode: AmountMode;
+  isPrivate: boolean;
+  dividendColor: string;
+  interestColor: string;
+}) {
+  const { t } = useTranslation('reports');
+  const { gridColor, gridOpacity, tickColor, isDark } = useChartTheme();
+  const { barHandlers, tooltipProps } = useActiveBar();
+
+  const cashLabel = t('payments.cashOrNoSecurity');
+  const dividendLabel = t('payments.dividends');
+  const interestLabel = t('payments.interest');
+
+  const chartData = useMemo(() => {
+    if (groupBy === 'security') {
+      return aggregateBySecurity(combinedGroups, amountMode, cashLabel).map((d) => ({ ...d, color: dividendColor }));
+    }
+    return aggregateByType(combinedGroups, amountMode, dividendLabel, interestLabel).map((d) => ({
+      ...d,
+      color: d.isDividend ? dividendColor : interestColor,
+    }));
+  }, [combinedGroups, groupBy, amountMode, cashLabel, dividendLabel, interestLabel, dividendColor, interestColor]);
+
+  if (chartData.length === 0) return null;
+
+  const title = t('payments.byTitle', { groupBy: t(`payments.groupBy.${groupBy}`) });
+
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div style={{ filter: isPrivate ? 'blur(8px) saturate(0)' : 'none', transition: 'filter 0.2s ease' }}>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart
+              data={chartData}
+              margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} strokeOpacity={gridOpacity} vertical={false} />
+              <XAxis
+                dataKey="bucket"
+                tick={{ fill: tickColor, fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <YAxis
+                tick={{ fill: tickColor, fontSize: 11, style: { fontFeatureSettings: '"tnum"' } }}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={4}
+                tickFormatter={compactNumberFormat}
+              />
+              <Tooltip
+                {...tooltipProps}
+                cursor={false}
+                wrapperStyle={ANCHORED_TOOLTIP_WRAPPER_STYLE}
+                content={(props: RechartsTooltipContentProps) => (
+                  <AggregatedPaymentTooltip {...props} amountMode={amountMode} />
+                )}
+              />
+              <Bar
+                dataKey="total"
+                radius={[3, 3, 0, 0]}
+                animationDuration={600}
+                animationEasing="ease-out"
+                activeBar={{ style: { filter: isDark ? 'brightness(1.6) saturate(1.5)' : 'brightness(1.15) saturate(1.2)', transition: 'filter 0.15s ease' } }}
+                fill={dividendColor}
+                {...barHandlers}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -163,9 +347,12 @@ function PaymentBarChart({
 
 export default function Payments() {
   const { t } = useTranslation('reports');
-  const [groupBy, setGroupBy] = useState<'month' | 'quarter' | 'year'>('month');
+  useNavTitle('income');
+  const [groupBy, setGroupBy] = useState<GroupByMode>('month');
   const [amountMode, setAmountMode] = useState<AmountMode>('gross');
-  const { data, isLoading, isFetching } = usePayments(groupBy);
+  const apiGroupBy: TimeGroupByMode =
+    groupBy === 'security' || groupBy === 'type' ? 'month' : groupBy;
+  const { data, isLoading, isFetching } = usePayments(apiGroupBy);
   const { isPrivate } = usePrivacy();
   const { dividend, interest } = useChartColors();
   const { setActions, setSubtitle } = useAnalyticsContext();
@@ -188,7 +375,7 @@ export default function Payments() {
           onChange={setAmountMode}
         />
 
-        <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
+        <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupByMode)}>
           <SelectTrigger className="w-36">
             <SelectValue />
           </SelectTrigger>
@@ -196,6 +383,8 @@ export default function Payments() {
             <SelectItem value="month">{t('payments.groupBy.month')}</SelectItem>
             <SelectItem value="quarter">{t('payments.groupBy.quarter')}</SelectItem>
             <SelectItem value="year">{t('payments.groupBy.year')}</SelectItem>
+            <SelectItem value="security">{t('payments.groupBy.security')}</SelectItem>
+            <SelectItem value="type">{t('payments.groupBy.type')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -247,31 +436,47 @@ export default function Payments() {
             </Card>
           )}
 
-          {/* Section A: Dividends Chart */}
-          <div className="mt-6">
-            <PaymentBarChart
-              groups={data?.dividendGroups ?? []}
-              amountMode={amountMode}
-              color={dividend}
-              title={t('payments.dividendsPerGroup', { groupBy: t(`payments.groupBy.${groupBy}`) })}
-              isPrivate={isPrivate}
-              type="DIVIDEND"
-              groupBy={groupBy}
-            />
-          </div>
+          {/* Section A: Dividends Chart — time-bucket modes only */}
+          {(groupBy === 'month' || groupBy === 'quarter' || groupBy === 'year') && (
+            <div className="mt-6">
+              <PaymentBarChart
+                groups={data?.dividendGroups ?? []}
+                amountMode={amountMode}
+                color={dividend}
+                title={t('payments.dividendsPerGroup', { groupBy: t(`payments.groupBy.${groupBy}`) })}
+                isPrivate={isPrivate}
+                type="DIVIDEND"
+                groupBy={groupBy}
+              />
+            </div>
+          )}
 
-          {/* Section B: Interest Chart */}
-          <div className="mt-6">
-            <PaymentBarChart
-              groups={data?.interestGroups ?? []}
-              amountMode={amountMode}
-              color={interest}
-              title={t('payments.interestPerGroup', { groupBy: t(`payments.groupBy.${groupBy}`) })}
-              isPrivate={isPrivate}
-              type="INTEREST"
+          {/* Section B: Interest Chart — time-bucket modes only */}
+          {(groupBy === 'month' || groupBy === 'quarter' || groupBy === 'year') && (
+            <div className="mt-6">
+              <PaymentBarChart
+                groups={data?.interestGroups ?? []}
+                amountMode={amountMode}
+                color={interest}
+                title={t('payments.interestPerGroup', { groupBy: t(`payments.groupBy.${groupBy}`) })}
+                isPrivate={isPrivate}
+                type="INTEREST"
+                groupBy={groupBy}
+              />
+            </div>
+          )}
+
+          {/* Section A2: Aggregated chart — security / type modes */}
+          {(groupBy === 'security' || groupBy === 'type') && data && (
+            <AggregatedBarChart
+              combinedGroups={data.combinedGroups}
               groupBy={groupBy}
+              amountMode={amountMode}
+              isPrivate={isPrivate}
+              dividendColor={dividend}
+              interestColor={interest}
             />
-          </div>
+          )}
 
           {/* Section C: Combined Detail Cards */}
           <div className="space-y-4 mt-6">

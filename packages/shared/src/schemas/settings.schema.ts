@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { CostMethod } from '../enums';
 import { chartConfigV2Schema } from './benchmark.schema';
+import { dashboardColumnsValue } from './dashboard-wire.schema';
+import { nonBlankString } from './utils';
 
 // ---------------------------------------------------------------------------
 // Reporting period discriminated union
@@ -84,6 +86,7 @@ export const dashboardWidgetSchema = z.object({
   title: z.string().nullable().default(null),
   span: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
   config: z.record(z.string(), z.unknown()).default({}),
+  hidden: z.boolean().default(false),
 });
 
 export const dashboardSchema = z.object({
@@ -91,9 +94,7 @@ export const dashboardSchema = z.object({
   name: z.string(),
   widgets: z.array(dashboardWidgetSchema).default([]),
   metricsStripIds: z.array(z.string()).optional(),
-  columns: z.union([
-    z.literal('auto'), z.literal(2), z.literal(3), z.literal(4), z.literal(5),
-  ]).default('auto'),
+  columns: dashboardColumnsValue.default('auto'),
 });
 
 export type DashboardWidget = z.infer<typeof dashboardWidgetSchema>;
@@ -159,9 +160,11 @@ const appSchema = z.object({
   lastImport: z.string().nullable().default(null),
   appVersion: z.string().nullable().default(null),
   initialized: z.boolean().default(false),
+  defaultPortfolioId: z.string().nullable().default(null),
+  autoFetchPricesOnFirstOpen: z.boolean().default(false),
 }).default({});
 
-const preferencesSchema = z.object({
+export const preferencesSchema = z.object({
   language: z.string().default('en'),
   theme: z.enum(['light', 'dark', 'system']).default('system'),
   sharesPrecision: z.number().int().min(1).max(8).default(1),
@@ -171,15 +174,35 @@ const preferencesSchema = z.object({
   privacyMode: z.boolean().default(false),
   activeReportingPeriodId: z.string().optional(),
   defaultDataSeriesTaxonomyId: z.string().optional(),
+  chartStyle: z.object({}).passthrough().default({}),   // reserved; empty in v1
 }).default({});
 
+/**
+ * Strict RFC 4122 v4, lowercase. Single source of truth for portfolio-id shape
+ * validation; re-exported by `packages/api/src/config.ts` so the sidecar
+ * validator and the path resolver never drift.
+ */
+export const UUID_V4_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+export const portfolioEntrySchema = z.object({
+  id: z.string().regex(UUID_V4_RE),
+  name: nonBlankString(200),
+  kind: z.enum(['real', 'demo']),
+  source: z.enum(['fresh', 'demo', 'import-pp-xml', 'import-quovibe-db']),
+  createdAt: z.string(),
+  lastOpenedAt: z.string().nullable().default(null),
+});
+
+export type PortfolioEntry = z.infer<typeof portfolioEntrySchema>;
+
 export const quovibeSettingsSchema = z.object({
+  schemaVersion: z.number().int().default(1),
   version: z.number().int().default(1),
   app: appSchema,
   preferences: preferencesSchema,
   reportingPeriods: z.array(reportingPeriodDefSchema).default([]),
-  dashboards: z.array(dashboardSchema).default([]),
-  activeDashboard: z.string().nullable().default(null),
+  portfolios: z.array(portfolioEntrySchema).default([]),
   investmentsView: investmentsViewSchema,
   allocationView: allocationViewSchema,
   chartConfig: chartConfigV2Schema.default({ version: 2, series: [] }),
@@ -195,30 +218,15 @@ export const DEFAULT_SETTINGS: QuovibeSettings = quovibeSettingsSchema.parse({})
 // API request schemas for settings updates
 // ---------------------------------------------------------------------------
 
+// Portfolio-scoped settings body for PUT /api/p/:portfolioId/portfolio/settings.
+// DB-only: sidecar/user-level fields must go through PUT /api/settings/preferences
+// (BUG-56 — a portfolio-scoped endpoint must not mutate user-global state).
 export const updateSettingsSchema = z.object({
-  // DB fields (existing)
   costMethod: z.nativeEnum(CostMethod).optional(),
   currency: z.string().length(3).optional(),
   calendar: z.string().optional(),
   alphaVantageApiKey: z.string().optional(),
   alphaVantageRateLimit: z.string().optional(),
-  // Sidecar fields
-  language: z.string().optional(),
-  theme: z.enum(['light', 'dark', 'system']).optional(),
-  sharesPrecision: z.number().int().min(1).max(8).optional(),
-  quotesPrecision: z.number().int().min(1).max(8).optional(),
-  showCurrencyCode: z.boolean().optional(),
-  showPaSuffix: z.boolean().optional(),
-  privacyMode: z.boolean().optional(),
-  activeReportingPeriodId: z.string().optional(),
-  defaultDataSeriesTaxonomyId: z.string().optional(),
-});
+}).strict();
 
 export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
-
-export const putDashboardSchema = z.object({
-  dashboards: z.array(dashboardSchema),
-  activeDashboard: z.string().nullable(),
-});
-
-export type PutDashboardInput = z.infer<typeof putDashboardSchema>;

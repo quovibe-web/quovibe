@@ -1,0 +1,11 @@
+{
+  "preferences": {
+    "title": "Voorkeuren",
+    "subtitle": "Persoonlijke voorkeuren"
+  },
+  "updates": {
+    "title": "Updates",
+    "autoFetchLabel": "Koersen automatisch bijwerken bij de eerste opening van elke portefeuille",
+    "autoFetchHint": "Standaard uitgeschakeld om te voorkomen dat het Yahoo / AlphaVantage API-quotum wordt verbruikt bij container-herstarts. Schakel dit in als je verse koersen wilt wanneer je een portefeuille opent in een nieuw proces."
+  }
+}

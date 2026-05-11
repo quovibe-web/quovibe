@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ import { useAccounts, useCreateAccount, useUpdateAccountLogo } from '@/api/use-a
 import { useResolveLogo } from '@/api/use-logo';
 import { CURRENCIES } from '@/lib/currencies';
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { UnsavedChangesAlert } from '@/components/shared/UnsavedChangesAlert';
 
 const NEW_DEPOSIT_SENTINEL = '__new__';
@@ -56,12 +57,9 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
   const isNewDeposit = refAccountId === NEW_DEPOSIT_SENTINEL;
 
   const { guardedOpenChange, showDialog, setShowDialog, discard } =
-    useUnsavedChangesGuard(isDirty, (nextOpen) => {
-      if (!nextOpen) reset();
-      onOpenChange(nextOpen);
-    });
+    useUnsavedChangesGuard(isDirty, onOpenChange);
 
-  function reset() {
+  const reset = useCallback(() => {
     setName('');
     setType('DEPOSIT');
     setCurrency('EUR');
@@ -71,13 +69,20 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
     setWebsite('');
     setIsDirty(false);
     setError(null);
-  }
+  }, []);
+
+  // Reset form on every close edge — covers Cancel-discard, Save-success,
+  // X button, Escape, outside-click. No reliance on which wrapper fired.
+  useEffect(() => {
+    if (!open) reset();
+  }, [open, reset]);
 
   function normalizeDomain(raw: string): string {
     return raw.trim().replace(/^https?:\/\//, '').replace(/\/$/, '').split('/')[0];
   }
 
-  async function handleSave() {
+  // Save-button re-entry guard: see frontend.md "Save-button re-entry guard".
+  const { run: handleSave, inFlight } = useGuardedSubmit(async () => {
     if (!name.trim()) {
       setError(t('transactions:validation.nameRequired'));
       return;
@@ -97,7 +102,7 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
 
     try {
       if (type === 'DEPOSIT') {
-        const depositAccount = await createMutation.mutateAsync({ name: name.trim(), type: 'DEPOSIT', currency });
+        const depositAccount = await createMutation.mutateAsync({ name: name.trim(), type: 'account', currency });
         toast.success(t('toasts.depositCreated'));
         const domain = normalizeDomain(website);
         if (domain) {
@@ -111,7 +116,7 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
         if (isNewDeposit) {
           const deposit = await createMutation.mutateAsync({
             name: newDepositName.trim(),
-            type: 'DEPOSIT',
+            type: 'account',
             currency: newDepositCurrency,
           });
           resolvedRefId = (deposit as { id: string }).id;
@@ -125,18 +130,21 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
 
         await createMutation.mutateAsync({
           name: name.trim(),
-          type: 'SECURITIES',
+          type: 'portfolio',
           // No currency for portfolios — inherited from referenceAccount
           referenceAccountId: resolvedRefId,
         });
         toast.success(t('toasts.securitiesCreated'));
       }
-      setIsDirty(false);
       onOpenChange(false);
-    } catch {
-      setError(t('toasts.errorCreating'));
+    } catch (err) {
+      setError(
+        (err as Error)?.message === 'DUPLICATE_NAME'
+          ? t('toasts.duplicateName')
+          : t('toasts.errorCreating'),
+      );
     }
-  }
+  });
 
   return (
     <>
@@ -295,10 +303,10 @@ export function CreateAccountDialog({ open, onOpenChange }: Props) {
             <Button
               type="button"
               className="flex-1"
-              onClick={handleSave}
-              disabled={createMutation.isPending}
+              onClick={() => void handleSave()}
+              disabled={inFlight || createMutation.isPending}
             >
-              {createMutation.isPending ? t('common:creating') : t('common:create')}
+              {inFlight || createMutation.isPending ? t('common:creating') : t('common:create')}
             </Button>
           </SheetFooter>
         </SheetContent>

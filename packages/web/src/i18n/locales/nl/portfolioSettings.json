@@ -1,0 +1,53 @@
+{
+  "current": "Huidige portefeuille",
+  "real": "Echt",
+  "builtInPlayground": "Ingebouwde demo",
+  "createdOn": "Aangemaakt op {{date}}",
+  "updates": "Bijwerken",
+  "updatePrices": "Alle koersen bijwerken",
+  "export": "Deze portefeuille exporteren",
+  "demoExplainer": "Een persistente sandbox waar je vrij kunt toevoegen, bewerken en verwijderen. Je kunt ook je gewijzigde demo exporteren — de download wordt bij heropname een gewone portefeuille, terwijl de ingebouwde demo onaangetast blijft. De demo zelf kan niet worden hernoemd of verwijderd — het is een ingebouwd onderdeel, geen gebruikersartefact.",
+  "rename": {
+    "cta": "Hernoemen",
+    "title": "Portefeuille hernoemen",
+    "cancel": "Annuleren",
+    "save": "Opslaan",
+    "success": "Portefeuille hernoemd.",
+    "error": "Hernoemen mislukt: {{msg}}"
+  },
+  "delete": {
+    "cta": "Deze portefeuille verwijderen",
+    "title": "\"{{name}}\" verwijderen?",
+    "body": "Dit verwijdert permanent alle rekeningen, transacties en gegevens van deze portefeuille. Dit kan niet ongedaan gemaakt worden.",
+    "cancel": "Annuleren",
+    "confirm": "Verwijderen",
+    "success": "Portefeuille verwijderd.",
+    "error": "Verwijderen mislukt: {{msg}}"
+  },
+  "data": {
+    "sections": {
+      "accounting": "Boekhouding",
+      "priceFeeds": "Koersbronnen"
+    },
+    "fields": {
+      "costMethod": "Kostenmethode",
+      "costMethodDescription": "Hoe de kostenbasis van effecten wordt berekend.",
+      "costMethodFifo": "FIFO",
+      "costMethodMovingAverage": "Voortschrijdend gemiddelde",
+      "currency": "Basisvaluta",
+      "currencyDescription": "Alle waarden worden naar deze valuta omgerekend voor portefeuille-totalen.",
+      "calendar": "Kalender",
+      "calendarDescription": "Beurskalender die de marktfeestdagen bepaalt. Kies \"Standaard (globaal)\" om de standaardkalender van het systeem te gebruiken.",
+      "calendarDefault": "Standaard (globaal)",
+      "calendarUnknown": "onbekend",
+      "alphaVantageApiKey": "Alpha Vantage API-sleutel",
+      "alphaVantageApiKeyDescription": "Nodig om koersen op te halen uit Alpha Vantage.",
+      "alphaVantageApiKeyConfigured": "Er is een sleutel geconfigureerd. Voer een nieuwe waarde in om deze te vervangen.",
+      "alphaVantageApiKeyPlaceholder": "API-sleutel invoeren…",
+      "alphaVantageApiKeyShow": "API-sleutel tonen",
+      "alphaVantageApiKeyHide": "API-sleutel verbergen",
+      "alphaVantageRateLimit": "Alpha Vantage rate limit",
+      "alphaVantageRateLimitDescription": "Oproepen per minuut die je Alpha Vantage-abonnement toestaat."
+    }
+  }
+}

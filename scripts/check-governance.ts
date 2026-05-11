@@ -474,93 +474,60 @@ if (existsSync(implVerifiedPath)) {
   }
 }
 
-// ─── [G12] Test DDL consistency with schema.ts ──────────────
-header('[G12] Test DDL consistency with schema.ts');
+// ─── [G12] No CREATE TABLE in production code ───────────────
+header('[G12] No CREATE TABLE in production code');
 
-/** Parse CREATE TABLE from raw SQL string → { table, columns[] } */
-function parseCreateTable(sql: string): Array<{ table: string; columns: string[] }> {
-  const results: Array<{ table: string; columns: string[] }> = [];
-  const regex = /CREATE\s+TABLE\s+(\w+)\s*\(([\s\S]*?)\)/gi;
-  let m;
-  while ((m = regex.exec(sql)) !== null) {
-    const table = m[1];
-    const body = m[2];
-    const columns: string[] = [];
-    for (const line of body.split('\n')) {
-      const trimmed = line.trim().replace(/,$/, '');
-      if (!trimmed || trimmed.startsWith('--') || trimmed.startsWith('CONSTRAINT') ||
-          trimmed.startsWith('PRIMARY KEY') || trimmed.startsWith('UNIQUE') ||
-          trimmed.startsWith('FOREIGN KEY') || trimmed.startsWith('CHECK')) continue;
-      const colMatch = trimmed.match(/^(\w+)\s+/);
-      if (colMatch) columns.push(colMatch[1]);
-    }
-    results.push({ table, columns });
+// ADR-015: bootstrap.sql is the single source of truth for DDL that ships
+// in production portfolio DBs. Runtime DDL outside bootstrap.sql is
+// forbidden — it was the source of the drift surface G12 was designed to
+// catch (csv_import_config, ohlc columns, etc.).
+//
+// Test files (*.test.ts, tests/**) are exempt: they create disposable
+// in-memory fixtures and are free to define ad-hoc schemas tailored to
+// the unit under test. scripts/seed-demo.ts is also exempt — it uses
+// applyBootstrap (not inline DDL) but the plan references CREATE TABLE
+// strings in comments.
+{
+  const allowed = new Set<string>([
+    'packages/api/src/db/bootstrap.sql',
+    'scripts/seed-demo.ts',
+  ]);
+  const dirs = [
+    'packages/api/src',
+    'packages/shared/src',
+    'packages/web/src',
+  ];
+  const files: string[] = [];
+  for (const d of dirs) {
+    files.push(...globSync(`${d}/**/*.{ts,sql,mjs}`, {
+      cwd: ROOT,
+      ignore: [
+        '**/node_modules/**',
+        '**/dist/**',
+        '**/*.test.ts',
+        '**/*.spec.ts',
+        '**/__tests__/**',
+        '**/tests/**',
+      ],
+    }));
   }
-  return results;
-}
-
-/** Parse schema.ts Drizzle definitions → Map<tableName, Set<columnNames>> */
-function parseDrizzleCols(content: string): Map<string, Set<string>> {
-  const result = new Map<string, Set<string>>();
-  const tableRegex = /sqliteTable\s*\(\s*['"](\w+)['"]/g;
-  let tm;
-  while ((tm = tableRegex.exec(content)) !== null) {
-    const tableName = tm[1];
-    const braceStart = content.indexOf('{', tm.index + tm[0].length);
-    if (braceStart === -1) continue;
-    let depth = 0, braceEnd = braceStart;
-    for (let i = braceStart; i < content.length; i++) {
-      if (content[i] === '{') depth++;
-      if (content[i] === '}') depth--;
-      if (depth === 0) { braceEnd = i; break; }
-    }
-    const body = content.substring(braceStart, braceEnd + 1);
-    const cols = new Set<string>();
-    const colRegex = /(?:text|integer|real)\s*\(\s*['"](\w+)['"]/g;
-    let cm;
-    while ((cm = colRegex.exec(body)) !== null) cols.add(cm[1]);
-    result.set(tableName, cols);
-  }
-  return result;
-}
-
-const schemaPath = join(ROOT, 'packages/api/src/db/schema.ts');
-let ddlDivergences = 0;
-
-if (existsSync(schemaPath)) {
-  const schemaCols = parseDrizzleCols(readFileSync(schemaPath, 'utf-8'));
-
-  const testFiles = globSync('packages/api/src/**/*.test.ts', { cwd: ROOT });
-  for (const file of testFiles) {
+  const violations: string[] = [];
+  for (const file of files) {
+    const normalized = file.replace(/\\/g, '/');
+    if (allowed.has(normalized)) continue;
     const content = readFileSync(join(ROOT, file), 'utf-8');
-    if (!content.includes('CREATE TABLE')) continue;
-    const tables = parseCreateTable(content);
-
-    for (const { table, columns } of tables) {
-      const canonical = schemaCols.get(table);
-      if (!canonical) continue; // test-only table, skip
-
-      const testSet = new Set(columns);
-
-      // Columns in test DDL that don't exist in schema → possibly wrong
-      for (const col of testSet) {
-        if (col === '_id') continue; // always acceptable in test DDL
-        if (!canonical.has(col)) {
-          warn(`${file}: test DDL for '${table}' has column '${col}' not in schema.ts`);
-          ddlDivergences++;
-        }
-      }
-
-      // Critical columns missing from test DDL that have NOT NULL in schema
-      // (we only flag columns the service writes to, not all schema columns)
+    if (/CREATE\s+TABLE/i.test(content)) {
+      const line = content.split('\n').findIndex(l => /CREATE\s+TABLE/i.test(l)) + 1;
+      violations.push(`${normalized}:${line}`);
     }
   }
-
-  if (ddlDivergences === 0) {
-    ok(`Test DDL consistency OK (${testFiles.length} test files scanned)`);
+  if (violations.length === 0) {
+    ok(`No runtime CREATE TABLE outside bootstrap.sql (${files.length} production files scanned)`);
+  } else {
+    for (const v of violations) {
+      fail(`CREATE TABLE in production code: ${v}`);
+    }
   }
-} else {
-  info('schema.ts not found — G12 skipped');
 }
 
 // ─── [G13] Sign convention consistency ──────────────────────

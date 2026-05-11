@@ -1,4 +1,12 @@
 {
+  "empty": {
+    "title": "Welcome to your new portfolio.",
+    "importHeader": "Import transactions",
+    "importCsv": "Import from CSV",
+    "addManually": "Add account / transaction manually",
+    "wantToSee": "Want to see the app in action first?",
+    "tryDemo": "Try the demo instead"
+  },
   "title": "Painel",
   "hero": {
     "portfolioValue": "Valor da carteira",
@@ -24,20 +32,23 @@
   "widgetSizeLarge": "Grande (3 col.)",
   "dataSeriesMenuItem": "Séries de dados...",
   "period": "Período...",
+  "hideWidget": "Ocultar widget",
+  "showWidget": "Mostrar widget",
   "deleteWidget": "Eliminar",
+  "deleteWidgetConfirm": "Remover este widget?",
+  "deleteWidgetConfirmDesc": "Isto removerá \"{{name}}\" deste painel. Pode adicioná-lo novamente a partir do catálogo de widgets.",
   "emptyDashboard": "Este painel ainda não tem widgets.",
   "unknownWidget": "Tipo de widget \"{{type}}\" não encontrado",
-  "widgetCatalog": "Widget catalog",
+  "widgetCatalog": "Catálogo de widgets",
   "catalog": {
-    "searchPlaceholder": "Search widgets...",
-    "all": "All",
-    "performance": "Performance",
-    "reports": "Reports",
-    "chart": "Charts",
-    "risk": "Risk",
-    "info": "Info",
-    "addToDashboard": "Add",
-    "noResults": "No widgets match your search.",
+    "searchPlaceholder": "Procurar widgets...",
+    "all": "Todos",
+    "performance": "Desempenho",
+    "chart": "Gráficos",
+    "risk": "Risco",
+    "info": "Informações",
+    "addToDashboard": "Adicionar",
+    "noResults": "Nenhum widget corresponde à pesquisa.",
     "description": "Explorar e adicionar widgets ao painel",
     "desc": {
       "market-value": "Current market value of the selected data series at the end of the reporting period.",
@@ -117,7 +128,12 @@
       "noHoldings": "Sem posições neste período",
       "loadError": "Erro ao carregar posições",
       "showMore_one": "+ {{count}} mais",
-      "showMore_other": "+ {{count}} mais"
+      "showMore_other": "+ {{count}} mais",
+      "headers": {
+        "weight": "Peso",
+        "marketValue": "Valor",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "Sem dados para este período",

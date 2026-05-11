@@ -1,6 +1,7 @@
 import { addDays } from 'date-fns';
 import type { QuoteFeedProvider, FetchContext, ProviderResult, LatestQuote, FetchedPrice, SecurityRow } from './types';
 import { toYMD, safeDecimal } from './utils';
+import { getYahoo } from './yahoo-client';
 
 // ─── Core Yahoo functions ────────────────────────────────────────────────────
 
@@ -9,10 +10,17 @@ async function fetchPricesFromYahoo(
   startDate?: string,
   endDate?: string,
 ): Promise<FetchedPrice[]> {
-   
-  const mod = require('yahoo-finance2');
-  const YahooFinance = mod.default ?? mod;
-  const yf = new YahooFinance();
+  interface YahooChartQuote {
+    date: Date;
+    close: number | null;
+    open: number | null;
+    high: number | null;
+    low: number | null;
+    volume: number | null;
+  }
+  const yf = getYahoo() as {
+    chart: (t: string, opts: unknown) => Promise<{ quotes: YahooChartQuote[] }>;
+  };
   let result;
   try {
     result = await yf.chart(ticker, {
@@ -30,8 +38,8 @@ async function fetchPricesFromYahoo(
   }
 
   return result.quotes
-    .filter((r: { close: number | null }) => r.close != null)
-    .map((r: { date: Date; close: number; open: number | null; high: number | null; low: number | null; volume: number | null }) => ({
+    .filter((r): r is YahooChartQuote & { close: number } => r.close != null)
+    .map((r) => ({
       date: toYMD(r.date),
       close: safeDecimal(r.close),
       open: r.open != null ? safeDecimal(r.open) : undefined,
@@ -41,12 +49,17 @@ async function fetchPricesFromYahoo(
     }));
 }
 
+interface YahooQuoteResponse {
+  regularMarketPrice?: number | null;
+  regularMarketTime?: Date;
+  regularMarketOpen?: number | null;
+  regularMarketDayHigh?: number | null;
+  regularMarketDayLow?: number | null;
+}
+
 async function fetchLatestQuote(ticker: string): Promise<LatestQuote | null> {
   try {
-     
-    const mod = require('yahoo-finance2');
-    const YahooFinance = mod.default ?? mod;
-    const yf = new YahooFinance();
+    const yf = getYahoo() as { quote: (t: string) => Promise<YahooQuoteResponse | null> };
     const result = await yf.quote(ticker);
     if (result?.regularMarketPrice == null) return null;
     const price = safeDecimal(result.regularMarketPrice);

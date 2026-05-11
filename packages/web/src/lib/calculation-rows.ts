@@ -116,11 +116,22 @@ export const CALCULATION_ROWS: RowDef[] = [
     i18nKey: 'calculation.pnTransfers',
     sign: '+',
     extractTotal: (d) => d.performanceNeutralTransfers.total,
-    extractItems: (d) => d.performanceNeutralTransfers.items.map((item) => ({
-      label: item.name,
-      amount: item.amount,
-      subLabel: item.date,
-    })),
+    extractItems: (d) => {
+      const items: RowItem[] = d.performanceNeutralTransfers.items.map((item) => ({
+        label: item.name,
+        amount: item.amount,
+        subLabel: item.date,
+      }));
+      const taxes = parseFloat(d.performanceNeutralTransfers.taxes);
+      if (taxes !== 0) {
+        items.push({
+          label: '',
+          i18nKey: 'calculation.taxesInTransfers',
+          amount: (-taxes).toString(),
+        });
+      }
+      return items;
+    },
     colorSign: false,
     isExpandable: true,
   },

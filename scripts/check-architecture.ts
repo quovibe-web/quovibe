@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, readdirSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
 import { globSync } from 'glob';
 
@@ -307,114 +307,9 @@ if (asyncTxViolations === 0) {
   ok(`No async patterns inside better-sqlite3 transactions (${serviceFilesA9.length} files scanned)`);
 }
 
-// ─── [A10] Drizzle schema ↔ vendor DDL drift ────────────────
-header('[A10] Drizzle schema ↔ vendor DDL drift');
-
-/** Parse a vendor .sql file → { table, columns } */
-function parseVendorSql(sqlContent: string): { table: string; columns: string[] } | null {
-  const tableMatch = sqlContent.match(/CREATE\s+TABLE\s+(\w+)\s*\(/i);
-  if (!tableMatch) return null;
-  const table = tableMatch[1];
-
-  const openIdx = sqlContent.indexOf('(', tableMatch.index!);
-  const closeIdx = sqlContent.indexOf(');');
-  if (openIdx === -1 || closeIdx === -1) return null;
-
-  const body = sqlContent.substring(openIdx + 1, closeIdx);
-  const columns: string[] = [];
-
-  for (const line of body.split('\n')) {
-    const trimmed = line.trim().replace(/,$/, '');
-    if (!trimmed || trimmed.startsWith('--') || trimmed.startsWith('CONSTRAINT')) continue;
-    const colMatch = trimmed.match(/^(\w+)\s+/);
-    if (colMatch) columns.push(colMatch[1]);
-  }
-
-  return { table, columns };
-}
-
-/** Parse schema.ts → Map<tableName, columnNames[]> */
-function parseDrizzleSchema(schemaContent: string): Map<string, string[]> {
-  const result = new Map<string, string[]>();
-  const tableRegex = /sqliteTable\s*\(\s*['"](\w+)['"]/g;
-  let m;
-
-  while ((m = tableRegex.exec(schemaContent)) !== null) {
-    const tableName = m[1];
-    const braceStart = schemaContent.indexOf('{', m.index + m[0].length);
-    if (braceStart === -1) continue;
-
-    let depth = 0;
-    let braceEnd = braceStart;
-    for (let i = braceStart; i < schemaContent.length; i++) {
-      if (schemaContent[i] === '{') depth++;
-      if (schemaContent[i] === '}') depth--;
-      if (depth === 0) { braceEnd = i; break; }
-    }
-
-    const body = schemaContent.substring(braceStart, braceEnd + 1);
-    const columns: string[] = [];
-    // Match text('col'), integer('col'), integer('col', opts), real('col') etc.
-    const colRegex = /(?:text|integer|real)\s*\(\s*['"](\w+)['"]/g;
-    let cm;
-    while ((cm = colRegex.exec(body)) !== null) {
-      columns.push(cm[1]);
-    }
-
-    result.set(tableName, columns);
-  }
-
-  return result;
-}
-
-const schemaFilePath = join(ROOT, 'packages/api/src/db/schema.ts');
-const vendorDirPath = join(ROOT, 'packages/api/vendor');
-let driftViolations = 0;
-
-if (existsSync(schemaFilePath) && existsSync(vendorDirPath)) {
-  const schemaContent = readFileSync(schemaFilePath, 'utf-8');
-  const drizzleTables = parseDrizzleSchema(schemaContent);
-  const vendorFiles = readdirSync(vendorDirPath).filter(f => f.endsWith('.sql'));
-
-  for (const sqlFile of vendorFiles) {
-    const sqlContent = readFileSync(join(vendorDirPath, sqlFile), 'utf-8');
-    const parsed = parseVendorSql(sqlContent);
-    if (!parsed) continue;
-
-    const drizzleCols = drizzleTables.get(parsed.table);
-    if (!drizzleCols) {
-      warn(`${sqlFile}: table '${parsed.table}' in vendor SQL but not in Drizzle schema`);
-      driftViolations++;
-      continue;
-    }
-
-    const vendorSet = new Set(parsed.columns);
-    const drizzleSet = new Set(drizzleCols);
-
-    for (const col of vendorSet) {
-      // ADR-001: _id can be omitted from Drizzle when not used as an app-level column
-      if (col === '_id' && !drizzleSet.has('_id')) continue;
-      if (!drizzleSet.has(col)) {
-        fail(`${sqlFile}: column '${col}' in vendor DDL but missing in Drizzle schema`);
-        driftViolations++;
-      }
-    }
-
-    for (const col of drizzleSet) {
-      if (col === '_id' && !vendorSet.has('_id')) continue;
-      if (!vendorSet.has(col)) {
-        fail(`schema.ts: column '${col}' in Drizzle table '${parsed.table}' but missing in vendor DDL`);
-        driftViolations++;
-      }
-    }
-  }
-
-  if (driftViolations === 0) {
-    ok(`No DDL drift detected (${vendorFiles.length} tables compared)`);
-  }
-} else {
-  info('schema.ts or vendor/ directory not found — A10 skipped');
-}
+// [A10] Drizzle schema <-> vendor DDL drift: retired in ADR-015.
+// bootstrap.sql is now the single source of truth for DDL; the vendor/*.sql
+// files are read-only reference material from ppxml2db (no drift to catch).
 
 // ─── Summary ────────────────────────────────────────────────
 console.log('\n══════════════════════════════════════════');

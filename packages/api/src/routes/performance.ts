@@ -173,7 +173,7 @@ const benchmarkSeriesHandler: RequestHandler = (req, res) => {
   }
 
   if (securityIds.length > 5) {
-    res.status(400).json({ error: 'Maximum 5 benchmarks allowed' });
+    res.status(400).json({ error: 'BENCHMARK_LIMIT_EXCEEDED', maxBenchmarks: 5 });
     return;
   }
 

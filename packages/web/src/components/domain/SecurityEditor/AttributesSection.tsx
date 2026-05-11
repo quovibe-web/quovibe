@@ -3,17 +3,34 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAttributeTypes } from '@/api/use-attribute-types';
 import { useResolveLogo } from '@/api/use-logo';
+import { resolveErrorMessage } from '@/api/query-client';
 import { resizeToPng } from '@/lib/image-utils';
 import { SectionHeader } from './SectionHeader';
-import type { SecurityAttribute } from '@/api/types';
-import type { InstrumentType } from '@quovibe/shared';
+import { AttributeTypeFormDialog } from './AttributeTypeFormDialog';
+import type { SecurityAttribute, AttributeTypeItem } from '@/api/types';
+
+// Only `logo` is hidden — it has a dedicated upload/fetch field rendered above
+// the picker. All other PP-defined attribute types (aum/ter/etc.) appear in the
+// picker and are fully user-editable per PP parity.
+const HIDDEN_ATTRIBUTE_TYPE_IDS = new Set(['logo']);
 
 function ImageField({
-  attr,
-  onUpdate,
-  onFetchLogo,
+  attr, onUpdate, onFetchLogo,
 }: {
   attr: SecurityAttribute;
   onUpdate: (typeId: string, value: string) => void;
@@ -32,8 +49,8 @@ function ImageField({
     setFetchError(null);
     try {
       await onFetchLogo();
-    } catch {
-      setFetchError(t('attributes.fetchLogoFailed'));
+    } catch (err) {
+      setFetchError(resolveErrorMessage(err));
     } finally {
       setIsFetching(false);
     }
@@ -112,35 +129,36 @@ function PercentageField({ value, onUpdate }: { value: string; onUpdate: (v: str
   );
 }
 
-const HIDDEN_ATTRIBUTE_TYPE_IDS = new Set(['acquisitionFee', 'managementFee', 'aum', 'logo']);
-
 interface Props {
   attributes: SecurityAttribute[];
   onChange: (attributes: SecurityAttribute[]) => void;
   ticker?: string;
-  instrumentType?: string | null;
 }
 
-export function AttributesSection({ attributes, onChange, ticker, instrumentType }: Props) {
+export function AttributesSection({ attributes, onChange, ticker }: Props) {
   const { t } = useTranslation('securities');
   const { data: types = [] } = useAttributeTypes();
-  const [addingTypeId, setAddingTypeId] = useState('');
   const resolveLogoMutation = useResolveLogo();
 
-  // Logo is always shown as a dedicated field — separate from custom attribute list
+  const [pickerValue, setPickerValue] = useState('');
+  const [editingType, setEditingType] = useState<AttributeTypeItem | null>(null);
+
   const logoAttr: SecurityAttribute = attributes.find(a => a.typeId === 'logo')
     ?? { typeId: 'logo', typeName: 'Logo', value: '' };
   const otherAttributes = attributes.filter(a => a.typeId !== 'logo');
 
   const usedTypeIds = new Set(attributes.map(a => a.typeId));
-  const availableTypes = types.filter(tp => !usedTypeIds.has(tp.id) && !HIDDEN_ATTRIBUTE_TYPE_IDS.has(tp.id));
+  const availableTypes = types.filter(
+    tp => !HIDDEN_ATTRIBUTE_TYPE_IDS.has(tp.id) && !usedTypeIds.has(tp.id),
+  );
+  const typeById = new Map(types.map(tp => [tp.id, tp]));
 
-  function addAttribute() {
-    if (!addingTypeId) return;
-    const type = types.find(tp => tp.id === addingTypeId);
+  function handlePickerChange(value: string) {
+    setPickerValue(value);
+    const type = typeById.get(value);
     if (!type) return;
     onChange([...attributes, { typeId: type.id, typeName: type.name, value: '' }]);
-    setAddingTypeId('');
+    setPickerValue('');
   }
 
   function updateValue(typeId: string, value: string) {
@@ -148,21 +166,17 @@ export function AttributesSection({ attributes, onChange, ticker, instrumentType
     if (exists) {
       onChange(attributes.map(a => a.typeId === typeId ? { ...a, value } : a));
     } else {
-      // Attribute not yet in list (e.g. logo for a new security)
       onChange([...attributes, { typeId, typeName: typeId === 'logo' ? 'Logo' : typeId, value }]);
     }
   }
 
-  function removeAttribute(typeId: string) {
+  function removeFromSecurity(typeId: string) {
     onChange(attributes.filter(a => a.typeId !== typeId));
   }
 
   const onFetchLogo = ticker
     ? async () => {
-        const { logoUrl } = await resolveLogoMutation.mutateAsync({
-          ticker,
-          ...(instrumentType ? { instrumentType: instrumentType as InstrumentType } : {}),
-        });
+        const { logoUrl } = await resolveLogoMutation.mutateAsync({ ticker });
         updateValue('logo', logoUrl);
       }
     : undefined;
@@ -171,21 +185,16 @@ export function AttributesSection({ attributes, onChange, ticker, instrumentType
     <div>
       <SectionHeader title={t('securityEditor.attributes')} id="section-attributes" />
       <div className="space-y-3 py-3">
-
         {/* Logo — always visible */}
         <div className="flex items-center gap-2">
           <span className="text-sm w-32 shrink-0 font-medium">{t('attributes.logo')}</span>
           <ImageField attr={logoAttr} onUpdate={updateValue} onFetchLogo={onFetchLogo} />
         </div>
 
-        {otherAttributes.length === 0 && availableTypes.length === 0 && (
-          <p className="text-muted-foreground text-sm">{t('securityEditor.attributesEmpty')}</p>
-        )}
-
         {otherAttributes.map(attr => {
-          const attrTypeDef = types.find(tp => tp.id === attr.typeId);
+          const attrTypeDef = typeById.get(attr.typeId);
           const isImage = attrTypeDef?.converterClass?.includes('ImageConverter') ?? false;
-          const isPercentage = attrTypeDef?.type === 'java.lang.Double';
+          const isPercentage = attrTypeDef?.type === 'java.lang.Double' && attrTypeDef?.converterClass?.includes('PercentConverter');
           return (
             <div key={attr.typeId} className="flex items-center gap-2">
               <span className="text-sm w-32 shrink-0 font-medium">{attr.typeName}</span>
@@ -200,38 +209,56 @@ export function AttributesSection({ attributes, onChange, ticker, instrumentType
                   className="flex-1 text-sm"
                 />
               )}
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                onClick={() => removeAttribute(attr.typeId)}
-                className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                aria-label={t('securityEditor.removeAttribute')}
-              >
-                &minus;
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-muted-foreground"
+                    aria-label={t('attributeType.menu.aria')}
+                  >
+                    ⋮
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {attrTypeDef && (
+                    <DropdownMenuItem onSelect={() => setEditingType(attrTypeDef)}>
+                      {t('attributeType.menu.rename')}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onSelect={() => removeFromSecurity(attr.typeId)}>
+                    {t('attributeType.menu.removeFromSec')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           );
         })}
 
         {availableTypes.length > 0 && (
           <div className="flex items-center gap-2 pt-2 border-t">
-            <select
-              className="border rounded-md px-2 py-1.5 text-sm bg-background flex-1"
-              value={addingTypeId}
-              onChange={e => setAddingTypeId(e.target.value)}
-            >
-              <option value="">{t('securityEditor.addAttribute')}</option>
-              {availableTypes.map(tp => (
-                <option key={tp.id} value={tp.id}>{tp.name}</option>
-              ))}
-            </select>
-            <Button type="button" size="sm" variant="outline" onClick={addAttribute} disabled={!addingTypeId}>
-              +
-            </Button>
+            <Select value={pickerValue} onValueChange={handlePickerChange}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder={t('securityEditor.addAttribute')} />
+              </SelectTrigger>
+              <SelectContent>
+                {availableTypes.map(tp => (
+                  <SelectItem key={tp.id} value={tp.id}>{tp.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
       </div>
+
+      {editingType && (
+        <AttributeTypeFormDialog
+          open
+          onOpenChange={open => { if (!open) setEditingType(null); }}
+          type={editingType}
+        />
+      )}
     </div>
   );
 }

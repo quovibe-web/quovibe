@@ -7,13 +7,24 @@ import type { CsvDelimiter } from './csv-types';
 /**
  * Parses a raw date string with the given format and returns "YYYY-MM-DD".
  * Returns null if the date is invalid or unparseable.
+ *
+ * PP CSV exports include an ISO 8601 time component on the Data column
+ * (`2020-09-02T15:42:43`, `2020-09-02T15:42`, `2020-09-02T00:00`). The
+ * downstream xact row stores DAY granularity only, so the time portion is
+ * dropped before the strict format match. The split also tolerates a
+ * space-separated time tail (`2020-09-02 15:42:43`) for brokers that emit
+ * that variant.
  */
 export function parseDate(raw: string, dateFormat: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
 
+  // Strip optional time tail (`T...` or ` ...`) before the strict format match.
+  const datePart = trimmed.split(/[T ]/, 1)[0] ?? '';
+  if (!datePart) return null;
+
   // date-fns parse uses format tokens: yyyy, MM, dd
-  const parsed = parse(trimmed, dateFormat, new Date(2000, 0, 1));
+  const parsed = parse(datePart, dateFormat, new Date(2000, 0, 1));
   if (!isValid(parsed)) return null;
 
   // Sanity check: month 1-12, day 1-31
@@ -79,4 +90,40 @@ export function detectDelimiter(headerLine: string): CsvDelimiter {
   }
 
   return bestDelimiter;
+}
+
+/**
+ * Like parseNumber, but accepts a trailing K/M/B suffix (case-insensitive)
+ * and multiplies the parsed value by 1e3 / 1e6 / 1e9 respectively.
+ *
+ * INTENTIONAL CONSTRAINT: this helper is reserved for the price-flow
+ * `volume` column only. The trade flow MUST keep using `parseNumber`,
+ * because the same suffix in a `shares` or `amount` column would silently
+ * 1000× the cost basis.
+ */
+export function parseNumberWithSuffix(
+  raw: string,
+  decimalSeparator: '.' | ',',
+  thousandSeparator: '' | '.' | ',' | ' ',
+): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  let multiplier = 1; // native-ok
+  let body = trimmed;
+  const lastChar = body[body.length - 1]?.toLowerCase();
+  if (lastChar === 'k') {
+    multiplier = 1_000; // native-ok
+    body = body.slice(0, -1);
+  } else if (lastChar === 'm') {
+    multiplier = 1_000_000; // native-ok
+    body = body.slice(0, -1);
+  } else if (lastChar === 'b') {
+    multiplier = 1_000_000_000; // native-ok
+    body = body.slice(0, -1);
+  }
+
+  const base = parseNumber(body, decimalSeparator, thousandSeparator);
+  if (base == null) return null;
+  return base * multiplier; // native-ok — multiplier is exact integer
 }

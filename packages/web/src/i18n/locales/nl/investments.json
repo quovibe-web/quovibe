@@ -64,13 +64,17 @@
     "clearFilter": "Alles tonen"
   },
   "search": {
-    "placeholder": "Zoeken op naam, ISIN of ticker…"
+    "placeholder": "Zoeken op naam, ISIN of ticker…",
+    "noResults": "Geen resultaten voor '{{query}}'",
+    "noResultsHint": "Probeer een andere naam, ISIN of ticker."
   },
   "totals": {
     "label": "Totaal ({{count}} effecten)"
   },
   "empty": {
     "title": "Nog geen effecten",
-    "description": "Voeg uw eerste effect toe om te beginnen"
+    "description": "Voeg uw eerste effect toe om te beginnen",
+    "noMatches": "Geen effecten in deze rekening",
+    "noMatchesHint": "Pas het rekeningfilter aan om andere posities te zien."
   }
 }

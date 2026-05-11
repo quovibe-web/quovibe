@@ -7,13 +7,18 @@
     "delete": "Supprimer",
     "deleteConfirmTitle": "Supprimer la liste",
     "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ? Les titres ne seront pas supprimés.",
-    "defaultName": "Nouvelle liste"
+    "defaultName": "Nouvelle liste",
+    "newDescription": "Donnez un nom à votre nouvelle liste."
   },
   "table": {
     "name": "Nom",
     "ticker": "Ticker",
     "price": "Cours",
     "change": "Variation",
+    "change1d": "1J",
+    "change1w": "1S",
+    "change1m": "1M",
+    "change1y": "1A",
     "trend": "Tendance 30j",
     "currency": "Devise",
     "lastQuote": "Dernier cours",
@@ -29,6 +34,7 @@
   },
   "addDialog": {
     "title": "Ajouter un titre à la liste",
+    "description": "Sélectionnez les titres à ajouter à cette liste.",
     "search": "Rechercher par nom, ISIN ou ticker...",
     "existing": "Titres existants",
     "createNew": "Créer un nouveau titre",
@@ -47,5 +53,10 @@
     "selectWatchlist": "Sélectionner une liste",
     "notFound": "Liste introuvable",
     "configure": "Configurer"
+  },
+  "columnGroups": {
+    "identity": "Identité",
+    "performance": "Performance",
+    "meta": "Métadonnées"
   }
 }

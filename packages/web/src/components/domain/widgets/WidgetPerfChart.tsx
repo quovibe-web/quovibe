@@ -20,6 +20,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
 import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
+import { ChartExportButton } from '@/components/shared/ChartExportButton';
 import { useWidgetToolbarPortal } from '@/components/domain/WidgetShell';
 
 
@@ -50,6 +51,7 @@ export default function WidgetPerfChart() {
   });
 
   const seriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
   const [seriesVersion, setSeriesVersion] = useState(0);
 
   const { data, isLoading, isError, error, isFetching, periodStart } = useWidgetChartCalculation();
@@ -111,7 +113,7 @@ export default function WidgetPerfChart() {
       series.applyOptions({
         priceFormat: {
           type: 'custom',
-          formatter: (price: number) => `${(price * 100).toFixed(2)}%`, // native-ok
+          formatter: (price: number) => formatPercentage(price),
         },
       } as Record<string, unknown>);
     }
@@ -174,6 +176,7 @@ export default function WidgetPerfChart() {
         hasOhlc={false}
         onTypeChange={handleTypeChange}
       />
+      <ChartExportButton chartRef={exportRef} filename="performance-chart" />
     </>
   );
 
@@ -194,6 +197,7 @@ export default function WidgetPerfChart() {
         {!toolbarTarget && toolbarElement}
       </div>
       <div
+        ref={exportRef}
         className={cn(
           'relative flex-1 min-h-0',
           isLoading && 'invisible',

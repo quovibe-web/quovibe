@@ -1,0 +1,53 @@
+{
+  "current": "Bieżący portfel",
+  "real": "Rzeczywisty",
+  "builtInPlayground": "Wbudowane demo",
+  "createdOn": "Utworzono {{date}}",
+  "updates": "Aktualizacje",
+  "updatePrices": "Aktualizuj wszystkie ceny",
+  "export": "Eksportuj ten portfel",
+  "demoExplainer": "Trwałe środowisko, w którym możesz swobodnie dodawać, edytować i usuwać. Możesz również wyeksportować zmodyfikowaną wersję demo — pobrany plik staje się zwykłym portfelem po ponownym imporcie, pozostawiając wbudowane demo bez zmian. Samego demo nie można zmienić nazwy ani usunąć — to wbudowany element, a nie obiekt użytkownika.",
+  "rename": {
+    "cta": "Zmień nazwę",
+    "title": "Zmień nazwę portfela",
+    "cancel": "Anuluj",
+    "save": "Zapisz",
+    "success": "Portfel został zmieniony.",
+    "error": "Zmiana nazwy nie powiodła się: {{msg}}"
+  },
+  "delete": {
+    "cta": "Usuń ten portfel",
+    "title": "Usunąć \"{{name}}\"?",
+    "body": "Spowoduje to trwałe usunięcie wszystkich kont, transakcji i danych tego portfela. Operacji nie można cofnąć.",
+    "cancel": "Anuluj",
+    "confirm": "Usuń",
+    "success": "Portfel został usunięty.",
+    "error": "Usuwanie nie powiodło się: {{msg}}"
+  },
+  "data": {
+    "sections": {
+      "accounting": "Rachunkowość",
+      "priceFeeds": "Źródła cen"
+    },
+    "fields": {
+      "costMethod": "Metoda kosztu",
+      "costMethodDescription": "Sposób obliczania kosztu nabycia papierów wartościowych.",
+      "costMethodFifo": "FIFO",
+      "costMethodMovingAverage": "Średnia ruchoma",
+      "currency": "Waluta bazowa",
+      "currencyDescription": "Wszystkie wartości są przeliczane na tę walutę w sumach portfela.",
+      "calendar": "Kalendarz",
+      "calendarDescription": "Kalendarz giełdowy określający dni wolne od handlu. Wybierz \"Domyślny (globalny)\", aby użyć domyślnego kalendarza systemu.",
+      "calendarDefault": "Domyślny (globalny)",
+      "calendarUnknown": "nieznany",
+      "alphaVantageApiKey": "Klucz API Alpha Vantage",
+      "alphaVantageApiKeyDescription": "Wymagany do pobierania notowań z Alpha Vantage.",
+      "alphaVantageApiKeyConfigured": "Klucz jest skonfigurowany. Wprowadź nową wartość, aby go zastąpić.",
+      "alphaVantageApiKeyPlaceholder": "Wprowadź klucz API…",
+      "alphaVantageApiKeyShow": "Pokaż klucz API",
+      "alphaVantageApiKeyHide": "Ukryj klucz API",
+      "alphaVantageRateLimit": "Limit szybkości Alpha Vantage",
+      "alphaVantageRateLimitDescription": "Liczba wywołań na minutę dozwolona w Twoim planie Alpha Vantage."
+    }
+  }
+}

@@ -1,4 +1,12 @@
 {
+  "empty": {
+    "title": "Welcome to your new portfolio.",
+    "importHeader": "Import transactions",
+    "importCsv": "Import from CSV",
+    "addManually": "Add account / transaction manually",
+    "wantToSee": "Want to see the app in action first?",
+    "tryDemo": "Try the demo instead"
+  },
   "title": "Dashboard",
   "hero": {
     "portfolioValue": "Portefeuillewaarde",
@@ -24,20 +32,23 @@
   "widgetSizeLarge": "Groot (3 kol.)",
   "dataSeriesMenuItem": "Datareeksen...",
   "period": "Periode...",
+  "hideWidget": "Widget verbergen",
+  "showWidget": "Widget tonen",
   "deleteWidget": "Verwijderen",
+  "deleteWidgetConfirm": "Dit widget verwijderen?",
+  "deleteWidgetConfirmDesc": "Hiermee wordt \"{{name}}\" uit dit dashboard verwijderd. Je kunt het opnieuw toevoegen via de widgetcatalogus.",
   "emptyDashboard": "Dit dashboard heeft nog geen widgets.",
   "unknownWidget": "Widgettype \"{{type}}\" niet gevonden",
-  "widgetCatalog": "Widget catalog",
+  "widgetCatalog": "Widgetcatalogus",
   "catalog": {
-    "searchPlaceholder": "Search widgets...",
-    "all": "All",
-    "performance": "Performance",
-    "reports": "Reports",
-    "chart": "Charts",
-    "risk": "Risk",
+    "searchPlaceholder": "Widgets zoeken...",
+    "all": "Alle",
+    "performance": "Rendement",
+    "chart": "Grafieken",
+    "risk": "Risico",
     "info": "Info",
-    "addToDashboard": "Add",
-    "noResults": "No widgets match your search.",
+    "addToDashboard": "Toevoegen",
+    "noResults": "Geen widgets komen overeen met je zoekopdracht.",
     "description": "Blader door widgets en voeg ze toe aan je dashboard",
     "desc": {
       "market-value": "Current market value of the selected data series at the end of the reporting period.",
@@ -117,7 +128,12 @@
       "noHoldings": "Geen posities in deze periode",
       "loadError": "Fout bij het laden van posities",
       "showMore_one": "+ {{count}} meer",
-      "showMore_other": "+ {{count}} meer"
+      "showMore_other": "+ {{count}} meer",
+      "headers": {
+        "weight": "Gewicht",
+        "marketValue": "Waarde",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "Geen gegevens voor deze periode",

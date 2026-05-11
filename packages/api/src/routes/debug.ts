@@ -1,11 +1,11 @@
 import { Router, type RequestHandler, type Router as RouterType } from 'express';
-import type BetterSqlite3 from 'better-sqlite3';
 import { convertPriceFromDb } from '../services/unit-conversion';
+import { getSqlite } from '../helpers/request';
 
 export const debugRouter: RouterType = Router();
 
 debugRouter.get('/db-sample', (async (req, res) => {
-  const sqlite = req.app.locals.sqlite as BetterSqlite3.Database;
+  const sqlite = getSqlite(req);
 
   const xacts = sqlite
     .prepare(`SELECT uuid, type, date, currency, amount, shares FROM xact LIMIT 5`)
@@ -34,7 +34,7 @@ debugRouter.get('/db-sample', (async (req, res) => {
       firstXact_amount_raw: (xacts[0] as { amount: number } | undefined)?.amount,
       firstXact_shares_raw: (xacts[0] as { shares: number } | undefined)?.shares,
       firstXact_shares_converted: xacts[0]
-        ? ((xacts[0] as { shares: number }).shares / 1e9).toFixed(6)
+        ? ((xacts[0] as { shares: number }).shares / 1e8).toFixed(6)
         : null,
       firstPrice_raw: firstPrice?.value,
       firstPrice_converted: firstPrice

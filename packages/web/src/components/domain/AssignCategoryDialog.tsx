@@ -13,6 +13,7 @@ import { useTaxonomyTree } from '@/api/use-taxonomy-tree';
 import { useCreateAssignment, useUpdateAssignment } from '@/api/use-taxonomy-mutations';
 import type { TaxonomyTreeCategory } from '@/api/types';
 import { cn } from '@/lib/utils';
+import { translateTaxonomyName } from '@/lib/taxonomy-i18n';
 
 interface FlatCategory {
   id: string;
@@ -93,7 +94,7 @@ export function AssignCategoryDialog({
                   style={{ backgroundColor: cat.color }}
                 />
               )}
-              <span className="text-sm">{cat.name}</span>
+              <span className="text-sm">{translateTaxonomyName(cat.name)}</span>
             </Button>
           ))}
         </div>

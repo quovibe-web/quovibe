@@ -1,6 +1,6 @@
 import { Router, type Router as RouterType } from 'express';
-import type { RequestHandler } from 'express';
-import { createTransactionSchema, AccountType, isTransactionTypeAllowed } from '@quovibe/shared';
+import type { RequestHandler, Response } from 'express';
+import { createTransactionSchema, AccountType, isTransactionTypeAllowed, CASH_ONLY_ROUTED_TYPES, CROSS_CURRENCY_FX_TYPES, TransactionType } from '@quovibe/shared';
 import * as transactionService from '../services/transaction.service';
 import { getDb, getSqlite } from '../helpers/request';
 import { convertTransactionFromDb, convertAmountFromDb } from '../services/unit-conversion';
@@ -81,13 +81,249 @@ function typeFilterCondition(enumType: string): { sql: string; params: unknown[]
   }
 }
 
+// Type-allowed guard shared by POST and PUT handlers.
+//
+// BUG-04 (Pass 1): previously, any `accountId` pointing to a portfolio bypassed
+// this 422 guard — the bypass existed so that cash-only types (DEPOSIT,
+// DIVIDEND, …) post against a portfolio would be auto-routed to its linked
+// deposit (`referenceAccount`) by `resolveAccountTarget` in the service. But
+// TRANSFER_BETWEEN_ACCOUNTS is not cash-only: with the blanket bypass, a
+// portfolio source slipped through and persisted as the transfer's cash
+// holder. Narrow the bypass to only the types the service actually routes
+// (`CASH_ONLY_ROUTED_TYPES`), and symmetrically validate `crossAccountId` so
+// a portfolio destination is rejected too.
+//
+// Returns an error message on rejection, or `null` when the input is allowed.
+function enforceAccountTypeGuards(
+  sqlite: ReturnType<typeof getSqlite>,
+  input: ReturnType<typeof createTransactionSchema.parse>,
+): string | null {
+  if (input.accountId) {
+    const acct = sqlite
+      .prepare('SELECT type FROM account WHERE uuid = ?')
+      .get(input.accountId) as { type: string } | undefined;
+    if (acct) {
+      const accountType = mapDbAccountType(acct.type);
+      const isPortfolioRouting =
+        acct.type === 'portfolio' && CASH_ONLY_ROUTED_TYPES.has(input.type);
+      if (!isPortfolioRouting && !isTransactionTypeAllowed(accountType, input.type)) {
+        return 'TRANSACTION_TYPE_NOT_ALLOWED_FOR_SOURCE';
+      }
+    }
+  }
+
+  // Symmetric check: for transfer types the destination must also be a valid
+  // holder of the transaction — a TRANSFER_BETWEEN_ACCOUNTS into a portfolio
+  // is just as broken as one out of a portfolio.
+  if (
+    input.crossAccountId &&
+    (input.type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS ||
+      input.type === TransactionType.SECURITY_TRANSFER)
+  ) {
+    const crossAcct = sqlite
+      .prepare('SELECT type FROM account WHERE uuid = ?')
+      .get(input.crossAccountId) as { type: string } | undefined;
+    if (crossAcct) {
+      const crossAccountType = mapDbAccountType(crossAcct.type);
+      if (!isTransactionTypeAllowed(crossAccountType, input.type)) {
+        return 'TRANSACTION_TYPE_NOT_ALLOWED_FOR_DESTINATION';
+      }
+    }
+  }
+
+  return null;
+}
+
+// BUG-111 + BUG-112: cross-currency cashflow legs MUST carry an explicit
+// `fxRate` on the wire payload. The schema layer cannot enforce this — it would
+// need to read `account.currency` and `security.currency`, which lives outside
+// `@quovibe/shared`. Run AFTER `enforceAccountTypeGuards` so a 422 takes
+// precedence over a 400 (account-type errors are more actionable).
+//
+// Returns the wire error code (`'FX_RATE_REQUIRED'`) on rejection or `null`.
+function enforceCrossCurrencyFxRate(
+  sqlite: ReturnType<typeof getSqlite>,
+  input: ReturnType<typeof createTransactionSchema.parse>,
+): string | null {
+  if (!CROSS_CURRENCY_FX_TYPES.has(input.type)) return null;
+  const hasFx = input.fxRate != null && input.fxRate > 0;
+  if (hasFx) return null;
+
+  const fetchCurrency = (uuid: string): string | null => {
+    const row = sqlite
+      .prepare('SELECT currency FROM account WHERE uuid = ?')
+      .get(uuid) as { currency: string } | undefined;
+    return row?.currency ?? null;
+  };
+
+  // Precondition: enforceAccountTypeGuards already rejected portfolio
+  // accountId for TRANSFER_BETWEEN_ACCOUNTS, so input.accountId is a deposit
+  // by the time we reach this branch and `account.currency` is meaningful.
+  if (
+    input.type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS &&
+    input.crossAccountId
+  ) {
+    const src = fetchCurrency(input.accountId);
+    const dst = fetchCurrency(input.crossAccountId);
+    if (src && dst && src !== dst) return 'FX_RATE_REQUIRED';
+    return null;
+  }
+
+  if (
+    (input.type === TransactionType.BUY || input.type === TransactionType.SELL) &&
+    input.securityId
+  ) {
+    // Resolve the cash side: explicit `crossAccountId`, else the portfolio's
+    // `referenceAccount`. If neither resolves, fall through silently — the
+    // service will raise a clearer downstream error.
+    let cashAccountId = input.crossAccountId ?? null;
+    if (!cashAccountId) {
+      const ref = sqlite
+        .prepare(
+          "SELECT referenceAccount FROM account WHERE uuid = ? AND type = 'portfolio'",
+        )
+        .get(input.accountId) as { referenceAccount: string | null } | undefined;
+      cashAccountId = ref?.referenceAccount ?? null;
+    }
+    if (!cashAccountId) return null;
+
+    const cashCcy = fetchCurrency(cashAccountId);
+    const sec = sqlite
+      .prepare('SELECT currency FROM security WHERE uuid = ?')
+      .get(input.securityId) as { currency: string } | undefined;
+    if (cashCcy && sec?.currency && cashCcy !== sec.currency) {
+      return 'FX_RATE_REQUIRED';
+    }
+  }
+
+  // DIVIDEND can be posted against either a deposit or a portfolio source
+  // (CASH_ONLY_ROUTED_TYPES allows the portfolio shape — the service auto-
+  // routes it to the portfolio's `referenceAccount`). The cross-currency
+  // pair is therefore the resolved-cash-account currency vs the security's
+  // currency: a USD-denominated security paying a dividend into a EUR
+  // deposit must carry an explicit fxRate so the engine can convert the
+  // payout deterministically. Mirrors the BUY/SELL branch shape; the only
+  // difference is the source-shape lookup, which uses `accountId` directly
+  // when it is already a deposit.
+  if (input.type === TransactionType.DIVIDEND && input.securityId) {
+    const acct = sqlite
+      .prepare("SELECT type, referenceAccount FROM account WHERE uuid = ?")
+      .get(input.accountId) as
+        | { type: string; referenceAccount: string | null }
+        | undefined;
+    if (!acct) return null;
+
+    const cashAccountId =
+      acct.type === 'portfolio' ? (acct.referenceAccount ?? null) : input.accountId;
+    if (!cashAccountId) return null;
+
+    const cashCcy = fetchCurrency(cashAccountId);
+    const sec = sqlite
+      .prepare('SELECT currency FROM security WHERE uuid = ?')
+      .get(input.securityId) as { currency: string } | undefined;
+    if (cashCcy && sec?.currency && cashCcy !== sec.currency) {
+      return 'FX_RATE_REQUIRED';
+    }
+  }
+
+  return null;
+}
+
+// BUG-108: route-side mapper for service-layer FK pre-validation throws.
+// Returns true if the error was handled (response written), false otherwise.
+function handleTransactionServiceError(res: Response, err: unknown): boolean {
+  if (err instanceof transactionService.TransactionServiceError) {
+    res.status(400).json({ error: err.code });
+    return true;
+  }
+  return false;
+}
+
+interface XactRow {
+  uuid: string;
+  acctype: string | null;
+  account: string;
+  date: string;
+  currency: string;
+  amount: number | null;
+  security: string | null;
+  shares: number | null;
+  note: string | null;
+  source: string | null;
+  updatedAt: string;
+  type: string;
+  fees: number | null;
+  taxes: number | null;
+  crossAccountId: string | null;
+}
+
+function buildTransactionResponse(
+  sqlite: ReturnType<typeof getSqlite>,
+  id: string,
+): Record<string, unknown> {
+  const row = sqlite
+    .prepare(
+      `SELECT x.uuid, x.acctype, x.account, x.date, x.currency, x.amount,
+              x.security, x.shares, x.note, x.source, x.updatedAt, x.type,
+              x.fees, x.taxes,
+              (SELECT ce.to_acc FROM xact_cross_entry ce WHERE ce.from_xact = x.uuid LIMIT 1) as crossAccountId
+       FROM xact x
+       WHERE x.uuid = ?`,
+    )
+    .get(id) as XactRow | undefined;
+
+  if (!row) {
+    throw new Error(`Transaction ${id} not found after write`);
+  }
+
+  const normalizedType = normalizeType(
+    row.type,
+    row.acctype,
+    row.shares,
+    row.crossAccountId,
+    row.account,
+  );
+  const converted = convertTransactionFromDb({
+    amount: row.amount,
+    shares: row.shares,
+  });
+
+  return {
+    uuid: row.uuid,
+    type: normalizedType,
+    date: row.date,
+    currencyCode: row.currency,
+    amount: converted.amount?.toNumber() ?? null,
+    shares: converted.shares?.toNumber() ?? null,
+    fees: convertAmountFromDb(row.fees).toNumber(),
+    taxes: convertAmountFromDb(row.taxes).toNumber(),
+    security: row.security,
+    account: row.account,
+    note: row.note,
+    source: row.source,
+    updatedAt: row.updatedAt,
+    crossAccountId: row.crossAccountId,
+  };
+}
+
 export const transactionsRouter: RouterType = Router();
+
+// Hard ceiling on `limit=all` to prevent accidental unbounded reads
+// (e.g. a runaway export request). 100000 covers every real personal
+// portfolio; rows beyond this are silently truncated.
+const EXPORT_HARD_CEILING = 100000;
 
 const listTransactions: RequestHandler = (req, res) => {
   const sqlite = getSqlite(req);
   const page = Math.max(1, parseInt(req.query.page as string || '1', 10));
-  const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string || '50', 10)));
-  const offset = (page - 1) * limit;
+  // `limit=all` bypasses paging for CSV export; capped server-side at
+  // EXPORT_HARD_CEILING. Any other value clamps to [1, 100] as before.
+  const limitParam = req.query.limit as string | undefined;
+  const isUnbounded = limitParam === 'all';
+  const limit = isUnbounded
+    ? EXPORT_HARD_CEILING
+    : Math.max(1, Math.min(100, parseInt(limitParam || '50', 10)));
+  const offset = isUnbounded ? 0 : (page - 1) * limit;
 
   const conditions: string[] = ['1=1'];
   const params: unknown[] = [];
@@ -255,41 +491,26 @@ const createTransaction: RequestHandler = (req, res) => {
   const sqlite = getSqlite(req);
   const db = getDb(req);
 
-  // 422 guard: reject if transaction type is not allowed for this account type.
-  // Exception: cash-only types (DEPOSIT, DIVIDEND, etc.) submitted to a portfolio account
-  // are routed to the linked deposit account by resolveAccountTarget — allow them through.
-  if (input.accountId) {
-    const acct = sqlite
-      .prepare('SELECT type, referenceAccount FROM account WHERE uuid = ?')
-      .get(input.accountId) as { type: string; referenceAccount: string | null } | undefined;
-    if (acct) {
-      const accountType = mapDbAccountType(acct.type);
-      // Portfolio accounts bypass the 422 guard: cash-only types route to deposit via resolveAccountTarget
-      const isPortfolioRouting = acct.type === 'portfolio';
-      if (!isPortfolioRouting && !isTransactionTypeAllowed(accountType, input.type)) {
-        res.status(422).json({ error: 'Transaction type not allowed for this account type' });
-        return;
-      }
-    }
+  const guardResult = enforceAccountTypeGuards(sqlite, input);
+  if (guardResult) {
+    res.status(422).json({ error: guardResult });
+    return;
   }
 
-  const id = transactionService.createTransaction(db, sqlite, input);
-  const row = sqlite.prepare('SELECT * FROM xact WHERE uuid = ?').get(id) as
-    | Record<string, unknown>
-    | undefined;
+  const fxGuard = enforceCrossCurrencyFxRate(sqlite, input);
+  if (fxGuard) {
+    res.status(400).json({ error: fxGuard });
+    return;
+  }
 
-  const created = convertTransactionFromDb({
-    amount: (row?.amount as number | null) ?? null,
-    shares: (row?.shares as number | null) ?? null,
-  });
-  res.status(201).json({
-    ...row,
-    currencyCode: (row?.currency as string) ?? null,
-    amount: created.amount?.toNumber() ?? null,
-    shares: created.shares?.toNumber() ?? null,
-    fees: convertAmountFromDb(row?.fees as number | null).toNumber(),
-    taxes: convertAmountFromDb(row?.taxes as number | null).toNumber(),
-  });
+  let id: string;
+  try {
+    id = transactionService.createTransaction(db, sqlite, input);
+  } catch (err) {
+    if (handleTransactionServiceError(res, err)) return;
+    throw err;
+  }
+  res.status(201).json(buildTransactionResponse(sqlite, id));
 };
 
 const updateTransaction: RequestHandler = (req, res) => {
@@ -300,44 +521,29 @@ const updateTransaction: RequestHandler = (req, res) => {
 
   const existing = sqlite.prepare('SELECT uuid FROM xact WHERE uuid = ?').get(id);
   if (!existing) {
-    res.status(404).json({ error: 'Transaction not found' });
+    res.status(404).json({ error: 'TRANSACTION_NOT_FOUND' });
     return;
   }
 
-  // 422 guard: reject if transaction type is not allowed for this account type.
-  // Exception: cash-only types submitted to a portfolio account are routed to the linked
-  // deposit account by resolveAccountTarget — allow them through (same as create handler).
-  if (input.accountId) {
-    const acct = sqlite
-      .prepare('SELECT type, referenceAccount FROM account WHERE uuid = ?')
-      .get(input.accountId) as { type: string; referenceAccount: string | null } | undefined;
-    if (acct) {
-      const accountType = mapDbAccountType(acct.type);
-      const isPortfolioRouting = acct.type === 'portfolio';
-      if (!isPortfolioRouting && !isTransactionTypeAllowed(accountType, input.type)) {
-        res.status(422).json({ error: 'Transaction type not allowed for this account type' });
-        return;
-      }
-    }
+  const guardResult = enforceAccountTypeGuards(sqlite, input);
+  if (guardResult) {
+    res.status(422).json({ error: guardResult });
+    return;
   }
 
-  transactionService.updateTransaction(db, sqlite, id, input);
-  const row = sqlite.prepare('SELECT * FROM xact WHERE uuid = ?').get(id) as
-    | Record<string, unknown>
-    | undefined;
+  const fxGuard = enforceCrossCurrencyFxRate(sqlite, input);
+  if (fxGuard) {
+    res.status(400).json({ error: fxGuard });
+    return;
+  }
 
-  const updated = convertTransactionFromDb({
-    amount: (row?.amount as number | null) ?? null,
-    shares: (row?.shares as number | null) ?? null,
-  });
-  res.json({
-    ...row,
-    currencyCode: (row?.currency as string) ?? null,
-    amount: updated.amount?.toNumber() ?? null,
-    shares: updated.shares?.toNumber() ?? null,
-    fees: convertAmountFromDb(row?.fees as number | null).toNumber(),
-    taxes: convertAmountFromDb(row?.taxes as number | null).toNumber(),
-  });
+  try {
+    transactionService.updateTransaction(db, sqlite, id, input);
+  } catch (err) {
+    if (handleTransactionServiceError(res, err)) return;
+    throw err;
+  }
+  res.json(buildTransactionResponse(sqlite, id));
 };
 
 const deleteTransaction: RequestHandler = (req, res) => {
@@ -347,7 +553,7 @@ const deleteTransaction: RequestHandler = (req, res) => {
 
   const existing = sqlite.prepare('SELECT uuid FROM xact WHERE uuid = ?').get(id);
   if (!existing) {
-    res.status(404).json({ error: 'Transaction not found' });
+    res.status(404).json({ error: 'TRANSACTION_NOT_FOUND' });
     return;
   }
 
@@ -370,37 +576,14 @@ const getTransaction: RequestHandler = (req, res) => {
   const sqlite = getSqlite(req);
   const id = req.params['id'] as string;
 
-  const row = sqlite
-    .prepare(
-      `SELECT x.*, s.name as securityName, a.name as accountName,
-              (SELECT ce.to_acc FROM xact_cross_entry ce WHERE ce.from_xact = x.uuid LIMIT 1) as crossAccountId
-       FROM xact x
-       LEFT JOIN security s ON s.uuid = x.security
-       LEFT JOIN account a ON a.uuid = x.account
-       WHERE x.uuid = ?`,
-    )
-    .get(id) as Record<string, unknown> | undefined;
-
-  if (!row) {
-    res.status(404).json({ error: 'Transaction not found' });
+  const exists = sqlite.prepare('SELECT uuid FROM xact WHERE uuid = ?').get(id);
+  if (!exists) {
+    res.status(404).json({ error: 'TRANSACTION_NOT_FOUND' });
     return;
   }
 
-  const crossAccId = (row.crossAccountId as string | null) ?? null;
-  const normalizedType = normalizeType(
-    row.type as string,
-    row.acctype as string | null,
-    row.shares as number | null,
-    crossAccId,
-    row.account as string | null,
-  );
+  const base = buildTransactionResponse(sqlite, id);
 
-  const converted = convertTransactionFromDb({
-    amount: row.amount as number | null,
-    shares: row.shares as number | null,
-  });
-
-  // Fetch xact_unit rows
   const unitRows = sqlite
     .prepare(
       'SELECT type, amount, currency, forex_amount, forex_currency, exchangeRate FROM xact_unit WHERE xact = ?',
@@ -423,17 +606,7 @@ const getTransaction: RequestHandler = (req, res) => {
     exchangeRate: u.exchangeRate,
   }));
 
-  res.json({
-    ...row,
-    type: normalizedType,
-    currencyCode: row.currency as string,
-    amount: converted.amount?.toNumber() ?? null,
-    shares: converted.shares?.toNumber() ?? null,
-    fees: convertAmountFromDb(row.fees as number | null).toNumber(),
-    taxes: convertAmountFromDb(row.taxes as number | null).toNumber(),
-    crossAccountId: crossAccId,
-    units,
-  });
+  res.json({ ...base, units });
 };
 
 transactionsRouter.get('/first-date', firstDate);

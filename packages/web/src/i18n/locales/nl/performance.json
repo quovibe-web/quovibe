@@ -18,7 +18,7 @@
   },
   "calculation": {
     "title": "Berekening",
-    "subtitle": "Detailed calculation breakdown",
+    "subtitle": "Gedetailleerd berekeningsoverzicht",
     "preTax": "Voor belasting",
     "afterTax": "Na belasting",
     "initialValue": "Beginwaarde (MVB)",
@@ -77,7 +77,7 @@
   },
   "securities": {
     "title": "Prestaties — Effecten",
-    "subtitle": "Performance breakdown by security",
+    "subtitle": "Prestatie-uitsplitsing per effect",
     "columns": {
       "name": "Naam",
       "irr": "IRR (ann.)",
@@ -96,7 +96,7 @@
   },
   "chart": {
     "title": "Prestatiegrafiek",
-    "subtitle": "Time-weighted return over time",
+    "subtitle": "Tijdgewogen rendement in de tijd",
     "marketValueAndTtwror": "Marktwaarde & TTWROR",
     "marketValue": "Marktwaarde",
     "ttwror": "TTWROR",
@@ -174,7 +174,7 @@
     "chartDesc": "Marktwaarde en TTWROR over de periode"
   },
   "taxonomySeries": {
-    "subtitle": "Performance trends by category"
+    "subtitle": "Prestatietrends per categorie"
   },
   "analytics": {
     "title": "Analyses",

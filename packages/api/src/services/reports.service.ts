@@ -1,7 +1,8 @@
 import Decimal from 'decimal.js';
 import type Database from 'better-sqlite3';
 import { convertAmountFromDb } from './unit-conversion';
-import { getCachedStatement, getCachedReferenceData } from './statement-cache';
+import { getStatementOfAssets } from './performance.service';
+import { getReferenceData } from './reference-data';
 
 // ─── Holdings ───────────────────────────────────────────────
 
@@ -23,7 +24,7 @@ interface HoldingsResult {
 }
 
 export function getHoldingsFlat(sqlite: Database.Database, date: string): HoldingsResult {
-  const statement = getCachedStatement(sqlite, date);
+  const statement = getStatementOfAssets(sqlite, date);
   const totalMV = new Decimal(statement.totals.marketValue);
 
   const items = statement.securities.map((s) => ({
@@ -43,7 +44,7 @@ export function getHoldingsByTaxonomy(
   date: string,
   taxonomyId: string,
 ): HoldingsResult {
-  const statement = getCachedStatement(sqlite, date);
+  const statement = getStatementOfAssets(sqlite, date);
 
   // Get root category UUID for this taxonomy
   const taxonomyRow = sqlite
@@ -51,10 +52,9 @@ export function getHoldingsByTaxonomy(
     .get(taxonomyId) as { root: string | null } | undefined;
   const rootCategoryUuid = taxonomyRow?.root ?? null;
 
-  // Get taxonomy categories
   const categories = sqlite
     .prepare(
-      `SELECT uuid, name, parent FROM taxonomy_category WHERE taxonomy = ?`,
+      `SELECT uuid, name, parent FROM taxonomy_category WHERE taxonomy = ? ORDER BY rank`,
     )
     .all(taxonomyId) as {
     uuid: string;
@@ -80,7 +80,7 @@ export function getHoldingsByTaxonomy(
   for (const a of statement.depositAccounts) mvByItemId.set(a.accountId, new Decimal(a.balance));
 
   // Resolve names + retired status + logos
-  const refData = getCachedReferenceData(sqlite);
+  const refData = getReferenceData(sqlite);
   const secNameMap = new Map(refData.securities.map((s) => [s.uuid, s.name]));
   const retiredSecIds = new Set(refData.securities.filter((s) => s.isRetired === 1).map((s) => s.uuid));
   const acctNameMap = new Map(refData.accounts.map((a) => [a.uuid, a.name]));
@@ -299,6 +299,11 @@ export function getPayments(
   periodEnd: string,
   groupBy: 'month' | 'quarter' | 'year',
 ): PaymentsResult {
+  // SUBSTR(x.date, 1, 10) on the BETWEEN upper bound: xact.date is stored
+  // as ppxml2db's ISO timestamp ('YYYY-MM-DDTHH:MM') and SQLite lex compare
+  // makes a bare `x.date <= 'YYYY-MM-DD'` silently drop every transaction
+  // stamped on the boundary date. Same fix lives on fetchNetSharesPerSecurity
+  // and the fetchDepositCashBalance helpers; keep the three in sync.
   const rows = sqlite
     .prepare(
       `SELECT x.uuid, x.type, x.date, x.amount, x.taxes, x.fees,
@@ -309,7 +314,7 @@ export function getPayments(
        LEFT JOIN security s ON s.uuid = x.security
        LEFT JOIN account a ON a.uuid = x.account
        WHERE x.type IN ('DIVIDEND', 'DIVIDENDS', 'INTEREST', 'INTEREST_CHARGE')
-         AND x.date BETWEEN ? AND ?
+         AND SUBSTR(x.date, 1, 10) BETWEEN ? AND ?
        ORDER BY x.date ASC`,
     )
     .all(periodStart, periodEnd) as PaymentRow[];
@@ -438,7 +443,7 @@ export function getPaymentBreakdown(
          FROM xact x
          LEFT JOIN security s ON s.uuid = x.security
          WHERE x.type IN ('DIVIDEND', 'DIVIDENDS')
-           AND x.date BETWEEN ? AND ?
+           AND SUBSTR(x.date, 1, 10) BETWEEN ? AND ?
            AND ${bucketCondition}
          GROUP BY x.security
          ORDER BY total_amount DESC`,
@@ -458,7 +463,7 @@ export function getPaymentBreakdown(
          FROM xact x
          LEFT JOIN account a ON a.uuid = x.account
          WHERE x.type IN ('INTEREST', 'INTEREST_CHARGE')
-           AND x.date BETWEEN ? AND ?
+           AND SUBSTR(x.date, 1, 10) BETWEEN ? AND ?
            AND ${bucketCondition}
          GROUP BY x.account
          ORDER BY total_amount DESC`,

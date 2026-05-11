@@ -13,6 +13,8 @@
     "edit": "Editar",
     "updatePrices": "Actualizar todos los precios",
     "updating": "Actualizando…",
+    "refreshQuote": "Actualizar cotización",
+    "refreshing": "Actualizando…",
     "addInstrument": "+ Añadir instrumento",
     "delete": "Eliminar"
   },
@@ -144,6 +146,9 @@
     "performance": "Rendimiento",
     "priceHistory": "Historial de precios",
     "transactions": "Transacciones",
+    "taxonomies": "Taxonomías",
+    "notClassified": "Aún sin clasificar.",
+    "classify": "Clasificar →",
     "noTransactions": "Sin transacciones para este instrumento",
     "noPrices": "Sin historial de precios disponible",
     "configureFeed": "Configurar fuente de precios →",
@@ -285,6 +290,34 @@
     "unsavedKeepEditing": "Seguir editando",
     "save": "Guardar cambios",
     "saving": "Guardando..."
+  },
+  "attributeType": {
+    "editTitle": "Renombrar tipo de atributo",
+    "fields": {
+      "name": "Nombre",
+      "columnLabel": "Etiqueta de columna",
+      "type": "Tipo"
+    },
+    "types": {
+      "text": "Texto",
+      "number": "Número",
+      "percentage": "Porcentaje",
+      "amount": "Importe",
+      "date": "Fecha",
+      "boolean": "Sí / No"
+    },
+    "menu": {
+      "aria": "Acciones de atributo",
+      "rename": "Renombrar definición del tipo",
+      "removeFromSec": "Eliminar de este valor"
+    },
+    "empty": "Sin atributos personalizados.",
+    "empty.cta": "+ Crear tipo de atributo",
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "nameTooLong": "El nombre no puede superar {{max}} caracteres.",
+      "columnLabelTooLong": "La etiqueta de columna no puede superar {{max}} caracteres."
+    }
   },
   "empty": {
     "noSecurities": "Aún no hay valores"

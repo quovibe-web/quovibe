@@ -1,5 +1,6 @@
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavTitle } from '@/hooks/useNavTitle';
 import {
   DndContext,
   closestCenter,
@@ -50,7 +51,17 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { useDashboardConfig, useSaveDashboard } from '@/api/use-dashboard-config';
+import {
+  useDashboards,
+  useCreateDashboard,
+  useUpdateDashboard,
+  useDeleteDashboard,
+  type DashboardItem,
+} from '@/api/use-dashboards';
+import { useTransactions } from '@/api/use-transactions';
+import { DashboardEmptyState } from '@/components/domain/DashboardEmptyState';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { appendSearch } from '@/lib/router-helpers';
 import { nanoid } from 'nanoid';
 import { getWidgetDef, CHART_WIDGET_TYPES } from '@/lib/widget-registry';
 import { DASHBOARD_TEMPLATES, applyTemplate, type DashboardTemplate } from '@/lib/dashboard-templates';
@@ -75,11 +86,12 @@ interface SortableWidgetProps {
   onDelete: (widgetId: string) => void;
   onTitleChange: (widgetId: string, title: string) => void;
   onSpanChange: (widgetId: string, span: 1 | 2 | 3) => void;
+  onToggleHidden: (widgetId: string) => void;
   columns: 'auto' | 2 | 3 | 4 | 5;
   compact?: boolean;
 }
 
-function SortableWidget({ widget, dashboardId, index, onDelete, onTitleChange, onSpanChange, columns, compact = false }: SortableWidgetProps) {
+function SortableWidget({ widget, dashboardId, index, onDelete, onTitleChange, onSpanChange, onToggleHidden, columns, compact = false }: SortableWidgetProps) {
   const { t } = useTranslation('dashboard');
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: widget.id });
@@ -114,6 +126,8 @@ function SortableWidget({ widget, dashboardId, index, onDelete, onTitleChange, o
             dragHandleAttributes={attributes}
             index={index}
             compact={compact}
+            hidden={widget.hidden}
+            onToggleHidden={() => onToggleHidden(widget.id)}
           >
             <div className="flex items-center justify-center h-full min-h-[120px] text-sm text-muted-foreground">
               {t('unknownWidget', { type: widget.type })}
@@ -146,6 +160,8 @@ function SortableWidget({ widget, dashboardId, index, onDelete, onTitleChange, o
           dragHandleAttributes={attributes}
           index={index}
           compact={compact}
+          hidden={widget.hidden}
+          onToggleHidden={() => onToggleHidden(widget.id)}
         >
           <Suspense
             fallback={
@@ -324,8 +340,15 @@ function SortableTab({
 
 export default function Dashboard() {
   const { t } = useTranslation('dashboard');
-  const { data, isLoading } = useDashboardConfig();
-  const { mutate: save } = useSaveDashboard();
+  useNavTitle('dashboard');
+  const { portfolioId, dashboardId } = useParams<{ portfolioId: string; dashboardId?: string }>();
+  const navigate = useNavigate();
+  const { search } = useLocation();
+  const dashboardsList = useDashboards();
+  const tx = useTransactions(undefined, 1, 1);
+  const createDash = useCreateDashboard();
+  const updateDash = useUpdateDashboard();
+  const deleteDash = useDeleteDashboard();
 
   // Prefetch data for DataSeriesDialog (populate cache at mount)
   useAccounts(false);
@@ -344,72 +367,128 @@ export default function Dashboard() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
-  const dashboards = data?.dashboards ?? [];
-  const activeDashboard = data?.activeDashboard ?? null;
-  const activeDash = dashboards.find((d) => d.id === activeDashboard) ?? dashboards[0] ?? null;
+  const isLoading = dashboardsList.isLoading;
+  // Sorted (by position) list — source of truth comes from REST collection.
+  const dashboards: Dashboard[] = (dashboardsList.data ?? [])
+    .slice()
+    .sort((a, b) => a.position - b.position)
+    .map((it) => ({
+      id: it.id,
+      name: it.name,
+      widgets: it.widgets,
+      columns: it.columns,
+      // metricsStripIds is stored inside DashboardItem via the JSON settings
+      // shape — not part of the REST item yet. Preserve via cast so downstream
+      // reads keep working identically to the shim.
+      ...((it as unknown as { metricsStripIds?: string[] }).metricsStripIds
+        ? { metricsStripIds: (it as unknown as { metricsStripIds?: string[] }).metricsStripIds }
+        : {}),
+    }) as Dashboard);
+  // Active dashboard is driven by the URL :dashboardId param (Phase 5b.3).
+  // Fallback to first-by-position when unset so initial render works during
+  // the redirect window.
+  const activeDash = (dashboardId && dashboards.find((d) => d.id === dashboardId))
+    || dashboards[0]
+    || null;
 
-  // ---- Helpers to save mutated dashboards ----
+  // Replace URL when registry-resolved active dashboard diverges from URL param.
+  // Dep on `activeDashId` (not `activeDash`) — the object reference is fresh
+  // every render, the id is the only value the effect actually reads.
+  const activeDashId = activeDash?.id ?? null;
+  useEffect(() => {
+    if (!dashboardsList.data) return;
+    if (!dashboardId) return;
+    if (!activeDashId) return;
+    if (activeDashId === dashboardId) return;
+    if (!portfolioId) return;
+    navigate(appendSearch(`/p/${portfolioId}/dashboard/${activeDashId}`, search), { replace: true });
+  }, [dashboardsList.data, dashboardId, activeDashId, portfolioId, navigate, search]);
 
-  function saveDashboards(next: Dashboard[], nextActiveId?: string) {
-    save({
-      dashboards: next,
-      activeDashboard: nextActiveId ?? activeDashboard,
+  // ---- Helpers: map REST item → shared Dashboard shape ----
+
+  function findRestItem(id: string): DashboardItem | undefined {
+    return dashboardsList.data?.find((it) => it.id === id);
+  }
+
+  // Patch a single dashboard's widgets list (the most common mutation path).
+  function patchActiveWidgets(updater: (widgets: Dashboard['widgets']) => Dashboard['widgets']) {
+    if (!activeDash) return;
+    updateDash.mutate({
+      id: activeDash.id,
+      input: { widgets: updater(activeDash.widgets) },
     });
   }
 
-  function updateActiveDashboard(updater: (d: Dashboard) => Dashboard) {
-    if (!activeDash) return;
-    const next = dashboards.map((d) => (d.id === activeDash.id ? updater(d) : d));
-    saveDashboards(next);
-  }
-
   function updateMetricsStripIds(ids: string[]) {
-    updateActiveDashboard((d) => ({ ...d, metricsStripIds: ids }));
+    if (!activeDash) return;
+    updateDash.mutate({
+      id: activeDash.id,
+      input: { metricsStripIds: ids } as unknown as Partial<DashboardItem>,
+    });
   }
 
   // ---- Tab actions ----
 
   function switchTab(id: string) {
-    save({ dashboards, activeDashboard: id });
+    if (!portfolioId) return;
+    navigate(`/p/${portfolioId}/dashboard/${id}`);
   }
 
   function createDashboard() {
     const name = newDashName.trim();
     if (!name) return;
-    const id = crypto.randomUUID();
     const template = selectedTemplate
       ? DASHBOARD_TEMPLATES.find((t) => t.id === selectedTemplate)
       : null;
     const widgets = template ? applyTemplate(template) : [];
-    const newDash: Dashboard = { id, name, widgets };
-    saveDashboards([...dashboards, newDash], id);
+    createDash.mutate(
+      { name, widgets, columns: 3 },
+      {
+        onSuccess: (created) => {
+          if (portfolioId) navigate(`/p/${portfolioId}/dashboard/${created.id}`);
+        },
+      },
+    );
     setNewDashOpen(false);
     setNewDashName('');
     setSelectedTemplate(null);
   }
 
   function duplicateDashboard(src: Dashboard) {
-    const id = crypto.randomUUID();
-    const dup: Dashboard = {
-      id,
-      name: `${src.name} (copy)`,
-      widgets: src.widgets.map((w) => ({ ...w, id: crypto.randomUUID() })),
-    };
-    saveDashboards([...dashboards, dup], id);
+    createDash.mutate(
+      {
+        name: `${src.name} (copy)`,
+        widgets: src.widgets.map((w) => ({ ...w, id: crypto.randomUUID() })),
+        columns: src.columns,
+      },
+      {
+        onSuccess: (created) => {
+          if (portfolioId) navigate(`/p/${portfolioId}/dashboard/${created.id}`);
+        },
+      },
+    );
   }
 
   function deleteDashboard(id: string) {
     if (dashboards.length <= 1) return;
-    const next = dashboards.filter((d) => d.id !== id);
-    const nextActive = activeDashboard === id ? next[0].id : activeDashboard;
-    saveDashboards(next, nextActive);
+    // BUG-73: navigate BEFORE the DELETE so WidgetShell (and its
+    // useDashboard(deletedId) observer, plus DataSeriesDialog/PeriodOverrideDialog
+    // which also subscribe to the same detail key) unmounts before the mutation's
+    // onSuccess invalidateQueries can refetch the detail query against a
+    // no-longer-existent id (→ 404 console.error).
+    const nextActiveId = activeDash?.id === id
+      ? dashboards.find((d) => d.id !== id)?.id
+      : null;
+    if (nextActiveId && portfolioId) {
+      navigate(`/p/${portfolioId}/dashboard/${nextActiveId}`);
+    }
+    deleteDash.mutate(id);
   }
 
   function commitRename(id: string) {
     const trimmed = renameValue.trim();
     if (trimmed) {
-      const next = dashboards.map((d) => (d.id === id ? { ...d, name: trimmed } : d));
-      saveDashboards(next);
+      updateDash.mutate({ id, input: { name: trimmed } });
     }
     setRenamingTabId(null);
   }
@@ -421,84 +500,90 @@ export default function Dashboard() {
     const newIdx = dashboards.findIndex((d) => d.id === over.id);
     if (oldIdx === -1 || newIdx === -1) return;
     const reordered = arrayMove(dashboards, oldIdx, newIdx);
-    saveDashboards(reordered);
+    // Persist new positions — one PATCH per dashboard whose position changed.
+    for (let i = 0; i < reordered.length; i++) { // native-ok (array index)
+      const original = findRestItem(reordered[i].id);
+      if (!original || original.position === i) continue;
+      updateDash.mutate({
+        id: reordered[i].id,
+        input: { position: i },
+      });
+    }
   }
 
   // ---- Widget actions ----
 
   function deleteWidget(widgetId: string) {
-    updateActiveDashboard((d) => ({
-      ...d,
-      widgets: d.widgets.filter((w) => w.id !== widgetId),
-    }));
+    patchActiveWidgets((widgets) => widgets.filter((w) => w.id !== widgetId));
+  }
+
+  function patchWidgetById(widgetId: string, patch: (w: DashboardWidget) => Partial<DashboardWidget>) {
+    patchActiveWidgets((widgets) =>
+      widgets.map((w) => (w.id === widgetId ? { ...w, ...patch(w) } : w)),
+    );
   }
 
   function changeWidgetTitle(widgetId: string, title: string) {
-    updateActiveDashboard((d) => ({
-      ...d,
-      widgets: d.widgets.map((w) => (w.id === widgetId ? { ...w, title } : w)),
-    }));
+    patchWidgetById(widgetId, () => ({ title }));
   }
 
   function changeWidgetSpan(widgetId: string, span: 1 | 2 | 3) {
-    updateActiveDashboard((d) => ({
-      ...d,
-      widgets: d.widgets.map((w) => (w.id === widgetId ? { ...w, span } : w)),
-    }));
+    patchWidgetById(widgetId, () => ({ span }));
+  }
+
+  function toggleWidgetHidden(widgetId: string) {
+    patchWidgetById(widgetId, (w) => ({ hidden: !w.hidden }));
   }
 
   function changeColumns(value: 'auto' | 2 | 3 | 4 | 5) {
-    updateActiveDashboard((d) => ({ ...d, columns: value }));
+    if (!activeDash) return;
+    updateDash.mutate({
+      id: activeDash.id,
+      input: { columns: value },
+    });
   }
 
   function resetAllWidgetPeriods() {
-    updateActiveDashboard((d) => ({
-      ...d,
-      widgets: d.widgets.map((w) => ({
+    patchActiveWidgets((widgets) =>
+      widgets.map((w) => ({
         ...w,
         config: { ...w.config, periodOverride: null },
       })),
-    }));
+    );
   }
 
   function applyTemplateToCurrent(template: DashboardTemplate) {
-    updateActiveDashboard((d) => ({
-      ...d,
-      widgets: applyTemplate(template),
-    }));
+    patchActiveWidgets(() => applyTemplate(template));
   }
 
   function addWidget(type: string) {
     const def = getWidgetDef(type);
     if (!def) return;
-    updateActiveDashboard((d) => ({
-      ...d,
-      widgets: [
-        ...d.widgets,
-        {
-          id: nanoid(),
-          type,
-          title: null,
-          span: def.defaultSpan,
-          config: structuredClone(def.defaultConfig),
-        },
-      ],
-    }));
+    patchActiveWidgets((widgets) => [
+      ...widgets,
+      {
+        id: nanoid(),
+        type,
+        title: null,
+        span: def.defaultSpan,
+        config: structuredClone(def.defaultConfig),
+      },
+    ]);
     setCatalogOpen(false);
   }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    updateActiveDashboard((d) => {
-      const oldIdx = d.widgets.findIndex((w) => w.id === active.id);
-      const newIdx = d.widgets.findIndex((w) => w.id === over.id);
-      if (oldIdx === -1 || newIdx === -1) return d;
+    patchActiveWidgets((widgets) => {
+      const oldIdx = widgets.findIndex((w) => w.id === active.id);
+      const newIdx = widgets.findIndex((w) => w.id === over.id);
+      if (oldIdx === -1 || newIdx === -1) return widgets;
       // Only allow reorder within the same zone
-      const activeIsChart = CHART_WIDGET_TYPES.has(d.widgets[oldIdx].type);
-      const overIsChart = CHART_WIDGET_TYPES.has(d.widgets[newIdx].type);
-      if (activeIsChart !== overIsChart) return d;
-      return { ...d, widgets: arrayMove(d.widgets, oldIdx, newIdx) };
+      const activeIsChart = CHART_WIDGET_TYPES.has(widgets[oldIdx].type);
+      const overIsChart = CHART_WIDGET_TYPES.has(widgets[newIdx].type);
+      if (activeIsChart !== overIsChart) return widgets;
+      return arrayMove(widgets, oldIdx, newIdx);
     });
   }
 
@@ -554,9 +639,28 @@ export default function Dashboard() {
     );
   }
 
+  // ADR-015: empty-state when the portfolio has zero transactions
+  // (useDashboards + useTransactions both load via useScopedApi)
+  const txCount = tx.data?.total ?? 0;
+  const showEmptyState =
+    !dashboardsList.isLoading && !tx.isLoading && txCount === 0;
+  if (showEmptyState) return <DashboardEmptyState />;
+
+  // Redirect /p/:pid/dashboard → /p/:pid/dashboard/:firstByPositionId when the
+  // REST collection has real dashboards. We only redirect when the route is
+  // missing a :dashboardId segment; /dashboard/:id continues through normally.
+  if (!dashboardId && dashboardsList.data && dashboardsList.data.length > 0) {
+    const first = [...dashboardsList.data].sort(
+      (a, b) => a.position - b.position,
+    )[0];
+    if (first && portfolioId) {
+      return <Navigate to={`/p/${portfolioId}/dashboard/${first.id}${search}`} replace />;
+    }
+  }
+
   return (
     <div className="qv-page space-y-6">
-      {(isLoading || !data || !activeDash) ? (
+      {(isLoading || !activeDash) ? (
         <div className="space-y-6">
           <Skeleton className="h-8 w-48" />
           <div
@@ -580,7 +684,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-1 shrink-0">
           {/* Column count selector */}
           <Select
-            value={String(activeDash.columns ?? 'auto')}
+            value={String(activeDash.columns)}
             onValueChange={(v) => changeColumns(v === 'auto' ? 'auto' : Number(v) as 2 | 3 | 4 | 5)}
           >
             <SelectTrigger className="h-7 w-auto gap-1 px-2 text-xs text-muted-foreground border-0 shadow-none bg-transparent hover:bg-accent hover:text-accent-foreground">
@@ -683,6 +787,7 @@ export default function Dashboard() {
                     onDelete={deleteWidget}
                     onTitleChange={changeWidgetTitle}
                     onSpanChange={changeWidgetSpan}
+                    onToggleHidden={toggleWidgetHidden}
                     columns="auto"
                   />
                 ))}
@@ -696,7 +801,7 @@ export default function Dashboard() {
               <div
                 className="grid gap-2 qv-dashboard-grid"
                 style={{
-                  gridTemplateColumns: (activeDash.columns ?? 'auto') === 'auto'
+                  gridTemplateColumns: activeDash.columns === 'auto'
                     ? 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))'
                     : `repeat(${activeDash.columns}, 1fr)`,
                   animation: 'qv-stagger-in 0.4s ease-out both',
@@ -712,7 +817,8 @@ export default function Dashboard() {
                     onDelete={deleteWidget}
                     onTitleChange={changeWidgetTitle}
                     onSpanChange={changeWidgetSpan}
-                    columns={activeDash.columns ?? 'auto'}
+                    onToggleHidden={toggleWidgetHidden}
+                    columns={activeDash.columns}
                     compact
                   />
                 ))}

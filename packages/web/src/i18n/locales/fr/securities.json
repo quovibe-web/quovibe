@@ -13,6 +13,8 @@
     "edit": "Modifier",
     "updatePrices": "Mettre à jour tous les cours",
     "updating": "Mise à jour…",
+    "refreshQuote": "Actualiser le cours",
+    "refreshing": "Actualisation…",
     "addInstrument": "+ Ajouter un instrument",
     "delete": "Supprimer"
   },
@@ -144,6 +146,9 @@
     "performance": "Performance",
     "priceHistory": "Historique des cours",
     "transactions": "Transactions",
+    "taxonomies": "Taxonomies",
+    "notClassified": "Pas encore classé.",
+    "classify": "Classer →",
     "noTransactions": "Aucune transaction pour cet instrument",
     "noPrices": "Aucun historique de cours disponible",
     "configureFeed": "Configurer le flux de prix →",
@@ -285,6 +290,34 @@
     "unsavedKeepEditing": "Continuer la modification",
     "save": "Enregistrer les modifications",
     "saving": "Enregistrement..."
+  },
+  "attributeType": {
+    "editTitle": "Renommer le type d'attribut",
+    "fields": {
+      "name": "Nom",
+      "columnLabel": "Libellé de colonne",
+      "type": "Type"
+    },
+    "types": {
+      "text": "Texte",
+      "number": "Nombre",
+      "percentage": "Pourcentage",
+      "amount": "Montant",
+      "date": "Date",
+      "boolean": "Oui / Non"
+    },
+    "menu": {
+      "aria": "Actions d'attribut",
+      "rename": "Renommer la définition du type",
+      "removeFromSec": "Retirer de ce titre"
+    },
+    "empty": "Aucun attribut personnalisé.",
+    "empty.cta": "+ Créer un type d'attribut",
+    "validation": {
+      "nameRequired": "Le nom est obligatoire.",
+      "nameTooLong": "Le nom ne peut pas dépasser {{max}} caractères.",
+      "columnLabelTooLong": "L'étiquette de colonne ne peut pas dépasser {{max}} caractères."
+    }
   },
   "empty": {
     "noSecurities": "Aucun titre pour le moment"

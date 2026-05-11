@@ -1,0 +1,40 @@
+{
+  "dialog": {
+    "title": "Portfolio erstellen",
+    "description": "Geben Sie Ihrem Portfolio einen Namen und richten Sie das erste Wertpapierdepot und Verrechnungskonto ein."
+  },
+  "setupPage": {
+    "title": "{{name}} fertig einrichten",
+    "description": "Dieses Portfolio benötigt ein Wertpapierdepot und ein Verrechnungskonto, bevor Sie es verwenden können."
+  },
+  "fields": {
+    "name": "Portfolioname",
+    "namePlaceholder": "Mein Portfolio",
+    "baseCurrency": "Basiswährung",
+    "securitiesAccountName": "Name Wertpapierdepot",
+    "securitiesAccountPlaceholder": "Hauptdepot",
+    "primaryDepositName": "Name Verrechnungskonto",
+    "primaryDepositPlaceholder": "Konto",
+    "extraDepositName": "Name zusätzliches Konto",
+    "extraDepositCurrency": "Währung"
+  },
+  "advanced": {
+    "toggle": "Erweitert",
+    "description": "Zusätzliche Verrechnungskonten hinzufügen (für Multi-Währungs-Portfolios). Sie können diese auch später im Bereich Konten hinzufügen.",
+    "addDeposit": "Konto hinzufügen",
+    "removeDeposit": "Entfernen"
+  },
+  "submit": {
+    "create": "Portfolio erstellen",
+    "finishSetup": "Einrichtung abschließen",
+    "submitting": "Speichern…"
+  },
+  "errors": {
+    "duplicateName": "Jedes Konto muss einen eindeutigen Namen haben.",
+    "alreadySetup": "Dieses Portfolio ist bereits eingerichtet. Weiterleitung…",
+    "createFailed": "Portfolio konnte nicht erstellt werden: {{msg}}",
+    "setupFailed": "Einrichtung konnte nicht abgeschlossen werden: {{msg}}",
+    "fillRequired": "Bitte fülle alle Pflichtfelder aus, bevor du fortfährst.",
+    "required": "Pflichtfeld"
+  }
+}

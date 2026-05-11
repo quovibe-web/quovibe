@@ -1,9 +1,12 @@
 import { z } from 'zod';
+import { nonBlankString, isinString, tickerString } from './utils';
 
 export const createSecuritySchema = z.object({
-  name: z.string().min(1),
-  isin: z.string().optional(),
-  ticker: z.string().optional(),
+  name: nonBlankString(200),
+  isin: isinString.optional(),
+  // Tickers are NOT enforced unique: identical symbols on different exchanges
+  // are legitimate (NYSE:AAPL vs LSE:AAPL ADR). ISIN is the global de-dupe key.
+  ticker: tickerString.optional(),
   wkn: z.string().optional(),
   currency: z.string().length(3).default('EUR'),
   note: z.string().optional(),
