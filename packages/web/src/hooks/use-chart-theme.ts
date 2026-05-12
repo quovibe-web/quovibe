@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTheme } from './use-theme';
-import type { DeepPartial, ChartOptions } from 'lightweight-charts';
+import { CrosshairMode, type DeepPartial, type ChartOptions } from 'lightweight-charts';
 import { withAlpha } from '@/lib/chart-types';
 
 interface ChartTheme {
@@ -12,6 +12,8 @@ interface ChartTheme {
   /** Tooltip cursor stroke */
   cursorColor: string;
   cursorDasharray: string;
+  /** Crosshair label background — brand-accent, eye-catcher */
+  labelBackgroundColor: string;
   /** Resolved theme for any remaining conditional logic */
   isDark: boolean;
 }
@@ -25,12 +27,17 @@ export function toLightweightTheme(theme: ChartTheme): DeepPartial<ChartOptions>
       fontFamily: 'inherit',
     },
     grid: {
+      // No grid lines — price-scale ticks + crosshair label + last-value badge
+      // carry the value-reading job. Design-system §3.1 "dividers > backgrounds"
+      // and §3.5 "empty space is content" — let the data line own the canvas.
       vertLines: { visible: false },
-      horzLines: { color: theme.gridColor, style: 3 },
+      horzLines: { visible: false },
     },
     crosshair: {
-      vertLine: { color: theme.cursorColor, labelBackgroundColor: theme.cursorColor },
-      horzLine: { color: theme.cursorColor, labelBackgroundColor: theme.cursorColor },
+      // Explicit so a future library default flip doesn't silently change the feel.
+      mode: CrosshairMode.Magnet,
+      vertLine: { color: theme.cursorColor, labelBackgroundColor: theme.labelBackgroundColor },
+      horzLine: { color: theme.cursorColor, labelBackgroundColor: theme.labelBackgroundColor },
     },
     timeScale: {
       borderColor: theme.gridColor,
@@ -60,6 +67,8 @@ export function useChartTheme(): ChartTheme {
     const border = resolveCssVar('--qv-border') || (resolvedTheme === 'dark' ? '#2a2a3a' : '#e5e7eb');
     const textMuted = resolveCssVar('--qv-text-muted') || (resolvedTheme === 'dark' ? '#a1a1b5' : '#6b7280');
     const textFaint = resolveCssVar('--qv-text-faint') || (resolvedTheme === 'dark' ? '#6b6b80' : '#9ca3af');
+    // Flexoki blue (light: #205EA6, dark: #4385BE) — see design-system-v1 §1.3.
+    const primary = resolveCssVar('--color-primary') || (resolvedTheme === 'dark' ? '#4385BE' : '#205EA6');
 
     return {
       gridColor: withAlpha(border, 0.15),
@@ -67,6 +76,7 @@ export function useChartTheme(): ChartTheme {
       tickColor: textMuted,
       cursorColor: textFaint,
       cursorDasharray: '4 4',
+      labelBackgroundColor: primary,
       isDark: resolvedTheme === 'dark',
     };
   }, [resolvedTheme]);

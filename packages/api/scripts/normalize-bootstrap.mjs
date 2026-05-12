@@ -1,5 +1,7 @@
-#!/usr/bin/env node
 // packages/api/scripts/normalize-bootstrap.mjs
+// Invoked via `node normalize-bootstrap.mjs ...` (see check-bootstrap-fresh.sh).
+// Shebang intentionally absent — vitest's esbuild transformer rejects it on
+// .mjs in module context, and no caller invokes the file as `./script`.
 // Deterministic text transform used by Gate 1 to compare ppxml2db_init.py output
 // against packages/api/src/db/bootstrap.sql modulo whitespace / comments / quotes.
 //

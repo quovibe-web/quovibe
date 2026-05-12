@@ -76,5 +76,21 @@ export default [
       ],
     },
   },
+  // Analytics chart refactor guard (Phase 1.5): ban SERIES_HEX_PALETTE reintroduction.
+  // The replacement is useChartColors().palette mapped through colorToHex.
+  {
+    files: [
+      'packages/web/src/components/domain/analytics/**/*.{ts,tsx}',
+      'packages/web/src/components/domain/analytics/**/*.{js,jsx}',
+    ],
+    rules: {
+      'no-restricted-syntax': ['error',
+        {
+          selector: "Identifier[name='SERIES_HEX_PALETTE']",
+          message: 'Hardcoded SERIES_HEX_PALETTE is banned. Use useChartColors().palette mapped through colorToHex. See docs/superpowers/specs/2026-05-12-analytics-chart-refactor-design.md (Phase 1.5).',
+        },
+      ],
+    },
+  },
   { ignores: ['**/dist/**', '**/node_modules/**', 'packages/web/src/components/ui/**'] },
 ];

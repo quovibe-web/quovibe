@@ -15,19 +15,37 @@ export function atomicCopy(src: string, dest: string): void {
   fs.renameSync(tmp, dest);
 }
 
+export interface FsOpError {
+  path: string;
+  code: string;
+  message: string;
+}
+
+export interface UnlinkDbFileResult {
+  ok: boolean;
+  errors: FsOpError[];
+}
+
 /**
- * Unlink a file + its SQLite WAL/SHM siblings, if present. Errors are
- * swallowed with a warn — caller's contract is "after this, file is gone
- * from the user's POV."
+ * Unlink a file + its SQLite WAL/SHM siblings, if present. ENOENT counts as
+ * success (file already gone). Other errors are returned in `errors[]` so
+ * callers can decide whether to surface a partial-delete warning instead of
+ * silently leaving an orphan `.db` on disk.
  */
-export function unlinkDbFile(filePath: string): void {
+export function unlinkDbFile(filePath: string): UnlinkDbFileResult {
+  const errors: FsOpError[] = [];
   for (const suffix of ['', '-wal', '-shm']) {
     const p = filePath + suffix;
-    try { fs.unlinkSync(p); } catch (err) {
+    try {
+      fs.unlinkSync(p);
+    } catch (err) {
       const e = err as NodeJS.ErrnoException;
-      if (e.code !== 'ENOENT') console.warn('[quovibe] unlinkDbFile partial', { p, err: e.message });
+      if (e.code === 'ENOENT') continue;
+      console.warn('[quovibe] unlinkDbFile partial', { p, err: e.message });
+      errors.push({ path: p, code: e.code ?? 'UNKNOWN', message: e.message });
     }
   }
+  return { ok: errors.length === 0, errors };
 }
 
 /**

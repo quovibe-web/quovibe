@@ -69,7 +69,7 @@ export function CalculationBreakdownCard({ mode }: CalculationBreakdownCardProps
   }
 
   return (
-    <FullView data={data} isLoading={isLoading} isError={isError} error={error} />
+    <ClassicView data={data} isLoading={isLoading} isError={isError} error={error} />
   );
 }
 
@@ -116,7 +116,7 @@ function CompactView({ data, isLoading, isError, error }: ViewProps) {
             className="flex items-center justify-between py-1 text-sm"
           >
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs text-muted-foreground w-5 text-center">
+              <span className="qv-numeric text-xs text-muted-foreground w-5 text-center">
                 {row.sign}
               </span>
               <span className="text-muted-foreground">{t(row.i18nKey)}</span>
@@ -124,7 +124,7 @@ function CompactView({ data, isLoading, isError, error }: ViewProps) {
             <CurrencyDisplay
               value={displayValue}
               colorize={row.colorSign}
-              className="tabular-nums"
+              className="qv-numeric"
             />
           </div>
         );
@@ -154,18 +154,23 @@ function CompactView({ data, isLoading, isError, error }: ViewProps) {
 
 function MetricChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 text-xs">
+    <div className="flex items-center gap-1.5 rounded-md bg-[var(--qv-surface-elevated)] border border-[var(--qv-border-subtle)] px-2 py-1 text-xs">
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium tabular-nums">{value}</span>
+      <span className="qv-numeric font-medium">{value}</span>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Full View
+// Classic View (frozen)
+//
+// This view is the legacy Portfolio-Performance "Calculation" tab port,
+// kept for users who select Layout = "classic" in the page header.
+// FROZEN: bug-fix-only. New metrics + new features go to
+// CalculationPremiumView (components/domain/analytics/calculation/).
 // ---------------------------------------------------------------------------
 
-function FullView({ data, isLoading, isError, error }: ViewProps) {
+function ClassicView({ data, isLoading, isError, error }: ViewProps) {
   const { t } = useTranslation('performance');
   const { t: tCommon } = useTranslation('common');
   const { isPrivate } = usePrivacy();
@@ -319,7 +324,7 @@ function FullRowHeader({ row, total, isExpandable, isExpanded, onToggle }: FullR
     <div
       className={cn(
         'flex items-center justify-between py-2 px-2 rounded-md',
-        isExpandable && 'cursor-pointer hover:bg-muted/50',
+        isExpandable && 'cursor-pointer hover:bg-[var(--qv-surface-3)]',
       )}
       onClick={isExpandable ? onToggle : undefined}
       role={isExpandable ? 'button' : undefined}
@@ -346,7 +351,7 @@ function FullRowHeader({ row, total, isExpandable, isExpanded, onToggle }: FullR
         ) : (
           <span className="w-4" />
         )}
-        <span className="font-mono text-xs text-muted-foreground w-5 text-center">
+        <span className="qv-numeric text-xs text-muted-foreground w-5 text-center">
           {row.sign}
         </span>
         <span className="text-sm font-medium">{t(row.i18nKey)}</span>
@@ -354,7 +359,7 @@ function FullRowHeader({ row, total, isExpandable, isExpanded, onToggle }: FullR
       <CurrencyDisplay
         value={row.negate ? -parseFloat(total) : parseFloat(total)}
         colorize={row.colorSign}
-        className="text-sm font-medium tabular-nums"
+        className="qv-numeric text-sm font-medium"
       />
     </div>
   );
@@ -402,6 +407,7 @@ function ExpandedTable({ rowKey, items, negate }: ExpandedTableProps) {
                 <CurrencyDisplay
                   value={negate ? -parseFloat(item.amount) : parseFloat(item.amount)}
                   colorize
+                  className="qv-numeric"
                 />
               </TableCell>
               {showFxColumn && (
@@ -409,11 +415,10 @@ function ExpandedTable({ rowKey, items, negate }: ExpandedTableProps) {
                   <CurrencyDisplay
                     value={parseFloat(item.subLabel ?? '0')}
                     colorize
-                    className={
-                      parseFloat(item.subLabel ?? '0') === 0
-                        ? 'text-muted-foreground'
-                        : undefined
-                    }
+                    className={cn(
+                      'qv-numeric',
+                      parseFloat(item.subLabel ?? '0') === 0 && 'text-muted-foreground',
+                    )}
                   />
                 </TableCell>
               )}

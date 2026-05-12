@@ -62,9 +62,8 @@ import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
 import { DataTable, type ColumnVisibilityGroup } from '@/components/shared/DataTable';
 import { textColumnMeta, currencyColumnMeta, percentColumnMeta, dateColumnMeta } from '@/lib/column-factories';
-import { formatDate, formatPercentage } from '@/lib/formatters';
-import { usePrivacy } from '@/context/privacy-context';
-import { COLORS } from '@/lib/colors';
+import { formatDate } from '@/lib/formatters';
+import { SignedPercent } from '@/components/shared/SignedPercent';
 import type { ColumnDef, VisibilityState } from '@tanstack/react-table';
 import {
   useWatchlists,
@@ -157,21 +156,21 @@ function SortableTab({
         ) : (
           <button
             className={cn(
-              'relative px-3 py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-              !isActive && 'text-muted-foreground hover:text-foreground hover:bg-muted',
+              'relative px-3 py-2 md:py-1.5 text-sm font-medium transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:rounded-sm',
+              isActive
+                ? 'text-[var(--qv-text-display)]'
+                : 'text-muted-foreground hover:text-foreground',
             )}
             onClick={onSwitchTab}
           >
+            <span className="relative z-10">{watchlist.name}</span>
             {isActive && (
               <motion.div
                 layoutId="watchlist-tab-indicator"
-                className="absolute inset-0 rounded-full bg-primary"
-                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                className="absolute left-2 right-2 -bottom-[9px] h-[2px] bg-[var(--color-primary)]"
+                transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
               />
             )}
-            <span className={cn('relative z-10', isActive ? 'text-primary-foreground' : '')}>
-              {watchlist.name}
-            </span>
           </button>
         )}
         {/* Kebab menu -- visible on active, hover-reveal on inactive */}
@@ -269,18 +268,9 @@ const DEFAULT_WATCHLIST_COLUMN_VISIBILITY: VisibilityState = {
   lastQuote: false,
 };
 
-/** Signed percent cell, colored + privacy-aware. Value is a fractional return. */
+/** Signed-percent cell wrapper that adapts WatchlistPeriodChange → SignedPercent. */
 function ChangeCell({ change }: { change: WatchlistPeriodChange | null }) {
-  const { isPrivate } = usePrivacy();
-  if (!change) return <span className="text-muted-foreground">—</span>;
-  return (
-    <span
-      className="font-medium"
-      style={{ color: !isPrivate && change.value >= 0 ? COLORS.profit : COLORS.loss }}
-    >
-      {isPrivate ? '••••••' : formatPercentage(change.value)}
-    </span>
-  );
+  return <SignedPercent value={change?.value ?? null} />;
 }
 
 export default function Watchlists() {
@@ -667,7 +657,12 @@ export default function Watchlists() {
       <div className="qv-page">
         <div className="flex flex-col items-center justify-center py-32 text-muted-foreground gap-4">
           <List className="h-12 w-12 opacity-30" />
-          <h2 className="text-lg font-medium text-foreground">{t('empty.title')}</h2>
+          <h2
+            className="text-3xl md:text-4xl font-medium leading-tight tracking-[-0.015em] text-foreground"
+            style={{ fontFamily: 'var(--font-display)', fontVariationSettings: "'opsz' 72, 'wght' 500" }}
+          >
+            {t('empty.title')}
+          </h2>
           <p className="text-sm">{t('empty.description')}</p>
           <Button
             onClick={() => {
@@ -689,7 +684,7 @@ export default function Watchlists() {
   return (
     <div className="qv-page space-y-6">
       {/* Tab bar */}
-      <div className="flex items-center gap-1 border-b border-border pb-2 overflow-x-auto">
+      <div className="flex items-center gap-1 border-b border-[var(--qv-border-subtle)] pb-2 overflow-x-auto scrollbar-hide">
         {renderTabs()}
 
         {/* Spacer pushes action buttons to the right */}

@@ -49,6 +49,28 @@
     "interest": "Rente",
     "dividendsPerGroup": "Dividenden per {{groupBy}}",
     "interestPerGroup": "Rente per {{groupBy}}",
+    "incomePerGroupGross": "Inkomen per {{groupBy}} · bruto",
+    "incomePerGroupNet": "Inkomen per {{groupBy}} · netto",
+    "hero": {
+      "titleGross": "Totale inkomsten (bruto)",
+      "titleNet": "Totale inkomsten (netto)",
+      "avgMonth": "Gem. / maand",
+      "peakMonth": "Topmaand",
+      "payments": "Betalingen",
+      "topSecurity": "Top-effect",
+      "priorPeak": "vorige piek"
+    },
+    "calendar": {
+      "title": "Maandcadans",
+      "yearLabel": "Jaar",
+      "total": "Totaal",
+      "totalLabel": "Totaal",
+      "deltaHeader": "Δ",
+      "averageRow": "Gem.",
+      "headerChipAvg": "Gem./mnd {{value}}",
+      "headerChipYoy": "▲ t.o.v. '{{year}}",
+      "headerChipYoyDown": "▼ t.o.v. '{{year}}"
+    },
     "columns": {
       "date": "Datum",
       "type": "Type",
@@ -56,7 +78,11 @@
       "account": "Rekening",
       "amount": "Bedrag"
     },
-    "empty": "Geen betalingen in de geselecteerde periode.",
+    "empty": {
+      "noPayments": "Geen betalingen in de geselecteerde periode.",
+      "filtered": "Geen betalingen voldoen aan de actieve filters",
+      "clearFilters": "Filters wissen"
+    },
     "paymentCount_one": "{{count}} betaling",
     "paymentCount_other": "{{count}} betalingen",
     "breakdown": {
@@ -66,7 +92,45 @@
       "byTitle": "per effect",
       "byAccount": "per rekening"
     },
-    "subtitle": "Dividenden, rente en andere inkomsten"
+    "subtitle": "Dividenden, rente en andere inkomsten",
+    "yoy": {
+      "vsPrior": "▲ +{{share}}% t.o.v. {{priorTotal}} {{priorLabel}}",
+      "vsPriorDown": "▼ {{share}}% t.o.v. {{priorTotal}} {{priorLabel}}",
+      "priorYearLabel": "YTD {{year}}"
+    },
+    "detail": {
+      "headerCount": "Detail · {{count, number}} betalingen",
+      "filtered": "{{filtered, number}} van {{total, number}}",
+      "filter": {
+        "allTypes": "Alle types",
+        "dividend": "Dividenden",
+        "interest": "Rente",
+        "addSecurity": "+ Effect",
+        "selectSecurities": "Effecten selecteren",
+        "searchSecurities": "Effecten zoeken…"
+      },
+      "sort": {
+        "label": "Sorteren",
+        "dateDesc": "Datum · nieuwste eerst",
+        "dateAsc": "Datum · oudste eerst",
+        "amountDesc": "Bedrag · hoogste eerst",
+        "securityAsc": "Effect · A → Z"
+      },
+      "year": {
+        "ytd": "YTD",
+        "payments": "{{count, number}} betalingen"
+      }
+    },
+    "rail": {
+      "topPayers": "Top-betalers",
+      "morePayers": "+ {{count, number}} meer",
+      "byType": "Per type",
+      "cashInterest": "Rente op kasgeld"
+    },
+    "concentration": {
+      "title": "Concentratie",
+      "top3": "Top 3 = {{share}}% van inkomsten"
+    }
   },
   "returnsHeatmap": {
     "title": "Rendementenheatmap",
@@ -150,7 +214,15 @@
     "fees": "Vergoedingen",
     "selectTaxonomy": "Taxonomie",
     "categoryLabel": "Categorie",
-    "subtitle": "Prestatietrends per categorie"
+    "subtitle": "Prestatietrends per categorie",
+    "best": "Beste",
+    "worst": "Slechtste",
+    "spread": "Verschil",
+    "spreadAcross": "over {{count}} categorieën",
+    "categoriesLabel": "Categorieën",
+    "composition": "Samenstelling",
+    "topPerformers": "Beste categorieën",
+    "noCategoryData": "Geen categoriegegevens beschikbaar."
   },
   "taxonomyNodePicker": {
     "loading": "Laden…",

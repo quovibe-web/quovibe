@@ -49,6 +49,28 @@
     "interest": "Juros",
     "dividendsPerGroup": "Dividendos por {{groupBy}}",
     "interestPerGroup": "Juros por {{groupBy}}",
+    "incomePerGroupGross": "Rendimento por {{groupBy}} · bruto",
+    "incomePerGroupNet": "Rendimento por {{groupBy}} · líquido",
+    "hero": {
+      "titleGross": "Rendimentos totais (brutos)",
+      "titleNet": "Rendimentos totais (líquidos)",
+      "avgMonth": "Méd. / mês",
+      "peakMonth": "Mês de pico",
+      "payments": "Pagamentos",
+      "topSecurity": "Título principal",
+      "priorPeak": "pico anterior"
+    },
+    "calendar": {
+      "title": "Cadência mensal",
+      "yearLabel": "Ano",
+      "total": "Total",
+      "totalLabel": "Total",
+      "deltaHeader": "Δ",
+      "averageRow": "Méd.",
+      "headerChipAvg": "Méd/mês {{value}}",
+      "headerChipYoy": "▲ vs '{{year}}",
+      "headerChipYoyDown": "▼ vs '{{year}}"
+    },
     "columns": {
       "date": "Data",
       "type": "Tipo",
@@ -56,7 +78,11 @@
       "account": "Conta",
       "amount": "Montante"
     },
-    "empty": "Sem pagamentos no período selecionado.",
+    "empty": {
+      "noPayments": "Sem pagamentos no período selecionado.",
+      "filtered": "Nenhum pagamento corresponde aos filtros ativos",
+      "clearFilters": "Limpar filtros"
+    },
     "paymentCount_one": "{{count}} pagamento",
     "paymentCount_other": "{{count}} pagamentos",
     "breakdown": {
@@ -66,7 +92,45 @@
       "byTitle": "por título",
       "byAccount": "por conta"
     },
-    "subtitle": "Dividendos, juros e outros rendimentos"
+    "subtitle": "Dividendos, juros e outros rendimentos",
+    "yoy": {
+      "vsPrior": "▲ +{{share}}% vs {{priorTotal}} {{priorLabel}}",
+      "vsPriorDown": "▼ {{share}}% vs {{priorTotal}} {{priorLabel}}",
+      "priorYearLabel": "YTD {{year}}"
+    },
+    "detail": {
+      "headerCount": "Detalhe · {{count, number}} pagamentos",
+      "filtered": "{{filtered, number}} de {{total, number}}",
+      "filter": {
+        "allTypes": "Todos os tipos",
+        "dividend": "Dividendos",
+        "interest": "Juros",
+        "addSecurity": "+ Título",
+        "selectSecurities": "Selecionar títulos",
+        "searchSecurities": "Procurar títulos…"
+      },
+      "sort": {
+        "label": "Ordenar",
+        "dateDesc": "Data · mais recente",
+        "dateAsc": "Data · mais antiga",
+        "amountDesc": "Valor · maior",
+        "securityAsc": "Título · A → Z"
+      },
+      "year": {
+        "ytd": "YTD",
+        "payments": "{{count, number}} pagamentos"
+      }
+    },
+    "rail": {
+      "topPayers": "Principais pagadores",
+      "morePayers": "+ {{count, number}} mais",
+      "byType": "Por tipo",
+      "cashInterest": "Juros sobre caixa"
+    },
+    "concentration": {
+      "title": "Concentração",
+      "top3": "Top 3 = {{share}}% da receita"
+    }
   },
   "returnsHeatmap": {
     "title": "Mapa de calor de retornos",
@@ -150,7 +214,15 @@
     "fees": "Taxas",
     "selectTaxonomy": "Taxonomia",
     "categoryLabel": "Categoria",
-    "subtitle": "Tendências de desempenho por categoria"
+    "subtitle": "Tendências de desempenho por categoria",
+    "best": "Melhor",
+    "worst": "Pior",
+    "spread": "Diferença",
+    "spreadAcross": "em {{count}} categorias",
+    "categoriesLabel": "Categorias",
+    "composition": "Composição",
+    "topPerformers": "Melhores categorias",
+    "noCategoryData": "Sem dados disponíveis para a categoria."
   },
   "taxonomyNodePicker": {
     "loading": "A carregar…",

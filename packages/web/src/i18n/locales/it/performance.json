@@ -73,7 +73,83 @@
     "thereofFx": "Effetto cambio",
     "columnName": "Nome",
     "columnAmount": "Importo",
-    "columnDate": "Data"
+    "columnDate": "Data",
+    "viewToggle": {
+      "label": "Layout",
+      "premium": "Premium",
+      "classic": "Classico"
+    },
+    "heroStrip": {
+      "ttwror": "Rendimento TWR",
+      "irr": "IRR (annuo)",
+      "deltaPercent": "Δ %",
+      "deltaAbsolute": "Δ assoluto",
+      "maxDrawdown": "Drawdown massimo",
+      "sharpe": "Indice di Sharpe",
+      "onMvb": "sul valore iniziale",
+      "netResult": "risultato netto",
+      "riskAdjustedReturn": "rendimento aggiustato per il rischio",
+      "newtonRaphson": "Newton-Raphson"
+    },
+    "categories": {
+      "drivers": "Motori della performance",
+      "frictions": "Costi",
+      "flows": "Flussi di capitale",
+      "anchorsIdentity": "Ancore e identità",
+      "descriptions": {
+        "drivers": "Guadagni di prezzo, dividendi, interessi ed effetti valutari",
+        "frictions": "Commissioni e tasse addebitate nel periodo",
+        "flows": "Depositi, prelievi, consegne — flussi che non incidono sulla performance",
+        "anchorsIdentity": "Inizio, fine e identità aritmetica del periodo"
+      }
+    },
+    "waterfall": {
+      "title": "Waterfall",
+      "mvb": "Iniziale",
+      "mve": "Finale",
+      "drivers": "Motori",
+      "frictions": "Costi",
+      "flows": "Flussi",
+      "clickToExpand": "Clicca su una barra per vedere la suddivisione",
+      "extremeMagnitudeNotice": "Un valore eclissa gli altri — passa alla scala logaritmica per vedere tutte le barre",
+      "linearScale": "Lineare",
+      "logScale": "Log",
+      "emptyPeriod": "Nessuna transazione nel periodo"
+    },
+    "rightRail": {
+      "riskStyle": "Rischio & stile",
+      "openPosition": "Posizione aperta",
+      "lastDay": "Ultimo giorno Δ",
+      "volatility": "Volatilità",
+      "semivariance": "Semivarianza",
+      "maxDdPeriod": "Periodo del DD massimo",
+      "currentDrawdown": "Drawdown attuale",
+      "pmcConvention": "PMC",
+      "fifoConvention": "FIFO",
+      "cost": "Base costo",
+      "marketValue": "Valore di mercato",
+      "unrealizedPnl": "PnL non realizzato",
+      "peak": "Picco",
+      "trough": "Minimo",
+      "duration": "Durata",
+      "days_one": "{{count}} giorno",
+      "days_other": "{{count}} giorni"
+    },
+    "equation": {
+      "identityCheck": "Verifica dell'identità",
+      "labelMvb": "MVB",
+      "labelDrivers": "Motori",
+      "labelFrictions": "Costi",
+      "labelFlows": "Flussi",
+      "labelMve": "MVE",
+      "identityOk": "verificato",
+      "identityDrift": "scostamento {{value}}"
+    },
+    "density": {
+      "comfortable": "Comodo",
+      "dense": "Denso",
+      "toggle": "Alterna densità tabella"
+    }
   },
   "securities": {
     "title": "Performance — Titoli",
@@ -163,7 +239,56 @@
     "styleDashed": "Tratteggiato",
     "styleDotted": "Punteggiato",
     "customColor": "Personalizzato",
-    "presetColors": "Colori predefiniti"
+    "presetColors": "Colori predefiniti",
+    "annualized": "Annualizzato",
+    "status": {
+      "loading": "Caricamento…",
+      "empty": "Nessun dato nel periodo",
+      "error": "Caricamento non riuscito"
+    },
+    "axis": {
+      "label": "Asse",
+      "shared": "Asse condiviso",
+      "pinLeft": "Fissa a sinistra",
+      "pinRight": "Fissa a destra"
+    },
+    "rail": {
+      "lastCol": "Ultimo",
+      "deltaCol": "vs Portafoglio",
+      "addSeries": "+ Aggiungi serie",
+      "series": "Serie"
+    },
+    "sheet": {
+      "title": "Confronta",
+      "description": "Aggiungi titoli e benchmark al grafico",
+      "empty": "Usa la ricerca per aggiungere serie e benchmark.",
+      "counter": "{{count}} di {{max}}",
+      "done": "Fatto",
+      "search": "Cerca ticker, ISIN, nome…",
+      "noResults": "Nessun titolo trovato",
+      "removeAll": "Rimuovi tutto",
+      "removeAllConfirm": "Rimuovere tutte le {{count}} serie?",
+      "removeAllCancel": "Annulla",
+      "removeAllConfirmAction": "Rimuovi tutto",
+      "filter": {
+        "all": "Tutto",
+        "owned": "Posseduti",
+        "index": "Indici",
+        "account": "Conti"
+      }
+    },
+    "action": {
+      "addHolding": "Aggiungi come posizione",
+      "addReference": "Aggiungi come riferimento",
+      "compare": "Confronta"
+    },
+    "badge": {
+      "youHold": "Posseduto",
+      "index": "Indice"
+    },
+    "semantic": {
+      "tooltip": "Posizione = TWR sulla tua posizione (considera acquisti/vendite). Riferimento = rendimento di prezzo dell'asset, indipendente dalle posizioni."
+    }
   },
   "cardLinks": {
     "calculation": "Calcolo",

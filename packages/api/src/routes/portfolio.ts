@@ -1,9 +1,9 @@
 import { Router, type Router as RouterType } from 'express';
 import type { RequestHandler } from 'express';
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import { updateSettingsSchema } from '@quovibe/shared';
+import { DATA_DIR } from '../config';
 import { configEntries } from '../db/schema';
 import { getDb, getSqlite } from '../helpers/request';
 import { getSettings, updateAppState } from '../services/settings.service';
@@ -147,7 +147,9 @@ const updateSettings: RequestHandler = async (req, res) => {
 
 const exportDb: RequestHandler = async (req, res) => {
   const sqlite = getSqlite(req);
-  const tempPath = path.join(os.tmpdir(), `portfolio-export-${Date.now()}.db`);
+  const tempDir = path.join(DATA_DIR, 'tmp');
+  fs.mkdirSync(tempDir, { recursive: true });
+  const tempPath = path.join(tempDir, `portfolio-export-${Date.now()}.db`);
   let cleaned = false;
 
   const cleanup = () => {

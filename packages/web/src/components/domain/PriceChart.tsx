@@ -235,6 +235,9 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
       basePrice: singleValueData[0]?.value ?? 0,
       profitColor: profit,
       lossColor: loss,
+      // Single-security chart — last-value badge is the audit-grade signal here,
+      // no pile-up risk (one series on this scale).
+      showLastValue: true,
     });
     const Constructor = SERIES_MAP[seriesType as keyof typeof SERIES_MAP] ?? LineSeries;
     series = chart.addSeries(Constructor, options);

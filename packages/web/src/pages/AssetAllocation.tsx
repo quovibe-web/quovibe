@@ -33,7 +33,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
@@ -56,6 +55,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
+import { SignedPercent } from '@/components/shared/SignedPercent';
 import { SplitBar } from '@/components/shared/SplitBar';
 import { TaxonomyChart } from '@/components/domain/TaxonomyChart';
 import { RebalancingTable } from '@/components/domain/RebalancingTable';
@@ -296,7 +296,7 @@ function CategoryMenu({
       <Popover open={colorPickerOpen} onOpenChange={setColorPickerOpen}>
         <PopoverTrigger asChild>
           <button
-            className="h-3.5 w-3.5 rounded-full border border-white/20 opacity-60 hover:opacity-100 shrink-0 cursor-pointer transition-opacity"
+            className="h-3.5 w-3.5 rounded-full border border-[var(--qv-border-subtle)] opacity-60 hover:opacity-100 shrink-0 cursor-pointer transition-opacity"
             style={{ backgroundColor: categoryColor || '#888' }}
             aria-label={t('taxonomyManagement.changeColor')}
           />
@@ -506,7 +506,7 @@ function WeightCell({ assignmentId, weight, taxonomyId }: {
 
   return (
     <button
-      className="text-sm tabular-nums hover:underline cursor-pointer"
+      className="qv-numeric text-sm hover:underline cursor-pointer"
       onClick={() => { setVal(weight != null ? String(weight / 100) : ''); setEditing(true); }}
     >
       {weight != null ? formatPercentage(weight / 10000) : '—'}
@@ -531,19 +531,19 @@ function TargetAllocationCell({
 
   if (editing) {
     return (
-      <input
+      <Input
         autoFocus
         type="number"
         step="0.1"
         min="0"
         max="100"
-        className="w-16 h-6 px-1 border rounded text-sm text-right bg-background"
+        className="w-16 h-6 text-sm text-right qv-numeric"
         value={val}
         onChange={(e) => setVal(e.target.value)}
         onBlur={() => {
           const num = parseFloat(val);
           // Clamp client-side: the HTML min/max attributes are hints only, and
-          // the server 400 response used to be swallowed by the UI (BUG-77/89).
+          // the server 400 response used to be swallowed by the UI.
           // The global MutationCache handler now surfaces any server INVALID_INPUT
           // as a toast, but rejecting invalid input here avoids the round-trip
           // and keeps the cell's previous value visible.
@@ -562,7 +562,7 @@ function TargetAllocationCell({
 
   return (
     <button
-      className="text-sm tabular-nums hover:underline cursor-pointer"
+      className="qv-numeric text-sm hover:underline cursor-pointer"
       onClick={() => { setVal(allocationBp != null ? String(allocationBp / 100) : ''); setEditing(true); }}
     >
       {allocationBp != null && allocationBp > 0 ? formatPercentage(allocationBp / 10000) : '—'}
@@ -674,7 +674,7 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
             )}
             {row.original.nodeType === 'category' && (
               <span
-                className="inline-block h-3 w-3 rounded-full shrink-0 border border-white/20"
+                className="inline-block h-3 w-3 rounded-full shrink-0 border border-[var(--qv-border-subtle)]"
                 style={{ backgroundColor: row.original.color || '#888' }}
               />
             )}
@@ -734,13 +734,13 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
       cell: ({ row }) => {
         if (row.original.id === UNCLASSIFIED_ID) return <MutedDash />;
         return (
-          <span className="text-sm tabular-nums">
+          <span className="qv-numeric text-sm">
             {formatPercentage(parseFloat(row.original.percentage) / 100)}
           </span>
         );
       },
     },
-    // Δ — colored drift on category rows, muted on security rows
+    // Δ — signed drift on category rows, muted on security rows
     {
       id: 'drift',
       header: t('taxonomyUi.columns.delta'),
@@ -756,10 +756,7 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
           return <span className="text-sm text-muted-foreground">—</span>;
         }
         const drift = computeDrift(row.original);
-        if (drift === 0) return <span className="text-sm text-muted-foreground tabular-nums">{formatPercentage(0, 1)}</span>;
-        const sign = drift > 0 ? '+' : '';
-        const cls = drift > 0 ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]';
-        return <span className={cn('text-sm tabular-nums', cls)}>{sign}{formatPercentage(drift / 100, 1)}</span>;
+        return <SignedPercent value={drift / 100} className="text-sm" />;
       },
     },
     // Assignment weight — shown only on security rows (replaces the old weight column)
@@ -787,7 +784,7 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
       sortingFn: sortNumeric,
       cell: ({ row }) => {
         if (row.original.id === UNCLASSIFIED_ID) return <MutedDash />;
-        return <CurrencyDisplay value={parseFloat(row.original.marketValue)} className="text-sm" />;
+        return <CurrencyDisplay value={parseFloat(row.original.marketValue)} className="qv-numeric text-sm" />;
       },
     },
     {
@@ -798,7 +795,7 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
         if (row.original.id === UNCLASSIFIED_ID) return <MutedDash />;
         const pct = parseFloat(row.original.percentage);
         if (pct === 0 && row.original.nodeType === 'security') return null;
-        return <span className="text-sm">{formatPercentage(pct / 100)}</span>;
+        return <span className="qv-numeric text-sm">{formatPercentage(pct / 100)}</span>;
       },
     },
     {
@@ -895,6 +892,7 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
               <TableHead
                 key={h.id}
                 className={cn(
+                  'qv-eyebrow',
                   h.column.getCanSort() ? 'cursor-pointer select-none' : '',
                   h.id === 'actions' ? 'w-10' : '',
                 )}
@@ -914,7 +912,7 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
         {rootId && (
           <ContextMenu>
             <ContextMenuTrigger asChild>
-              <TableRow className="transition-colors group hover:bg-accent/5 font-medium">
+              <TableRow className="transition-colors group hover:bg-[var(--qv-surface-3)] font-medium">
                 <TableCell>
                   <div className="flex items-center gap-1.5">
                     <button onClick={() => setRootExpanded(!rootExpanded)} className="text-muted-foreground hover:text-foreground p-0.5">
@@ -975,7 +973,7 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
           const rowEl = (
             <TableRow
               key={row.id}
-              className={cn('transition-colors group hover:bg-accent/5', isHighlighted && 'bg-accent/10')}
+              className={cn('transition-colors group hover:bg-[var(--qv-surface-3)]', isHighlighted && 'bg-[var(--qv-surface-elevated)]')}
             >
               {row.getVisibleCells().map((cell) => (
                 <TableCell key={cell.id}>
@@ -1318,9 +1316,9 @@ function TaxonomySection({
 
   if (viewMode === 'rebalancing') {
     return (
-      <Card>
+      <Card className="rounded-md">
         <CardHeader>
-          <CardTitle className="text-base">{taxonomy.name}</CardTitle>
+          <CardTitle className="text-base font-medium">{taxonomy.name}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {rebalQuery.isLoading ? (
@@ -1345,7 +1343,7 @@ function TaxonomySection({
                 {t('rebalancing.totalPortfolioValue')}{' '}
                 <CurrencyDisplay
                   value={parseFloat(rebalQuery.data.totalPortfolioValue)}
-                  className="font-medium text-foreground"
+                  className="qv-numeric font-medium text-foreground"
                 />
               </p>
             </div>
@@ -1356,10 +1354,10 @@ function TaxonomySection({
   }
 
   return (
-    <Card>
+    <Card className="rounded-md">
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
-          <CardTitle className="text-base">{taxonomy.name}</CardTitle>
+          <CardTitle className="text-base font-medium">{taxonomy.name}</CardTitle>
           <div className="flex items-center gap-2">
             <SegmentedControl<AllocationView['chartMode']>
               size="sm"
@@ -1380,7 +1378,7 @@ function TaxonomySection({
       <CardContent className="space-y-4">
         {isLoading ? (
           <div className="space-y-4">
-            <Skeleton className="h-[200px] w-full rounded-lg" />
+            <Skeleton className="h-[200px] w-full rounded-md" />
             <TableSkeleton columns={3} rows={4} />
           </div>
         ) : isError ? (
@@ -1408,35 +1406,35 @@ function TaxonomySection({
               )}
               {metrics && (
                 <div className="grid grid-cols-2 gap-3 flex-1">
-                  <div className="bg-secondary rounded-lg px-4 py-3">
-                    <div className="text-xs text-muted-foreground mb-1">
+                  <div className="bg-[var(--qv-surface-elevated)] border border-[var(--qv-border-subtle)] rounded-md px-4 py-3">
+                    <div className="qv-eyebrow mb-1">
                       {t('taxonomyManagement.totalValue')}
                     </div>
-                    <div className="text-lg font-medium">
+                    <div className="qv-numeric text-lg font-medium">
                       <CurrencyDisplay value={parseFloat(data?.totalMarketValue ?? '0')} />
                     </div>
                   </div>
-                  <div className="bg-secondary rounded-lg px-4 py-3">
-                    <div className="text-xs text-muted-foreground mb-1">
+                  <div className="bg-[var(--qv-surface-elevated)] border border-[var(--qv-border-subtle)] rounded-md px-4 py-3">
+                    <div className="qv-eyebrow mb-1">
                       {t('taxonomyManagement.classified')}
                     </div>
-                    <div className="text-lg font-medium">
+                    <div className="qv-numeric text-lg font-medium">
                       {metrics.assignedCount} / {metrics.totalItemCount}
                     </div>
                   </div>
-                  <div className="bg-secondary rounded-lg px-4 py-3">
-                    <div className="text-xs text-muted-foreground mb-1">
+                  <div className="bg-[var(--qv-surface-elevated)] border border-[var(--qv-border-subtle)] rounded-md px-4 py-3">
+                    <div className="qv-eyebrow mb-1">
                       {t('taxonomyManagement.categoriesCount')}
                     </div>
-                    <div className="text-lg font-medium">
+                    <div className="qv-numeric text-lg font-medium">
                       {metrics.categoriesCount}
                     </div>
                   </div>
-                  <div className="bg-secondary rounded-lg px-4 py-3">
-                    <div className="text-xs text-muted-foreground mb-1">
+                  <div className="bg-[var(--qv-surface-elevated)] border border-[var(--qv-border-subtle)] rounded-md px-4 py-3">
+                    <div className="qv-eyebrow mb-1">
                       {t('taxonomyManagement.unclassifiedCount')}
                     </div>
-                    <div className={cn('text-lg font-medium', metrics.unassignedCount > 0 && 'text-[var(--qv-warning)]')}>
+                    <div className={cn('qv-numeric text-lg font-medium', metrics.unassignedCount > 0 && 'text-[var(--qv-warning)]')}>
                       {metrics.unassignedCount}
                     </div>
                   </div>
@@ -1461,7 +1459,7 @@ function TaxonomySection({
               {t('assetAllocation.total')}{' '}
               <CurrencyDisplay
                 value={parseFloat(data?.totalMarketValue ?? '0')}
-                className="font-medium text-foreground"
+                className="qv-numeric font-medium text-foreground"
               />
             </p>
           </div>
@@ -1500,7 +1498,7 @@ export default function AssetAllocation() {
 
       {taxonomiesLoading ? (
         <>
-          <Skeleton className="h-8 w-48 rounded-lg" />
+          <Skeleton className="h-8 w-48 rounded-md" />
           <SectionSkeleton rows={3} />
           <SectionSkeleton rows={3} />
         </>
@@ -1510,19 +1508,21 @@ export default function AssetAllocation() {
         <>
 
       <div className="flex items-center gap-4">
-        <label className="text-sm text-muted-foreground">{t('assetAllocation.date')}</label>
-        <input
+        <label className="qv-eyebrow">{t('assetAllocation.date')}</label>
+        <Input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="border rounded-md px-3 py-1.5 text-sm bg-background"
+          className="h-8 w-auto qv-numeric"
         />
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'definition' | 'rebalancing')}>
-          <TabsList>
-            <TabsTrigger value="definition">{t('rebalancing.viewDefinition')}</TabsTrigger>
-            <TabsTrigger value="rebalancing">{t('rebalancing.viewRebalancing')}</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <SegmentedControl
+          segments={[
+            { value: 'definition', label: t('rebalancing.viewDefinition') },
+            { value: 'rebalancing', label: t('rebalancing.viewRebalancing') },
+          ]}
+          value={viewMode}
+          onChange={(v) => setViewMode(v)}
+        />
         <label className="flex items-center gap-2 text-sm cursor-pointer ml-auto">
           <Checkbox checked={hideRetired} onCheckedChange={(v) => setHideRetired(v === true)} />
           {t('assetAllocation.filters.activeOnly')}

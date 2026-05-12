@@ -19,11 +19,21 @@ interface HelpDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type UserAgentDataNavigator = Navigator & {
+  userAgentData?: { platform?: string };
+};
+
+function detectIsMac(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const nav = navigator as UserAgentDataNavigator;
+  const platform = nav.userAgentData?.platform ?? navigator.platform ?? '';
+  return /Mac|iPhone|iPad/i.test(platform);
+}
+
 export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
   const { t } = useTranslation('navigation');
   const version = __APP_VERSION__;
-  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform);
-  const modKey = isMac ? '⌘' : 'Ctrl';
+  const modKey = detectIsMac() ? '⌘' : 'Ctrl';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -35,8 +45,8 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
 
         <div className="space-y-5 pt-2">
           <section>
-            <h3 className="mb-2 flex items-center gap-2 text-sm font-medium">
-              <Info className="h-4 w-4 text-muted-foreground" />
+            <h3 className="mb-2 flex items-center gap-2 qv-eyebrow text-[var(--qv-text-faint)]">
+              <Info className="h-3 w-3 text-muted-foreground" />
               {t('help.about')}
             </h3>
             <p className="text-sm text-muted-foreground">
@@ -47,18 +57,18 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
           <Separator />
 
           <section>
-            <h3 className="mb-2 flex items-center gap-2 text-sm font-medium">
-              <Keyboard className="h-4 w-4 text-muted-foreground" />
+            <h3 className="mb-2 flex items-center gap-2 qv-eyebrow text-[var(--qv-text-faint)]">
+              <Keyboard className="h-3 w-3 text-muted-foreground" />
               {t('help.shortcuts')}
             </h3>
             <ul className="space-y-1.5 text-sm">
               <li className="flex items-center justify-between">
                 <span className="text-muted-foreground">{t('help.shortcutPalette')}</span>
-                <kbd className="rounded border bg-muted px-2 py-0.5 text-xs font-mono">{modKey} + K</kbd>
+                <kbd className="rounded-sm border border-[var(--qv-border-subtle)] bg-[var(--qv-surface-elevated)] px-2 py-0.5 text-xs qv-numeric">{modKey} + K</kbd>
               </li>
               <li className="flex items-center justify-between">
                 <span className="text-muted-foreground">{t('help.shortcutSidebar')}</span>
-                <kbd className="rounded border bg-muted px-2 py-0.5 text-xs font-mono">{modKey} + B</kbd>
+                <kbd className="rounded-sm border border-[var(--qv-border-subtle)] bg-[var(--qv-surface-elevated)] px-2 py-0.5 text-xs qv-numeric">{modKey} + B</kbd>
               </li>
             </ul>
           </section>
@@ -66,8 +76,8 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
           <Separator />
 
           <section>
-            <h3 className="mb-2 flex items-center gap-2 text-sm font-medium">
-              <LinkIcon className="h-4 w-4 text-muted-foreground" />
+            <h3 className="mb-2 flex items-center gap-2 qv-eyebrow text-[var(--qv-text-faint)]">
+              <LinkIcon className="h-3 w-3 text-muted-foreground" />
               {t('help.links')}
             </h3>
             <ul className="space-y-1.5 text-sm">
@@ -76,7 +86,7 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
                   href={DOCS_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                  className="inline-flex items-center gap-1.5 text-primary hover:underline underline-offset-[3px]"
                 >
                   {t('help.docs')}
                   <ExternalLink className="h-3 w-3" />
@@ -87,7 +97,7 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
                   href={`${RELEASES_URL}/tag/${version}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                  className="inline-flex items-center gap-1.5 text-primary hover:underline underline-offset-[3px]"
                 >
                   {t('help.releaseNotes')}
                   <ExternalLink className="h-3 w-3" />
@@ -98,7 +108,7 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
                   href={ISSUES_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                  className="inline-flex items-center gap-1.5 text-primary hover:underline underline-offset-[3px]"
                 >
                   {t('help.reportBug')}
                   <ExternalLink className="h-3 w-3" />

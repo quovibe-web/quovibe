@@ -50,6 +50,28 @@
     "interest": "Interest",
     "dividendsPerGroup": "Dividends per {{groupBy}}",
     "interestPerGroup": "Interest per {{groupBy}}",
+    "incomePerGroupGross": "Income per {{groupBy}} · gross",
+    "incomePerGroupNet": "Income per {{groupBy}} · net",
+    "hero": {
+      "titleGross": "Total earnings (gross)",
+      "titleNet": "Total earnings (net)",
+      "avgMonth": "Avg / month",
+      "peakMonth": "Peak month",
+      "payments": "Payments",
+      "topSecurity": "Top security",
+      "priorPeak": "prior peak"
+    },
+    "calendar": {
+      "title": "Monthly cadence",
+      "yearLabel": "Year",
+      "total": "Total",
+      "totalLabel": "Total",
+      "deltaHeader": "Δ",
+      "averageRow": "Avg",
+      "headerChipAvg": "Avg/mo {{value}}",
+      "headerChipYoy": "▲ vs '{{year}}",
+      "headerChipYoyDown": "▼ vs '{{year}}"
+    },
     "columns": {
       "date": "Date",
       "type": "Type",
@@ -57,7 +79,11 @@
       "account": "Account",
       "amount": "Amount"
     },
-    "empty": "No payments in the selected period.",
+    "empty": {
+      "noPayments": "No payments in the selected period.",
+      "filtered": "No payments match the active filters",
+      "clearFilters": "Clear filters"
+    },
     "paymentCount_one": "{{count}} payment",
     "paymentCount_other": "{{count}} payments",
     "breakdown": {
@@ -66,6 +92,44 @@
       "error": "Unable to load breakdown data",
       "byTitle": "by security",
       "byAccount": "by account"
+    },
+    "yoy": {
+      "vsPrior": "▲ +{{share}}% vs {{priorTotal}} {{priorLabel}}",
+      "vsPriorDown": "▼ {{share}}% vs {{priorTotal}} {{priorLabel}}",
+      "priorYearLabel": "YTD {{year}}"
+    },
+    "detail": {
+      "headerCount": "Detail · {{count, number}} payments",
+      "filtered": "{{filtered, number}} of {{total, number}}",
+      "filter": {
+        "allTypes": "All types",
+        "dividend": "Dividends",
+        "interest": "Interest",
+        "addSecurity": "+ Security",
+        "selectSecurities": "Select securities",
+        "searchSecurities": "Search securities…"
+      },
+      "sort": {
+        "label": "Sort",
+        "dateDesc": "Date · newest first",
+        "dateAsc": "Date · oldest first",
+        "amountDesc": "Amount · highest first",
+        "securityAsc": "Security · A → Z"
+      },
+      "year": {
+        "ytd": "YTD",
+        "payments": "{{count, number}} payments"
+      }
+    },
+    "rail": {
+      "topPayers": "Top payers",
+      "morePayers": "+ {{count, number}} more",
+      "byType": "By type",
+      "cashInterest": "Cash interest"
+    },
+    "concentration": {
+      "title": "Concentration",
+      "top3": "Top 3 = {{share}}% of income"
     }
   },
   "returnsHeatmap": {
@@ -150,7 +214,15 @@
     "dividends": "Dividends",
     "fees": "Fees",
     "selectTaxonomy": "Taxonomy",
-    "categoryLabel": "Category"
+    "categoryLabel": "Category",
+    "best": "Best",
+    "worst": "Worst",
+    "spread": "Spread",
+    "spreadAcross": "across {{count}} categories",
+    "categoriesLabel": "Categories",
+    "composition": "Composition",
+    "topPerformers": "Top performers",
+    "noCategoryData": "No category data available."
   },
   "taxonomyNodePicker": {
     "loading": "Loading…",

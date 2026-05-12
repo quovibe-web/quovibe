@@ -35,7 +35,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { resizeToPng } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
-import { formatPercentage, formatCurrency } from '@/lib/formatters';
+import { SignedPercent } from '@/components/shared/SignedPercent';
 import { useBaseCurrency } from '@/hooks/use-base-currency';
 import { usePrivacy } from '@/context/privacy-context';
 import { ChangeReferenceAccountDialog } from '@/components/domain/ChangeReferenceAccountDialog';
@@ -126,7 +126,7 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: Brokerag
   return (
     <div
       className={cn(
-        'max-w-[720px] bg-card border rounded-lg overflow-hidden cursor-pointer qv-card-interactive',
+        'max-w-[720px] bg-card border rounded-md overflow-hidden cursor-pointer qv-card-interactive',
         isRetired && 'border-l-[3px] border-l-[var(--qv-warning)]',
       )}
       onClick={onExpand}
@@ -138,7 +138,7 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: Brokerag
           {portfolio.logoUrl ? (
             <img src={portfolio.logoUrl} alt="" className="h-8 w-8 rounded-md object-contain" />
           ) : (
-            <div className="h-8 w-8 rounded-md border border-muted-foreground/60 bg-muted flex items-center justify-center">
+            <div className="h-8 w-8 rounded-md border border-[var(--qv-border)] bg-[var(--qv-surface-elevated)] flex items-center justify-center">
               <Landmark className="h-4 w-4 text-muted-foreground" />
             </div>
           )}
@@ -166,11 +166,11 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: Brokerag
         {/* Right side: total value + kebab */}
         <div className="flex items-center gap-2 shrink-0">
           <div className="text-right">
-            <p className="text-xs text-muted-foreground">{t('card.totalValue')}</p>
+            <p className="qv-eyebrow">{t('card.totalValue')}</p>
             <CurrencyDisplay
               value={totalValue}
               currency={currency}
-              className="text-lg font-semibold tabular-nums"
+              className="qv-numeric text-lg font-medium"
             />
           </div>
           <DropdownMenu>
@@ -214,13 +214,13 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: Brokerag
       </div>
 
       {/* Split bar */}
-      <div className="flex h-1.5 mx-4 mb-3 rounded-full overflow-hidden">
+      <div className="flex h-1.5 mx-4 mb-3 rounded-sm overflow-hidden">
         <div className="bg-primary" style={{ flex: secPct }} />
-        <div className="bg-muted" style={{ flex: 1 - secPct }} />
+        <div className="bg-[var(--qv-surface-3)]" style={{ flex: 1 - secPct }} />
       </div>
 
       {isExpanded && (
-        <div className="px-4 pb-3 border-t border-border/50 pt-3">
+        <div className="px-4 pb-3 border-t border-[var(--qv-border-subtle)] pt-3">
           <BrokerageUnitExpanded unit={unit} />
         </div>
       )}
@@ -228,19 +228,19 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: Brokerag
       {/* Footer row: securities, cash, performance */}
       <div className="flex items-start justify-between px-4 pb-4">
         <div>
-          <p className="text-xs text-muted-foreground font-medium">{t('card.securities')}</p>
+          <p className="qv-eyebrow">{t('card.securities')}</p>
           <CurrencyDisplay
             value={secValue}
             currency={currency}
-            className="text-sm font-semibold tabular-nums"
+            className="qv-numeric text-sm font-medium"
           />
         </div>
         <div>
-          <p className="text-xs text-muted-foreground font-medium">{t('card.cash')}</p>
+          <p className="qv-eyebrow">{t('card.cash')}</p>
           <CurrencyDisplay
             value={cashValue}
             currency={currency}
-            className="text-sm font-semibold tabular-nums"
+            className="qv-numeric text-sm font-medium"
           />
         </div>
         {perf && !isPrivate && (() => {
@@ -249,13 +249,15 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: Brokerag
           const isPositive = absPerf >= 0;
           return (
             <div className="text-right">
-              <p className="text-xs text-muted-foreground font-medium">{t('card.performance')}</p>
-              <p className={cn('text-sm font-semibold tabular-nums', isPositive ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
-                {formatPercentage(perfPct)}
-              </p>
-              <p className={cn('text-[10px] tabular-nums opacity-70', isPositive ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
-                {formatCurrency(absPerf, baseCurrency)}
-              </p>
+              <p className="qv-eyebrow">{t('card.performance')}</p>
+              <SignedPercent value={perfPct} className="text-sm" />
+              <CurrencyDisplay
+                value={absPerf}
+                currency={baseCurrency}
+                colorize
+                colorSign={isPositive ? 1 : -1}
+                className="qv-numeric text-xs opacity-70 block"
+              />
             </div>
           );
         })()}

@@ -153,9 +153,9 @@ export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
     <div className="space-y-6">
       {/* Saved configs */}
       {configs && configs.length > 0 && (
-        <Card>
+        <Card className="rounded-md">
           <CardContent className="pt-4">
-            <Label>{t('upload.savedConfigs')}</Label>
+            <Label className="qv-eyebrow text-[var(--qv-text-faint)]">{t('upload.savedConfigs')}</Label>
             <Select
               onValueChange={(id) => {
                 const config = configs.find((c) => c.id === id);
@@ -183,11 +183,11 @@ export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* File dropzone */}
-        <Card>
+        <Card className="rounded-md">
           <CardHeader><CardTitle>{t('upload.title')}</CardTitle></CardHeader>
           <CardContent>
             <div
-              className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+              className="border border-dashed border-[var(--qv-border)] rounded-md bg-[var(--qv-surface-elevated)] p-8 text-center cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--qv-surface-3)] transition-colors"
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
               onClick={() => document.getElementById('csv-file-input')?.click()}
@@ -199,8 +199,8 @@ export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
                 className="hidden"
                 onChange={handleFileInput}
               />
-              <p className="text-muted-foreground">{t('upload.dropzone')}</p>
-              <p className="text-xs text-muted-foreground mt-1">{t('upload.dropzoneHint')}</p>
+              <p className="text-[var(--qv-text-secondary)]">{t('upload.dropzone')}</p>
+              <p className="text-xs text-[var(--qv-text-faint)] mt-1">{t('upload.dropzoneHint')}</p>
             </div>
 
             {uploadError && (
@@ -210,7 +210,7 @@ export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
             )}
 
             {state.parseResult && !uploadError && (
-              <p className="mt-3 text-sm text-muted-foreground">
+              <p className="mt-3 text-sm text-[var(--qv-text-secondary)]">
                 {t('upload.rows', { count: state.parseResult.totalRows })}
               </p>
             )}
@@ -218,7 +218,7 @@ export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
         </Card>
 
         {/* Format settings */}
-        <Card>
+        <Card className="rounded-md">
           <CardContent className="pt-6 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -304,7 +304,7 @@ export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
 
       {/* CSV preview table */}
       {state.parseResult && (
-        <Card>
+        <Card className="rounded-md">
           <CardHeader><CardTitle>{t('upload.preview')}</CardTitle></CardHeader>
           <CardContent>
             <div
@@ -312,15 +312,15 @@ export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
             >
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b">
+                  <tr className="border-b border-[var(--qv-border-subtle)]">
                     {state.parseResult.headers.map((h, i) => (
-                      <th key={i} className="px-3 py-2 text-left font-medium text-muted-foreground">{h}</th>
+                      <th key={i} className="px-3 py-2 text-left qv-eyebrow text-[var(--qv-text-faint)]">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {state.parseResult.sampleRows.slice(0, 5).map((row, ri) => (
-                    <tr key={ri} className="border-b last:border-0">
+                    <tr key={ri} className="border-b border-[var(--qv-border-subtle)] last:border-0">
                       {row.map((cell, ci) => (
                         <td key={ci} className="px-3 py-2">{cell}</td>
                       ))}

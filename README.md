@@ -15,7 +15,9 @@
 
 ---
 
-![Dashboard](docs/screenshots/quovibe1.png)
+<p align="center">
+  <img src="docs/screenshots/quovibe1.png" width="75%" alt="Quovibe Dashboard">
+</p>
 
 ---
 
@@ -34,27 +36,57 @@
 
 ## Screenshots
 
+### Security detail
+
 <p>
-  <img src="docs/screenshots/quodeta.png" width="49%">
-  <img src="docs/screenshots/quopheat.png" width="49%">
+  <img src="docs/screenshots/quoinvest3.png" width="100%" alt="Security detail">
+</p>
+
+### Performance & risk
+
+<p>
+  <img src="docs/screenshots/quopheat.png" width="49%" alt="Drawdown heatmap">
+  <img src="docs/screenshots/quobench.png" width="49%" alt="Benchmark comparison">
+</p>
+
+### Holdings & allocation
+
+<p>
+  <img src="docs/screenshots/quotree.png" width="49%" alt="Taxonomy tree">
+  <img src="docs/screenshots/quorebal.png" width="49%" alt="Rebalancing">
 </p>
 
 <p>
-  <img src="docs/screenshots/quobench.png" width="49%">
-  <img src="docs/screenshots/quodiv.png" width="49%">
+  <img src="docs/screenshots/quodeta.png" width="49%" alt="Allocation detail">
+  <img src="docs/screenshots/quowatch.png" width="49%" alt="Watchlist">
+</p>
+
+### Income & activity
+
+<p>
+  <img src="docs/screenshots/quodiv.png" width="49%" alt="Dividends">
+  <img src="docs/screenshots/quofulltrans.png" width="49%" alt="Transactions">
+</p>
+
+### Data series
+
+<p>
+  <img src="docs/screenshots/quodataserie.png" width="100%" alt="Data series">
+</p>
+
+### Mobile
+
+<p>
+  <img src="docs/screenshots/mobile-dashboard.png" width="32%" alt="Mobile dashboard">
+  <img src="docs/screenshots/mobile-investments.png" width="32%" alt="Mobile investments">
+  <img src="docs/screenshots/mobile-security.png" width="32%" alt="Mobile security">
 </p>
 
 <p>
-  <img src="docs/screenshots/quotree.png" width="49%">
-  <img src="docs/screenshots/quorebal.png" width="49%">
+  <img src="docs/screenshots/mobile-transactions.png" width="32%" alt="Mobile transactions">
+  <img src="docs/screenshots/mobile-dataseries.png" width="32%" alt="Mobile data series">
+  <img src="docs/screenshots/mobile-income.png" width="32%" alt="Mobile income">
 </p>
-
-<p>
-  <img src="docs/screenshots/quofulltrans.png" width="49%">
-  <img src="docs/screenshots/quowatch.png" width="49%">
-</p>
-
-![Security Detail](docs/screenshots/quoinvest3.png)
 
 ---
 

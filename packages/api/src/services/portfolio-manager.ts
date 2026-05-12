@@ -5,7 +5,8 @@ import fs from 'fs';
 import Database from 'better-sqlite3';
 import { DATA_DIR, DEMO_SOURCE_PATH, resolvePortfolioPath } from '../config';
 import { applyBootstrap } from '../db/apply-bootstrap';
-import { atomicCopy, ensureDir, unlinkDbFile } from '../lib/atomic-fs';
+import { CURRENT_PORTFOLIO_DB_SCHEMA_VERSION } from '../db/schema-version';
+import { atomicCopy, ensureDir, unlinkDbFile, type FsOpError } from '../lib/atomic-fs';
 import { seedDefaultDashboard } from './dashboard-seed';
 import {
   getPortfolioEntry,
@@ -395,7 +396,7 @@ function seedMeta(
   stmt.run('name', values.name);
   stmt.run('createdAt', values.createdAt);
   stmt.run('source', values.source);
-  stmt.run('schemaVersion', '1');
+  stmt.run('schemaVersion', String(CURRENT_PORTFOLIO_DB_SCHEMA_VERSION));
 }
 
 function finalizeRegistry(entry: PortfolioEntry): void {
@@ -435,19 +436,24 @@ export function renamePortfolio(id: string, newName: string): PortfolioEntry {
   return updated;
 }
 
-export function deletePortfolio(id: string): void {
+export interface DeletePortfolioResult {
+  warnings: FsOpError[];
+}
+
+export function deletePortfolio(id: string): DeletePortfolioResult {
   const entry = getPortfolioEntry(id);
   if (!entry) throw new PortfolioManagerError('PORTFOLIO_NOT_FOUND');
   if (entry.kind === 'demo') throw new PortfolioManagerError('DEMO_PORTFOLIO_IMMUTABLE_METADATA');
 
-  // Sidecar first (spec §3.4d ordering): even if unlink fails, the portfolio
-  // disappears from the UI. On next boot, rebuildRegistryFromDbs re-registers
-  // the orphan file if it still exists.
+  // Sidecar first (spec §3.4d ordering): the portfolio must disappear from
+  // the UI immediately even when the file unlink fails — otherwise a
+  // half-deleted entry blocks future creates by name-collision.
   removePortfolioEntry(id);
   evictPortfolioDb(id);
   const filePath = resolvePortfolioPath(entry);
-  unlinkDbFile(filePath);
+  const result = unlinkDbFile(filePath);
   broadcast('portfolio.deleted', { id });
+  return { warnings: result.errors };
 }
 
 // --- lastOpenedAt bump (used by switcher-pick) ------------------------------

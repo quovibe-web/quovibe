@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { GainBadge } from '@/components/shared/GainBadge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { formatDate } from '@/lib/formatters';
 
 interface ChartPoint {
   date: string;
@@ -41,23 +42,28 @@ function Sparkline({ values, positive }: { values: number[]; positive: boolean }
   const points = values.map((v, i) => {
     const x = (i / (values.length - 1)) * w;
     const y = h - ((v - min) / range) * h * 0.9 - h * 0.05;
-    return `${x},${y}`;
+    return { x, y };
   });
 
-  const linePath = `M${points.join(' L')}`;
+  const pathStr = points.map((p) => `${p.x},${p.y}`).join(' L');
+  const linePath = `M${pathStr}`;
   const areaPath = `${linePath} L${w},${h} L0,${h}Z`;
   const color = positive ? 'var(--qv-positive)' : 'var(--qv-negative)';
+  const first = points[0];
+  const last = points[points.length - 1];
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="w-full h-full">
       <defs>
         <linearGradient id="hero-spark-grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.15} />
+          <stop offset="0%" stopColor={color} stopOpacity={0.08} />
           <stop offset="100%" stopColor={color} stopOpacity={0} />
         </linearGradient>
       </defs>
       <path d={areaPath} fill="url(#hero-spark-grad)" />
       <path d={linePath} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
+      <circle cx={first.x} cy={first.y} r="2" fill="var(--qv-text-faint)" />
+      <circle cx={last.x} cy={last.y} r="2.5" fill={color} />
     </svg>
   );
 }
@@ -71,13 +77,13 @@ export function DashboardHero() {
 
   if (isLoading || !calc) {
     return (
-      <div className="flex items-start gap-6">
+      <div className="flex items-start gap-6 md:gap-12">
         <div>
           <Skeleton className="h-4 w-24 mb-2" />
-          <Skeleton className="h-10 w-48 mb-2" />
+          <Skeleton className="h-14 w-56 mb-2" />
           <Skeleton className="h-5 w-32" />
         </div>
-        <div className="flex-1 hidden md:block">
+        <div className="flex-1">
           <Skeleton className="h-[80px] w-full" />
         </div>
       </div>
@@ -90,21 +96,31 @@ export function DashboardHero() {
   const isPositive = absPerf >= 0;
 
   return (
-    <div className="flex items-start gap-6 qv-fade-in">
-      {/* Left: Balance + Gain/Loss */}
+    <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-12 qv-fade-in">
+      {/* Left: Balance + period context + Gain/Loss */}
       <div className="shrink-0">
-        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          {t('hero.portfolioValue')}
+        <div className="qv-eyebrow flex items-center gap-2">
+          <span>{t('hero.portfolioValue')}</span>
+          <span aria-hidden="true" className="text-[var(--qv-text-faint)]">·</span>
+          <span className="text-[var(--qv-text-secondary)]">
+            {t('hero.asOf', { date: formatDate(periodEnd) })}
+          </span>
         </div>
-        <div className="mt-1" style={{ fontFamily: 'var(--font-display)' }}>
-          {isPrivate ? (
-            <span className="text-4xl font-normal tracking-tight">••••••</span>
-          ) : (
-            <CurrencyDisplay value={balance} className="text-4xl font-normal tracking-tight" />
-          )}
+        <div
+          className="mt-2"
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontVariationSettings: "'opsz' 144, 'wght' 500",
+            fontFeatureSettings: '"tnum" 1, "lnum" 1, "zero" 1',
+          }}
+        >
+          <CurrencyDisplay
+            value={balance}
+            className="text-5xl md:text-6xl leading-[1.05] tracking-[-0.02em]"
+          />
         </div>
-        <div className="flex items-center gap-1 mt-1.5">
-          <span className="text-[0.6rem] text-muted-foreground uppercase tracking-wider font-medium">
+        <div className="mt-4 flex items-center gap-1">
+          <span className="qv-eyebrow">
             {t('widgetTypes.absolute-performance')}
           </span>
           <Tooltip>
@@ -114,7 +130,7 @@ export function DashboardHero() {
                 className="text-muted-foreground/40 hover:text-muted-foreground shrink-0"
                 aria-label={t('widgetTypes.absolute-performance')}
               >
-                <Info className="size-2.5" />
+                <Info className="size-3" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-[220px]">
@@ -122,25 +138,19 @@ export function DashboardHero() {
             </TooltipContent>
           </Tooltip>
         </div>
-        <div className="flex items-baseline gap-3">
-          {isPrivate ? (
-            <span className="text-sm text-muted-foreground">••••••</span>
-          ) : (
-            <>
-              <CurrencyDisplay
-                value={absPerf}
-                colorize
-                className="text-sm font-medium"
-              />
-              <GainBadge value={absPerfPct} />
-            </>
-          )}
+        <div className="mt-1 flex items-baseline gap-3">
+          <CurrencyDisplay
+            value={absPerf}
+            colorize
+            className="qv-numeric text-base font-medium"
+          />
+          {!isPrivate && <GainBadge value={absPerfPct} />}
         </div>
       </div>
-      {/* Right: Sparkline */}
+      {/* Right: Sparkline — compact inline on mobile, full panel on desktop */}
       <div
         className={cn(
-          'flex-1 min-w-0 h-[80px] hidden md:flex items-end pb-1',
+          'min-w-0 w-full md:flex-1 h-10 md:h-[80px] flex items-end pb-1',
           isPrivate && 'blur-sm saturate-0',
         )}
       >

@@ -1,6 +1,10 @@
 # Stage 1: Base with pnpm
-FROM node:24-alpine AS base
-RUN corepack enable && corepack prepare pnpm@latest --activate
+#
+# Pin Alpine version (3.20) and pnpm (9.0.0) for reproducible builds.
+# - node:24-alpine3.20 → Node 24 + Alpine 3.20 (ships python3 3.12, py3-lxml 5.2)
+# - pnpm@9.0.0 matches root package.json "packageManager" field
+FROM node:24-alpine3.20 AS base
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 WORKDIR /app
 
 # Stage 2: Dependencies
@@ -24,7 +28,15 @@ RUN pnpm --filter @quovibe/api build
 RUN pnpm --filter @quovibe/web build
 
 # Stage 4: Runner (production)
-FROM node:24-alpine AS runner
+#
+# Alpine version pinned to match Stage 1 → Python 3.12 + lxml 5.2 from
+# Alpine 3.20 main repo. py3-lxml is preferred over `pip install lxml`
+# because the apk package ships prebuilt C extensions (no gcc/musl-dev
+# needed at runtime, smaller image, faster build).
+#
+# ppxml2db Python deps are documented in packages/api/vendor/requirements.txt
+# — keep that file and this apk line in sync if upstream adds a new import.
+FROM node:24-alpine3.20 AS runner
 RUN apk add --no-cache python3 py3-lxml
 WORKDIR /app
 
@@ -44,6 +56,16 @@ COPY packages/api/vendor           ./packages/api/vendor
 # mount would hide it). The API clones it to /app/data/portfolio-demo.db the
 # first time a user selects "Try demo" from the Welcome page.
 COPY data/demo.db                  /app/assets/demo.db
+
+# Build-time smoke tests:
+#   1. ppxml2db Python deps load — catches a broken Alpine→py3-lxml combo
+#      before the image ships rather than at first XML import.
+#   2. demo.db copy is non-empty — Docker COPY does NOT fail on a missing
+#      source unless `--from` is set, so without this the runner ships an
+#      empty file and `Try demo` 500s the first time it's clicked.
+RUN set -e \
+  && python3 -c "import lxml.etree; import sqlite3; print('ppxml2db deps OK')" \
+  && { test -s /app/assets/demo.db || { echo "ERROR: demo.db missing or empty"; exit 1; }; }
 
 # Run as non-root user
 RUN addgroup -S quovibe && adduser -S quovibe -G quovibe

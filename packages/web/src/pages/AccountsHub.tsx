@@ -18,12 +18,11 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
 import { SegmentedControl } from '@/components/shared/SegmentedControl';
+import { SignedPercent } from '@/components/shared/SignedPercent';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 import { usePrivacy } from '@/context/privacy-context';
-import { formatPercentage, formatCurrency } from '@/lib/formatters';
 import { useBaseCurrency } from '@/hooks/use-base-currency';
 import { useNavTitle } from '@/hooks/useNavTitle';
 import { buildAccountsCsv, downloadAccountsCsv } from '@/lib/accounts-export';
@@ -196,11 +195,11 @@ export default function AccountsHub() {
             <>
               {brokerageUnits.length > 0 && (
                 <div className="flex items-center gap-3 max-w-[720px]">
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="text-xs text-muted-foreground uppercase tracking-widest">
+                  <div className="flex-1 h-px bg-[var(--qv-border-subtle)]" />
+                  <span className="qv-eyebrow">
                     {t('brokerage.title')}
                   </span>
-                  <div className="flex-1 h-px bg-border" />
+                  <div className="flex-1 h-px bg-[var(--qv-border-subtle)]" />
                 </div>
               )}
 
@@ -219,11 +218,11 @@ export default function AccountsHub() {
               {standaloneDeposits.length > 0 && (
                 <>
                   <div className="flex items-center gap-3 max-w-[720px]">
-                    <div className="flex-1 h-px bg-border" />
-                    <span className="text-xs text-muted-foreground uppercase tracking-widest">
+                    <div className="flex-1 h-px bg-[var(--qv-border-subtle)]" />
+                    <span className="qv-eyebrow">
                       {t('standalone.title')}
                     </span>
-                    <div className="flex-1 h-px bg-border" />
+                    <div className="flex-1 h-px bg-[var(--qv-border-subtle)]" />
                   </div>
                   <div className="max-w-[720px] space-y-3.5">
                     {standaloneDeposits.map(d => (
@@ -238,11 +237,11 @@ export default function AccountsHub() {
           {viewMode === 'summary' && (
             <div className="max-w-[720px] space-y-4">
               {brokerageUnits.length > 0 && (
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <div className="px-4 py-2 bg-muted/50 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    {t('brokerage.title')}
+                <div className="rounded-md border border-border bg-card overflow-hidden">
+                  <div className="px-4 py-2 bg-[var(--qv-surface-elevated)] border-b border-[var(--qv-border-subtle)]">
+                    <p className="qv-eyebrow">{t('brokerage.title')}</p>
                   </div>
-                  <div className="divide-y divide-border">
+                  <div className="divide-y divide-[var(--qv-border-subtle)]">
                     {brokerageUnits.map(unit => {
                       const holdings = unit.holdings;
                       const mv = holdings ? parseFloat(holdings.totalValue ?? '0') : 0;
@@ -255,21 +254,27 @@ export default function AccountsHub() {
                         <button
                           key={unit.portfolio.id}
                           onClick={() => navigate(`/p/${api.portfolioId}/accounts/${unit.portfolio.id}`)}
-                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--qv-surface-3)] transition-colors text-left"
                         >
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium truncate">{unit.portfolio.name}</div>
                             {unit.deposit && (
-                              <div className="text-[10px] text-muted-foreground truncate">{unit.deposit.name}</div>
+                              <div className="text-xs text-muted-foreground truncate">{unit.deposit.name}</div>
                             )}
                           </div>
                           <div className="text-right shrink-0">
-                            <CurrencyDisplay value={mv} className="text-sm" />
+                            <CurrencyDisplay value={mv} className="qv-numeric text-sm" />
                             {!isPrivate && perf && (
-                              <div className={cn('text-[10px] tabular-nums', isPositive ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
-                                {perfPct !== null ? formatPercentage(perfPct) : '—'}
+                              <div className="flex items-center justify-end gap-1.5 text-xs">
+                                <SignedPercent value={perfPct} />
                                 {absPerf !== null && (
-                                  <span className="ml-1 opacity-70">{formatCurrency(absPerf, baseCurrency)}</span>
+                                  <CurrencyDisplay
+                                    value={absPerf}
+                                    currency={baseCurrency}
+                                    colorize
+                                    colorSign={isPositive ? 1 : -1}
+                                    className="qv-numeric opacity-70"
+                                  />
                                 )}
                               </div>
                             )}
@@ -282,21 +287,21 @@ export default function AccountsHub() {
               )}
 
               {standaloneDeposits.length > 0 && (
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <div className="px-4 py-2 bg-muted/50 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    {t('standalone.title')}
+                <div className="rounded-md border border-border bg-card overflow-hidden">
+                  <div className="px-4 py-2 bg-[var(--qv-surface-elevated)] border-b border-[var(--qv-border-subtle)]">
+                    <p className="qv-eyebrow">{t('standalone.title')}</p>
                   </div>
-                  <div className="divide-y divide-border">
+                  <div className="divide-y divide-[var(--qv-border-subtle)]">
                     {standaloneDeposits.map(d => (
                       <button
                         key={d.id}
                         onClick={() => navigate(`/p/${api.portfolioId}/accounts/${d.id}`)}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--qv-surface-3)] transition-colors text-left"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium truncate">{d.name}</div>
                         </div>
-                        <CurrencyDisplay value={parseFloat(d.balance ?? '0')} className="text-sm" />
+                        <CurrencyDisplay value={parseFloat(d.balance ?? '0')} colorize className="qv-numeric text-sm" />
                       </button>
                     ))}
                   </div>

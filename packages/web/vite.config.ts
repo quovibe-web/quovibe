@@ -13,7 +13,7 @@ function getGitVersion(): string {
   }
 }
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss()],
   define: {
     __APP_VERSION__: JSON.stringify(getGitVersion()),
@@ -25,6 +25,16 @@ export default defineConfig({
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
   },
+  // esbuild handles minification + transform. Drop console + debugger only
+  // for production builds — dev keeps them so DevTools investigations work.
+  esbuild: command === 'build' ? { drop: ['console', 'debugger'] } : {},
+  build: {
+    // Source maps off in prod: they leak the entire module tree to anyone
+    // with DevTools open. Re-enable to 'hidden' if Sentry-style upload is
+    // ever wired up.
+    sourcemap: false,
+    minify: 'esbuild',
+  },
   server: {
     host: '0.0.0.0',
     watch: { usePolling: true },
@@ -32,4 +42,4 @@ export default defineConfig({
       '/api': 'http://localhost:3000',
     },
   },
-});
+}));

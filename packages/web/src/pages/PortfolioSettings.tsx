@@ -2,7 +2,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
-import { Check, Eye, EyeOff } from 'lucide-react';
+import {
+  Check,
+  Eye,
+  EyeOff,
+  Pencil,
+  Download,
+  Trash2,
+  RefreshCw,
+  Calculator,
+  LineChart,
+  type LucideIcon,
+} from 'lucide-react';
 import { usePortfolioRegistry } from '@/api/use-portfolios';
 import { usePortfolio as usePortfolioCtx } from '@/context/PortfolioContext';
 import { usePortfolio, useUpdatePortfolioDbSettings } from '@/api/use-portfolio';
@@ -18,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { CURRENCIES } from '@/lib/currencies';
 import { formatDate } from '@/lib/formatters';
 import { CostMethod, getAllCalendarInfos, type UpdateSettingsInput } from '@quovibe/shared';
@@ -34,7 +46,7 @@ function SettingRow({
   saved?: boolean;
 }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-3.5 border-b border-border last:border-b-0">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-3.5 border-b border-[var(--qv-border-subtle)] last:border-b-0">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">{label}</span>
@@ -51,11 +63,22 @@ function SettingRow({
   );
 }
 
-function SectionHeader({ children }: { children: React.ReactNode }) {
+function SectionHeader({
+  icon: Icon,
+  children,
+}: {
+  icon: LucideIcon;
+  children: React.ReactNode;
+}) {
   return (
-    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-8 first:mt-0 mb-1">
-      {children}
-    </h3>
+    <div className="flex items-center gap-2 mt-10 first:mt-0 mb-3">
+      <Icon
+        className="h-3.5 w-3.5 text-muted-foreground"
+        strokeWidth={1.75}
+        aria-hidden="true"
+      />
+      <h3 className="qv-eyebrow">{children}</h3>
+    </div>
   );
 }
 
@@ -124,181 +147,212 @@ export default function PortfolioSettings() {
 
   if (portfolio.kind === 'demo') {
     return (
-      <main className="mx-auto max-w-2xl p-6">
-        <h1 className="text-xl font-semibold">{t('current')}</h1>
-        <p className="mt-2 font-medium">
-          {entry.name} · {t('builtInPlayground')}
-        </p>
-        <p className="mt-4 text-sm text-muted-foreground">{t('demoExplainer')}</p>
-        <div className="mt-6 flex gap-3">
-          <Button onClick={onExport}>📤 {t('export')}</Button>
+      <main className="qv-page mx-auto max-w-3xl p-6">
+        <div className="mb-8">
+          <PageHeader
+            title={entry.name}
+            subtitle={t('builtInPlayground')}
+            actions={
+              <Button variant="outline" onClick={onExport}>
+                <Download className="h-4 w-4" />
+                {t('export')}
+              </Button>
+            }
+          />
         </div>
-        <h2 className="mt-10 text-lg font-semibold">{t('updates')}</h2>
-        <Button className="mt-2" variant="outline" onClick={onUpdatePrices}>
-          ⬇ {t('updatePrices')}
-        </Button>
+        <p className="text-sm text-muted-foreground">{t('demoExplainer')}</p>
+
+        <section>
+          <SectionHeader icon={RefreshCw}>{t('updates')}</SectionHeader>
+          <SettingRow label={t('updatePrices')}>
+            <Button variant="outline" onClick={onUpdatePrices}>
+              <RefreshCw className="h-4 w-4" />
+              {t('updatePrices')}
+            </Button>
+          </SettingRow>
+        </section>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-2xl p-6">
-      <h1 className="text-xl font-semibold">{t('current')}</h1>
-      <p className="mt-2 font-medium">
-        {entry.name} · {t('real')} · {t('createdOn', { date: formatDate(entry.createdAt) })}
-      </p>
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Button variant="outline" onClick={() => setRenameOpen(true)}>
-          ✏️ {t('rename.cta')}
-        </Button>
-        <Button variant="outline" onClick={onExport}>
-          📤 {t('export')}
-        </Button>
-        <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
-          🗑 {t('delete.cta')}
-        </Button>
+    <main className="qv-page mx-auto max-w-3xl p-6">
+      <div className="mb-8">
+        <PageHeader
+          title={entry.name}
+          subtitle={`${t('real')} · ${t('createdOn', { date: formatDate(entry.createdAt) })}`}
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setRenameOpen(true)}>
+                <Pencil className="h-4 w-4" />
+                {t('rename.cta')}
+              </Button>
+              <Button variant="outline" onClick={onExport}>
+                <Download className="h-4 w-4" />
+                {t('export')}
+              </Button>
+              <Button
+                variant="outline"
+                className="text-[var(--qv-danger)] hover:text-[var(--qv-danger)]"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                {t('delete.cta')}
+              </Button>
+            </>
+          }
+        />
       </div>
 
-      <SectionHeader>{t('data.sections.accounting')}</SectionHeader>
-      <SettingRow
-        label={t('data.fields.costMethod')}
-        description={t('data.fields.costMethodDescription')}
-        saved={savedField === 'costMethod'}
-      >
-        <Select
-          value={costMethod}
-          onValueChange={(v) => {
-            setCostMethod(v);
-            void save('costMethod', { costMethod: v as typeof CostMethod[keyof typeof CostMethod] });
-          }}
+      <section>
+        <SectionHeader icon={Calculator}>{t('data.sections.accounting')}</SectionHeader>
+        <SettingRow
+          label={t('data.fields.costMethod')}
+          description={t('data.fields.costMethodDescription')}
+          saved={savedField === 'costMethod'}
         >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={CostMethod.FIFO}>{t('data.fields.costMethodFifo')}</SelectItem>
-            <SelectItem value={CostMethod.MOVING_AVERAGE}>
-              {t('data.fields.costMethodMovingAverage')}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </SettingRow>
-      <SettingRow
-        label={t('data.fields.currency')}
-        description={t('data.fields.currencyDescription')}
-        saved={savedField === 'currency'}
-      >
-        <Select
-          value={currency}
-          onValueChange={(v) => {
-            setCurrency(v);
-            void save('currency', { currency: v });
-          }}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {CURRENCIES.map((c) => (
-              <SelectItem key={c.code} value={c.code}>
-                {c.code} — {c.name}
+          <Select
+            value={costMethod}
+            onValueChange={(v) => {
+              setCostMethod(v);
+              void save('costMethod', { costMethod: v as typeof CostMethod[keyof typeof CostMethod] });
+            }}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={CostMethod.FIFO}>{t('data.fields.costMethodFifo')}</SelectItem>
+              <SelectItem value={CostMethod.MOVING_AVERAGE}>
+                {t('data.fields.costMethodMovingAverage')}
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </SettingRow>
-      <SettingRow
-        label={t('data.fields.calendar')}
-        description={t('data.fields.calendarDescription')}
-        saved={savedField === 'calendar'}
-      >
-        <Select
-          value={calendar === '' ? '__none' : calendar}
-          onValueChange={(v) => {
-            const next = v === '__none' ? '' : v;
-            setCalendar(next);
-            void save('calendar', { calendar: next });
-          }}
+            </SelectContent>
+          </Select>
+        </SettingRow>
+        <SettingRow
+          label={t('data.fields.currency')}
+          description={t('data.fields.currencyDescription')}
+          saved={savedField === 'currency'}
         >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none">{t('data.fields.calendarDefault')}</SelectItem>
-            {calendar !== '' && !getAllCalendarInfos().some((c) => c.id === calendar) && (
-              <SelectItem value={calendar} disabled>
-                {`${calendar} (${t('data.fields.calendarUnknown')})`}
-              </SelectItem>
-            )}
-            {getAllCalendarInfos()
-              .filter((c) => c.id !== 'empty' && c.id !== 'default')
-              .map((cal) => (
-                <SelectItem key={cal.id} value={cal.id}>{cal.label}</SelectItem>
+          <Select
+            value={currency}
+            onValueChange={(v) => {
+              setCurrency(v);
+              void save('currency', { currency: v });
+            }}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CURRENCIES.map((c) => (
+                <SelectItem key={c.code} value={c.code}>
+                  {c.code} — {c.name}
+                </SelectItem>
               ))}
-          </SelectContent>
-        </Select>
-      </SettingRow>
+            </SelectContent>
+          </Select>
+        </SettingRow>
+        <SettingRow
+          label={t('data.fields.calendar')}
+          description={t('data.fields.calendarDescription')}
+          saved={savedField === 'calendar'}
+        >
+          <Select
+            value={calendar === '' ? '__none' : calendar}
+            onValueChange={(v) => {
+              const next = v === '__none' ? '' : v;
+              setCalendar(next);
+              void save('calendar', { calendar: next });
+            }}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none">{t('data.fields.calendarDefault')}</SelectItem>
+              {calendar !== '' && !getAllCalendarInfos().some((c) => c.id === calendar) && (
+                <SelectItem value={calendar} disabled>
+                  {`${calendar} (${t('data.fields.calendarUnknown')})`}
+                </SelectItem>
+              )}
+              {getAllCalendarInfos()
+                .filter((c) => c.id !== 'empty' && c.id !== 'default')
+                .map((cal) => (
+                  <SelectItem key={cal.id} value={cal.id}>{cal.label}</SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </SettingRow>
+      </section>
 
-      <SectionHeader>{t('data.sections.priceFeeds')}</SectionHeader>
-      <SettingRow
-        label={t('data.fields.alphaVantageApiKey')}
-        description={
-          hasKeyConfigured
-            ? t('data.fields.alphaVantageApiKeyConfigured')
-            : t('data.fields.alphaVantageApiKeyDescription')
-        }
-        saved={savedField === 'alphaVantageApiKey'}
-      >
-        <div className="flex items-center gap-1 w-[240px]">
+      <section>
+        <SectionHeader icon={LineChart}>{t('data.sections.priceFeeds')}</SectionHeader>
+        <SettingRow
+          label={t('data.fields.alphaVantageApiKey')}
+          description={
+            hasKeyConfigured
+              ? t('data.fields.alphaVantageApiKeyConfigured')
+              : t('data.fields.alphaVantageApiKeyDescription')
+          }
+          saved={savedField === 'alphaVantageApiKey'}
+        >
+          <div className="flex items-center gap-1 w-[240px]">
+            <Input
+              type={showKey ? 'text' : 'password'}
+              value={avKey}
+              onChange={(e) => setAvKey(e.target.value)}
+              onBlur={() => {
+                if (avKey.length > 0) {
+                  void save('alphaVantageApiKey', { alphaVantageApiKey: avKey });
+                  setAvKey('');
+                }
+              }}
+              placeholder={hasKeyConfigured ? '••••••••' : t('data.fields.alphaVantageApiKeyPlaceholder')}
+              className="flex-1"
+              autoComplete="off"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => setShowKey((v) => !v)}
+              aria-label={showKey ? t('data.fields.alphaVantageApiKeyHide') : t('data.fields.alphaVantageApiKeyShow')}
+            >
+              {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+          </div>
+        </SettingRow>
+        <SettingRow
+          label={t('data.fields.alphaVantageRateLimit')}
+          description={t('data.fields.alphaVantageRateLimitDescription')}
+          saved={savedField === 'alphaVantageRateLimit'}
+        >
           <Input
-            type={showKey ? 'text' : 'password'}
-            value={avKey}
-            onChange={(e) => setAvKey(e.target.value)}
+            type="number"
+            min={1}
+            value={avRate}
+            onChange={(e) => setAvRate(e.target.value)}
             onBlur={() => {
-              if (avKey.length > 0) {
-                void save('alphaVantageApiKey', { alphaVantageApiKey: avKey });
-                setAvKey('');
+              if (avRate !== (portfolioData?.config['provider.alphavantage.rateLimit'] ?? '')) {
+                void save('alphaVantageRateLimit', { alphaVantageRateLimit: avRate });
               }
             }}
-            placeholder={hasKeyConfigured ? '••••••••' : t('data.fields.alphaVantageApiKeyPlaceholder')}
-            className="flex-1"
-            autoComplete="off"
+            className="w-[120px]"
           />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0"
-            onClick={() => setShowKey((v) => !v)}
-            aria-label={showKey ? t('data.fields.alphaVantageApiKeyHide') : t('data.fields.alphaVantageApiKeyShow')}
-          >
-            {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </Button>
-        </div>
-      </SettingRow>
-      <SettingRow
-        label={t('data.fields.alphaVantageRateLimit')}
-        description={t('data.fields.alphaVantageRateLimitDescription')}
-        saved={savedField === 'alphaVantageRateLimit'}
-      >
-        <Input
-          type="number"
-          min={1}
-          value={avRate}
-          onChange={(e) => setAvRate(e.target.value)}
-          onBlur={() => {
-            if (avRate !== (portfolioData?.config['provider.alphavantage.rateLimit'] ?? '')) {
-              void save('alphaVantageRateLimit', { alphaVantageRateLimit: avRate });
-            }
-          }}
-          className="w-[120px]"
-        />
-      </SettingRow>
+        </SettingRow>
+      </section>
 
-      <h2 className="mt-10 text-lg font-semibold">{t('updates')}</h2>
-      <Button className="mt-2" variant="outline" onClick={onUpdatePrices}>
-        ⬇ {t('updatePrices')}
-      </Button>
+      <section>
+        <SectionHeader icon={RefreshCw}>{t('updates')}</SectionHeader>
+        <SettingRow label={t('updatePrices')}>
+          <Button variant="outline" onClick={onUpdatePrices}>
+            <RefreshCw className="h-4 w-4" />
+            {t('updatePrices')}
+          </Button>
+        </SettingRow>
+      </section>
 
       <RenamePortfolioDialog
         open={renameOpen}

@@ -4,7 +4,7 @@ import type { VisibilityState } from '@tanstack/react-table';
 import type { TableLayoutEntry } from '@quovibe/shared';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Briefcase, Search, X } from 'lucide-react';
+import { Briefcase, Filter, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/shared/DataTable';
 import { TableToolbar } from '@/components/shared/TableToolbar';
@@ -65,19 +65,24 @@ interface FetchStatusProps {
 
 function FetchStatus({ totalFetched, totalLabel, errorsLabel, errors }: FetchStatusProps) {
   return (
-    <div className="text-sm text-muted-foreground">
-      {totalFetched} {totalLabel}
+    <div className="rounded-md border border-[var(--qv-border-subtle)] bg-[var(--qv-surface-elevated)] px-4 py-3">
+      <div className="qv-eyebrow text-[var(--qv-text-secondary)]">{totalLabel}</div>
+      <div className="qv-numeric text-lg font-medium mt-0.5">
+        {totalFetched}
+        {errors.length > 0 && (
+          <span className="ml-3 text-sm font-normal text-[var(--qv-danger)]">
+            {errors.length} {errorsLabel}
+          </span>
+        )}
+      </div>
       {errors.length > 0 && (
-        <>
-          <span className="text-destructive ml-2">({errors.length} {errorsLabel})</span>
-          <ul className="mt-1 space-y-0.5">
-            {errors.map(e => (
-              <li key={e.key} className="text-destructive">
-                <span className="font-medium">{e.label}</span>: {e.error}
-              </li>
-            ))}
-          </ul>
-        </>
+        <ul className="mt-2 space-y-0.5 text-sm text-[var(--qv-danger)]">
+          {errors.map(e => (
+            <li key={e.key}>
+              <span className="font-medium">{e.label}</span>: {e.error}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
@@ -412,7 +417,7 @@ export default function Investments() {
             onChange={setChartMode}
           />
           <Separator orientation="vertical" className="h-6" />
-          <Button onClick={handleFetchAll} disabled={fetchAll.isPending}>
+          <Button variant="outline" onClick={handleFetchAll} disabled={fetchAll.isPending}>
             {fetchAll.isPending ? tSecurities('actions.updating') : tSecurities('actions.updatePrices')}
           </Button>
           <Button onClick={() => setWizardOpen(true)}>{tSecurities('actions.addInstrument')}</Button>
@@ -438,18 +443,18 @@ export default function Investments() {
             {
               label: t('summary.totalMV'),
               value: accountFilterId ? (
-                <CurrencyDisplay value={parseFloat(filterHoldings!.totalValue)} colorize className="text-2xl font-semibold tabular-nums" />
+                <CurrencyDisplay value={parseFloat(filterHoldings!.totalValue)} colorize className="qv-numeric text-2xl font-medium" />
               ) : statement ? (
-                <CurrencyDisplay value={parseFloat(statement.totals.marketValue)} colorize className="text-2xl font-semibold tabular-nums" />
+                <CurrencyDisplay value={parseFloat(statement.totals.marketValue)} colorize className="qv-numeric text-2xl font-medium" />
               ) : (
-                <span className="text-2xl font-semibold text-muted-foreground">—</span>
+                <span className="qv-numeric text-2xl font-medium text-muted-foreground">—</span>
               ),
             },
             {
               label: t('summary.holdings'),
               // Card describes the portfolio (or the filtered account) — never the search query (BUG-24).
               // Excludes zero-share / closed positions to align with the pie-chart legend (BUG-25).
-              value: <span className="text-2xl font-semibold tabular-nums">
+              value: <span className="qv-numeric text-2xl font-medium">
                 {accountFilterId
                   ? filterHoldings!.holdings.filter(h => parseFloat(h.shares) > 0).length
                   : accountFiltered.filter(s => parseFloat(s.shares ?? '0') > 0).length}
@@ -459,30 +464,30 @@ export default function Investments() {
               label: t('summary.cash'),
               value: accountFilterId ? (
                 depositAccount ? (
-                  <CurrencyDisplay value={parseFloat(depositAccount.balance)} colorize className="text-2xl font-semibold tabular-nums" />
+                  <CurrencyDisplay value={parseFloat(depositAccount.balance)} colorize className="qv-numeric text-2xl font-medium" />
                 ) : (
-                  <span className="text-2xl font-semibold text-muted-foreground">—</span>
+                  <span className="qv-numeric text-2xl font-medium text-muted-foreground">—</span>
                 )
               ) : statement ? (
                 <div>
-                  <CurrencyDisplay value={parseFloat(statement.totals.cashValue)} colorize className="text-2xl font-semibold tabular-nums" />
+                  <CurrencyDisplay value={parseFloat(statement.totals.cashValue)} colorize className="qv-numeric text-2xl font-medium" />
                   <CashBreakdown cashByCurrency={statement.totals.cashByCurrency ?? []} className="mt-1" />
                 </div>
               ) : (
-                <span className="text-2xl font-semibold text-muted-foreground">—</span>
+                <span className="qv-numeric text-2xl font-medium text-muted-foreground">—</span>
               ),
             },
             {
               label: t('summary.largest'),
               value: (() => {
                 const top = accountFilterId ? filteredTopHolding : topHolding;
-                if (!top) return <span className="text-2xl font-semibold text-muted-foreground">—</span>;
+                if (!top) return <span className="qv-numeric text-2xl font-medium text-muted-foreground">—</span>;
                 return (
                   <>
-                    <span className="text-lg font-semibold truncate block">
+                    <span className="text-lg font-medium truncate block">
                       {top.name}
                     </span>
-                    <span className="text-sm text-muted-foreground tabular-nums">
+                    <span className="qv-numeric text-sm text-muted-foreground">
                       {isPrivate ? '••••' : formatPercentage(parseFloat(top.percentage) / 100)}
                     </span>
                   </>
@@ -495,7 +500,7 @@ export default function Investments() {
 
       {/* Allocation chart — global or per-account */}
       {!isEmptyPortfolio && chartMode !== 'off' && chartItems.length > 0 && (!accountFilterId ? !summaryLoading : !!filterHoldings) && (
-        <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '180ms' }}>
+        <Card className="rounded-md" style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '180ms' }}>
           <CardContent className="pt-6">
             <TaxonomyChart
               items={chartItems}
@@ -509,7 +514,8 @@ export default function Investments() {
 
       {/* Account filter banner */}
       {accountFilterId && filterAccount && (
-        <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-primary/10 border border-primary/20">
+        <div className="flex items-center gap-3 px-4 py-2.5 rounded-md bg-[var(--qv-surface-elevated)] border border-[var(--qv-border-subtle)]">
+          <Filter className="h-3.5 w-3.5 text-[var(--color-primary)]" />
           <span className="text-sm font-medium">
             {t('filter.showingAccount', { name: filterAccount.name })}
           </span>
@@ -575,33 +581,33 @@ export default function Investments() {
             />
             {/* Total row */}
             {!tableLoading && filteredSecurities.length > 0 && (statementMap.size > 0 || perfMap.size > 0) && (
-              <div className="flex items-center justify-between px-4 py-2.5 mt-1 rounded-lg bg-muted/50 border border-border text-sm font-medium">
-                <span className="text-muted-foreground">
+              <div className="flex items-center justify-between px-4 py-2.5 mt-1 rounded-md bg-[var(--qv-surface-elevated)] border border-[var(--qv-border-subtle)] text-sm">
+                <span className="qv-eyebrow text-[var(--qv-text-secondary)]">
                   {t('totals.label', { count: filteredSecurities.length })}
                 </span>
                 <div className="flex items-center gap-6">
                   {statementMap.size > 0 && (
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground">{t('columns.marketValue')}:</span>
+                    <span className="flex items-center gap-2">
+                      <span className="qv-eyebrow text-[var(--qv-text-secondary)]">{t('columns.marketValue')}</span>
                       <CurrencyDisplay
                         value={filteredSecurities.reduce((sum, s) => {
                           const entry = statementMap.get(s.id);
                           return sum + (entry ? parseFloat(entry.marketValue) : 0);
                         }, 0)}
-                        className="font-semibold tabular-nums"
+                        className="qv-numeric font-medium"
                       />
                     </span>
                   )}
                   {perfMap.size > 0 && (
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground">{t('columns.unrealizedGain')}:</span>
+                    <span className="flex items-center gap-2">
+                      <span className="qv-eyebrow text-[var(--qv-text-secondary)]">{t('columns.unrealizedGain')}</span>
                       <CurrencyDisplay
                         value={filteredSecurities.reduce((sum, s) => {
                           const entry = perfMap.get(s.id);
                           return sum + (entry ? parseFloat(entry.unrealizedGain) : 0);
                         }, 0)}
                         colorize
-                        className="font-semibold tabular-nums"
+                        className="qv-numeric font-medium"
                       />
                     </span>
                   )}
@@ -664,7 +670,7 @@ export default function Investments() {
           <AlertDialogFooter>
             <AlertDialogCancel>{tCommon('deleteConfirm.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-[var(--qv-danger)] text-white hover:bg-[var(--qv-danger)]/90"
               onClick={handleConfirmDelete}
             >
               {tCommon('deleteConfirm.confirm')}

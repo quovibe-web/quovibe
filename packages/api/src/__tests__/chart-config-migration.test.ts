@@ -65,9 +65,10 @@ describe('ChartConfig v1 → v2 migration', () => {
     expect(result.success).toBe(true);
   });
 
-  it('DEFAULT_CHART_CONFIG passes v2 schema validation', () => {
+  it('DEFAULT_CHART_CONFIG passes v3 schema validation (DEFAULT_CHART_CONFIG is now v3)', () => {
+    // DEFAULT_CHART_CONFIG was promoted to v3 in Phase 2.1; it no longer validates against v2.
     const result = chartConfigV2Schema.safeParse(DEFAULT_CHART_CONFIG);
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 });
 

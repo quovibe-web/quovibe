@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { CostMethod } from '../enums';
-import { chartConfigV2Schema } from './benchmark.schema';
+import { chartConfigV3Schema } from './benchmark.schema';
 import { dashboardColumnsValue } from './dashboard-wire.schema';
 import { nonBlankString } from './utils';
 
@@ -129,6 +129,17 @@ export const allocationViewSchema = z.object({
 export type AllocationView = z.infer<typeof allocationViewSchema>;
 
 // ---------------------------------------------------------------------------
+// Calculation (/analytics/calculation page) view schema
+// ---------------------------------------------------------------------------
+
+export const calculationViewSchema = z.object({
+  layout: z.enum(['premium', 'classic']).default('premium'),
+  tableDensity: z.enum(['comfortable', 'dense']).default('comfortable'),
+}).default({});
+
+export type CalculationView = z.infer<typeof calculationViewSchema>;
+
+// ---------------------------------------------------------------------------
 // Table layout schema
 // ---------------------------------------------------------------------------
 
@@ -205,7 +216,8 @@ export const quovibeSettingsSchema = z.object({
   portfolios: z.array(portfolioEntrySchema).default([]),
   investmentsView: investmentsViewSchema,
   allocationView: allocationViewSchema,
-  chartConfig: chartConfigV2Schema.default({ version: 2, series: [] }),
+  calculationView: calculationViewSchema,
+  chartConfig: chartConfigV3Schema.default({ version: 3, series: [] }),
   tableLayouts: tableLayoutsSchema,
 });
 

@@ -9,21 +9,21 @@ export function WelcomeFooter() {
   const shortcutKey = isMac ? t('footer.shortcutsKey') : 'Ctrl K';
 
   return (
-    <footer className="flex items-center justify-between gap-4 border-t px-6 py-5 md:px-10 text-[11px] font-mono text-muted-foreground">
-      <span>{t('footer.copyright', { year })}</span>
+    <footer className="flex items-center justify-between gap-4 border-t border-[var(--qv-border-subtle)] px-6 py-5 md:px-10">
+      <span className="qv-eyebrow">{t('footer.copyright', { year })}</span>
       <div className="flex items-center gap-5">
         <a
           href={DOCS_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="transition-colors hover:text-foreground"
+          className="qv-eyebrow text-[var(--qv-text-secondary)] transition-colors hover:text-foreground"
         >
           {t('footer.docs')}
         </a>
-        <span className="hidden sm:inline-flex items-center gap-1.5">
+        <span className="qv-eyebrow hidden items-center gap-1.5 sm:inline-flex">
           {t('footer.shortcutsLabel')}
-          <span className="tracking-wider text-[var(--qv-text-faint)]">·</span>
-          <kbd className="rounded border border-[var(--qv-border)] bg-card/50 px-1.5 py-0.5 text-[10px]">
+          <span className="text-[var(--qv-text-faint)]">·</span>
+          <kbd className="qv-numeric rounded-sm border border-[var(--qv-border-subtle)] bg-[var(--qv-surface-elevated)] px-1.5 py-0.5 text-[10px]">
             {shortcutKey}
           </kbd>
         </span>

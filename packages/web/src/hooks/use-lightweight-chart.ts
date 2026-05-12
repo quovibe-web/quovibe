@@ -4,6 +4,41 @@ import { createChart, type IChartApi, type DeepPartial, type ChartOptions } from
 import { useTheme } from '@/hooks/use-theme';
 import { useChartTheme, toLightweightTheme } from '@/hooks/use-chart-theme';
 
+/**
+ * Pure helper — assembles the options object passed to `createChart`.
+ * Exported so it can be unit-tested without a DOM or chart instance.
+ *
+ * `attributionLogo: false` is the first key so callers can override it
+ * (a caller who explicitly passes `attributionLogo: true` gets their value),
+ * but the default is off for every chart in the app.
+ */
+export function buildLightweightChartOptions(
+  callerOptions: DeepPartial<ChartOptions> | undefined,
+  themeOptions: DeepPartial<ChartOptions>,
+  dimensions: { width: number; height: number },
+  locale: string,
+): DeepPartial<ChartOptions> {
+  return {
+    width: dimensions.width,
+    height: dimensions.height,
+    ...themeOptions,
+    ...callerOptions,
+    layout: {
+      // Hide the TradingView attribution watermark by default.
+      // attributionLogo lives in LayoutOptions; false = watermark hidden.
+      // Caller may re-enable by passing layout: { attributionLogo: true }.
+      attributionLogo: false,
+      ...themeOptions.layout,
+      ...callerOptions?.layout,
+    },
+    localization: {
+      locale,
+      ...themeOptions.localization,
+      ...callerOptions?.localization,
+    },
+  };
+}
+
 /** Map chart instances to their ResizeObserver for cleanup — avoids mutating the library object */
 // quovibe:allow-module-state — DOM observer registry keyed by chart instance; portfolio-agnostic DOM cleanup (ADR-016).
 const chartResizeObservers = new WeakMap<IChartApi, ResizeObserver>();
@@ -116,17 +151,15 @@ export function useLightweightChart(
       if (chartRef.current) return;
       if (node.clientWidth === 0 || node.clientHeight === 0) return; // native-ok
       const themeOptions = toLightweightTheme(chartThemeRef.current);
-      const chart = createChart(node, {
-        width: node.clientWidth,
-        height: node.clientHeight,
-        ...themeOptions,
-        ...optionsRef.current,
-        localization: {
-          locale: localeRef.current,
-          ...themeOptions.localization,
-          ...optionsRef.current?.localization,
-        },
-      });
+      const chart = createChart(
+        node,
+        buildLightweightChartOptions(
+          optionsRef.current,
+          themeOptions,
+          { width: node.clientWidth, height: node.clientHeight },
+          localeRef.current,
+        ),
+      );
       chartRef.current = chart;
 
       if (autoResizeRef.current) {

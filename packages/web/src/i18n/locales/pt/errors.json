@@ -51,6 +51,7 @@
     "IMPORT_IN_PROGRESS": "Outra importação já está em curso. Aguarde a conclusão e tente novamente.",
     "IMPORT_REQUIRES_FILE": "Selecione um ficheiro de cópia de segurança para restaurar.",
     "INVALID_ALLOCATION_VIEW": "As definições da vista de alocação não são válidas.",
+    "INVALID_CALCULATION_VIEW": "As definições da vista de cálculo não são válidas.",
     "INVALID_CHART_CONFIG": "A configuração do gráfico não é válida. Restaure o gráfico para o esquema predefinido e tente novamente.",
     "INVALID_FILE_FORMAT": "Tipo de ficheiro não suportado. Carregue um ficheiro de texto com a extensão esperada.",
     "INVALID_FORMAT": "O XML não é uma exportação de Portfolio Performance (falta o elemento raiz <client> ou os atributos ID).",

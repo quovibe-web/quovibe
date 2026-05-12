@@ -51,6 +51,7 @@
     "IMPORT_IN_PROGRESS": "Inny import już trwa. Poczekaj na zakończenie i spróbuj ponownie.",
     "IMPORT_REQUIRES_FILE": "Wybierz plik kopii zapasowej do przywrócenia.",
     "INVALID_ALLOCATION_VIEW": "Ustawienia widoku alokacji są nieprawidłowe.",
+    "INVALID_CALCULATION_VIEW": "Ustawienia widoku obliczeń są nieprawidłowe.",
     "INVALID_CHART_CONFIG": "Konfiguracja wykresu jest nieprawidłowa. Zresetuj wykres do układu domyślnego i spróbuj ponownie.",
     "INVALID_FILE_FORMAT": "Nieobsługiwany typ pliku. Wgraj plik tekstowy z oczekiwanym rozszerzeniem.",
     "INVALID_FORMAT": "XML nie jest eksportem z Portfolio Performance (brak elementu głównego <client> lub atrybutów ID).",

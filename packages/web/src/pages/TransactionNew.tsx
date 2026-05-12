@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { TransactionForm, type TransactionFormValues } from '@/components/domain/TransactionForm';
 import { useCreateTransaction } from '@/api/use-transactions';
 import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
@@ -65,8 +66,8 @@ export default function TransactionNew() {
   );
 
   return (
-    <div className="qv-page space-y-6 max-w-lg mx-auto">
-      <h1 className="text-lg font-semibold text-foreground tracking-tight">{t('newTransaction')}</h1>
+    <div className="qv-page space-y-6 max-w-3xl mx-auto">
+      <PageHeader title={t('newTransaction')} subtitle={t('newTransactionDescription')} />
 
       <div className="space-y-1">
         <Label htmlFor="tx-new-type">{t('transactionType')}</Label>
@@ -82,9 +83,9 @@ export default function TransactionNew() {
         </Select>
       </div>
 
-      <Card>
+      <Card className="rounded-md">
         <CardHeader>
-          <CardTitle className="text-base">{t('types.' + txTypeKey(type))}</CardTitle>
+          <CardTitle className="text-base font-medium">{t('types.' + txTypeKey(type))}</CardTitle>
         </CardHeader>
         <CardContent>
           <TransactionForm

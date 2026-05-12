@@ -1,6 +1,7 @@
 import { useState, useCallback, type ReactNode } from 'react';
 import { Outlet, NavLink, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { AnalyticsContext } from '@/context/analytics-context';
 import { cn } from '@/lib/utils';
@@ -33,21 +34,33 @@ export default function Analytics() {
       />
 
       {/* Tab strip */}
-      <nav className="inline-flex rounded-full border border-border bg-muted/50 p-0.5">
+      <nav className="flex items-center gap-1 border-b border-[var(--qv-border-subtle)]">
         {TABS.map((tab) => (
           <NavLink
             key={tab.path}
             to={{ pathname: `/p/${portfolioId}/analytics/${tab.path}`, search: periodSearch }}
+            end={false}
             className={({ isActive }) =>
               cn(
-                'px-4 py-1.5 text-xs font-medium rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+                'relative px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:rounded-sm',
                 isActive
-                  ? 'bg-background text-foreground shadow-sm'
+                  ? 'text-[var(--qv-text-display)]'
                   : 'text-muted-foreground hover:text-foreground',
               )
             }
           >
-            {t(tab.labelKey)}
+            {({ isActive }) => (
+              <>
+                <span className="relative z-10">{t(tab.labelKey)}</span>
+                {isActive && (
+                  <motion.div
+                    layoutId="analytics-tab-indicator"
+                    className="absolute left-2 right-2 -bottom-px h-[2px] bg-[var(--color-primary)]"
+                    transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
+                  />
+                )}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>

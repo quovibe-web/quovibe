@@ -2,19 +2,31 @@
 
 ## Date Handling
 
-**Rule**: all financial dates in quovibe are user-local, never UTC timestamps. Transactions support optional minute-level time (`YYYY-MM-DDTHH:mm`), matching Portfolio Performance's precision.
+Quovibe uses **two distinct date conventions** depending on what is being recorded.
 
-**Rationale**: a transaction on 31/12/2024 is "December 31, 2024" regardless of the server's timezone. When a transaction carries a time component (e.g. `2024-12-31T14:30`), it is preserved through import, storage, API, and display.
+### Financial dates → user-local, no timezone
 
-Implementation:
-- Node.js server NEVER converts dates to UTC
-- Dates arrive from frontend as `YYYY-MM-DD` or `YYYY-MM-DDTHH:mm` string
-- Dates saved as TEXT in the DB (both formats supported)
-- Zod validation: `/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/`
-- date-fns: always use non-UTC functions (`parseISO`, `format`, `differenceInDays`)
-- Frontend: `formatDate()` detects the time component and displays it when present; date-only values use `new Date(dateString + 'T00:00:00')` to avoid off-by-one
-- Date range filters append `T23:59:59` to boundary dates so timestamps within the day are included
-- `updatedAt` and system timestamps use ISO 8601 UTC. Only financial dates follow this convention.
+A transaction on 31/12/2024 is "December 31, 2024" regardless of the server's timezone. Applies to `xact.date`, `price.date`, period boundaries, valuation dates — anything the user sees as a calendar date. Transactions support optional minute-level time (`YYYY-MM-DDTHH:mm`), matching Portfolio Performance's precision.
+
+- Node.js server NEVER converts financial dates to UTC.
+- Dates arrive from frontend as `YYYY-MM-DD` or `YYYY-MM-DDTHH:mm` string.
+- Dates saved as TEXT in the DB (both formats supported).
+- Zod validation: `/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/`.
+- date-fns: always use non-UTC functions (`parseISO`, `format`, `differenceInDays`).
+- Frontend: `formatDate()` detects the time component and displays it when present; date-only values use `new Date(dateString + 'T00:00:00')` to avoid off-by-one.
+- Date range filters append `T23:59:59` to boundary dates so timestamps within the day are included.
+
+### System / metadata timestamps → UTC ISO 8601
+
+When the field records "when did this row get written" rather than "what financial day does this reflect", store UTC. Applies to:
+
+- `vf_portfolio_meta.createdAt`, `lastOpenedAt`
+- `vf_dashboard.createdAt`, `updatedAt`
+- Sidecar `quovibe.settings.json` timestamps
+- Instance-lock `startedAt` (`services/instance-lock.ts`)
+- Anything written via `new Date().toISOString()`
+
+UTC is correct here because these fields participate in sort/age comparisons that must remain monotonic across DST transitions and timezone moves of the user's machine, and they are never displayed to the user as a calendar date.
 
 ## Docker Setup
 

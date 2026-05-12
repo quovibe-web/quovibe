@@ -10,8 +10,13 @@
   "title": "Dashboard",
   "hero": {
     "portfolioValue": "Portefeuillewaarde",
+    "asOf": "Per {{date}}",
     "configureMetrics": "Statistieken configureren",
     "selectMetrics": "Statistieken selecteren"
+  },
+  "zones": {
+    "charts": "Grafieken",
+    "detailMetrics": "Detailstatistieken"
   },
   "addDashboard": "Nieuw dashboard",
   "addDashboardDescription": "Voer een naam in voor het nieuwe dashboard",

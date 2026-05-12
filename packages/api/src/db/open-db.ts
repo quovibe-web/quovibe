@@ -5,6 +5,7 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import * as schema from './schema';
 import { applyBootstrap } from './apply-bootstrap';
 import { verifySchema, verifyColumnTypes } from './verify';
+import { verifyPortfolioSchemaVersion } from './schema-version';
 
 export interface OpenDatabaseResult {
   db: BetterSQLite3Database<Record<string, unknown>>;
@@ -41,6 +42,14 @@ export function openDatabase(dbPath: string): OpenDatabaseResult {
 
   // Apply bootstrap DDL (idempotent — creates vf_* tables, indexes)
   applyBootstrap(sqlite);
+
+  // Missing row is OK — seedMeta() writes it after openDatabase returns.
+  try {
+    verifyPortfolioSchemaVersion(sqlite);
+  } catch (err) {
+    sqlite.close();
+    throw err;
+  }
 
   const db = drizzle(sqlite, {
     schema,

@@ -20,7 +20,7 @@ interface RechartsBarMouseData {
  * Half-width used to clamp tooltip position to chart bounds so the centered
  * tooltip card stays fully inside the chart's left/right edges on edge bars
  * (the rightmost-year-bar regression). 110 px covers the widest tooltip in
- * use today (PaymentBreakdownTooltip's `min-w-[200px]` plus an 8 px safety
+ * use today (IncomeStackedBreakdownTooltip's `min-w-[200px]` plus an 8 px safety
  * margin); revisit if a future tooltip needs more horizontal space.
  */
 const DEFAULT_TOOLTIP_HALF_WIDTH = 110;

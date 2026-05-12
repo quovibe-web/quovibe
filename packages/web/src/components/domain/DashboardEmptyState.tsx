@@ -1,6 +1,8 @@
-// packages/web/src/components/domain/DashboardEmptyState.tsx
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { FileText, Plus, FlaskConical } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { useCreatePortfolio, usePortfolioRegistry } from '@/api/use-portfolios';
 
 export function DashboardEmptyState() {
@@ -22,25 +24,48 @@ export function DashboardEmptyState() {
   };
 
   return (
-    <main className="mx-auto mt-10 max-w-2xl rounded-lg border p-10 text-center">
-      <h2 className="text-lg font-semibold">{t('empty.title')}</h2>
-      <section className="mt-6 space-y-2">
-        <h3 className="text-sm font-medium">{t('empty.importHeader')}</h3>
-        <button className="rounded bg-primary px-3 py-2 text-primary-foreground"
-                onClick={() => navigate(`/p/${portfolioId}/import/csv`)}>
-          📄 {t('empty.importCsv')}
-        </button>
-        <button className="ml-2 rounded border px-3 py-2"
-                onClick={() => navigate(`/p/${portfolioId}/transactions/new`)}>
-          + {t('empty.addManually')}
-        </button>
+    <main className="mx-auto mt-12 max-w-2xl px-6 text-center qv-page">
+      <h2
+        className="text-3xl md:text-4xl font-medium leading-tight tracking-[-0.015em]"
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontVariationSettings: "'opsz' 72, 'wght' 500",
+        }}
+      >
+        {t('empty.title')}
+      </h2>
+
+      <section className="mt-10">
+        <div className="qv-eyebrow mb-4">{t('empty.importHeader')}</div>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button
+            onClick={() => navigate(`/p/${portfolioId}/import/csv`)}
+            className="gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            {t('empty.importCsv')}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/p/${portfolioId}/transactions/new`)}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            {t('empty.addManually')}
+          </Button>
+        </div>
       </section>
-      <hr className="my-6" />
+
+      <div className="my-10 flex items-center justify-center">
+        <Separator className="max-w-[120px]" />
+      </div>
+
       <section>
-        <p className="mb-2 text-sm text-muted-foreground">{t('empty.wantToSee')}</p>
-        <button className="rounded border px-3 py-2" onClick={onTryDemo}>
-          🧪 {t('empty.tryDemo')}
-        </button>
+        <p className="text-sm text-[var(--qv-text-secondary)] mb-4">{t('empty.wantToSee')}</p>
+        <Button variant="ghost" onClick={onTryDemo} className="gap-2">
+          <FlaskConical className="h-4 w-4" />
+          {t('empty.tryDemo')}
+        </Button>
       </section>
     </main>
   );

@@ -10,8 +10,13 @@
   "title": "Dashboard",
   "hero": {
     "portfolioValue": "Valore del Portafoglio",
+    "asOf": "Al {{date}}",
     "configureMetrics": "Configura metriche",
     "selectMetrics": "Seleziona metriche"
+  },
+  "zones": {
+    "charts": "Grafici",
+    "detailMetrics": "Metriche dettaglio"
   },
   "addDashboard": "Nuova dashboard",
   "addDashboardDescription": "Inserisci un nome per la nuova dashboard",

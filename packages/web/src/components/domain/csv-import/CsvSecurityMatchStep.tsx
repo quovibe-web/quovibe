@@ -189,16 +189,16 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
   };
 
   if (secAccounts.isLoading || accountsLoading) {
-    return <div className="text-center py-12 text-muted-foreground">{t('securities.pickerLoading')}</div>;
+    return <div className="text-center py-12 text-[var(--qv-text-secondary)]">{t('securities.pickerLoading')}</div>;
   }
 
   return (
     <div className="space-y-6">
       {showPicker && (
-        <Card>
+        <Card className="rounded-md">
           <CardHeader><CardTitle>{t('securities.picker.label')}</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <p className="text-sm text-muted-foreground">{t('securities.picker.description')}</p>
+            <p className="text-sm text-[var(--qv-text-secondary)]">{t('securities.picker.description')}</p>
             <Label htmlFor="securities-account-picker" className="sr-only">
               {t('securities.picker.label')}
             </Label>
@@ -238,19 +238,19 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
       )}
 
       {previewMutation.isPending ? (
-        <div className="text-center py-12 text-muted-foreground">{t('securities.loading')}</div>
+        <div className="text-center py-12 text-[var(--qv-text-secondary)]">{t('securities.loading')}</div>
       ) : (
-        <Card>
+        <Card className="rounded-md">
           <CardHeader>
             <CardTitle>{t('securities.title')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">{t('securities.description')}</p>
+            <p className="text-sm text-[var(--qv-text-secondary)] mb-4">{t('securities.description')}</p>
 
             {hasError ? null : !state.targetSecuritiesAccountId ? (
-              <p className="text-sm text-muted-foreground">{t('securities.picker.placeholder')}</p>
+              <p className="text-sm text-[var(--qv-text-secondary)]">{t('securities.picker.placeholder')}</p>
             ) : unmatchedSecurities.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('securities.none')}</p>
+              <p className="text-sm text-[var(--qv-text-secondary)]">{t('securities.none')}</p>
             ) : (
               <div className="space-y-3">
                 {unmatchedSecurities.map((sec) => {
@@ -266,19 +266,16 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
                   const showFallbackWarning =
                     !isMatched && csvCurrencies.length === 0 && !currencyOverrides[sec.csvName];
                   return (
-                    <div key={sec.csvName} className="space-y-2 p-3 border rounded-md">
+                    <div key={sec.csvName} className="space-y-2 p-3 border border-[var(--qv-border-subtle)] rounded-md">
                       <div className="flex items-center gap-4">
                         <div className="flex-1">
                           <div className="font-medium text-sm">{sec.csvName}</div>
                           {sec.csvIsin && (
-                            <div className="text-xs text-muted-foreground">ISIN: {sec.csvIsin}</div>
+                            <div className="text-xs text-[var(--qv-text-faint)] qv-numeric">ISIN: {sec.csvIsin}</div>
                           )}
                         </div>
 
-                        <Badge
-                          variant={isMatched ? 'default' : 'secondary'}
-                          className={isMatched ? 'bg-green-600' : 'bg-amber-500'}
-                        >
+                        <Badge variant="outline" className="qv-eyebrow rounded-sm">
                           {isMatched ? t('securities.status.matched') : t('securities.status.new')}
                         </Badge>
 
@@ -332,7 +329,10 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
                       </div>
 
                       {showConflictWarning && (
-                        <Alert variant="default" className="border-amber-500/50 text-amber-700 dark:text-amber-400">
+                        <Alert
+                          variant="default"
+                          className="border-[var(--qv-warning)]/40 text-[var(--qv-warning)]"
+                        >
                           <AlertDescription>
                             {t('securities.currency.conflict', {
                               currencies: csvCurrencies.join(', '),
@@ -343,7 +343,10 @@ export function CsvSecurityMatchStep({ state, onUpdate, onBack, onNext }: Props)
                       )}
 
                       {showFallbackWarning && (
-                        <Alert variant="default" className="border-amber-500/50 text-amber-700 dark:text-amber-400">
+                        <Alert
+                          variant="default"
+                          className="border-[var(--qv-warning)]/40 text-[var(--qv-warning)]"
+                        >
                           <AlertDescription>
                             {t('securities.currency.fallback', { currency: resolvedCurrency })}
                           </AlertDescription>

@@ -26,8 +26,20 @@ export interface SeriesDataPoint {
 export interface ResolvedSeries {
   config: DataSeriesConfig;
   data: SeriesDataPoint[];
+  status: 'loading' | 'ok' | 'empty' | 'error';
   isLoading: boolean;
   error: Error | null;
+}
+
+export function resolveSeriesStatus(q: {
+  isLoading: boolean;
+  data: unknown[] | undefined;
+  error: Error | null;
+}): ResolvedSeries['status'] {
+  if (q.error) return 'error';
+  if (q.isLoading) return 'loading';
+  if ((q.data ?? []).length === 0) return 'empty'; // native-ok
+  return 'ok';
 }
 
 function buildQueryKey(
@@ -116,12 +128,14 @@ export function useChartSeries() {
 
   const result: ResolvedSeries[] = useMemo(
     () =>
-      seriesList.map((cfg, i) => ({
-        config: cfg,
-        data: queries[i]?.data ?? [],
-        isLoading: queries[i]?.isLoading ?? false,
-        error: (queries[i]?.error as Error) ?? null,
-      })),
+      seriesList.map((cfg, i) => {
+        const q = queries[i];
+        const data = q?.data ?? [];
+        const isLoading = q?.isLoading ?? false;
+        const error = (q?.error as Error) ?? null;
+        const status = resolveSeriesStatus({ isLoading, data, error });
+        return { config: cfg, data, status, isLoading, error };
+      }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [queryKey, configKey],
   );

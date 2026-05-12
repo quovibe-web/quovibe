@@ -51,6 +51,7 @@
     "IMPORT_IN_PROGRESS": "Ein anderer Import läuft bereits. Warten Sie auf den Abschluss und versuchen Sie es erneut.",
     "IMPORT_REQUIRES_FILE": "Wählen Sie eine Sicherungsdatei zum Wiederherstellen aus.",
     "INVALID_ALLOCATION_VIEW": "Die Einstellungen der Allokationsansicht sind nicht gültig.",
+    "INVALID_CALCULATION_VIEW": "Die Einstellungen der Berechnungsansicht sind nicht gültig.",
     "INVALID_CHART_CONFIG": "Die Diagrammkonfiguration ist nicht gültig. Setzen Sie das Diagramm auf das Standardlayout zurück und versuchen Sie es erneut.",
     "INVALID_FILE_FORMAT": "Dateityp nicht unterstützt. Laden Sie eine Textdatei mit der erwarteten Erweiterung hoch.",
     "INVALID_FORMAT": "Die XML ist keine Portfolio-Performance-Exportdatei (fehlendes <client>-Stammelement oder ID-Attribute).",

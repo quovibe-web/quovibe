@@ -73,7 +73,83 @@
     "thereofFx": "Efeito cambial",
     "columnName": "Nome",
     "columnAmount": "Montante",
-    "columnDate": "Data"
+    "columnDate": "Data",
+    "viewToggle": {
+      "label": "Layout",
+      "premium": "Premium",
+      "classic": "Clássico"
+    },
+    "heroStrip": {
+      "ttwror": "Retorno TWR",
+      "irr": "IRR (anual)",
+      "deltaPercent": "Δ %",
+      "deltaAbsolute": "Δ absoluto",
+      "maxDrawdown": "Drawdown máximo",
+      "sharpe": "Índice Sharpe",
+      "onMvb": "sobre o valor inicial",
+      "netResult": "resultado líquido",
+      "riskAdjustedReturn": "retorno ajustado ao risco",
+      "newtonRaphson": "Newton-Raphson"
+    },
+    "categories": {
+      "drivers": "Motores de desempenho",
+      "frictions": "Frições",
+      "flows": "Fluxos de capital",
+      "anchorsIdentity": "Âncoras e identidade",
+      "descriptions": {
+        "drivers": "Ganhos de preço, dividendos, juros e efeitos cambiais",
+        "frictions": "Comissões e impostos cobrados no período",
+        "flows": "Depósitos, levantamentos, entregas — fluxos que não afetam o desempenho",
+        "anchorsIdentity": "Início, fim e a identidade aritmética do período"
+      }
+    },
+    "waterfall": {
+      "title": "Waterfall",
+      "mvb": "Inicial",
+      "mve": "Final",
+      "drivers": "Motores",
+      "frictions": "Frições",
+      "flows": "Fluxos",
+      "clickToExpand": "Clique numa barra para ver a discriminação",
+      "extremeMagnitudeNotice": "Um valor sobressai aos demais — mude para escala logarítmica para ver todas as barras",
+      "linearScale": "Linear",
+      "logScale": "Log",
+      "emptyPeriod": "Nenhuma transação no período"
+    },
+    "rightRail": {
+      "riskStyle": "Risco e estilo",
+      "openPosition": "Posição aberta",
+      "lastDay": "Último dia Δ",
+      "volatility": "Volatilidade",
+      "semivariance": "Semivariância",
+      "maxDdPeriod": "Período do DD máximo",
+      "currentDrawdown": "Drawdown atual",
+      "pmcConvention": "PMC",
+      "fifoConvention": "FIFO",
+      "cost": "Base de custo",
+      "marketValue": "Valor de mercado",
+      "unrealizedPnl": "PnL não realizado",
+      "peak": "Pico",
+      "trough": "Vale",
+      "duration": "Duração",
+      "days_one": "{{count}} dia",
+      "days_other": "{{count}} dias"
+    },
+    "equation": {
+      "identityCheck": "Verificação de identidade",
+      "labelMvb": "MVB",
+      "labelDrivers": "Motores",
+      "labelFrictions": "Frições",
+      "labelFlows": "Fluxos",
+      "labelMve": "MVE",
+      "identityOk": "verificado",
+      "identityDrift": "desvio {{value}}"
+    },
+    "density": {
+      "comfortable": "Confortável",
+      "dense": "Denso",
+      "toggle": "Alternar densidade da tabela"
+    }
   },
   "securities": {
     "title": "Desempenho — Títulos",
@@ -163,7 +239,56 @@
     "styleDashed": "Tracejado",
     "styleDotted": "Pontilhado",
     "customColor": "Personalizado",
-    "presetColors": "Cores predefinidas"
+    "presetColors": "Cores predefinidas",
+    "annualized": "Anualizado",
+    "status": {
+      "loading": "A carregar…",
+      "empty": "Sem dados no período",
+      "error": "Falha ao carregar"
+    },
+    "axis": {
+      "label": "Eixo",
+      "shared": "Eixo partilhado",
+      "pinLeft": "Fixar à esquerda",
+      "pinRight": "Fixar à direita"
+    },
+    "rail": {
+      "lastCol": "Último",
+      "deltaCol": "vs Carteira",
+      "addSeries": "+ Adicionar série",
+      "series": "Série"
+    },
+    "sheet": {
+      "title": "Comparar",
+      "description": "Adicionar títulos e benchmarks ao gráfico",
+      "empty": "Use a pesquisa para adicionar séries e benchmarks.",
+      "counter": "{{count}} de {{max}}",
+      "done": "Concluído",
+      "search": "Pesquisar ticker, ISIN, nome…",
+      "noResults": "Sem títulos correspondentes",
+      "removeAll": "Remover tudo",
+      "removeAllConfirm": "Remover todas as {{count}} séries?",
+      "removeAllCancel": "Cancelar",
+      "removeAllConfirmAction": "Remover tudo",
+      "filter": {
+        "all": "Tudo",
+        "owned": "Detidos",
+        "index": "Índices",
+        "account": "Contas"
+      }
+    },
+    "action": {
+      "addHolding": "Adicionar como posição",
+      "addReference": "Adicionar como referência",
+      "compare": "Comparar"
+    },
+    "badge": {
+      "youHold": "Detido",
+      "index": "Índice"
+    },
+    "semantic": {
+      "tooltip": "Posição = TWR na sua posição (considera compras e vendas). Referência = retorno de preço do ativo, independentemente das posições."
+    }
   },
   "cardLinks": {
     "calculation": "Cálculo",

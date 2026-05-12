@@ -102,8 +102,8 @@ export function CsvPriceImportDialog({ securityId, securityName }: Props) {
               </AlertDescription>
             </Alert>
             {result.dateRange.from && (
-              <p className="text-sm text-muted-foreground">
-                {t('prices.dateRange')}: {result.dateRange.from} — {result.dateRange.to}
+              <p className="text-sm text-[var(--qv-text-secondary)]">
+                {t('prices.dateRange')}: <span className="qv-numeric">{result.dateRange.from} — {result.dateRange.to}</span>
               </p>
             )}
             <Button onClick={resetAndClose}>{t('nav.close', 'Close')}</Button>
@@ -114,7 +114,7 @@ export function CsvPriceImportDialog({ securityId, securityName }: Props) {
             <div className="space-y-4">
               {/* Dropzone */}
               <div
-                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                className="border border-dashed border-[var(--qv-border)] rounded-md bg-[var(--qv-surface-elevated)] p-6 text-center cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--qv-surface-3)] transition-colors"
                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
                 onDragOver={(e) => e.preventDefault()}
                 onClick={() => document.getElementById('csv-price-input')?.click()}
@@ -126,13 +126,13 @@ export function CsvPriceImportDialog({ securityId, securityName }: Props) {
                   className="hidden"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
                 />
-                <p className="text-sm text-muted-foreground">{t('prices.dropzone')}</p>
+                <p className="text-sm text-[var(--qv-text-secondary)]">{t('prices.dropzone')}</p>
               </div>
 
               {/* Column mapping */}
               {parseResult && (
                 <div className="space-y-3">
-                  <Label className="font-medium">{t('prices.columnMapping')}</Label>
+                  <Label className="qv-eyebrow text-[var(--qv-text-faint)]">{t('prices.columnMapping')}</Label>
                   {(['date', 'close', 'high', 'low', 'volume'] as const).map((field) => (
                     <div key={field} className="flex items-center gap-2">
                       <span className="text-sm w-16 capitalize">{field}{field === 'date' || field === 'close' ? ' *' : ''}</span>
@@ -162,7 +162,7 @@ export function CsvPriceImportDialog({ securityId, securityName }: Props) {
 
               {/* Format settings */}
               <div className="space-y-3">
-                <Label className="font-medium">{t('prices.formatSettings')}</Label>
+                <Label className="qv-eyebrow text-[var(--qv-text-faint)]">{t('prices.formatSettings')}</Label>
                 <div className="grid grid-cols-2 gap-14 items-end">
                   <div>
                     <Label className="text-xs">{t('upload.dateFormat')}</Label>
@@ -189,16 +189,16 @@ export function CsvPriceImportDialog({ securityId, securityName }: Props) {
 
             {/* Right: summary */}
             <div className="space-y-4">
-              <Label className="font-medium">{t('prices.summary')}</Label>
+              <Label className="qv-eyebrow text-[var(--qv-text-faint)]">{t('prices.summary')}</Label>
               {parseResult ? (
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t('prices.totalRows')}</span>
-                    <span>{parseResult.totalRows}</span>
+                    <span className="text-[var(--qv-text-secondary)]">{t('prices.totalRows')}</span>
+                    <span className="qv-numeric">{parseResult.totalRows}</span>
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">{t('upload.noFile')}</p>
+                <p className="text-sm text-[var(--qv-text-secondary)]">{t('upload.noFile')}</p>
               )}
 
               <Button

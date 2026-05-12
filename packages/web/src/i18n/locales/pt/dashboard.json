@@ -10,8 +10,13 @@
   "title": "Painel",
   "hero": {
     "portfolioValue": "Valor da carteira",
+    "asOf": "Em {{date}}",
     "configureMetrics": "Configurar métricas",
     "selectMetrics": "Selecionar métricas"
+  },
+  "zones": {
+    "charts": "Gráficos",
+    "detailMetrics": "Métricas detalhadas"
   },
   "addDashboard": "Novo painel",
   "addDashboardDescription": "Introduza um nome para o novo painel",

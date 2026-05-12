@@ -50,6 +50,28 @@
     "interest": "Interessi",
     "dividendsPerGroup": "Dividendi per {{groupBy}}",
     "interestPerGroup": "Interessi per {{groupBy}}",
+    "incomePerGroupGross": "Reddito per {{groupBy}} · lordo",
+    "incomePerGroupNet": "Reddito per {{groupBy}} · netto",
+    "hero": {
+      "titleGross": "Proventi totali (lordi)",
+      "titleNet": "Proventi totali (netti)",
+      "avgMonth": "Media / mese",
+      "peakMonth": "Mese di picco",
+      "payments": "Pagamenti",
+      "topSecurity": "Titolo principale",
+      "priorPeak": "picco precedente"
+    },
+    "calendar": {
+      "title": "Cadenza mensile",
+      "yearLabel": "Anno",
+      "total": "Totale",
+      "totalLabel": "Totale",
+      "deltaHeader": "Δ",
+      "averageRow": "Media",
+      "headerChipAvg": "Media/mese {{value}}",
+      "headerChipYoy": "▲ rispetto al '{{year}}",
+      "headerChipYoyDown": "▼ rispetto al '{{year}}"
+    },
     "columns": {
       "date": "Data",
       "type": "Tipo",
@@ -57,7 +79,11 @@
       "account": "Conto",
       "amount": "Importo"
     },
-    "empty": "Nessun pagamento nel periodo selezionato.",
+    "empty": {
+      "noPayments": "Nessun pagamento nel periodo selezionato.",
+      "filtered": "Nessun pagamento corrisponde ai filtri attivi",
+      "clearFilters": "Cancella filtri"
+    },
     "paymentCount_one": "{{count}} pagamento",
     "paymentCount_other": "{{count}} pagamenti",
     "breakdown": {
@@ -66,6 +92,44 @@
       "error": "Impossibile caricare i dettagli",
       "byTitle": "per titolo",
       "byAccount": "per conto"
+    },
+    "yoy": {
+      "vsPrior": "▲ +{{share}}% rispetto a {{priorTotal}} {{priorLabel}}",
+      "vsPriorDown": "▼ {{share}}% rispetto a {{priorTotal}} {{priorLabel}}",
+      "priorYearLabel": "YTD {{year}}"
+    },
+    "detail": {
+      "headerCount": "Dettaglio · {{count, number}} pagamenti",
+      "filtered": "{{filtered, number}} di {{total, number}}",
+      "filter": {
+        "allTypes": "Tutti i tipi",
+        "dividend": "Dividendi",
+        "interest": "Interessi",
+        "addSecurity": "+ Titolo",
+        "selectSecurities": "Seleziona titoli",
+        "searchSecurities": "Cerca titoli…"
+      },
+      "sort": {
+        "label": "Ordina",
+        "dateDesc": "Data · più recente",
+        "dateAsc": "Data · meno recente",
+        "amountDesc": "Importo · più alto",
+        "securityAsc": "Titolo · A → Z"
+      },
+      "year": {
+        "ytd": "YTD",
+        "payments": "{{count, number}} pagamenti"
+      }
+    },
+    "rail": {
+      "topPayers": "Migliori pagatori",
+      "morePayers": "+ altri {{count, number}}",
+      "byType": "Per tipo",
+      "cashInterest": "Interessi su liquidità"
+    },
+    "concentration": {
+      "title": "Concentrazione",
+      "top3": "Top 3 = {{share}}% del reddito"
     }
   },
   "returnsHeatmap": {
@@ -150,7 +214,15 @@
     "fees": "Commissioni",
     "selectTaxonomy": "Tassonomia",
     "categoryLabel": "Categoria",
-    "subtitle": "Andamento performance per categoria"
+    "subtitle": "Andamento performance per categoria",
+    "best": "Migliore",
+    "worst": "Peggiore",
+    "spread": "Differenza",
+    "spreadAcross": "su {{count}} categorie",
+    "categoriesLabel": "Categorie",
+    "composition": "Composizione",
+    "topPerformers": "Migliori categorie",
+    "noCategoryData": "Nessun dato disponibile per la categoria."
   },
   "taxonomyNodePicker": {
     "loading": "Caricamento…",

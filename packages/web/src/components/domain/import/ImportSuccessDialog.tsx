@@ -47,18 +47,18 @@ export function ImportSuccessDialog({
         </DialogHeader>
         <div className="flex flex-col gap-4 py-2">
           <p className="text-base font-medium">{portfolioName}</p>
-          <hr className="border-border" />
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 tabular-nums">
-            <dt className="text-right font-medium">{summary.securities}</dt>
-            <dd className="text-muted-foreground">
+          <hr className="border-[var(--qv-border-subtle)]" />
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+            <dt className="qv-numeric text-right font-medium">{summary.securities}</dt>
+            <dd className="text-[var(--qv-text-secondary)]">
               {t('hub.importSuccess.statSecurities', { count: summary.securities })}
             </dd>
-            <dt className="text-right font-medium">{summary.accounts}</dt>
-            <dd className="text-muted-foreground">
+            <dt className="qv-numeric text-right font-medium">{summary.accounts}</dt>
+            <dd className="text-[var(--qv-text-secondary)]">
               {t('hub.importSuccess.statAccounts', { count: summary.accounts })}
             </dd>
-            <dt className="text-right font-medium">{summary.transactions}</dt>
-            <dd className="text-muted-foreground">
+            <dt className="qv-numeric text-right font-medium">{summary.transactions}</dt>
+            <dd className="text-[var(--qv-text-secondary)]">
               {t('hub.importSuccess.statTransactions', { count: summary.transactions })}
             </dd>
           </dl>

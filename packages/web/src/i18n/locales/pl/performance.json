@@ -73,7 +73,85 @@
     "thereofFx": "Efekt walutowy",
     "columnName": "Nazwa",
     "columnAmount": "Kwota",
-    "columnDate": "Data"
+    "columnDate": "Data",
+    "viewToggle": {
+      "label": "Układ",
+      "premium": "Premium",
+      "classic": "Klasyczny"
+    },
+    "heroStrip": {
+      "ttwror": "Stopa zwrotu TWR",
+      "irr": "IRR (roczna)",
+      "deltaPercent": "Δ %",
+      "deltaAbsolute": "Δ absolutny",
+      "maxDrawdown": "Maksymalny spadek",
+      "sharpe": "Wskaźnik Sharpe'a",
+      "onMvb": "od wartości początkowej",
+      "netResult": "wynik netto",
+      "riskAdjustedReturn": "zwrot skorygowany o ryzyko",
+      "newtonRaphson": "Newton-Raphson"
+    },
+    "categories": {
+      "drivers": "Czynniki wydajności",
+      "frictions": "Tarcia",
+      "flows": "Przepływy kapitału",
+      "anchorsIdentity": "Punkty stałe i tożsamość",
+      "descriptions": {
+        "drivers": "Zyski kursowe, dywidendy, odsetki i efekty walutowe",
+        "frictions": "Opłaty i podatki naliczone w okresie",
+        "flows": "Wpłaty, wypłaty, dostawy — przepływy niewpływające na wynik",
+        "anchorsIdentity": "Początek, koniec i tożsamość arytmetyczna okresu"
+      }
+    },
+    "waterfall": {
+      "title": "Waterfall",
+      "mvb": "Początek",
+      "mve": "Koniec",
+      "drivers": "Czynniki",
+      "frictions": "Tarcia",
+      "flows": "Przepływy",
+      "clickToExpand": "Kliknij słupek, aby zobaczyć szczegóły",
+      "extremeMagnitudeNotice": "Jedna wartość przyćmiewa pozostałe — przełącz na skalę logarytmiczną, aby zobaczyć wszystkie słupki",
+      "linearScale": "Liniowa",
+      "logScale": "Log",
+      "emptyPeriod": "Brak transakcji w okresie"
+    },
+    "rightRail": {
+      "riskStyle": "Ryzyko i styl",
+      "openPosition": "Otwarta pozycja",
+      "lastDay": "Ostatni dzień Δ",
+      "volatility": "Zmienność",
+      "semivariance": "Semiwariancja",
+      "maxDdPeriod": "Okres maks. spadku",
+      "currentDrawdown": "Bieżący spadek",
+      "pmcConvention": "PMC",
+      "fifoConvention": "FIFO",
+      "cost": "Podstawa kosztów",
+      "marketValue": "Wartość rynkowa",
+      "unrealizedPnl": "Niezrealizowany PnL",
+      "peak": "Szczyt",
+      "trough": "Dołek",
+      "duration": "Czas trwania",
+      "days_one": "{{count}} dzień",
+      "days_few": "{{count}} dni",
+      "days_many": "{{count}} dni",
+      "days_other": "{{count}} dni"
+    },
+    "equation": {
+      "identityCheck": "Sprawdzenie tożsamości",
+      "labelMvb": "MVB",
+      "labelDrivers": "Czynniki",
+      "labelFrictions": "Tarcia",
+      "labelFlows": "Przepływy",
+      "labelMve": "MVE",
+      "identityOk": "zweryfikowano",
+      "identityDrift": "odchylenie {{value}}"
+    },
+    "density": {
+      "comfortable": "Wygodny",
+      "dense": "Gęsty",
+      "toggle": "Przełącz gęstość tabeli"
+    }
   },
   "securities": {
     "title": "Wyniki — Papiery wartościowe",
@@ -163,7 +241,56 @@
     "styleDashed": "Przerywana",
     "styleDotted": "Kropkowana",
     "customColor": "Niestandardowy",
-    "presetColors": "Kolory predefiniowane"
+    "presetColors": "Kolory predefiniowane",
+    "annualized": "Roczny",
+    "status": {
+      "loading": "Ładowanie…",
+      "empty": "Brak danych w okresie",
+      "error": "Błąd ładowania"
+    },
+    "axis": {
+      "label": "Oś",
+      "shared": "Wspólna oś",
+      "pinLeft": "Przypnij do lewej",
+      "pinRight": "Przypnij do prawej"
+    },
+    "rail": {
+      "lastCol": "Ostatni",
+      "deltaCol": "vs Portfel",
+      "addSeries": "+ Dodaj serię",
+      "series": "Seria"
+    },
+    "sheet": {
+      "title": "Porównaj",
+      "description": "Dodaj papiery i benchmarki do wykresu",
+      "empty": "Wyszukaj powyżej, aby dodać serie i benchmarki.",
+      "counter": "{{count}} z {{max}}",
+      "done": "Gotowe",
+      "search": "Szukaj ticker, ISIN, nazwa…",
+      "noResults": "Brak pasujących papierów",
+      "removeAll": "Usuń wszystkie",
+      "removeAllConfirm": "Usunąć wszystkie {{count}} serii?",
+      "removeAllCancel": "Anuluj",
+      "removeAllConfirmAction": "Usuń wszystkie",
+      "filter": {
+        "all": "Wszystko",
+        "owned": "Posiadane",
+        "index": "Indeksy",
+        "account": "Konta"
+      }
+    },
+    "action": {
+      "addHolding": "Dodaj jako pozycję",
+      "addReference": "Dodaj jako odniesienie",
+      "compare": "Porównaj"
+    },
+    "badge": {
+      "youHold": "Posiadasz",
+      "index": "Indeks"
+    },
+    "semantic": {
+      "tooltip": "Pozycja = TWR na Twojej pozycji (uwzględnia kupna i sprzedaże). Odniesienie = zwrot cenowy aktywa, niezależnie od pozycji."
+    }
   },
   "cardLinks": {
     "calculation": "Obliczenia",

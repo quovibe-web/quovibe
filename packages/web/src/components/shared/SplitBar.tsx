@@ -53,7 +53,7 @@ export function SplitBar({ segments, className, width = 84 }: SplitBarProps) {
           style={{ width: `${width}px` }}
         >
           <span
-            className="inline-flex h-[6px] rounded-full overflow-hidden border border-white/10 pointer-events-none"
+            className="inline-flex h-[6px] rounded-sm overflow-hidden border border-[var(--qv-border-subtle)] pointer-events-none"
             style={{ width: `${width}px` }}
           >
             {segments.map((s, i) => (
@@ -83,14 +83,14 @@ export function SplitBar({ segments, className, width = 84 }: SplitBarProps) {
                 style={{ backgroundColor: resolveColor(s.color) }}
               />
               <span className="flex-1 truncate">{s.categoryName}</span>
-              <span className="tabular-nums font-medium">{formatPercentage(s.weight / 10000, 1)}</span>
+              <span className="qv-numeric font-medium">{formatPercentage(s.weight / 10000, 1)}</span>
             </div>
           ))}
           {remainderBp > 0 && (
-            <div className="flex items-center gap-2 text-xs opacity-70 border-t border-background/20 pt-1 mt-1">
+            <div className="flex items-center gap-2 text-xs opacity-70 border-t border-[var(--qv-border-subtle)] pt-1 mt-1">
               <span className="inline-block h-2 w-2 rounded-full shrink-0 bg-muted-foreground" />
               <span className="flex-1 italic">unclassified</span>
-              <span className="tabular-nums">{formatPercentage(remainderBp / 10000, 1)}</span>
+              <span className="qv-numeric">{formatPercentage(remainderBp / 10000, 1)}</span>
             </div>
           )}
         </div>

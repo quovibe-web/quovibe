@@ -51,6 +51,7 @@
     "IMPORT_IN_PROGRESS": "Another import is already running. Wait for it to finish and try again.",
     "IMPORT_REQUIRES_FILE": "Select a backup file to restore.",
     "INVALID_ALLOCATION_VIEW": "The allocation view settings are not valid.",
+    "INVALID_CALCULATION_VIEW": "The calculation view settings are not valid.",
     "INVALID_CHART_CONFIG": "The chart configuration is not valid. Reset the chart to its default layout and try again.",
     "INVALID_FILE_FORMAT": "File type not supported. Upload a plain-text file with the expected extension.",
     "INVALID_FORMAT": "The XML is not a Portfolio Performance export (missing <client> root or ID attributes).",

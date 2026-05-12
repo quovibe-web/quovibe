@@ -162,13 +162,13 @@ export function PortfolioSetupForm({
         )}
       </div>
 
-      <div className="border-t pt-4">
+      <div className="border-t border-[var(--qv-border-subtle)] pt-4">
         <button
           type="button"
           onClick={() => setAdvancedOpen(v => !v)}
           aria-expanded={advancedOpen}
           aria-controls={ADVANCED_REGION_ID}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--qv-text-secondary)] hover:text-foreground"
         >
           {advancedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           {t('advanced.toggle')}
@@ -176,7 +176,7 @@ export function PortfolioSetupForm({
 
         {advancedOpen && (
           <div id={ADVANCED_REGION_ID} role="region" className="mt-3 space-y-3">
-            <p className="text-xs text-muted-foreground">{t('advanced.description')}</p>
+            <p className="text-xs text-[var(--qv-text-secondary)]">{t('advanced.description')}</p>
             {fields.map((field, index) => {
               const extraNameError = errors.extraDeposits?.[index]?.name?.message;
               return (

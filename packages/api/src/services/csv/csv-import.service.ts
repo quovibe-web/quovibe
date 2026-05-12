@@ -1,7 +1,7 @@
 // packages/api/src/services/csv/csv-import.service.ts
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
+import { DATA_DIR } from '../../config';
 import type BetterSqlite3 from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -29,9 +29,13 @@ import { getRate } from '../fx.service';
 const PREVIEW_PENDING_NEW_SENTINEL = '__PENDING_NEW__';
 
 // ─── Temp file management ─────────────────────────
-
-const TEMP_DIR = path.join(os.tmpdir(), 'quovibe-csv');
-const LOCK_PATH = path.join(os.tmpdir(), 'quovibe-csv-import.lock');
+//
+// Live under DATA_DIR/tmp/ rather than os.tmpdir() so that (a) the existing
+// boot-recovery sweepStaleTmp pass cleans aborted uploads on next start,
+// and (b) container restarts (whose /tmp is wiped) don't strand a lock
+// file pointing at a vanished upload.
+const TEMP_DIR = path.join(DATA_DIR, 'tmp', 'csv');
+const LOCK_PATH = path.join(DATA_DIR, 'tmp', 'csv-import.lock');
 const LOCK_STALE_MS = 5 * 60 * 1000; // native-ok
 const TEMP_MAX_AGE_MS = 60 * 60 * 1000; // native-ok
 

@@ -10,8 +10,13 @@
   "title": "Tableau de bord",
   "hero": {
     "portfolioValue": "Valeur du portefeuille",
+    "asOf": "Au {{date}}",
     "configureMetrics": "Configurer les métriques",
     "selectMetrics": "Sélectionner les métriques"
+  },
+  "zones": {
+    "charts": "Graphiques",
+    "detailMetrics": "Métriques détail"
   },
   "addDashboard": "Nouveau tableau de bord",
   "addDashboardDescription": "Saisissez un nom pour le nouveau tableau de bord",

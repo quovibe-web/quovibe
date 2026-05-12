@@ -18,6 +18,7 @@ import {
   type QuovibeSettings,
   type QuovibePreferences,
   migrateChartConfigV1toV2,
+  migrateChartConfigV2toV3,
   DEFAULT_CHART_CONFIG,
 } from '@quovibe/shared';
 
@@ -70,14 +71,30 @@ export function loadSettings(): void {
     if (parsed.activeDashboard !== undefined) delete parsed.activeDashboard;
 
     // Migrate chartConfig v1 → v2 if needed
+    let sidecarNeedsFlush = false;
     if (parsed.chartConfig && !parsed.chartConfig.version) {
       parsed.chartConfig = migrateChartConfigV1toV2(parsed.chartConfig);
+      sidecarNeedsFlush = true;
+    }
+    // Migrate chartConfig v2 → v3 if needed
+    if (parsed.chartConfig && parsed.chartConfig.version === 2) {
+      parsed.chartConfig = migrateChartConfigV2toV3(parsed.chartConfig);
+      sidecarNeedsFlush = true;
     }
     // Ensure default config if missing
     if (!parsed.chartConfig) {
       parsed.chartConfig = DEFAULT_CHART_CONFIG;
     }
     cached = quovibeSettingsSchema.parse(parsed);
+    // Persist any in-place migration so subsequent cold reads see the upgraded shape.
+    if (sidecarNeedsFlush) {
+      const tmpPath = sidecarPath + '.tmp';
+      const json = JSON.stringify(cached, null, 2);
+      fs.writeFileSync(tmpPath, json, 'utf-8');
+      const fd = fs.openSync(tmpPath, 'r+');
+      try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+      fs.renameSync(tmpPath, sidecarPath);
+    }
   } catch (err) {
     if (err instanceof Error && err.message.includes('schemaVersion=')) throw err;
     console.warn(`[quovibe] Failed to parse sidecar ${sidecarPath}, using defaults:`, err);
@@ -102,6 +119,7 @@ export function updateSettings(partial: {
   reportingPeriods?: QuovibeSettings['reportingPeriods'];
   investmentsView?: Partial<QuovibeSettings['investmentsView']>;
   allocationView?: Partial<QuovibeSettings['allocationView']>;
+  calculationView?: Partial<QuovibeSettings['calculationView']>;
   chartConfig?: Partial<QuovibeSettings['chartConfig']>;
   tableLayouts?: QuovibeSettings['tableLayouts'];
   portfolios?: QuovibeSettings['portfolios'];
@@ -116,9 +134,12 @@ export function updateSettings(partial: {
       columns: partial.investmentsView?.columns ?? cached.investmentsView?.columns ?? [],
     },
     allocationView: { ...cached.allocationView, ...partial.allocationView },
+    calculationView: { ...cached.calculationView, ...partial.calculationView },
+    // chartConfig is migrated to v3 at the route boundary and in loadSettings;
+    // updateSettings always receives a v3 chartConfig shape.
     chartConfig: partial.chartConfig
-      ? { version: 2 as const, series: partial.chartConfig.series ?? cached.chartConfig?.series ?? [] }
-      : cached.chartConfig ?? { version: 2, series: [] },
+      ? { version: 3 as const, series: partial.chartConfig.series ?? cached.chartConfig?.series ?? [] }
+      : cached.chartConfig ?? { version: 3 as const, series: [] },
     tableLayouts: partial.tableLayouts ?? cached.tableLayouts,
   };
   const validated = quovibeSettingsSchema.parse(merged);

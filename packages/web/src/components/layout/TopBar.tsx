@@ -64,10 +64,13 @@ function PrivacyToggle() {
   );
 }
 
-// Period pill styling: override ghost variant's dark:hover:bg-accent/50 which
-// has higher specificity than hover:bg-primary/90 in dark mode, masking the
-// active button highlight. Swap transition-all → transition-colors to avoid
-// cursor/layout flicker.
+// Period pill styling: active pill uses brand primary per spec §1.5 ("Primary
+// button, active state, link, focus ring fill") — keeps the period selector
+// consistent with every other active-state in the chrome (sidebar 3px rail,
+// tab underlines, focus ring). Override ghost variant's dark:hover:bg-accent/50
+// which has higher specificity than hover:bg-primary/90 in dark mode, masking
+// the active button highlight. Swap transition-all → transition-colors to
+// avoid cursor/layout flicker.
 const PERIOD_PILL = 'transition-colors';
 const PERIOD_PILL_ACTIVE =
   'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground dark:hover:bg-primary/90 dark:hover:text-primary-foreground';
@@ -342,7 +345,7 @@ function PeriodSelector() {
         </Popover>
 
         <Separator orientation="vertical" className="h-5 mx-1.5 hidden lg:block" />
-        <span className="hidden lg:inline text-xs font-mono text-muted-foreground tabular-nums whitespace-nowrap">
+        <span className="hidden lg:inline text-xs qv-numeric text-muted-foreground whitespace-nowrap">
           {formatDate(periodStart)} — {formatDate(periodEnd)}
         </span>
       </div>
@@ -350,7 +353,7 @@ function PeriodSelector() {
       {/* Mobile period — compact tappable display */}
       <Sheet>
         <SheetTrigger asChild>
-          <button className="md:hidden flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground font-mono tabular-nums px-2 py-1 rounded-md hover:bg-muted/50 transition-colors">
+          <button className="md:hidden flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground qv-numeric px-2 py-1 rounded-md hover:bg-muted/50 transition-colors">
             <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">{formatDate(periodStart ?? '')} — {formatDate(periodEnd ?? '')}</span>
           </button>
@@ -423,7 +426,7 @@ function PeriodSelector() {
                 {t('newPeriod')}
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground text-center font-mono tabular-nums">
+            <p className="text-sm text-muted-foreground text-center qv-numeric">
               {formatDate(periodStart)} — {formatDate(periodEnd)}
             </p>
           </div>
@@ -445,8 +448,8 @@ export function TopBar({ onMenuClick, isScrolled = false }: TopBarProps) {
     <header className={cn(
       "h-14 flex items-center gap-2 md:gap-3 px-4 lg:px-6 shrink-0 min-w-0 transition-all duration-300 ease-out border-b",
       isScrolled
-        ? "bg-[var(--qv-bg)]/80 backdrop-blur-xl border-border shadow-sm supports-not-[backdrop-filter]:bg-[var(--qv-bg)]"
-        : "bg-background border-transparent"
+        ? "bg-[var(--qv-surface)]/80 backdrop-blur-xl border-[var(--qv-border-subtle)] shadow-[var(--shadow-xs)] supports-not-[backdrop-filter]:bg-[var(--qv-surface)]"
+        : "bg-transparent border-transparent"
     )}>
       {/* Hamburger for small screens (<md) */}
       {onMenuClick && (

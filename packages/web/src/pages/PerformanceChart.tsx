@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavTitle } from '@/hooks/useNavTitle';
 import { differenceInDays, parseISO } from 'date-fns';
-import { Settings } from 'lucide-react';
 import {
   LineSeries, BaselineSeries,
   LineStyle as LwcLineStyle,
@@ -10,13 +9,12 @@ import {
   type ISeriesApi, type SeriesType,
 } from 'lightweight-charts';
 import { Button } from '@/components/ui/button';
-import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { usePerformanceChart, useReportingPeriod, useCalculation } from '@/api/use-performance';
 import { ChartSummaryBar } from '@/components/domain/ChartSummaryBar';
 import { useChartSeries } from '@/api/use-chart-series';
 import { useSecurities } from '@/api/use-securities';
 import { formatPercentage, computeTtwrorPa } from '@/lib/formatters';
-import type { LineStyle } from '@quovibe/shared';
+import type { LineStyle, SeriesRole } from '@quovibe/shared';
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { useLightweightChart } from '@/hooks/use-lightweight-chart';
@@ -27,12 +25,19 @@ import {
   type ExtendedLegendSeriesItem,
 } from '@/components/shared/ChartLegendOverlay';
 import { useAnalyticsContext } from '@/context/analytics-context';
-import { DataSeriesPickerDialog } from '@/components/domain/DataSeriesPickerDialog';
+import { ChartSeriesSheet } from '@/components/domain/analytics/ChartSeriesSheet';
 import { cn } from '@/lib/utils';
 import { useChartConfig, useSaveChartConfig } from '@/api/use-chart-config';
+import { SegmentedControl } from '@/components/shared/SegmentedControl';
 
-import { withAlpha } from '@/lib/chart-types';
 import { buildSeriesOptions } from '@/lib/chart-series-factory';
+import { resolveAxis } from './chart-helpers/resolve-axis';
+
+const PERCENT_FORMAT = {
+  style: 'percent',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+} as const;
 
 /** Map shared LineStyle string to lightweight-charts LineStyle enum */
 function toLwcLineStyle(style: LineStyle): LwcLineStyle {
@@ -71,19 +76,16 @@ export default function PerformanceChart() {
   function handleColorChange(id: string, color: string) {
     persistSeriesUpdate(id, { color });
 
-    // Apply directly to the LWC series for immediate feedback
+    // Apply directly to the LWC series for immediate feedback.
+    // areaFill === true → Baseline series with profit/loss zones; a single hex
+    // can't be hot-swapped into topFillColor1/bottomFillColor2/etc. without
+    // duplicating factory logic here. The persistSeriesUpdate above triggers
+    // the rebuild effect, which picks up the new color via the factory.
     const entry = seriesMapRef.current.get(id);
     if (!entry) return;
     const cfg = chartConfig?.series.find((s) => s.id === id);
-    if (cfg?.areaFill) {
-      entry.series.applyOptions({
-        lineColor: color,
-        topColor: withAlpha(color, 0.25),
-        bottomColor: 'transparent',
-      } as Record<string, unknown>);
-    } else {
-      entry.series.applyOptions({ color } as Record<string, unknown>);
-    }
+    if (cfg?.areaFill) return;
+    entry.series.applyOptions({ color } as Record<string, unknown>);
   }
 
   function handleLineStyleChange(id: string, style: LineStyle) {
@@ -185,7 +187,7 @@ export default function PerformanceChart() {
         <SegmentedControl
           segments={[
             { value: 'cumulative', label: t('chart.cumulative') },
-            { value: 'annualized', label: t('chart.annualizedPa') },
+            { value: 'annualized', label: t('chart.annualized') },
           ]}
           value={ttwrorMode}
           onChange={setTtwrorMode}
@@ -195,12 +197,12 @@ export default function PerformanceChart() {
           filename={`performance-chart-${periodStart}-to-${periodEnd}`}
         />
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
+          variant="default"
+          size="sm"
+          className="h-8"
           onClick={() => setConfigOpen(true)}
         >
-          <Settings className="h-4 w-4" />
+          {t('chart.action.compare')}
         </Button>
       </>
     );
@@ -237,7 +239,7 @@ export default function PerformanceChart() {
   const { containerRef, chartRef, ready } = useLightweightChart({
     options: {
       rightPriceScale: { visible: true },
-      leftPriceScale: { visible: false },
+      leftPriceScale: { visible: true },
     },
   });
 
@@ -281,9 +283,6 @@ export default function PerformanceChart() {
     const chart = chartRef.current;
     if (!chart || !ready || displayData.length === 0) return; // native-ok
 
-    // Skip rebuild while any series data is still loading (prevents wiping existing series)
-    if (chartSeries.some((rs) => rs.isLoading)) return;
-
     // Remove all existing series (guard: chart may be destroyed during unmount)
     try {
       for (const [, entry] of seriesMapRef.current) {
@@ -324,8 +323,9 @@ export default function PerformanceChart() {
         lossColor: loss,
         basePrice: 0,
         lineStyle: toLwcLineStyle(portfolioLineStyle),
-        priceScaleId: 'right',
+        priceScaleId: 'left',
         visible: portfolioVisible,
+        seriesRole: 'portfolio',
       });
       const PortfolioConstructor = portfolioAreaFill ? BaselineSeries : LineSeries;
       const portfolioSeries = chart.addSeries(PortfolioConstructor, portfolioOptions);
@@ -337,15 +337,20 @@ export default function PerformanceChart() {
     }
 
     // --- Additional series (securities, benchmarks, accounts, additional portfolios) ---
+    // Resolve portfolio reference for axis assignment (portfolioConfig already found above)
+    const portfolioRef = chartSeries.find((rs) => rs.config.id === 'portfolio-default');
+
     const sortedSeries = [...chartSeries]
       .filter((rs) => !(rs.config.type === 'portfolio' && rs.config.id === 'portfolio-default'))
-      .filter((rs) => rs.data.length > 0) // native-ok
       .sort((a, b) => (a.config.order ?? 0) - (b.config.order ?? 0));
 
     for (const rs of sortedSeries) {
+      if (rs.data.length === 0) continue; // native-ok — empty series renders in legend only, no chart line
+
       const color = rs.config.color ?? palette[0];
       const lineStyle = toLwcLineStyle(rs.config.lineStyle);
       const isVisible = rs.config.visible;
+      const axis = portfolioRef ? resolveAxis(rs, portfolioRef) : 'left';
 
       // Build per-series data array, applying p.a. conversion when needed
       const seriesData = rs.data
@@ -358,6 +363,12 @@ export default function PerformanceChart() {
         })
         .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
 
+      const role: SeriesRole =
+        (rs.config as { role?: SeriesRole }).role
+        ?? (rs.config.type === 'portfolio' ? 'portfolio'
+           : rs.config.type === 'benchmark' ? 'reference'
+           : 'holding');
+
       const rsType = rs.config.areaFill ? 'baseline' as const : 'line' as const;
       const { options: rsOptions } = buildSeriesOptions(rsType, {
         color,
@@ -365,8 +376,9 @@ export default function PerformanceChart() {
         lossColor: loss,
         basePrice: 0,
         lineStyle,
-        priceScaleId: 'right',
+        priceScaleId: axis,
         visible: isVisible,
+        seriesRole: role,
       });
       const RsConstructor = rs.config.areaFill ? BaselineSeries : LineSeries;
       const lwcSeries = chart.addSeries(RsConstructor, rsOptions);
@@ -374,16 +386,14 @@ export default function PerformanceChart() {
       seriesMapRef.current.set(rs.config.id, { series: lwcSeries, visible: isVisible });
     }
 
-    // Format right price scale as percentage (TTWROR values are fractions)
-    chart.priceScale('right').applyOptions({
-      mode: PriceScaleMode.Normal,
-    });
-    // Applied to whichever series drives the right-scale labels.
-    const formatterEntry =
-      seriesMapRef.current.get('portfolio-default') ??
-      seriesMapRef.current.values().next().value;
-    if (formatterEntry) {
-      formatterEntry.series.applyOptions({
+    // Format both price scales as percentage (TTWROR values are fractions)
+    chart.priceScale('right').applyOptions({ mode: PriceScaleMode.Normal });
+    chart.priceScale('left').applyOptions({ mode: PriceScaleMode.Normal });
+
+    // Apply percentage formatter to every series so each axis inherits correct labels.
+    // lightweight-charts derives axis labels from the price format of each series on that scale.
+    for (const [, entry] of seriesMapRef.current) {
+      entry.series.applyOptions({
         priceFormat: {
           type: 'custom',
           formatter: (price: number) => formatPercentage(price),
@@ -410,45 +420,76 @@ export default function PerformanceChart() {
       const portfolioLabel = ttwrorMode === 'cumulative'
         ? t('chart.entirePortfolio')
         : `${t('chart.entirePortfolio')} (${t('chart.annualizedPa')})`;
+
+      // Period-end last value for the portfolio (displayData already mode-adjusted)
+      const portfolioLast = displayData.at(-1)?.ttwror ?? null;
+
       items.push({
         id: 'portfolio-default',
         label: portfolioLabel,
         color: portfolioConfig?.color ?? dividend,
         series: portfolioEntry.series,
         visible: portfolioEntry.visible,
-        formatValue: (v: number) => formatPercentage(v),
+        formatValue: formatPercentage,
+        numberFormat: PERCENT_FORMAT,
         lineStyle: portfolioConfig?.lineStyle ?? 'solid',
         areaFill: portfolioConfig?.areaFill ?? false,
         locked: true,
+        status: 'ok',
+        lastValue: portfolioLast,
+        deltaVsPortfolio: null,
       });
     }
 
+    // Portfolio last value for delta computation
+    const portfolioLast = displayData.at(-1)?.ttwror ?? null;
+
     // Additional series (sorted by order)
     const sortedConfigs = [...chartSeries]
-      .filter((rs) => rs.config.visible && rs.data.length > 0) // native-ok
+      .filter((rs) => rs.config.visible)
       .filter((rs) => !(rs.config.type === 'portfolio' && rs.config.id === 'portfolio-default'))
       .sort((a, b) => (a.config.order ?? 0) - (b.config.order ?? 0));
 
     for (const rs of sortedConfigs) {
       const entry = seriesMapRef.current.get(rs.config.id);
-      if (!entry) continue;
 
       const info = seriesNameMap.get(rs.config.id);
       if (!info) continue;
+
+      // Compute mode-adjusted last value for this series
+      const lastPoint = rs.data.at(-1);
+      let lastValue: number | null = null;
+      if (lastPoint) {
+        if (ttwrorMode === 'cumulative') {
+          lastValue = lastPoint.value;
+        } else {
+          lastValue = computeTtwrorPa(
+            lastPoint.value,
+            differenceInDays(parseISO(lastPoint.date), parseISO(periodStart)),
+          );
+        }
+      }
+
       items.push({
         id: rs.config.id,
         label: info.label,
         color: info.color,
-        series: entry.series,
-        visible: entry.visible,
-        formatValue: (v: number) => formatPercentage(v),
+        series: entry?.series ?? null,
+        visible: entry?.visible ?? rs.config.visible,
+        formatValue: formatPercentage,
+        numberFormat: PERCENT_FORMAT,
         lineStyle: rs.config.lineStyle ?? 'solid',
         areaFill: rs.config.areaFill ?? false,
+        status: rs.status,
+        lastValue,
+        deltaVsPortfolio: (lastValue == null || portfolioLast == null)
+          ? null
+          : lastValue - portfolioLast, // native-ok — display delta
       });
     }
 
     return items;
-  }, [legendTrigger, chartConfig, chartSeries, seriesNameMap, ttwrorMode, t, dividend, ready]);
+  }, [legendTrigger, chartConfig, chartSeries, seriesNameMap, ttwrorMode, t, dividend, ready, displayData, periodStart]);
 
   return (
     <div className="space-y-3" style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '120ms' }}>
@@ -461,7 +502,7 @@ export default function PerformanceChart() {
         isLoading={isLoading || calcLoading}
       />
 
-      {/* Chart area */}
+      {/* Chart area — full width, no rail split */}
       <div className="relative" style={{ minHeight: 400 }}>
         {isLoading && <ChartSkeleton height={400} />}
         <div className={cn(isLoading && 'invisible')}>
@@ -494,7 +535,7 @@ export default function PerformanceChart() {
         </div>
       </div>
 
-      <DataSeriesPickerDialog open={configOpen} onOpenChange={setConfigOpen} />
+      <ChartSeriesSheet open={configOpen} onOpenChange={setConfigOpen} />
     </div>
   );
 }

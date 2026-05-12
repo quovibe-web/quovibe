@@ -10,8 +10,13 @@
   "title": "Dashboard",
   "hero": {
     "portfolioValue": "Portfolio Value",
+    "asOf": "As of {{date}}",
     "configureMetrics": "Configure metrics",
     "selectMetrics": "Select metrics"
+  },
+  "zones": {
+    "charts": "Charts",
+    "detailMetrics": "Detail metrics"
   },
   "addDashboard": "New dashboard",
   "addDashboardDescription": "Enter a name for the new dashboard",

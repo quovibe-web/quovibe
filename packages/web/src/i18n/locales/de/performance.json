@@ -73,7 +73,83 @@
     "thereofFx": "Währungseffekt",
     "columnName": "Name",
     "columnAmount": "Betrag",
-    "columnDate": "Datum"
+    "columnDate": "Datum",
+    "viewToggle": {
+      "label": "Layout",
+      "premium": "Premium",
+      "classic": "Klassisch"
+    },
+    "heroStrip": {
+      "ttwror": "Zeitgewichtete Rendite",
+      "irr": "IRR (jährl.)",
+      "deltaPercent": "Δ %",
+      "deltaAbsolute": "Δ absolut",
+      "maxDrawdown": "Maximaler Verlust",
+      "sharpe": "Sharpe-Ratio",
+      "onMvb": "auf Anfangswert",
+      "netResult": "Nettoergebnis",
+      "riskAdjustedReturn": "risikoadjustierte Rendite",
+      "newtonRaphson": "Newton-Raphson"
+    },
+    "categories": {
+      "drivers": "Performance-Treiber",
+      "frictions": "Reibungskosten",
+      "flows": "Kapitalflüsse",
+      "anchorsIdentity": "Anker & Identität",
+      "descriptions": {
+        "drivers": "Kursgewinne, Dividenden, Zinsen und Währungseffekte",
+        "frictions": "Im Zeitraum berechnete Gebühren und Steuern",
+        "flows": "Einlagen, Auszahlungen, Lieferungen — Bewegungen ohne Performance-Wirkung",
+        "anchorsIdentity": "Anfang, Ende und die arithmetische Identität des Zeitraums"
+      }
+    },
+    "waterfall": {
+      "title": "Waterfall",
+      "mvb": "Anfang",
+      "mve": "Ende",
+      "drivers": "Treiber",
+      "frictions": "Reibung",
+      "flows": "Flüsse",
+      "clickToExpand": "Klicken Sie auf einen Balken, um die Aufschlüsselung anzuzeigen",
+      "extremeMagnitudeNotice": "Ein Wert überragt die anderen — wechseln Sie zur logarithmischen Skala, um alle Balken zu sehen",
+      "linearScale": "Linear",
+      "logScale": "Log",
+      "emptyPeriod": "Im Zeitraum gibt es keine Transaktionen"
+    },
+    "rightRail": {
+      "riskStyle": "Risiko & Stil",
+      "openPosition": "Offene Position",
+      "lastDay": "Letzter Tag Δ",
+      "volatility": "Volatilität",
+      "semivariance": "Semivarianz",
+      "maxDdPeriod": "Max-DD-Zeitraum",
+      "currentDrawdown": "Aktueller Drawdown",
+      "pmcConvention": "PMC",
+      "fifoConvention": "FIFO",
+      "cost": "Kostenbasis",
+      "marketValue": "Marktwert",
+      "unrealizedPnl": "Nicht realisierter PnL",
+      "peak": "Höchststand",
+      "trough": "Tiefstand",
+      "duration": "Dauer",
+      "days_one": "{{count}} Tag",
+      "days_other": "{{count}} Tage"
+    },
+    "equation": {
+      "identityCheck": "Identitätsprüfung",
+      "labelMvb": "MVB",
+      "labelDrivers": "Treiber",
+      "labelFrictions": "Reibung",
+      "labelFlows": "Flüsse",
+      "labelMve": "MVE",
+      "identityOk": "verifiziert",
+      "identityDrift": "Abweichung {{value}}"
+    },
+    "density": {
+      "comfortable": "Komfortabel",
+      "dense": "Dicht",
+      "toggle": "Tabellendichte umschalten"
+    }
   },
   "securities": {
     "title": "Performance — Wertpapiere",
@@ -163,7 +239,56 @@
     "styleDashed": "Gestrichelt",
     "styleDotted": "Gepunktet",
     "customColor": "Benutzerdefiniert",
-    "presetColors": "Vorgabefarben"
+    "presetColors": "Vorgabefarben",
+    "annualized": "Annualisiert",
+    "status": {
+      "loading": "Lädt…",
+      "empty": "Keine Daten im Zeitraum",
+      "error": "Laden fehlgeschlagen"
+    },
+    "axis": {
+      "label": "Achse",
+      "shared": "Gemeinsame Achse",
+      "pinLeft": "Links anheften",
+      "pinRight": "Rechts anheften"
+    },
+    "rail": {
+      "lastCol": "Letzter",
+      "deltaCol": "vs Portfolio",
+      "addSeries": "+ Serie hinzufügen",
+      "series": "Serie"
+    },
+    "sheet": {
+      "title": "Vergleichen",
+      "description": "Wertpapiere und Benchmarks zum Diagramm hinzufügen",
+      "empty": "Suche oben, um Serien und Benchmarks hinzuzufügen.",
+      "counter": "{{count}} von {{max}}",
+      "done": "Fertig",
+      "search": "Ticker, ISIN, Name suchen…",
+      "noResults": "Keine passenden Wertpapiere",
+      "removeAll": "Alle entfernen",
+      "removeAllConfirm": "Alle {{count}} Serien entfernen?",
+      "removeAllCancel": "Abbrechen",
+      "removeAllConfirmAction": "Alle entfernen",
+      "filter": {
+        "all": "Alle",
+        "owned": "Im Bestand",
+        "index": "Indizes",
+        "account": "Konten"
+      }
+    },
+    "action": {
+      "addHolding": "Als Bestand hinzufügen",
+      "addReference": "Als Referenz hinzufügen",
+      "compare": "Vergleichen"
+    },
+    "badge": {
+      "youHold": "Im Bestand",
+      "index": "Index"
+    },
+    "semantic": {
+      "tooltip": "Bestand = TWR auf Ihrer Position (berücksichtigt Käufe und Verkäufe). Referenz = Preisrendite des Assets, unabhängig vom Bestand."
+    }
   },
   "cardLinks": {
     "calculation": "Berechnung",

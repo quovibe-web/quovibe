@@ -49,6 +49,28 @@
     "interest": "Zinsen",
     "dividendsPerGroup": "Dividenden pro {{groupBy}}",
     "interestPerGroup": "Zinsen pro {{groupBy}}",
+    "incomePerGroupGross": "Einkommen pro {{groupBy}} · brutto",
+    "incomePerGroupNet": "Einkommen pro {{groupBy}} · netto",
+    "hero": {
+      "titleGross": "Einnahmen gesamt (brutto)",
+      "titleNet": "Einnahmen gesamt (netto)",
+      "avgMonth": "Ø / Monat",
+      "peakMonth": "Stärkster Monat",
+      "payments": "Zahlungen",
+      "topSecurity": "Top-Wertpapier",
+      "priorPeak": "vorheriger Spitzenwert"
+    },
+    "calendar": {
+      "title": "Monatliche Kadenz",
+      "yearLabel": "Jahr",
+      "total": "Gesamt",
+      "totalLabel": "Gesamt",
+      "deltaHeader": "Δ",
+      "averageRow": "Mittel",
+      "headerChipAvg": "Ø/Monat {{value}}",
+      "headerChipYoy": "▲ ggü. '{{year}}",
+      "headerChipYoyDown": "▼ ggü. '{{year}}"
+    },
     "columns": {
       "date": "Datum",
       "type": "Typ",
@@ -56,7 +78,11 @@
       "account": "Konto",
       "amount": "Betrag"
     },
-    "empty": "Keine Zahlungen im ausgewählten Zeitraum.",
+    "empty": {
+      "noPayments": "Keine Zahlungen im ausgewählten Zeitraum.",
+      "filtered": "Keine Zahlungen passen zu den aktiven Filtern",
+      "clearFilters": "Filter zurücksetzen"
+    },
     "paymentCount_one": "{{count}} Zahlung",
     "paymentCount_other": "{{count}} Zahlungen",
     "breakdown": {
@@ -66,7 +92,45 @@
       "byTitle": "nach Wertpapier",
       "byAccount": "nach Konto"
     },
-    "subtitle": "Dividenden, Zinsen und sonstige Erträge"
+    "subtitle": "Dividenden, Zinsen und sonstige Erträge",
+    "yoy": {
+      "vsPrior": "▲ +{{share}}% ggü. {{priorTotal}} {{priorLabel}}",
+      "vsPriorDown": "▼ {{share}}% ggü. {{priorTotal}} {{priorLabel}}",
+      "priorYearLabel": "YTD {{year}}"
+    },
+    "detail": {
+      "headerCount": "Detail · {{count, number}} Zahlungen",
+      "filtered": "{{filtered, number}} von {{total, number}}",
+      "filter": {
+        "allTypes": "Alle Typen",
+        "dividend": "Dividenden",
+        "interest": "Zinsen",
+        "addSecurity": "+ Wertpapier",
+        "selectSecurities": "Wertpapiere auswählen",
+        "searchSecurities": "Wertpapiere suchen…"
+      },
+      "sort": {
+        "label": "Sortieren",
+        "dateDesc": "Datum · neueste zuerst",
+        "dateAsc": "Datum · älteste zuerst",
+        "amountDesc": "Betrag · höchste zuerst",
+        "securityAsc": "Wertpapier · A → Z"
+      },
+      "year": {
+        "ytd": "YTD",
+        "payments": "{{count, number}} Zahlungen"
+      }
+    },
+    "rail": {
+      "topPayers": "Top-Zahler",
+      "morePayers": "+ {{count, number}} weitere",
+      "byType": "Nach Typ",
+      "cashInterest": "Bargeldzinsen"
+    },
+    "concentration": {
+      "title": "Konzentration",
+      "top3": "Top 3 = {{share}}% des Einkommens"
+    }
   },
   "returnsHeatmap": {
     "title": "Renditen-Heatmap",
@@ -150,7 +214,15 @@
     "fees": "Gebühren",
     "selectTaxonomy": "Taxonomie",
     "categoryLabel": "Kategorie",
-    "subtitle": "Performance-Trends nach Kategorie"
+    "subtitle": "Performance-Trends nach Kategorie",
+    "best": "Beste",
+    "worst": "Schlechteste",
+    "spread": "Spanne",
+    "spreadAcross": "über {{count}} Kategorien",
+    "categoriesLabel": "Kategorien",
+    "composition": "Zusammensetzung",
+    "topPerformers": "Top-Performer",
+    "noCategoryData": "Keine Kategoriedaten verfügbar."
   },
   "taxonomyNodePicker": {
     "loading": "Laden…",

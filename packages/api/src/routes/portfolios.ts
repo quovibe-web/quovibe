@@ -164,7 +164,14 @@ const del: RequestHandler = (req, res) => {
   const id = req.params.id;
   if (typeof id !== 'string' || !UUID_V4_RE.test(id)) { res.status(400).json({ error: 'INVALID_PORTFOLIO_ID' }); return; }
   try {
-    deletePortfolio(id);
+    const { warnings } = deletePortfolio(id);
+    // 204 when the on-disk `.db` was removed cleanly; 200 + warnings body
+    // when the sidecar entry was dropped but unlink failed (orphan file
+    // remains in DATA_DIR — `sweepOrphanPortfolios` will flag it next boot).
+    if (warnings.length > 0) {
+      res.status(200).json({ warnings });
+      return;
+    }
     res.status(204).end();
   } catch (err) {
     if (err instanceof PortfolioManagerError) {

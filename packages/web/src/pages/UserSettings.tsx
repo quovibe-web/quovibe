@@ -6,7 +6,7 @@
 // Uses raw `apiFetch` — not React Query — per the Phase 5b blocker constraints.
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Plus, Minus, Palette, Hash, RefreshCw, type LucideIcon } from 'lucide-react';
+import { Check, Plus, Minus, Palette, SlidersHorizontal, RefreshCw, type LucideIcon } from 'lucide-react';
 import type { QuovibeSettings, QuovibePreferences } from '@quovibe/shared';
 import { apiFetch } from '@/api/fetch';
 import { Switch } from '@/components/ui/switch';
@@ -18,10 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { useTheme, type ThemeMode } from '@/hooks/use-theme';
 import { usePrivacy } from '@/context/privacy-context';
 import { useLanguage, type LanguageCode } from '@/hooks/use-language';
-import { cn } from '@/lib/utils';
 
 type AppFlagKey = 'autoFetchPricesOnFirstOpen';
 
@@ -43,7 +44,7 @@ function SettingRow({
   saved?: boolean;
 }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-3.5 border-b border-border last:border-b-0">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-3.5 border-b border-[var(--qv-border-subtle)] last:border-b-0">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">{label}</span>
@@ -76,9 +77,7 @@ function SectionHeader({
         strokeWidth={1.75}
         aria-hidden="true"
       />
-      <h3 className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
-        {children}
-      </h3>
+      <h3 className="qv-eyebrow">{children}</h3>
     </div>
   );
 }
@@ -163,11 +162,8 @@ export default function UserSettings() {
 
   return (
     <main className="qv-page mx-auto max-w-3xl p-6">
-      <div className="mb-6">
-        <h1 className="text-lg font-semibold text-foreground tracking-tight">
-          {tUser('preferences.title')}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{tUser('preferences.subtitle')}</p>
+      <div className="mb-8">
+        <PageHeader title={tUser('preferences.title')} subtitle={tUser('preferences.subtitle')} />
       </div>
 
       {/* ── LANGUAGE & APPEARANCE ── */}
@@ -198,27 +194,16 @@ export default function UserSettings() {
           description={t('presentation.themeDescription')}
           saved={savedField === 'theme'}
         >
-          <div className="flex rounded-lg border border-border overflow-hidden">
-            {(['light', 'system', 'dark'] as const).map((mode, i) => (
-              <button
-                key={mode}
-                className={cn(
-                  'px-3 py-1.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-                  i > 0 && 'border-l border-border',
-                  theme === mode
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'bg-background hover:bg-muted',
-                )}
-                onClick={() => onThemeChange(mode)}
-              >
-                {t(
-                  mode === 'light' ? 'presentation.themeLight'
-                    : mode === 'dark' ? 'presentation.themeDark'
-                    : 'presentation.themeSystem',
-                )}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl<ThemeMode>
+            segments={[
+              { value: 'light', label: t('presentation.themeLight') },
+              { value: 'system', label: t('presentation.themeSystem') },
+              { value: 'dark', label: t('presentation.themeDark') },
+            ]}
+            value={theme}
+            onChange={onThemeChange}
+            size="md"
+          />
         </SettingRow>
 
         <SettingRow
@@ -232,7 +217,7 @@ export default function UserSettings() {
 
       {/* ── DISPLAY FORMAT ── */}
       <section>
-        <SectionHeader icon={Hash}>{t('sections.precision')}</SectionHeader>
+        <SectionHeader icon={SlidersHorizontal}>{t('sections.precision')}</SectionHeader>
 
         <SettingRow
           label={t('presentation.sharesPrecision')}
@@ -253,7 +238,7 @@ export default function UserSettings() {
             >
               <Minus className="h-3.5 w-3.5" />
             </Button>
-            <span className="w-8 text-center text-sm tabular-nums">{sharesPrecision}</span>
+            <span className="w-8 text-center qv-numeric text-sm">{sharesPrecision}</span>
             <Button
               variant="outline"
               size="icon"
@@ -289,7 +274,7 @@ export default function UserSettings() {
             >
               <Minus className="h-3.5 w-3.5" />
             </Button>
-            <span className="w-8 text-center text-sm tabular-nums">{quotesPrecision}</span>
+            <span className="w-8 text-center qv-numeric text-sm">{quotesPrecision}</span>
             <Button
               variant="outline"
               size="icon"

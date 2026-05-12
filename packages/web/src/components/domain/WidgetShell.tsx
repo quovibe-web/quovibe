@@ -159,7 +159,7 @@ export function WidgetShell({
     <>
       <Card
         className={cn(
-          'group relative flex flex-col bg-card border border-border rounded-lg transition-colors duration-200 overflow-hidden',
+          'group relative flex flex-col bg-card border border-border rounded-md transition-colors duration-200 overflow-hidden',
           hidden ? 'self-start h-auto opacity-70' : 'h-full',
           compact && 'qv-compact-widget',
         )}
@@ -170,14 +170,16 @@ export function WidgetShell({
           'flex flex-row items-start gap-2 space-y-0 pb-0',
           compact ? 'pt-2.5 px-4 md:pt-2 md:px-3' : 'pt-2.5 px-4',
         )}>
-          {/* Drag handle */}
+          {/* Drag handle — baseline 15% opacity on desktop, full on hover/focus.
+              Touch devices ((hover: none)) get 30% baseline for discoverability. */}
           <div
             className="cursor-grab active:cursor-grabbing touch-none pt-0.5 shrink-0"
             {...dragHandleListeners}
             {...dragHandleAttributes}
           >
             <GripHorizontal className={cn(
-              'text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-150',
+              'text-muted-foreground opacity-15 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150',
+              '[@media(hover:none)]:opacity-30',
               compact ? 'h-3 w-3' : 'h-4 w-4',
             )} />
           </div>
@@ -215,7 +217,9 @@ export function WidgetShell({
                 {title}
               </span>
             )}
-            {/* Data series label + period pill — second line */}
+            {/* Data series label + period annotation — second line.
+                Editorial: bracketed note, no fill / no border, just small
+                tabular text with inline icon. Spec § 5: dividers > backgrounds. */}
             {(dataSeriesLabel || periodOverride) && (
               <div className="flex items-center gap-1.5 flex-wrap">
                 {dataSeriesLabel && (
@@ -223,13 +227,13 @@ export function WidgetShell({
                 )}
                 {periodOverride && (
                   <span
-                    className="inline-flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 rounded-full px-2 py-0.5 text-xs cursor-pointer hover:bg-primary/20 transition-colors"
+                    className="inline-flex items-center gap-1 text-xs text-[var(--qv-text-secondary)] cursor-pointer hover:text-[var(--qv-text-primary)] transition-colors"
                     onClick={() => setPeriodDialogOpen(true)}
                   >
                     <Clock className="h-3 w-3" />
-                    {formatPeriodShortLabel(periodOverride.definition, tSettings)}
+                    <span className="tabular-nums">{formatPeriodShortLabel(periodOverride.definition, tSettings)}</span>
                     <button
-                      className="hover:text-destructive ml-0.5"
+                      className="opacity-50 hover:opacity-100 hover:text-destructive ml-0.5"
                       aria-label={t('periodOverride.clear')}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -248,13 +252,13 @@ export function WidgetShell({
           <div className="flex items-center gap-1 shrink-0">
             {/* Toolbar portal target — chart widgets render their controls here via createPortal */}
             <div ref={setToolbarEl} className="flex items-center gap-4" />
-            {/* Kebab menu */}
+            {/* Kebab menu — ghost only, fades to 100% on hover/focus. */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 shrink-0 bg-muted/50 border border-border/50 rounded-md"
+                  className="h-7 w-7 shrink-0 opacity-40 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150"
                   aria-label={t('widgetActions')}
                 >
                   <MoreHorizontal className="h-4 w-4 text-muted-foreground" />

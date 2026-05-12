@@ -16,6 +16,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Pre-publish gates: the tag may be cut from any commit, so the
+      # branch-protected CI on push/PR is not a sufficient guarantee.
+      # Re-run the load-bearing gates against the exact tagged tree before
+      # building the image that ships to GHCR.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build (typecheck)
+        run: pnpm build
+
+      - name: Lint (engine, zero-tolerance)
+        run: pnpm lint:engine
+
+      - name: Governance checks
+        run: pnpm check:governance
+
+      - name: Architecture checks
+        run: pnpm check:arch
+
+      - name: Bootstrap parity (Gate 1 — bootstrap.sql vs ppxml2db_init.py)
+        run: pnpm check:bootstrap
+
+      - name: Tests
+        run: pnpm test
+
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:

@@ -18,7 +18,7 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
-import { formatPercentage } from '@/lib/formatters';
+import { SignedPercent } from '@/components/shared/SignedPercent';
 import { translateTaxonomyName } from '@/lib/taxonomy-i18n';
 import { cn } from '@/lib/utils';
 import type { RebalancingCategory, RebalancingSecurity } from '@/api/types';
@@ -207,7 +207,7 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
               type="number" min={0} max={100} step={0.01}
               defaultValue={alloc.toFixed(2)}
               onBlur={e => handleAllocationBlur(row.original.id, e.target.value)}
-              className="w-24 text-sm h-7 tabular-nums"
+              className="w-24 text-sm h-7 qv-numeric"
             />
             {hasError && (
               <TooltipProvider>
@@ -233,14 +233,14 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
       header: t('rebalancing.columns.weight'),
       cell: ({ row }) => {
         if (row.original.type !== 'security') return null;
-        return <span className="text-sm font-medium">{((row.original.weight ?? 10000) / 100).toFixed(2)}%</span>;
+        return <span className="qv-numeric text-sm font-medium">{((row.original.weight ?? 10000) / 100).toFixed(2)}%</span>;
       },
     },
     {
       accessorKey: 'actualValue',
       header: t('rebalancing.columns.actualValue'),
       cell: ({ row }) => (
-        <CurrencyDisplay value={parseFloat(row.original.actualValue)} className="text-sm font-medium" />
+        <CurrencyDisplay value={parseFloat(row.original.actualValue)} className="qv-numeric text-sm font-medium" />
       ),
     },
     {
@@ -249,7 +249,7 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
       cell: ({ row }) => {
         if (row.original.type !== 'category') return null;
         if (row.original.allocationsInvalid) return INVALID_PLACEHOLDER;
-        return <CurrencyDisplay value={parseFloat(row.original.targetValue ?? '0')} className="text-sm text-muted-foreground" />;
+        return <CurrencyDisplay value={parseFloat(row.original.targetValue ?? '0')} className="qv-numeric text-sm text-muted-foreground" />;
       },
     },
     {
@@ -260,7 +260,7 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
         if (row.original.allocationsInvalid) return INVALID_PLACEHOLDER;
         const delta = parseFloat(row.original.deltaValue ?? '0');
         return (
-          <CurrencyDisplay value={delta} className="text-sm" colorize />
+          <CurrencyDisplay value={delta} className="qv-numeric text-sm" colorize />
         );
       },
     },
@@ -271,14 +271,7 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
         if (row.original.type !== 'category') return null;
         if (row.original.allocationsInvalid) return INVALID_PLACEHOLDER;
         const dp = parseFloat(row.original.deltaPercent ?? '0');
-        return (
-          <span className={cn(
-            'text-sm',
-            dp > 0 ? 'text-[var(--qv-positive)]' : dp < 0 ? 'text-[var(--qv-negative)]' : '',
-          )}>
-            {formatPercentage(dp)}
-          </span>
-        );
+        return <SignedPercent value={dp} className="text-sm" />;
       },
     },
     {
@@ -289,7 +282,7 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
         if (row.original.allocationsInvalid) return INVALID_PLACEHOLDER;
         const amt = parseFloat(row.original.rebalanceAmount ?? '0');
         return (
-          <CurrencyDisplay value={amt} className="text-sm" colorize />
+          <CurrencyDisplay value={amt} className="qv-numeric text-sm" colorize />
         );
       },
     },
@@ -300,12 +293,13 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
         if (row.original.type !== 'security') return null;
         if (row.original.allocationsInvalid) return INVALID_PLACEHOLDER;
         const shares = parseFloat(row.original.rebalanceShares ?? '0');
+        const sign = shares > 0 ? '+' : '';
         return (
           <span className={cn(
-            'text-sm',
-            shares > 0 ? 'text-[var(--qv-positive)]' : shares < 0 ? 'text-[var(--qv-negative)]' : '',
+            'qv-numeric text-sm',
+            shares > 0 ? 'text-[var(--qv-positive)]' : shares < 0 ? 'text-[var(--qv-negative)]' : 'text-muted-foreground',
           )}>
-            {shares.toFixed(2)}
+            {sign}{shares.toFixed(2)}
           </span>
         );
       },
@@ -341,7 +335,7 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
           <TableRow key={hg.id}>
             {hg.headers.map(h => (
               <TableHead key={h.id} className={cn(
-                'text-xs uppercase tracking-wider',
+                'qv-eyebrow',
                 h.column.id !== 'name' && h.column.id !== 'allocation' && 'text-right',
               )}>
                 {flexRender(h.column.columnDef.header, h.getContext())}
@@ -354,11 +348,11 @@ export function RebalancingTable({ categories, onAllocationChange, hideRetired, 
         {table.getRowModel().rows.map(row => (
           <TableRow
             key={row.id}
-            className="transition-none hover:bg-[var(--qv-surface-elevated)]"
+            className="transition-colors hover:bg-[var(--qv-surface-3)]"
           >
             {row.getVisibleCells().map(cell => (
               <TableCell key={cell.id} className={cn(
-                cell.column.id !== 'name' && cell.column.id !== 'allocation' && 'text-right tabular-nums',
+                cell.column.id !== 'name' && cell.column.id !== 'allocation' && 'text-right',
               )}>
                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
               </TableCell>

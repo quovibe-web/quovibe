@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Router, type RequestHandler, type Router as RouterType } from 'express';
-import { reportingPeriodDefSchema, resolveReportingPeriod, investmentsViewSchema, allocationViewSchema, chartConfigV2Schema, tableIdSchema, tableLayoutEntrySchema, preferencesSchema } from '@quovibe/shared';
+import { reportingPeriodDefSchema, resolveReportingPeriod, investmentsViewSchema, allocationViewSchema, calculationViewSchema, chartConfigV2Schema, chartConfigV3Schema, migrateChartConfigV2toV3, tableIdSchema, tableLayoutEntrySchema, preferencesSchema } from '@quovibe/shared';
 import { getSettings, updateSettings } from '../services/settings.service';
 
 export const settingsRouter: RouterType = Router();
@@ -133,22 +133,50 @@ settingsRouter.put('/allocation-view', (req, res) => {
   res.json(updated.allocationView);
 });
 
+// GET /api/settings/calculation-view
+settingsRouter.get('/calculation-view', (_req, res) => {
+  const { calculationView } = getSettings();
+  res.json(calculationView ?? { layout: 'premium', tableDensity: 'comfortable' });
+});
+
+// PUT /api/settings/calculation-view
+settingsRouter.put('/calculation-view', (req, res) => {
+  const parsed = calculationViewSchema.removeDefault().partial().safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'INVALID_CALCULATION_VIEW', details: parsed.error.format() });
+    return;
+  }
+  const updated = updateSettings({ calculationView: parsed.data });
+  res.json(updated.calculationView);
+});
+
 // GET /api/settings/chart-config
+// v2→v3 migration happens in loadSettings at boot; this handler always serves v3.
 settingsRouter.get('/chart-config', (_req, res) => {
   const { chartConfig } = getSettings();
-  res.json(chartConfig ?? { version: 2, series: [] });
+  res.json(chartConfig ?? { version: 3, series: [] });
 });
 
 // PUT /api/settings/chart-config
 // Note: .partial() intentionally omitted — PUT replaces the entire chartConfig.
+// Accepts both v3 (canonical) and v2 (legacy clients); v2 is migrated → v3 before persisting.
 settingsRouter.put('/chart-config', (req, res) => {
-  const parsed = chartConfigV2Schema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: 'INVALID_CHART_CONFIG', details: parsed.error.format() });
+  const v3 = chartConfigV3Schema.safeParse(req.body);
+  if (v3.success) {
+    const updated = updateSettings({ chartConfig: v3.data });
+    res.json(updated.chartConfig);
     return;
   }
-  const updated = updateSettings({ chartConfig: parsed.data });
-  res.json(updated.chartConfig);
+  // Fall back to v2 — older clients may still send v2; migrate transparently.
+  const v2 = chartConfigV2Schema.safeParse(req.body);
+  if (v2.success) {
+    const migrated = migrateChartConfigV2toV3(v2.data);
+    const updated = updateSettings({ chartConfig: migrated });
+    res.json(updated.chartConfig);
+    return;
+  }
+  // Neither shape parsed — return the v3 error (more informative for new clients).
+  res.status(400).json({ error: 'INVALID_CHART_CONFIG', details: v3.error.format() });
 });
 
 // ---------------------------------------------------------------------------

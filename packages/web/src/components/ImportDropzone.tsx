@@ -10,7 +10,6 @@ interface ImportDropzoneProps {
   emptyText: string;
   changeHint: string;
   formatHint?: string;
-  accentColor?: string;
   disabled?: boolean;
 }
 
@@ -21,7 +20,6 @@ export function ImportDropzone({
   emptyText,
   changeHint,
   formatHint,
-  accentColor = 'var(--color-primary)',
   disabled,
 }: ImportDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -90,25 +88,17 @@ export function ImportDropzone({
           }
         }}
         className={cn(
-          'group relative flex flex-col items-center justify-center gap-3 overflow-hidden rounded-lg border-2 px-6 py-8 text-center',
+          'group relative flex flex-col items-center justify-center gap-3 overflow-hidden rounded-md border px-6 py-8 text-center',
           'transition-all duration-200 ease-out',
           !disabled && 'cursor-pointer',
           disabled && 'cursor-not-allowed opacity-50',
           state === 'empty' &&
-            'border-dashed border-[var(--qv-border-strong)] bg-muted/20 hover:bg-muted/40',
-          state === 'selected' && 'border-solid bg-card',
-          state === 'dragging' && 'border-solid scale-[1.01]',
+            'border-dashed border-[var(--qv-border-strong)] bg-[var(--qv-surface-elevated)] hover:bg-[var(--qv-surface-3)]',
+          state === 'selected' &&
+            'border-solid border-[var(--color-primary)]/40 bg-card',
+          state === 'dragging' &&
+            'scale-[1.01] border-solid border-[var(--color-primary)] bg-[color-mix(in_srgb,var(--color-primary)_8%,transparent)]',
         )}
-        style={
-          state === 'selected'
-            ? { borderColor: `color-mix(in srgb, ${accentColor} 50%, transparent)` }
-            : state === 'dragging'
-              ? {
-                  borderColor: accentColor,
-                  background: `color-mix(in srgb, ${accentColor} 8%, transparent)`,
-                }
-              : undefined
-        }
       >
         <input
           ref={inputRef}
@@ -124,14 +114,14 @@ export function ImportDropzone({
           <>
             <span
               aria-hidden
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/60 text-muted-foreground transition-all duration-200 group-hover:-translate-y-0.5 group-hover:bg-muted group-hover:text-foreground"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--qv-surface-3)] text-[var(--qv-text-secondary)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:text-foreground"
             >
               <Upload size={22} strokeWidth={1.75} />
             </span>
             <span className="flex flex-col gap-1">
               <span className="text-sm font-medium text-foreground">{emptyText}</span>
               {formatHint && (
-                <span className="text-xs text-muted-foreground">{formatHint}</span>
+                <span className="text-xs text-[var(--qv-text-secondary)]">{formatHint}</span>
               )}
             </span>
           </>
@@ -141,22 +131,18 @@ export function ImportDropzone({
           <>
             <span
               aria-hidden
-              className="flex h-12 w-12 items-center justify-center rounded-full transition-transform"
-              style={{
-                background: `color-mix(in srgb, ${accentColor} 14%, transparent)`,
-                color: accentColor,
-              }}
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--qv-surface-elevated)] text-[var(--color-primary)]"
             >
               <FileText size={22} strokeWidth={1.75} />
             </span>
-            <span className="flex flex-col gap-1 min-w-0">
+            <span className="flex min-w-0 flex-col gap-1">
               <span className="flex items-center justify-center gap-1.5">
-                <CheckCircle2 size={14} style={{ color: accentColor }} aria-hidden />
-                <span className="text-sm font-medium text-foreground truncate max-w-[18rem]">
+                <CheckCircle2 size={14} className="text-[var(--color-primary)]" aria-hidden />
+                <span className="max-w-[18rem] truncate text-sm font-medium text-foreground">
                   {file.name}
                 </span>
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="qv-numeric text-xs text-[var(--qv-text-secondary)]">
                 {(file.size / 1024).toFixed(0)} KB · {changeHint}
               </span>
             </span>
@@ -167,15 +153,11 @@ export function ImportDropzone({
           <>
             <span
               aria-hidden
-              className="flex h-12 w-12 items-center justify-center rounded-full"
-              style={{
-                background: `color-mix(in srgb, ${accentColor} 20%, transparent)`,
-                color: accentColor,
-              }}
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-primary)_20%,transparent)] text-[var(--color-primary)]"
             >
               <Upload size={22} strokeWidth={1.75} />
             </span>
-            <span className="text-sm font-medium" style={{ color: accentColor }}>
+            <span className="text-sm font-medium text-[var(--color-primary)]">
               {emptyText}
             </span>
           </>

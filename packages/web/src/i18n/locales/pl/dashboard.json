@@ -10,8 +10,13 @@
   "title": "Panel",
   "hero": {
     "portfolioValue": "Wartość portfela",
+    "asOf": "Na dzień {{date}}",
     "configureMetrics": "Konfiguruj metryki",
     "selectMetrics": "Wybierz metryki"
+  },
+  "zones": {
+    "charts": "Wykresy",
+    "detailMetrics": "Metryki szczegółowe"
   },
   "addDashboard": "Nowy panel",
   "addDashboardDescription": "Wprowadź nazwę dla nowego panelu",

@@ -53,7 +53,7 @@ export function ExpandableNavItem({
           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150 w-full focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           isActive
             ? 'bg-[var(--qv-surface-elevated)] text-foreground font-medium'
-            : 'text-muted-foreground hover:bg-[var(--qv-surface-elevated)] hover:text-foreground',
+            : 'text-muted-foreground hover:bg-[var(--qv-surface-3)] hover:text-foreground',
         )}
       >
         <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-foreground' : 'text-muted-foreground')} />
@@ -74,14 +74,14 @@ export function ExpandableNavItem({
                     <NavLink
                       to={buildTaxonomyUrl(tax.id)}
                       style={contextMenuTaxonomyId === tax.id
-                        ? { backgroundColor: 'color-mix(in srgb, var(--color-accent) 30%, var(--qv-surface-elevated))', color: 'var(--color-foreground)', fontWeight: 500 }
+                        ? { backgroundColor: 'var(--qv-surface-3)', color: 'var(--qv-text-display)', fontWeight: 500 }
                         : undefined}
                       className={() =>
                         cn(
                           'flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs transition-colors duration-150',
                           activeTaxonomyId === tax.id
                             ? 'text-foreground font-medium'
-                            : 'text-muted-foreground hover:bg-[var(--qv-surface-elevated)] hover:text-foreground',
+                            : 'text-muted-foreground hover:bg-[var(--qv-surface-3)] hover:text-foreground',
                         )
                       }
                     >
@@ -123,7 +123,7 @@ export function ExpandableNavItem({
             <li>
               <button
                 onClick={onCreateClick}
-                className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-primary hover:bg-[var(--qv-surface-elevated)] transition-colors duration-150 w-full"
+                className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:text-primary hover:bg-[var(--qv-surface-3)] transition-colors duration-150 w-full"
               >
                 <Plus className="h-3 w-3" />
                 {tr('taxonomyManagement.newTaxonomy')}

@@ -29,7 +29,7 @@ function freshInput(name: string): CreatePortfolioInput {
 // Late-bound bindings populated in beforeAll.
 let createPortfolio: (input: CreatePortfolioInput) => Promise<CreatePortfolioResult>;
 let renamePortfolio: (id: string, newName: string) => PortfolioEntry;
-let deletePortfolio: (id: string) => void;
+let deletePortfolio: (id: string) => import('../portfolio-manager').DeletePortfolioResult;
 let exportPortfolio: (id: string) => Promise<{ filePath: string; downloadName: string }>;
 let setupPortfolio: (id: string, input: Omit<FreshPortfolioInput, 'name'>) => void;
 let acquirePortfolioDb: (id: string) => { sqlite: import('better-sqlite3').Database };
@@ -225,13 +225,14 @@ describe('portfolio-manager', () => {
   });
 
   describe('delete', () => {
-    it('removes the file and sidecar entry, unlinks WAL siblings', async () => {
+    it('removes the file and sidecar entry, unlinks WAL siblings, returns no warnings', async () => {
       const { entry } = await createPortfolio(freshInput('Doomed'));
       const dbPath = path.join(tmp, `portfolio-${entry.id}.db`);
       fs.writeFileSync(dbPath + '-wal', 'x');           // fake WAL to prove unlink happens
-      deletePortfolio(entry.id);
+      const result = deletePortfolio(entry.id);
       expect(fs.existsSync(dbPath)).toBe(false);
       expect(fs.existsSync(dbPath + '-wal')).toBe(false);
+      expect(result.warnings).toEqual([]);
     });
 
     it('rejects delete of a demo portfolio', async () => {

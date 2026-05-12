@@ -49,14 +49,14 @@ export function CsvColumnMapStep({ state, onUpdate, onBack, onNext }: Props) {
   return (
     <div className="space-y-6">
       {/* Column mapping */}
-      <Card>
+      <Card className="rounded-md">
         <CardHeader>
           <CardTitle>{t('columns.title')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">{t('columns.description')}</p>
+          <p className="text-sm text-[var(--qv-text-secondary)] mb-4">{t('columns.description')}</p>
           {depositName && (
-            <p className="text-xs text-muted-foreground mb-4">
+            <p className="text-xs text-[var(--qv-text-faint)] mb-4">
               {t('columns.depositHint', { name: depositName })}
             </p>
           )}
@@ -64,7 +64,7 @@ export function CsvColumnMapStep({ state, onUpdate, onBack, onNext }: Props) {
             {headers.map((header, colIndex) => (
               <div key={colIndex} className="flex items-center gap-4">
                 <span className="w-40 text-sm font-medium truncate">{header}</span>
-                <span className="text-muted-foreground">→</span>
+                <span className="text-[var(--qv-text-faint)]">→</span>
                 <Select
                   value={
                     Object.entries(state.columnMapping).find(([, idx]) => idx === colIndex)?.[0] ??

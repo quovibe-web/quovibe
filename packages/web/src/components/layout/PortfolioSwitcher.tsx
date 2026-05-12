@@ -86,9 +86,9 @@ export function PortfolioSwitcher() {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex min-w-0 items-center gap-1 rounded px-2 py-1 hover:bg-muted">
+        <DropdownMenuTrigger className="group flex min-w-0 items-center gap-1 rounded-sm px-2 py-1 hover:bg-muted data-[state=open]:bg-muted">
           <span className="max-w-[120px] truncate text-sm font-medium md:max-w-[200px]">{currentName}</span>
-          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-150 group-data-[state=open]:rotate-180" />
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-64" align="end">
           {inlinePortfolios.map((p) => (

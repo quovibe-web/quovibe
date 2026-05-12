@@ -49,6 +49,28 @@
     "interest": "Odsetki",
     "dividendsPerGroup": "Dywidendy na {{groupBy}}",
     "interestPerGroup": "Odsetki na {{groupBy}}",
+    "incomePerGroupGross": "Dochód za {{groupBy}} · brutto",
+    "incomePerGroupNet": "Dochód za {{groupBy}} · netto",
+    "hero": {
+      "titleGross": "Przychody łącznie (brutto)",
+      "titleNet": "Przychody łącznie (netto)",
+      "avgMonth": "Śr. / mies.",
+      "peakMonth": "Najlepszy miesiąc",
+      "payments": "Płatności",
+      "topSecurity": "Główny papier",
+      "priorPeak": "poprzedni szczyt"
+    },
+    "calendar": {
+      "title": "Kadencja miesięczna",
+      "yearLabel": "Rok",
+      "total": "Razem",
+      "totalLabel": "Razem",
+      "deltaHeader": "Δ",
+      "averageRow": "Śr.",
+      "headerChipAvg": "Śr./mies. {{value}}",
+      "headerChipYoy": "▲ wzg. '{{year}}",
+      "headerChipYoyDown": "▼ wzg. '{{year}}"
+    },
     "columns": {
       "date": "Data",
       "type": "Typ",
@@ -56,7 +78,11 @@
       "account": "Konto",
       "amount": "Kwota"
     },
-    "empty": "Brak płatności w wybranym okresie.",
+    "empty": {
+      "noPayments": "Brak płatności w wybranym okresie.",
+      "filtered": "Brak płatności spełniających aktywne filtry",
+      "clearFilters": "Wyczyść filtry"
+    },
     "paymentCount_one": "{{count}} płatność",
     "paymentCount_few": "{{count}} płatności",
     "paymentCount_many": "{{count}} płatności",
@@ -68,7 +94,45 @@
       "byTitle": "według papieru wartościowego",
       "byAccount": "według konta"
     },
-    "subtitle": "Dywidendy, odsetki i inne dochody"
+    "subtitle": "Dywidendy, odsetki i inne dochody",
+    "yoy": {
+      "vsPrior": "▲ +{{share}}% wzg. {{priorTotal}} {{priorLabel}}",
+      "vsPriorDown": "▼ {{share}}% wzg. {{priorTotal}} {{priorLabel}}",
+      "priorYearLabel": "YTD {{year}}"
+    },
+    "detail": {
+      "headerCount": "Szczegóły · {{count, number}} płatności",
+      "filtered": "{{filtered, number}} z {{total, number}}",
+      "filter": {
+        "allTypes": "Wszystkie typy",
+        "dividend": "Dywidendy",
+        "interest": "Odsetki",
+        "addSecurity": "+ Papier",
+        "selectSecurities": "Wybierz papiery",
+        "searchSecurities": "Szukaj papierów…"
+      },
+      "sort": {
+        "label": "Sortuj",
+        "dateDesc": "Data · najnowsze",
+        "dateAsc": "Data · najstarsze",
+        "amountDesc": "Kwota · największa",
+        "securityAsc": "Papier · A → Z"
+      },
+      "year": {
+        "ytd": "YTD",
+        "payments": "{{count, number}} płatności"
+      }
+    },
+    "rail": {
+      "topPayers": "Najlepsi płatnicy",
+      "morePayers": "+ {{count, number}} więcej",
+      "byType": "Według typu",
+      "cashInterest": "Odsetki gotówkowe"
+    },
+    "concentration": {
+      "title": "Koncentracja",
+      "top3": "Top 3 = {{share}}% dochodu"
+    }
   },
   "returnsHeatmap": {
     "title": "Mapa ciepła stóp zwrotu",
@@ -152,7 +216,15 @@
     "fees": "Opłaty",
     "selectTaxonomy": "Taksonomia",
     "categoryLabel": "Kategoria",
-    "subtitle": "Trendy wyników według kategorii"
+    "subtitle": "Trendy wyników według kategorii",
+    "best": "Najlepsza",
+    "worst": "Najgorsza",
+    "spread": "Rozpiętość",
+    "spreadAcross": "w {{count}} kategoriach",
+    "categoriesLabel": "Kategorie",
+    "composition": "Skład",
+    "topPerformers": "Najlepsze kategorie",
+    "noCategoryData": "Brak danych dla kategorii."
   },
   "taxonomyNodePicker": {
     "loading": "Ładowanie…",

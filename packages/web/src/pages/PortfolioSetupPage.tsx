@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { WelcomeBackground } from '@/components/welcome/WelcomeBackground';
 import { WelcomeTopBar } from '@/components/welcome/WelcomeTopBar';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { usePortfolioRegistry } from '@/api/use-portfolios';
 import {
   useSecuritiesAccounts,
@@ -72,14 +73,14 @@ export default function PortfolioSetupPage() {
       <WelcomeBackground />
       <div className="flex min-h-svh flex-col">
         <WelcomeTopBar />
-        <main className="flex-1 flex items-center justify-center px-6 py-10">
-          <div className="w-full max-w-xl rounded-xl border bg-card p-8 shadow-sm">
-            <h1 className="text-2xl font-semibold mb-2">
-              {t('setupPage.title', { name: entry.name })}
-            </h1>
-            <p className="text-muted-foreground mb-6 text-sm">
-              {t('setupPage.description')}
-            </p>
+        <main className="flex flex-1 items-center justify-center px-6 py-10">
+          <div className="w-full max-w-xl rounded-md border border-[var(--qv-border-subtle)] bg-card p-8 shadow-[var(--shadow-sm)]">
+            <div className="mb-6">
+              <PageHeader
+                title={t('setupPage.title', { name: entry.name })}
+                subtitle={t('setupPage.description')}
+              />
+            </div>
             <PortfolioSetupForm
               onSubmit={handleSubmit}
               isSubmitting={inFlight || mutation.isPending}

@@ -12,10 +12,14 @@ export function Shell({ children }: ShellProps = {}) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
 
-  // Ctrl+B toggles sidebar drawer; Ctrl+K / Cmd+K toggles command palette
+  // Ctrl+B toggles sidebar drawer; Ctrl+K / Cmd+K toggles command palette.
+  // Drawer hotkey is gated to <lg viewports — desktop has DesktopSidebar
+  // already, the drawer would just be duplicate nav noise.
   useEffect(() => {
+    const drawerMql = window.matchMedia('(max-width: 1023.98px)');
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        if (!drawerMql.matches) return;
         e.preventDefault();
         setDrawerOpen((prev) => !prev);
       }

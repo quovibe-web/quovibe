@@ -35,7 +35,7 @@ export function AccountSummaryStrip() {
         {
           label: t('summary.totalAccounts'),
           value: (
-            <span className="text-2xl font-semibold tabular-nums">{totalAccounts}</span>
+            <span className="qv-numeric text-2xl font-medium">{totalAccounts}</span>
           ),
         },
         {
@@ -44,7 +44,7 @@ export function AccountSummaryStrip() {
             <div>
               <CurrencyDisplay
                 value={cashValue}
-                className="text-2xl font-semibold tabular-nums"
+                className="qv-numeric text-2xl font-medium"
               />
               <CashBreakdown cashByCurrency={cashByCurrency} className="mt-1" />
             </div>

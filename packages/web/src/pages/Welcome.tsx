@@ -14,6 +14,7 @@ import { WelcomeTopBar } from '@/components/welcome/WelcomeTopBar';
 import { WelcomeHero } from '@/components/welcome/WelcomeHero';
 import { WelcomeFooter } from '@/components/welcome/WelcomeFooter';
 import { ActionCard } from '@/components/welcome/ActionCard';
+import { Badge } from '@/components/ui/badge';
 import { NewPortfolioDialog } from '@/components/domain/portfolio/NewPortfolioDialog';
 import { formatDate } from '@/lib/formatters';
 import { sortByRecency } from '@/lib/portfolio-recency';
@@ -72,7 +73,7 @@ export default function Welcome() {
               >
                 <h2
                   id="welcome-recent-heading"
-                  className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                  className="qv-eyebrow mb-3"
                 >
                   {t('recent.heading')}
                 </h2>
@@ -81,30 +82,22 @@ export default function Welcome() {
                     <li key={p.id}>
                       <Link
                         to={`/p/${p.id}/dashboard`}
-                        className="qv-card-interactive group flex items-center gap-3 rounded-xl border bg-card px-4 py-3 text-left no-underline"
+                        className="qv-card-interactive group flex items-center gap-3 rounded-md border border-[var(--qv-border-subtle)] bg-card px-4 py-3 text-left no-underline"
                       >
                         <Clock
                           aria-hidden="true"
                           size={18}
-                          strokeWidth={1.75}
-                          className="shrink-0 text-muted-foreground"
+                          className="shrink-0 text-[var(--qv-text-secondary)]"
                         />
                         <span className="min-w-0 flex-1 truncate text-sm font-medium">
                           {p.name}
                         </span>
                         {p.kind === 'demo' && (
-                          <span
-                            className="shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider"
-                            style={{
-                              color: 'var(--color-chart-2)',
-                              background:
-                                'color-mix(in srgb, var(--color-chart-2) 12%, transparent)',
-                            }}
-                          >
+                          <Badge variant="outline" className="qv-eyebrow rounded-sm px-2 py-0.5">
                             {t('recent.demoTag')}
-                          </span>
+                          </Badge>
                         )}
-                        <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+                        <span className="hidden shrink-0 text-xs text-[var(--qv-text-secondary)] sm:inline">
                           {p.lastOpenedAt
                             ? t('recent.lastOpened', { date: formatDate(p.lastOpenedAt) })
                             : t('recent.neverOpened', { date: formatDate(p.createdAt) })}
@@ -112,7 +105,7 @@ export default function Welcome() {
                         <ArrowRight
                           aria-hidden="true"
                           size={14}
-                          className="shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5"
+                          className="shrink-0 text-[var(--qv-text-secondary)] transition-transform duration-200 group-hover:translate-x-0.5"
                         />
                       </Link>
                     </li>

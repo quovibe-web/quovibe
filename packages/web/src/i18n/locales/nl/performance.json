@@ -73,7 +73,83 @@
     "thereofFx": "Valuta-effect",
     "columnName": "Naam",
     "columnAmount": "Bedrag",
-    "columnDate": "Datum"
+    "columnDate": "Datum",
+    "viewToggle": {
+      "label": "Lay-out",
+      "premium": "Premium",
+      "classic": "Klassiek"
+    },
+    "heroStrip": {
+      "ttwror": "TWR rendement",
+      "irr": "IRR (per jaar)",
+      "deltaPercent": "Δ %",
+      "deltaAbsolute": "Δ absoluut",
+      "maxDrawdown": "Maximale drawdown",
+      "sharpe": "Sharpe-ratio",
+      "onMvb": "op beginwaarde",
+      "netResult": "nettoresultaat",
+      "riskAdjustedReturn": "risicogecorrigeerd rendement",
+      "newtonRaphson": "Newton-Raphson"
+    },
+    "categories": {
+      "drivers": "Performance-aanjagers",
+      "frictions": "Wrijving",
+      "flows": "Kapitaalstromen",
+      "anchorsIdentity": "Ankers & identiteit",
+      "descriptions": {
+        "drivers": "Koerswinsten, dividenden, rente en valuta-effecten",
+        "frictions": "Kosten en belastingen die in de periode in rekening zijn gebracht",
+        "flows": "Stortingen, opnames, leveringen — stromen die de prestatie niet beïnvloeden",
+        "anchorsIdentity": "Begin, einde en de rekenkundige identiteit van de periode"
+      }
+    },
+    "waterfall": {
+      "title": "Waterfall",
+      "mvb": "Begin",
+      "mve": "Einde",
+      "drivers": "Aanjagers",
+      "frictions": "Wrijving",
+      "flows": "Stromen",
+      "clickToExpand": "Klik op een balk om de uitsplitsing te zien",
+      "extremeMagnitudeNotice": "Eén waarde overschaduwt de andere — schakel naar logaritmische schaal om alle balken te zien",
+      "linearScale": "Lineair",
+      "logScale": "Log",
+      "emptyPeriod": "Geen transacties in de periode"
+    },
+    "rightRail": {
+      "riskStyle": "Risico & stijl",
+      "openPosition": "Open positie",
+      "lastDay": "Laatste dag Δ",
+      "volatility": "Volatiliteit",
+      "semivariance": "Semi-variantie",
+      "maxDdPeriod": "Periode max drawdown",
+      "currentDrawdown": "Huidige drawdown",
+      "pmcConvention": "PMC",
+      "fifoConvention": "FIFO",
+      "cost": "Kostprijsbasis",
+      "marketValue": "Marktwaarde",
+      "unrealizedPnl": "Ongerealiseerde PnL",
+      "peak": "Top",
+      "trough": "Dal",
+      "duration": "Duur",
+      "days_one": "{{count}} dag",
+      "days_other": "{{count}} dagen"
+    },
+    "equation": {
+      "identityCheck": "Identiteitscontrole",
+      "labelMvb": "MVB",
+      "labelDrivers": "Aanjagers",
+      "labelFrictions": "Wrijving",
+      "labelFlows": "Stromen",
+      "labelMve": "MVE",
+      "identityOk": "geverifieerd",
+      "identityDrift": "afwijking {{value}}"
+    },
+    "density": {
+      "comfortable": "Comfortabel",
+      "dense": "Compact",
+      "toggle": "Tabeldichtheid wisselen"
+    }
   },
   "securities": {
     "title": "Prestaties — Effecten",
@@ -163,7 +239,56 @@
     "styleDashed": "Gestreept",
     "styleDotted": "Gestippeld",
     "customColor": "Aangepast",
-    "presetColors": "Vooraf ingestelde kleuren"
+    "presetColors": "Vooraf ingestelde kleuren",
+    "annualized": "Geannualiseerd",
+    "status": {
+      "loading": "Laden…",
+      "empty": "Geen gegevens in periode",
+      "error": "Laden mislukt"
+    },
+    "axis": {
+      "label": "As",
+      "shared": "Gedeelde as",
+      "pinLeft": "Vastpinnen op links",
+      "pinRight": "Vastpinnen op rechts"
+    },
+    "rail": {
+      "lastCol": "Laatste",
+      "deltaCol": "vs Portefeuille",
+      "addSeries": "+ Reeks toevoegen",
+      "series": "Reeks"
+    },
+    "sheet": {
+      "title": "Vergelijk",
+      "description": "Voeg effecten en benchmarks toe aan de grafiek",
+      "empty": "Gebruik het zoekveld om reeksen en benchmarks toe te voegen.",
+      "counter": "{{count}} van {{max}}",
+      "done": "Klaar",
+      "search": "Zoek op ticker, ISIN, naam…",
+      "noResults": "Geen overeenkomende effecten",
+      "removeAll": "Alles verwijderen",
+      "removeAllConfirm": "Alle {{count}} reeksen verwijderen?",
+      "removeAllCancel": "Annuleren",
+      "removeAllConfirmAction": "Alles verwijderen",
+      "filter": {
+        "all": "Alles",
+        "owned": "In bezit",
+        "index": "Indices",
+        "account": "Rekeningen"
+      }
+    },
+    "action": {
+      "addHolding": "Toevoegen als positie",
+      "addReference": "Toevoegen als referentie",
+      "compare": "Vergelijken"
+    },
+    "badge": {
+      "youHold": "In bezit",
+      "index": "Index"
+    },
+    "semantic": {
+      "tooltip": "Positie = TWR op uw positie (rekening houdend met aan- en verkopen). Referentie = prijsrendement van het instrument, los van de posities."
+    }
   },
   "cardLinks": {
     "calculation": "Berekening",

@@ -1,13 +1,13 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import Database from 'better-sqlite3';
 import * as cheerio from 'cheerio';
 import { v4 as uuidv4 } from 'uuid'; // uuid is already in packages/api/package.json
 import { verifySchema } from '../db/verify';
 import { applyBootstrap } from '../db/apply-bootstrap';
+import { DATA_DIR } from '../config';
 
 const execFileAsync = promisify(execFile);
 
@@ -16,13 +16,14 @@ const execFileAsync = promisify(execFile);
 const _vendorStandard = path.resolve(__dirname, '../../vendor');
 const _vendorStripped  = path.resolve(__dirname, '../vendor');
 const VENDOR_DIR = fs.existsSync(_vendorStripped) ? _vendorStripped : _vendorStandard;
-// Lock file for the cross-process import mutex. Default path is
-// `os.tmpdir()/quovibe-import.lock` (survives process restarts, stale
-// locks are reaped by the 5-minute check in `isImportInProgress`). Tests
-// that hit `runImport` must override this via QUOVIBE_IMPORT_LOCK_FILE
-// so parallel test files don't clobber each other's locks — the lock is
-// intentionally a single global path in production but per-suite in test.
-const LOCK_FILE = process.env.QUOVIBE_IMPORT_LOCK_FILE ?? path.join(os.tmpdir(), 'quovibe-import.lock');
+// Lock file for the cross-process import mutex. Lives under DATA_DIR/tmp/
+// so a container restart (whose /tmp would be wiped) cannot strand the
+// lock with no associated import. Stale locks reaped by the 5-minute
+// check in `isImportInProgress`. Tests that hit `runImport` must override
+// this via QUOVIBE_IMPORT_LOCK_FILE so parallel test files don't clobber
+// each other's locks — the lock is intentionally a single global path in
+// production but per-suite in test.
+const LOCK_FILE = process.env.QUOVIBE_IMPORT_LOCK_FILE ?? path.join(DATA_DIR, 'tmp', 'import.lock');
 
 export class ImportError extends Error {
   constructor(
@@ -144,8 +145,10 @@ export interface ImportResult {
  */
 export async function runImport(xmlPath: string): Promise<ImportResult> {
   const uuid = uuidv4();
-  const tempDbPath = path.join(os.tmpdir(), `quovibe-${uuid}.db`);
+  const tempDbPath = path.join(DATA_DIR, 'tmp', `import-${uuid}.db`);
   const tempXmlPath = xmlPath; // already saved by multer
+
+  fs.mkdirSync(path.dirname(LOCK_FILE), { recursive: true });
 
   // Create lock (exclusive create prevents TOCTOU race with concurrent requests)
   try {

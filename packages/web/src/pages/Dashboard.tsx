@@ -21,6 +21,7 @@ import { restrictToHorizontalAxis } from '@dnd-kit/modifiers';
 import { motion } from 'framer-motion';
 import { Plus, GripVertical, MoreHorizontal, Columns3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -256,21 +257,21 @@ function SortableTab({
         ) : (
           <button
             className={cn(
-              'relative px-3 py-2 md:py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-              !isActive && 'text-muted-foreground hover:text-foreground hover:bg-muted',
+              'relative px-3 py-2 md:py-1.5 text-sm font-medium transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:rounded-sm',
+              isActive
+                ? 'text-[var(--qv-text-display)]'
+                : 'text-muted-foreground hover:text-foreground',
             )}
             onClick={onSwitchTab}
           >
+            <span className="relative z-10">{dashboard.name}</span>
             {isActive && (
               <motion.div
                 layoutId="dashboard-tab-indicator"
-                className="absolute inset-0 rounded-full bg-primary"
-                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                className="absolute left-2 right-2 -bottom-[9px] h-[2px] bg-[var(--color-primary)]"
+                transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
               />
             )}
-            <span className={cn('relative z-10', isActive ? 'text-primary-foreground' : '')}>
-              {dashboard.name}
-            </span>
           </button>
         )}
         {/* Kebab menu — visible on active, hover-reveal on inactive */}
@@ -668,14 +669,14 @@ export default function Dashboard() {
             style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))' }}
           >
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-[180px] rounded-lg" />
+              <Skeleton key={i} className="h-[180px] rounded-md" />
             ))}
           </div>
         </div>
       ) : (
       <>
       {/* ── Tab bar ── */}
-      <div className="flex items-center gap-1 border-b border-border pb-2 overflow-x-auto scrollbar-hide">
+      <div className="flex items-center gap-1 border-b border-[var(--qv-border-subtle)] pb-2 overflow-x-auto scrollbar-hide">
         {renderTabs()}
 
         {/* Spacer pushes action buttons to the right */}
@@ -700,7 +701,7 @@ export default function Dashboard() {
             </SelectContent>
           </Select>
 
-          <span className="text-border">|</span>
+          <Separator orientation="vertical" className="h-4 mx-1" />
 
           <Button
             variant="ghost"
@@ -712,7 +713,7 @@ export default function Dashboard() {
             {t('addWidget')}
           </Button>
 
-          <span className="text-border">|</span>
+          <Separator orientation="vertical" className="h-4 mx-1" />
 
           <Button
             variant="ghost"
@@ -736,7 +737,7 @@ export default function Dashboard() {
           onMetricIdsChange={updateMetricsStripIds}
         />
       </div>
-      <div className="border-b border-border" />
+      <div className="border-b border-[var(--qv-border-subtle)]" />
 
       {/* ── Widget zones ── */}
       {activeDash.widgets.length === 0 ? (
@@ -752,7 +753,7 @@ export default function Dashboard() {
                 <button
                   key={tmpl.id}
                   onClick={() => applyTemplateToCurrent(tmpl)}
-                  className="bg-card border border-border rounded-lg p-4 text-left hover:border-primary/50 hover:shadow-sm cursor-pointer transition-all"
+                  className="bg-card border border-border rounded-md p-4 text-left hover:border-[var(--qv-border-strong)] hover:shadow-sm cursor-pointer transition-all"
                   style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: `${i * 50}ms` }}
                 >
                   <Icon className="h-5 w-5 text-primary mb-2" />
@@ -778,6 +779,7 @@ export default function Dashboard() {
           {chartWidgets.length > 0 && (
             <SortableContext items={chartIds} strategy={rectSortingStrategy}>
               <div className="space-y-4" style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '160ms' }}>
+                <div className="qv-eyebrow">{t('zones.charts')}</div>
                 {chartWidgets.map((widget, i) => (
                   <SortableWidget
                     key={widget.id}
@@ -799,29 +801,35 @@ export default function Dashboard() {
           {detailWidgets.length > 0 && (
             <SortableContext items={detailIds} strategy={rectSortingStrategy}>
               <div
-                className="grid gap-2 qv-dashboard-grid"
                 style={{
-                  gridTemplateColumns: activeDash.columns === 'auto'
-                    ? 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))'
-                    : `repeat(${activeDash.columns}, 1fr)`,
                   animation: 'qv-stagger-in 0.4s ease-out both',
                   animationDelay: '240ms',
                 }}
               >
-                {detailWidgets.map((widget, i) => (
-                  <SortableWidget
-                    key={widget.id}
-                    widget={widget}
-                    dashboardId={activeDash.id}
-                    index={i}
-                    onDelete={deleteWidget}
-                    onTitleChange={changeWidgetTitle}
-                    onSpanChange={changeWidgetSpan}
-                    onToggleHidden={toggleWidgetHidden}
-                    columns={activeDash.columns}
-                    compact
-                  />
-                ))}
+                <div className="qv-eyebrow mb-3">{t('zones.detailMetrics')}</div>
+                <div
+                  className="grid gap-2 qv-dashboard-grid"
+                  style={{
+                    gridTemplateColumns: activeDash.columns === 'auto'
+                      ? 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))'
+                      : `repeat(${activeDash.columns}, 1fr)`,
+                  }}
+                >
+                  {detailWidgets.map((widget, i) => (
+                    <SortableWidget
+                      key={widget.id}
+                      widget={widget}
+                      dashboardId={activeDash.id}
+                      index={i}
+                      onDelete={deleteWidget}
+                      onTitleChange={changeWidgetTitle}
+                      onSpanChange={changeWidgetSpan}
+                      onToggleHidden={toggleWidgetHidden}
+                      columns={activeDash.columns}
+                      compact
+                    />
+                  ))}
+                </div>
               </div>
             </SortableContext>
           )}
@@ -860,10 +868,10 @@ export default function Dashboard() {
                       key={tmpl.id}
                       onClick={() => setSelectedTemplate(isSelected ? null : tmpl.id)}
                       className={cn(
-                        'w-full flex items-center gap-3 p-2.5 rounded-lg border text-left transition-all',
+                        'w-full flex items-center gap-3 p-2.5 rounded-md border text-left transition-all',
                         isSelected
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-border-strong',
+                          ? 'border-[var(--color-primary)] bg-[var(--qv-surface-elevated)]'
+                          : 'border-border hover:border-[var(--qv-border-strong)]',
                       )}
                     >
                       <Icon className="h-4 w-4 text-primary shrink-0" />

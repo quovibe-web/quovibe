@@ -26,7 +26,7 @@ export function AggregatedPaymentTooltip({
     <ChartTooltip label={typeof label === 'string' ? label : undefined} className="min-w-[180px]" centered>
       <div className="flex items-center justify-between gap-4">
         <span className="text-xs text-muted-foreground">{totalLabel}</span>
-        <span className="text-sm font-semibold tabular-nums">
+        <span className="qv-numeric text-sm font-medium">
           <CurrencyDisplay value={value} animated={false} />
         </span>
       </div>

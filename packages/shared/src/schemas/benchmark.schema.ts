@@ -80,17 +80,6 @@ export function generateSeriesId(): string {
   return id;
 }
 
-/** Default chart config when none exists. */
-export const DEFAULT_CHART_CONFIG: ChartConfigV2 = {
-  version: 2,
-  series: [{
-    id: 'portfolio-default',
-    type: 'portfolio',
-    visible: true,
-    lineStyle: 'solid',
-  }],
-};
-
 /**
  * Migrate v1 ChartConfig to v2. Preserves existing benchmarks as benchmark series.
  * Prepends a default portfolio series.
@@ -121,5 +110,91 @@ export function migrateChartConfigV1toV2(
   return { version: 2, series };
 }
 
-/** Unified ChartConfig — always v2 at runtime after migration. */
-export type ChartConfig = ChartConfigV2;
+// --- V3: Adds axis + role ---
+
+export const seriesAxisEnum = z.enum(['left', 'right', 'auto']);
+export type SeriesAxis = z.infer<typeof seriesAxisEnum>;
+
+export const seriesRoleEnum = z.enum(['portfolio', 'holding', 'reference']);
+export type SeriesRole = z.infer<typeof seriesRoleEnum>;
+
+export const dataSeriesConfigV3Schema = z.object({
+  id: z.string().min(1),
+  type: dataSeriesTypeEnum,
+  securityId: z.string().optional(),
+  accountId: z.string().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+  visible: z.boolean(),
+  lineStyle: lineStyleEnum,
+  label: z.string().nullable().optional(),
+  areaFill: z.boolean().optional(),
+  order: z.number().int().min(0).optional(),
+  axis: seriesAxisEnum.optional().default('auto'),
+  role: seriesRoleEnum.optional(),
+}).superRefine((val, ctx) => {
+  if ((val.type === 'security' || val.type === 'benchmark') && !val.securityId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'securityId is required for security and benchmark series',
+      path: ['securityId'],
+    });
+  }
+  if (val.type === 'account' && !val.accountId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'accountId is required for account series',
+      path: ['accountId'],
+    });
+  }
+});
+
+export type DataSeriesConfigV3 = z.infer<typeof dataSeriesConfigV3Schema>;
+
+export const chartConfigV3Schema = z.object({
+  version: z.literal(3),
+  series: z.array(dataSeriesConfigV3Schema).max(10).default([]),
+});
+
+export type ChartConfigV3 = z.infer<typeof chartConfigV3Schema>;
+
+function deriveRole(type: DataSeriesType): SeriesRole {
+  switch (type) {
+    case 'portfolio': return 'portfolio';
+    case 'benchmark': return 'reference';
+    case 'security':
+    case 'account':
+    default:          return 'holding';
+  }
+}
+
+/**
+ * Migrate v2 ChartConfig to v3. Defaults axis to 'auto', derives role from type.
+ * @param v2 - Validated v2 chart config.
+ * @returns A valid ChartConfigV3 object.
+ */
+export function migrateChartConfigV2toV3(v2: ChartConfigV2): ChartConfigV3 {
+  return {
+    version: 3,
+    series: v2.series.map((s) => ({
+      ...s,
+      axis: 'auto' as const,
+      role: deriveRole(s.type),
+    })),
+  };
+}
+
+/** Unified ChartConfig — always v3 at runtime after migration. */
+export type ChartConfig = ChartConfigV3;
+
+/** Default chart config when none exists. */
+export const DEFAULT_CHART_CONFIG: ChartConfigV3 = {
+  version: 3,
+  series: [{
+    id: 'portfolio-default',
+    type: 'portfolio',
+    visible: true,
+    lineStyle: 'solid',
+    axis: 'auto',
+    role: 'portfolio',
+  }],
+};

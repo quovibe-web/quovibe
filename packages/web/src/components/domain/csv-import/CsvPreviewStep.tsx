@@ -158,7 +158,7 @@ export function CsvPreviewStep({ state, onBack }: Props) {
               <p>{t('result.transactions', { count: result.created.transactions })}</p>
             )}
             {result.skippedDuplicates > 0 && !allDuplicates && (
-              <p className="text-amber-700 dark:text-amber-400">
+              <p className="text-[var(--qv-warning)]">
                 {t('result.skippedDuplicates', { count: skippedInputRows })}
               </p>
             )}
@@ -166,7 +166,7 @@ export function CsvPreviewStep({ state, onBack }: Props) {
               <p>{t('result.securities', { count: result.created.securities })}</p>
             )}
             {result.errors.length > 0 && (
-              <p className="text-destructive">{t('result.errors', { count: result.errors.length })}</p>
+              <p className="text-[var(--qv-negative)]">{t('result.errors', { count: result.errors.length })}</p>
             )}
           </AlertDescription>
         </Alert>
@@ -181,33 +181,33 @@ export function CsvPreviewStep({ state, onBack }: Props) {
     <div className="space-y-6">
       {/* Summary cards */}
       <div className={preview.summary.duplicates > 0 ? 'grid grid-cols-4 gap-4' : 'grid grid-cols-3 gap-4'}>
-        <Card>
+        <Card className="rounded-md">
           <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-bold">{preview.summary.valid}</div>
-            <div className="text-sm text-muted-foreground">{t('preview.valid')}</div>
+            <div className="qv-numeric text-3xl font-medium text-[var(--qv-text-display)]">{preview.summary.valid}</div>
+            <div className="qv-eyebrow text-[var(--qv-text-faint)] mt-1">{t('preview.valid')}</div>
           </CardContent>
         </Card>
         {preview.summary.duplicates > 0 && (
-          <Card>
+          <Card className="rounded-md">
             <CardContent className="pt-4 text-center">
-              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{preview.summary.duplicates}</div>
-              <div className="text-sm text-muted-foreground">{t('summary.duplicates', { count: preview.summary.duplicates })}</div>
+              <div className="qv-numeric text-3xl font-medium text-[var(--qv-warning)]">{preview.summary.duplicates}</div>
+              <div className="qv-eyebrow text-[var(--qv-text-faint)] mt-1">{t('summary.duplicates', { count: preview.summary.duplicates })}</div>
             </CardContent>
           </Card>
         )}
-        <Card>
+        <Card className="rounded-md">
           <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-bold text-destructive">{preview.summary.errors}</div>
-            <div className="text-sm text-muted-foreground">{t('preview.errorCount')}</div>
+            <div className="qv-numeric text-3xl font-medium text-[var(--qv-negative)]">{preview.summary.errors}</div>
+            <div className="qv-eyebrow text-[var(--qv-text-faint)] mt-1">{t('preview.errorCount')}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-md">
           <CardContent className="pt-4">
-            <div className="text-sm font-medium mb-2">{t('preview.byType')}</div>
+            <div className="qv-eyebrow text-[var(--qv-text-faint)] mb-2">{t('preview.byType')}</div>
             {Object.entries(preview.summary.byType).map(([type, count]) => (
               <div key={type} className="flex justify-between text-sm">
                 <span>{type}</span>
-                <span>{count}</span>
+                <span className="qv-numeric">{count}</span>
               </div>
             ))}
           </CardContent>
@@ -216,7 +216,7 @@ export function CsvPreviewStep({ state, onBack }: Props) {
 
       {/* Errors */}
       {preview.errors.length > 0 && (
-        <Card>
+        <Card className="rounded-md">
           <CardHeader><CardTitle>{t('preview.errors')}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-1 max-h-40 overflow-y-auto">
@@ -226,7 +226,7 @@ export function CsvPreviewStep({ state, onBack }: Props) {
                   ? t(i18nKey, { value: err.value ?? '', field: err.column ?? '', column: err.column ?? '', count: err.count ?? 0 })
                   : err.code;
                 return (
-                  <div key={i} className="text-sm text-destructive">
+                  <div key={i} className="text-sm text-[var(--qv-negative)]">
                     {t('preview.rowErrorPrefix', { row: err.row })}
                     {err.column ? ` [${err.column}] ` : ' '}{translated}
                   </div>
@@ -238,19 +238,19 @@ export function CsvPreviewStep({ state, onBack }: Props) {
       )}
 
       {/* Row table */}
-      <Card>
+      <Card className="rounded-md">
         <CardContent className="pt-4">
           <div className="overflow-x-auto max-h-96">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-background">
-                <tr className="border-b">
+              <thead className="sticky top-0 bg-[var(--qv-surface)]">
+                <tr className="border-b border-[var(--qv-border-subtle)]">
                   <th className="px-2 py-2 w-8"></th>
-                  <th className="px-2 py-2 text-left">#</th>
-                  <th className="px-2 py-2 text-left">{t('columns.field.date')}</th>
-                  <th className="px-2 py-2 text-left">{t('columns.field.type')}</th>
-                  <th className="px-2 py-2 text-left">{t('columns.field.security')}</th>
-                  <th className="px-2 py-2 text-right">{t('columns.field.shares')}</th>
-                  <th className="px-2 py-2 text-right">{t('columns.field.amount')}</th>
+                  <th className="px-2 py-2 text-left qv-eyebrow text-[var(--qv-text-faint)]">#</th>
+                  <th className="px-2 py-2 text-left qv-eyebrow text-[var(--qv-text-faint)]">{t('columns.field.date')}</th>
+                  <th className="px-2 py-2 text-left qv-eyebrow text-[var(--qv-text-faint)]">{t('columns.field.type')}</th>
+                  <th className="px-2 py-2 text-left qv-eyebrow text-[var(--qv-text-faint)]">{t('columns.field.security')}</th>
+                  <th className="px-2 py-2 text-right qv-eyebrow text-[var(--qv-text-faint)]">{t('columns.field.shares')}</th>
+                  <th className="px-2 py-2 text-right qv-eyebrow text-[var(--qv-text-faint)]">{t('columns.field.amount')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -260,7 +260,7 @@ export function CsvPreviewStep({ state, onBack }: Props) {
                   return (
                     <tr
                       key={row.rowNumber}
-                      className={`border-b ${hasError ? 'bg-destructive/5' : ''} ${excluded ? 'opacity-40' : ''}`}
+                      className={`border-b border-[var(--qv-border-subtle)] ${hasError ? 'bg-[var(--qv-negative)]/5' : ''} ${excluded ? 'opacity-40' : ''}`}
                     >
                       <td className="px-2 py-1">
                         {!hasError && (
@@ -270,12 +270,12 @@ export function CsvPreviewStep({ state, onBack }: Props) {
                           />
                         )}
                       </td>
-                      <td className="px-2 py-1 text-muted-foreground">{row.rowNumber}</td>
-                      <td className="px-2 py-1">{row.date}</td>
+                      <td className="px-2 py-1 qv-numeric text-[var(--qv-text-faint)]">{row.rowNumber}</td>
+                      <td className="px-2 py-1 qv-numeric">{row.date}</td>
                       <td className="px-2 py-1">{row.type}</td>
                       <td className="px-2 py-1">{row.securityName}</td>
-                      <td className="px-2 py-1 text-right">{row.shares ?? '-'}</td>
-                      <td className="px-2 py-1 text-right">{row.amount}</td>
+                      <td className="px-2 py-1 text-right qv-numeric">{row.shares ?? '-'}</td>
+                      <td className="px-2 py-1 text-right qv-numeric">{row.amount}</td>
                     </tr>
                   );
                 })}

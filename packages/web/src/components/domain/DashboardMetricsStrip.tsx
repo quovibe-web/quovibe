@@ -16,7 +16,9 @@ interface MetricsStripProps {
   onMetricIdsChange: (ids: string[]) => void;
 }
 
-/** Maps metric ID to field in CalculationBreakdownResponse + display format */
+/** Maps metric ID to field in CalculationBreakdownResponse + display format.
+ *  Drawdown-class metrics are returned as NEGATIVE values so the spec-§1.4
+ *  sign-color rule applies uniformly — no auto-paint danger set. */
 function resolveMetric(
   id: string,
   data: Record<string, string | number | boolean | null>,
@@ -57,7 +59,9 @@ function resolveMetric(
     case 'all-time-high':
       return { value: parseFloat(data.finalValue as string), format: 'currency' };
     case 'distance-from-ath':
-      return { value: parseFloat(data.currentDrawdown as string), format: 'percent' };
+      // Signed: distance from ATH is always a loss perspective, so the wire's
+      // positive magnitude is rendered as negative.
+      return { value: -parseFloat(data.currentDrawdown as string), format: 'percent' };
     case 'cash-drag':
       return null;
     default:
@@ -65,18 +69,18 @@ function resolveMetric(
   }
 }
 
+/** Sign-color rule (spec §1.4). Returns Tailwind class or undefined for zero/
+ *  uncolored metrics. Drawdown + distance-from-ATH flow through here because
+ *  resolveMetric returns them already negated — sign carries the semantics. */
 function getColorClass(id: string, value: number): string | undefined {
   const signColored = [
     'ttwror', 'ttwror-pa', 'irr', 'delta',
     'absolute-performance', 'absolute-change', 'sharpe-ratio',
+    'max-drawdown', 'current-drawdown', 'distance-from-ath',
   ];
-  if (signColored.includes(id)) {
-    if (value > 0) return 'text-[var(--qv-positive)]';
-    if (value < 0) return 'text-[var(--qv-negative)]';
-    return undefined;
-  }
-  const dangerMetrics = ['max-drawdown', 'current-drawdown', 'distance-from-ath'];
-  if (dangerMetrics.includes(id) && value !== 0) return 'text-[var(--qv-negative)]';
+  if (!signColored.includes(id)) return undefined;
+  if (value > 0) return 'text-[var(--qv-positive)]';
+  if (value < 0) return 'text-[var(--qv-negative)]';
   return undefined;
 }
 
@@ -119,18 +123,18 @@ export function DashboardMetricsStrip({ metricIds, onMetricIdsChange }: MetricsS
               key={id}
               className={cn(
                 'flex-1 min-w-0 py-2 px-3',
-                !isLast && 'md:border-r md:border-border',
+                !isLast && 'md:border-r md:border-[var(--qv-border-subtle)]',
                 'basis-1/2 md:basis-auto',
               )}
             >
               <div className="flex items-center gap-1">
-                <span className="text-[0.6rem] text-muted-foreground uppercase tracking-wider font-medium truncate" title={t(`widgetTypes.${id}`)}>
+                <span className="qv-eyebrow truncate" title={t(`widgetTypes.${id}`)}>
                   {t(`widgetTypes.${id}`)}
                 </span>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button className="text-muted-foreground/40 hover:text-muted-foreground shrink-0">
-                      <Info className="size-2.5" />
+                      <Info className="size-3" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-[220px]">
@@ -138,15 +142,16 @@ export function DashboardMetricsStrip({ metricIds, onMetricIdsChange }: MetricsS
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className={cn('text-lg font-semibold mt-0.5', resolved ? getColorClass(id, resolved.value) : undefined)}>
+              <div className={cn('text-xl font-medium qv-numeric mt-1', resolved ? getColorClass(id, resolved.value) : undefined)}>
                 {isPrivate ? (
                   '••••••'
                 ) : resolved === null ? (
                   <span className="text-muted-foreground">—</span>
                 ) : resolved.format === 'currency' ? (
-                  <CurrencyDisplay value={resolved.value} colorize className="text-lg font-semibold" />
+                  <CurrencyDisplay value={resolved.value} colorize className="qv-numeric text-xl font-medium" />
                 ) : (
                   <AccessibleNumberFlow
+                    className="qv-numeric"
                     value={resolved.value}
                     format={{ style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }}
                   />

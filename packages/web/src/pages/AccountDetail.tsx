@@ -136,41 +136,29 @@ export default function AccountDetail() {
       <>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
         <div className="flex items-center gap-3 flex-wrap">
-          {account.logoUrl && <img src={account.logoUrl} alt="" className="h-8 w-8 rounded-md object-contain" />}
+          {account.logoUrl && <img src={account.logoUrl} alt="" className="h-10 w-10 rounded-md object-contain" />}
           <div>
-            <h1 className="text-lg font-semibold text-foreground tracking-tight">{account.name}</h1>
-            <div className="flex items-center gap-2 mt-0.5">
-              <Badge
-                style={{
-                  backgroundColor: account.type === 'account' ? 'var(--qv-positive)' : 'var(--qv-info)',
-                  color: '#fff',
-                }}
-              >
+            <h1
+              className="font-display text-3xl md:text-4xl text-[var(--qv-text-display)]"
+              style={{ fontVariationSettings: '"opsz" 144', fontWeight: 500, letterSpacing: '-0.02em' }}
+            >
+              {account.name}
+            </h1>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="rounded-sm">
                 {account.type === 'account' ? t('types.deposit') : t('types.portfolio')}
               </Badge>
               <span className="text-sm text-muted-foreground">{account.currency}</span>
               {account.isRetired && (
-                <span className="text-sm text-muted-foreground">{tCommon('retired')}</span>
+                <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-[var(--qv-warning)]/15 text-[var(--qv-warning)]">
+                  {tCommon('retired')}
+                </span>
               )}
             </div>
           </div>
         </div>
 
         <div className="sm:ml-auto flex items-center gap-2 flex-wrap">
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => {
-              if (account.transactionCount > 0) {
-                toast.error(t('actions.cannotDelete', { count: account.transactionCount }));
-                return;
-              }
-              setShowDeleteDialog(true);
-            }}
-          >
-            <Trash2 className="mr-1 h-4 w-4" /> {tCommon('delete')}
-          </Button>
-
           {account.isRetired ? (
             <Button
               variant="outline"
@@ -189,9 +177,24 @@ export default function AccountDetail() {
             </Button>
           )}
 
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => {
+              if (account.transactionCount > 0) {
+                toast.error(t('actions.cannotDelete', { count: account.transactionCount }));
+                return;
+              }
+              setShowDeleteDialog(true);
+            }}
+          >
+            <Trash2 className="mr-1 h-4 w-4" /> {tCommon('delete')}
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button size="sm">
                 {t('actions.newTransaction')} <ChevronDown className="ml-1 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -220,9 +223,9 @@ export default function AccountDetail() {
       {isPortfolio && account.referenceAccountId && (
         <div className="space-y-3">
           {/* Split bar: securities vs cash */}
-          <div className="flex h-1.5 rounded-full overflow-hidden">
+          <div className="flex h-1.5 rounded-sm overflow-hidden">
             <div className="bg-primary" style={{ flex: secPct }} />
-            <div className="bg-muted" style={{ flex: 1 - secPct }} />
+            <div className="bg-[var(--qv-surface-3)]" style={{ flex: 1 - secPct }} />
           </div>
 
           <SummaryStrip
@@ -233,7 +236,7 @@ export default function AccountDetail() {
                   <CurrencyDisplay
                     value={totalValue}
                     currency={account.currency}
-                    className="text-lg font-semibold"
+                    className="qv-numeric text-xl font-medium"
                   />
                 ),
               },
@@ -243,7 +246,7 @@ export default function AccountDetail() {
                   <CurrencyDisplay
                     value={secValue}
                     currency={account.currency}
-                    className="text-lg font-semibold"
+                    className="qv-numeric text-xl font-medium"
                   />
                 ),
               },
@@ -253,7 +256,7 @@ export default function AccountDetail() {
                   <CurrencyDisplay
                     value={cashValue}
                     currency={account.currency}
-                    className="text-lg font-semibold"
+                    className="qv-numeric text-xl font-medium"
                   />
                 ),
               },
@@ -264,7 +267,7 @@ export default function AccountDetail() {
                     type="button"
                     onClick={() => setChangeRefOpen(true)}
                     disabled={account.isRetired}
-                    className="inline-flex items-center gap-1 text-sm font-semibold hover:text-primary disabled:cursor-not-allowed disabled:hover:text-foreground"
+                    className="inline-flex items-center gap-1 text-sm font-medium hover:underline underline-offset-4 disabled:cursor-not-allowed disabled:no-underline"
                     aria-label={t('actions.changeReferenceAccount')}
                   >
                     {depositAccount?.name ?? account.referenceAccountId}
@@ -295,7 +298,7 @@ export default function AccountDetail() {
           <AlertDialogFooter>
             <AlertDialogCancel>{tCommon('deleteConfirm.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-[var(--qv-danger)] text-white hover:bg-[var(--qv-danger)]/90"
               onClick={handleConfirmDelete}
             >
               {tCommon('deleteConfirm.confirm')}
@@ -345,7 +348,7 @@ export default function AccountDetail() {
               serverError={createMutation.error}
             />
           </ScrollArea>
-          <SheetFooter className="border-t px-4 py-3 flex-row justify-end gap-2">
+          <SheetFooter className="border-t border-[var(--qv-border-subtle)] px-4 py-3 flex-row justify-end gap-2">
             <Button variant="outline" onClick={() => setNewSheetOpen(false)}>
               {tCommon('cancel')}
             </Button>
