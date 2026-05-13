@@ -29,7 +29,7 @@ let docOk = 0, docMissing = 0;
 if (existsSync(archDocPath)) {
   const archDoc = readFileSync(archDocPath, 'utf-8');
 
-  const sec2Match = archDoc.match(/```\n([\s\S]*?)```/);
+  const sec2Match = archDoc.match(/```\r?\n([\s\S]*?)```/);
   if (sec2Match) {
     const treeBlock = sec2Match[0];
     const pathLines: string[] = [];
@@ -68,7 +68,7 @@ if (existsSync(archDocPath)) {
   // Check API routes vs route files
   const apiRoutesPath = join(ROOT, 'docs/architecture/api-routes.md');
   const apiRoutesDoc = existsSync(apiRoutesPath) ? readFileSync(apiRoutesPath, 'utf-8') : '';
-  const sec8Match = apiRoutesDoc.match(/```\s*\n([\s\S]*?)```/);
+  const sec8Match = apiRoutesDoc.match(/```\s*\r?\n([\s\S]*?)```/);
   if (sec8Match) {
     const routeBlock = sec8Match[1];
     const docRouteGroups = new Set<string>();

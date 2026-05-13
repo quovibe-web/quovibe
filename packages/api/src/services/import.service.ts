@@ -258,7 +258,7 @@ export async function runImport(xmlPath: string): Promise<ImportResult> {
       if (looksLikeUserXmlBug(raw)) {
         throw new ImportError(
           'INVALID_FORMAT',
-          'The XML file is not compatible with the importer. Re-export from Portfolio Performance via File → Save As → XML with ID attributes.',
+          'The XML file is not compatible with the importer. Re-export from the source application via File → Save As → XML with ID attributes.',
         );
       }
       throw new ImportError('CONVERSION_FAILED', 'Error during ppxml2db conversion');

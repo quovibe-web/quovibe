@@ -82,7 +82,7 @@ describe('POST /api/import/xml user-XML conversion failures (BUG-PRE14-02)', () 
     // The user-facing details string is a static English message — does NOT
     // include the matched substring or any subprocess output.
     expect(typeof res.body.details).toBe('string');
-    expect(res.body.details).toMatch(/Portfolio Performance/);
+    expect(res.body.details).toMatch(/Re-export from the source application/);
 
     // Even at 400, the BUG-96 leak patterns must stay absent.
     const haystack = JSON.stringify(res.body) + (res.text ?? '');

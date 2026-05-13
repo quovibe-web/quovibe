@@ -20,8 +20,7 @@ quovibe/
 ├── .claude/
 │   ├── rules/                      # Glob-scoped Claude rules (auto-load by file context)
 │   ├── commands/
-│   ├── settings.json
-│   └── settings.local.json
+│   └── settings.json
 │
 ├── packages/
 │   ├── shared/                     # Types, Zod schemas, calendars, CSV/XML helpers, period resolver
@@ -120,13 +119,13 @@ quovibe/
 │   │   │   │   └── index.ts
 │   │   │   ├── helpers/
 │   │   │   │   └── transaction-amounts.ts
+│   │   │   ├── __tests__/
+│   │   │   │   └── regression/             # Calculation regression suite pinned to fixture DBs
+│   │   │   │       ├── absolute-perf-regression.test.ts
+│   │   │   │       ├── fifo-regression.test.ts
+│   │   │   │       ├── fx-regression.test.ts
+│   │   │   │       └── ttwror-regression.test.ts
 │   │   │   └── index.ts
-│   │   ├── __tests__/
-│   │   │   └── regression/             # Calculation regression suite pinned to fixture DBs
-│   │   │       ├── absolute-perf-regression.test.ts
-│   │   │       ├── fifo-regression.test.ts
-│   │   │       ├── fx-regression.test.ts
-│   │   │       └── ttwror-regression.test.ts
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
@@ -240,7 +239,9 @@ quovibe/
 │   │   ├── vendor/
 │   │   │   ├── ppxml2db_init.py                # Upstream baseline schema (Gate 1 source)
 │   │   │   ├── ppxml2db.py
-│   │   │   └── *.sql                           # Per-table verbatim SQL fragments
+│   │   │   ├── requirements.txt                # Pinned Python deps (lxml only)
+│   │   │   ├── account.sql                     # Per-table verbatim SQL fragments
+│   │   │   └── xact.sql                        # (and ~22 other *.sql files — one per ppxml2db table)
 │   │   ├── scripts/                            # bootstrap.sql regen + parity helpers
 │   │   │   ├── regen-bootstrap.sh
 │   │   │   ├── check-bootstrap-fresh.sh
@@ -322,7 +323,6 @@ quovibe/
 │       │   │   │   ├── ChartSummaryBar.tsx
 │       │   │   │   ├── PriceFeedConfig.tsx
 │       │   │   │   ├── HolidayTable.tsx
-│       │   │   │   ├── PaymentBreakdownTooltip.tsx
 │       │   │   │   ├── DashboardEmptyState.tsx
 │       │   │   │   ├── DashboardHero.tsx
 │       │   │   │   ├── DashboardMetricsStrip.tsx
@@ -330,7 +330,6 @@ quovibe/
 │       │   │   │   ├── PeriodOverrideDialog.tsx
 │       │   │   │   ├── WidgetShell.tsx
 │       │   │   │   ├── WidgetCatalogDialog.tsx
-│       │   │   │   ├── BenchmarkConfigDialog.tsx
 │       │   │   │   ├── BenchmarkWidgetConfigDialog.tsx
 │       │   │   │   ├── WatchlistWidgetConfigDialog.tsx
 │       │   │   │   ├── AddSecurityToWatchlistDialog.tsx
@@ -349,7 +348,6 @@ quovibe/
 │       │   │   │   ├── WeightEditDialog.tsx
 │       │   │   │   ├── NewPeriodDialog.tsx
 │       │   │   │   ├── DataSeriesDialog.tsx
-│       │   │   │   ├── DataSeriesPickerDialog.tsx
 │       │   │   │   ├── DataSeriesSelector.tsx
 │       │   │   │   ├── CalculationBreakdownCard.tsx
 │       │   │   │   ├── CalculationDetail.tsx
@@ -369,7 +367,6 @@ quovibe/
 │       │   │   │   ├── EditRemovalDialog.tsx
 │       │   │   │   ├── EditSecurityTransferDialog.tsx
 │       │   │   │   ├── EditTaxRefundDialog.tsx
-│       │   │   │   ├── EditTransferOutboundDialog.tsx
 │       │   │   │   ├── AddInstrumentDialog/    # Spotlight search + detail sheet
 │       │   │   │   ├── SecurityEditor/         # Sheet-based security editor
 │       │   │   │   ├── SecurityDetail/
@@ -440,8 +437,8 @@ quovibe/
 │       │   │   └── UserSettings.tsx            # Cross-portfolio user prefs
 │       │   ├── i18n/
 │       │   │   ├── index.ts                    # ns array — source of truth for namespaces
-│       │   │   └── locales/                    # 8 languages × 18 namespaces
-│       │   │       └── {en,it,de,fr,es,nl,pl,pt}/
+│       │   │   └── locales/                    # 8 languages (en/it/de/fr/es/nl/pl/pt) × N namespaces
+│       │   │       └── en/                     # English; the other 7 lang dirs mirror this shape
 │       │   │           ├── accounts.json
 │       │   │           ├── common.json
 │       │   │           ├── csv-import.json
