@@ -141,6 +141,13 @@ trans_sample/
 !docs/screenshots/quorebal.png
 !docs/screenshots/quofulltrans.png
 !docs/screenshots/quowatch.png
+!docs/screenshots/quodataserie.png
+!docs/screenshots/mobile-dashboard.png
+!docs/screenshots/mobile-investments.png
+!docs/screenshots/mobile-security.png
+!docs/screenshots/mobile-transactions.png
+!docs/screenshots/mobile-dataseries.png
+!docs/screenshots/mobile-income.png
 *.mp4
 *.zip
 
