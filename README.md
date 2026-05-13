@@ -24,7 +24,7 @@
 ## Features
 
 - **Performance analytics** — TTWROR, IRR, volatility, Sharpe ratio, max drawdown, benchmark alpha
-- **Customizable dashboard** — 21+ drag-and-drop widgets, multiple dashboards
+- **Customizable dashboard** — 26+ drag-and-drop widgets, multiple dashboards
 - **15 transaction types** — Double-entry bookkeeping, FIFO & Moving Average cost basis
 - **Asset allocation** — Taxonomy trees with rebalancing targets
 - **Income tracking** — Dividend/interest reports with gross/net breakdown
@@ -97,7 +97,7 @@
 | Frontend   | React 19, Vite 8, React Router v7, shadcn/ui, Tailwind CSS v4 |
 | Tables     | TanStack Table v8                                              |
 | State      | TanStack Query v5                                              |
-| Charts     | Recharts                                                       |
+| Charts     | Recharts 3 + lightweight-charts 5                              |
 | Backend    | Express 5, Drizzle ORM, better-sqlite3                         |
 | Database   | SQLite                                                         |
 | Math       | decimal.js (no native floats for financials)                   |
@@ -194,11 +194,13 @@ Place `portfolio.db` in `data/` before starting.
 
 ## Importing your portfolio
 
-quovibe supports four import paths:
+quovibe supports five import paths:
 
 **Start from scratch** — create an empty portfolio and add securities, accounts, and transactions manually from the app UI.
 
 **In-app XML import (recommended)** — upload your portfolio `.xml` file directly in the browser at `/import`. Works on first boot and from Settings at any time.
+
+**Quovibe `.db` re-import** — upload a `portfolio.db` previously exported via Settings → Export Portfolio. Round-trips full state (transactions, dashboards, settings).
 
 **CSV import** — import transactions and holdings from CSV files via the import wizard in the app.
 
@@ -236,6 +238,7 @@ Any reverse proxy works: **nginx**, **Caddy**, **Traefik**, or your router's bui
 | `QUOVIBE_DEMO_SOURCE` | `./data/demo.db` | Bootstrap source for the "Try demo" flow      |
 | `DB_BACKUP_MAX`       | `3`          | Rotated backups retained per portfolio             |
 | `PORTFOLIO_POOL_MAX`  | `5`          | Max simultaneously open per-portfolio DB handles   |
+| `IMPORT_MAX_MB`       | `50`         | Max upload size (MB) accepted by import endpoints  |
 | `PORT`                | `3000`       | API server port                                    |
 | `NODE_ENV`            | `development`| Node environment                                   |
 | `LOG_LEVEL`           | `info`       | Logging verbosity                                  |
@@ -254,7 +257,7 @@ See [`docs/architecture/api-routes.md`](docs/architecture/api-routes.md) for the
 
 ## Architecture
 
-Documentation in [`docs/architecture/`](docs/architecture/) — see the [index](docs/architecture/README.md) for all 14 files:
+Documentation in [`docs/architecture/`](docs/architecture/) — see the [index](docs/architecture/README.md) for all 16 files:
 
 - Financial model (TTWROR, IRR, purchase value, cashflow rules)
 - DB schema, double-entry bookkeeping, unit conventions
@@ -268,7 +271,7 @@ Architecture Decision Records: [`docs/adr/`](docs/adr/)
 
 ## Quality
 
-1729+ tests · 14 governance checks · 9 architecture boundary rules — all enforced in CI on every push.
+2200+ tests · 14 governance checks · 9 architecture boundary rules — all enforced in CI on every push.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full quality workflow.
 
 ---
