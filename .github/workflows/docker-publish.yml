@@ -84,14 +84,35 @@ jobs:
           build-args: |
             APP_VERSION=${{ github.ref_name }}
 
+      # Compose the release body. If docs/release-notes/<tag>.md exists,
+      # use it; otherwise fall back to the matching <major.minor>.0.md
+      # (so patch releases inherit the parent minor's notes). Final fallback
+      # is the minimal image-coordinates blurb.
+      - name: Compose release body
+        id: release_body
+        run: |
+          TAG="${{ github.ref_name }}"
+          MM=$(echo "$TAG" | sed -E 's/^v?([0-9]+\.[0-9]+).*/v\1.0/')
+          for cand in "docs/release-notes/${TAG}.md" "docs/release-notes/${MM}.md"; do
+            if [ -f "$cand" ]; then
+              echo "Using $cand"
+              cp "$cand" RELEASE_BODY.md
+              break
+            fi
+          done
+          if [ ! -f RELEASE_BODY.md ]; then
+            printf "Quovibe %s\n\nDocker image: \`ghcr.io/quovibe-web/quovibe:%s\`\n" "$TAG" "$TAG" > RELEASE_BODY.md
+          fi
+          {
+            echo
+            echo "---"
+            echo
+            echo "**Docker image:** \`ghcr.io/quovibe-web/quovibe:${TAG}\` · \`ghcr.io/quovibe-web/quovibe:latest\`"
+          } >> RELEASE_BODY.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          body: |
-            Quovibe v${{ github.ref_name }}
-
-            Docker image available at:
-            - `ghcr.io/quovibe-web/quovibe:${{ github.ref_name }}`
-            - `ghcr.io/quovibe-web/quovibe:latest`
+          body_path: RELEASE_BODY.md
           draft: false
           prerelease: false
