@@ -126,6 +126,38 @@ export function validateXmlFormat(xmlPath: string): void {
   }
 }
 
+/**
+ * Copy vf_exchange_rate rows from an existing live DB into a freshly-imported DB.
+ * No-op when liveDbPath does not exist or has no vf_exchange_rate table.
+ * Uses INSERT OR IGNORE so rows already present in newDb are never overwritten.
+ */
+export function preserveCustomTables(
+  newDb: InstanceType<typeof Database>,
+  liveDbPath: string,
+): void {
+  if (!fs.existsSync(liveDbPath)) return;
+  let liveDb: InstanceType<typeof Database> | null = null;
+  try {
+    liveDb = new Database(liveDbPath, { readonly: true });
+    const hasTable = (liveDb.prepare(
+      `SELECT name FROM sqlite_master WHERE type='table' AND name='vf_exchange_rate'`,
+    ).get() as { name: string } | undefined) != null;
+    if (!hasTable) return;
+    const rows = liveDb.prepare('SELECT date, from_currency, to_currency, rate FROM vf_exchange_rate').all() as Array<{
+      date: string; from_currency: string; to_currency: string; rate: string;
+    }>;
+    const insert = newDb.prepare(
+      'INSERT OR IGNORE INTO vf_exchange_rate (date, from_currency, to_currency, rate) VALUES (?, ?, ?, ?)',
+    );
+    const insertMany = newDb.transaction((rs: typeof rows) => {
+      for (const r of rs) insert.run(r.date, r.from_currency, r.to_currency, r.rate);
+    });
+    insertMany(rows);
+  } finally {
+    liveDb?.close();
+  }
+}
+
 export interface ImportResult {
   tempDbPath: string;
 }
