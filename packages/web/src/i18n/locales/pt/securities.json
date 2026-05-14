@@ -1,18 +1,20 @@
 {
   "title": "Títulos",
-  "subtitle": "Manage your securities and instruments",
+  "subtitle": "Gerencie os seus títulos e instrumentos",
   "columns": {
     "name": "Nome",
     "isin": "ISIN",
     "ticker": "Ticker",
     "latestQuote": "Última cotação",
     "currency": "Moeda",
-    "shares": "Cotas"
+    "shares": "Quantidade"
   },
   "actions": {
     "edit": "Editar",
     "updatePrices": "Atualizar todos os preços",
     "updating": "A atualizar…",
+    "refreshQuote": "Atualizar cotação",
+    "refreshing": "A atualizar…",
     "addInstrument": "+ Adicionar instrumento",
     "delete": "Eliminar"
   },
@@ -105,15 +107,15 @@
     "urlPlaceholder": "https://..."
   },
   "taxonomies": {
-    "notAssigned": "— Select category —",
-    "weight": "Weight %",
+    "notAssigned": "— Selecionar categoria —",
+    "weight": "Peso %",
     "noTaxonomies": "Nenhuma taxonomia configurada.",
-    "addRow": "Add assignment",
-    "removeRow": "Remove",
-    "weightSum": "Weight sum",
-    "weightSumWarning": "Weight sum is less than 100%",
-    "weightSumError": "Weight sum exceeds 100%",
-    "weightSumOk": "Weight sum is 100%"
+    "addRow": "Adicionar atribuição",
+    "removeRow": "Remover",
+    "weightSum": "Soma de pesos",
+    "weightSumWarning": "A soma de pesos é inferior a 100%",
+    "weightSumError": "A soma de pesos excede 100%",
+    "weightSumOk": "A soma de pesos é 100%"
   },
   "priceChart": {
     "noData": "Sem dados de preços.",
@@ -136,14 +138,17 @@
     "isin": "ISIN",
     "ticker": "Ticker",
     "currency": "Moeda",
-    "shares": "Participações",
+    "shares": "Quantidade",
     "latestPrice": "Último preço",
     "marketValue": "Valor de Mercado",
-    "unrealizedPL": "L&P Não Realizado",
+    "unrealizedPL": "Ganhos não realizados",
     "fromPurchase": "desde a compra",
     "performance": "Desempenho",
     "priceHistory": "Histórico de preços",
     "transactions": "Transações",
+    "taxonomies": "Taxonomias",
+    "notClassified": "Ainda não classificado.",
+    "classify": "Classificar →",
     "noTransactions": "Sem transações para este instrumento",
     "noPrices": "Sem histórico de preços disponível",
     "configureFeed": "Configurar feed de preços →",
@@ -286,6 +291,34 @@
     "save": "Guardar alterações",
     "saving": "A guardar..."
   },
+  "attributeType": {
+    "editTitle": "Renomear tipo de atributo",
+    "fields": {
+      "name": "Nome",
+      "columnLabel": "Rótulo de coluna",
+      "type": "Tipo"
+    },
+    "types": {
+      "text": "Texto",
+      "number": "Número",
+      "percentage": "Percentagem",
+      "amount": "Quantia",
+      "date": "Data",
+      "boolean": "Sim / Não"
+    },
+    "menu": {
+      "aria": "Ações de atributo",
+      "rename": "Renomear definição do tipo",
+      "removeFromSec": "Remover deste título"
+    },
+    "empty": "Sem atributos personalizados.",
+    "empty.cta": "+ Criar tipo de atributo",
+    "validation": {
+      "nameRequired": "O nome é obrigatório.",
+      "nameTooLong": "O nome não pode exceder {{max}} caracteres.",
+      "columnLabelTooLong": "A etiqueta de coluna não pode exceder {{max}} caracteres."
+    }
+  },
   "empty": {
     "noSecurities": "Ainda sem títulos"
   },
@@ -293,8 +326,8 @@
     "hasTransactions": "Não é possível eliminar: este instrumento tem {{count}} transação/ões associada(s). Remova-as primeiro."
   },
   "summary": {
-    "totalSecurities": "Total Securities",
-    "activeSecurities": "Active",
-    "totalMarketValue": "Total Market Value"
+    "totalSecurities": "Total de títulos",
+    "activeSecurities": "Ativos",
+    "totalMarketValue": "Valor de mercado total"
   }
 }

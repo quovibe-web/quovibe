@@ -13,6 +13,7 @@ import {
   useUpdateAccountLogo,
 } from '@/api/use-accounts';
 import { useResolveLogo } from '@/api/use-logo';
+import { usePortfolio } from '@/context/PortfolioContext';
 import { resizeToPng } from '@/lib/image-utils';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { cn } from '@/lib/utils';
@@ -44,6 +45,7 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
   const { t: tCommon } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
+  const portfolio = usePortfolio();
   const [renameOpen, setRenameOpen] = useState(false);
   const [showDomainPrompt, setShowDomainPrompt] = useState(false);
   const [domainInput, setDomainInput] = useState('');
@@ -100,12 +102,12 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
     <>
       <div
         className={cn(
-          'max-w-[720px] bg-card border rounded-lg overflow-hidden cursor-pointer qv-card-interactive',
+          'max-w-[720px] bg-card border rounded-md overflow-hidden cursor-pointer qv-card-interactive',
           account.isRetired && 'border-l-[3px] border-l-[var(--qv-warning)]',
         )}
         onClick={() => {
           if (menuActionRef.current) { menuActionRef.current = false; return; }
-          navigate(`/accounts/${account.id}${location.search}`);
+          navigate(`/p/${portfolio.id}/accounts/${account.id}${location.search}`);
         }}
       >
         <div className="flex items-center justify-between px-4 py-4">
@@ -114,7 +116,7 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
             {account.logoUrl ? (
               <img src={account.logoUrl} alt="" className="h-8 w-8 rounded-md object-contain" />
             ) : (
-              <div className="h-8 w-8 rounded-md border border-muted-foreground/60 bg-muted flex items-center justify-center">
+              <div className="h-8 w-8 rounded-md border border-[var(--qv-border)] bg-[var(--qv-surface-elevated)] flex items-center justify-center">
                 <Landmark className="h-4 w-4 text-muted-foreground" />
               </div>
             )}
@@ -143,7 +145,7 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
                 value={balance}
                 currency={currency}
                 colorize
-                className="text-lg font-semibold tabular-nums text-[var(--qv-positive)]"
+                className="qv-numeric text-lg font-medium"
               />
             </div>
             <DropdownMenu>

@@ -177,9 +177,9 @@ export interface VolatilityInput {
 }
 
 export interface VolatilityResult {
-  volatility: Decimal;        // annualized: stdDev * sqrt(n)
-  semivariance: Decimal;      // annualized: semiStdDev * sqrt(n)
-  standardDeviation: Decimal; // raw daily stdDev (pre-annualization)
+  volatility: Decimal | null;        // annualized: stdDev * sqrt(n); null when n < 2
+  semivariance: Decimal | null;      // annualized: semiStdDev * sqrt(n); null when n < 2
+  standardDeviation: Decimal | null; // raw daily stdDev (pre-annualization); null when n < 2
 }
 
 /**
@@ -193,15 +193,19 @@ export interface VolatilityResult {
  *
  * Semivariance: same but only accumulates (logR - avg)^2 when logR < avg.
  * Denominator is still (n - 1) (total observations, not below-mean count).
+ *
+ * Returns all-null fields when there is not enough data (n < 2). The "no value"
+ * signal is propagated to the wire as `null` so consumers can render a placeholder
+ * (em-dash) rather than displaying a misleading 0%.
  */
 export function computeVolatility(dailyReturns: VolatilityInput[]): VolatilityResult {
   const n = dailyReturns.length;
 
   if (n < 2) {
     return {
-      volatility: ZERO,
-      semivariance: ZERO,
-      standardDeviation: ZERO,
+      volatility: null,
+      semivariance: null,
+      standardDeviation: null,
     };
   }
 

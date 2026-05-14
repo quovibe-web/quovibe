@@ -7,10 +7,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import NumberFlow from '@number-flow/react';
+import { AccessibleNumberFlow } from '@/components/shared/AccessibleNumberFlow';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { usePrivacy } from '@/context/privacy-context';
-import i18n from '@/i18n';
 import { COLORS } from '@/lib/colors';
 import { cn } from '@/lib/utils';
 import type { MetricDefinition, MetricValue } from '@/lib/metric-registry';
@@ -76,10 +75,8 @@ export function MetricCard({
     if (definition.format === 'percentage') {
       return (
         <span className="text-2xl font-semibold tabular-nums" style={{ color: valueColor }}>
-          <NumberFlow
-            className="muted-fraction"
+          <AccessibleNumberFlow
             value={primary}
-            locales={i18n.language}
             format={{
               style: 'percent',
               minimumFractionDigits: 2,
@@ -110,10 +107,8 @@ export function MetricCard({
                     : undefined,
               }}
             >
-              <NumberFlow
-                className="muted-fraction"
+              <AccessibleNumberFlow
                 value={secondary}
-                locales={i18n.language}
                 format={{
                   style: 'percent',
                   minimumFractionDigits: 2,

@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { useCreateReportingPeriod } from '@/api/use-reporting-periods';
 import { useReportingPeriod } from '@/api/use-performance';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { resolveReportingPeriod, getAllCalendarInfos } from '@quovibe/shared';
 import type { ReportingPeriodDef } from '@quovibe/shared';
 import { formatDate } from '@/lib/formatters';
@@ -38,7 +39,7 @@ interface Props {
 
 export function NewPeriodDialog({ open, onOpenChange }: Props) {
   const { t } = useTranslation('settings');
-  const { mutate: createPeriod, isPending } = useCreateReportingPeriod();
+  const { mutateAsync: createPeriod, isPending } = useCreateReportingPeriod();
   const { setPeriod } = useReportingPeriod();
 
   // Selection state
@@ -107,17 +108,19 @@ export function NewPeriodDialog({ open, onOpenChange }: Props) {
     }
   }, [periodDef]);
 
-  function handleCreate() {
+  // Save-button re-entry guard: see frontend.md "Save-button re-entry guard".
+  const { run: handleCreate, inFlight } = useGuardedSubmit(async () => {
     if (!periodDef || !resolved) return;
-    createPeriod(periodDef, {
-      onSuccess: () => {
-        // Auto-select the new period
-        setPeriod(resolved.periodStart, resolved.periodEnd);
-        onOpenChange(false);
-        resetForm();
-      },
-    });
-  }
+    try {
+      await createPeriod(periodDef);
+      // Auto-select the new period
+      setPeriod(resolved.periodStart, resolved.periodEnd);
+      onOpenChange(false);
+      resetForm();
+    } catch {
+      // Global MutationCache toast surfaces the error; nothing to do locally.
+    }
+  });
 
   function selectCategory(cat: PeriodCategory) {
     setCategory(cat);
@@ -373,8 +376,8 @@ export function NewPeriodDialog({ open, onOpenChange }: Props) {
             {t('periods.dialog.cancel')}
           </Button>
           <Button
-            onClick={handleCreate}
-            disabled={!periodDef || !resolved || isPending}
+            onClick={() => void handleCreate()}
+            disabled={!periodDef || !resolved || inFlight || isPending}
           >
             {t('periods.dialog.create')}
           </Button>

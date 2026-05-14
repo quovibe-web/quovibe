@@ -18,17 +18,15 @@ const gridCols: Record<number, string> = {
 export function SummaryStrip({ items, columns = 3 }: SummaryStripProps) {
   return (
     <div
-      className={`grid grid-cols-1 ${gridCols[columns] ?? 'sm:grid-cols-3'} rounded-lg border border-border bg-card overflow-hidden`}
+      className={`grid grid-cols-1 ${gridCols[columns] ?? 'sm:grid-cols-3'} rounded-md border border-border bg-card overflow-hidden`}
     >
       {items.map((item, index) => (
         <div
           key={index}
-          className={`p-4 ${index > 0 ? 'border-t sm:border-t-0 sm:border-l border-border' : ''}`}
+          className={`p-4 ${index > 0 ? 'border-t sm:border-t-0 sm:border-l border-[var(--qv-border-subtle)]' : ''}`}
         >
-          <p className="text-xs font-medium text-muted-foreground">
-            {item.label}
-          </p>
-          <div className="mt-1">{item.value}</div>
+          <p className="qv-eyebrow">{item.label}</p>
+          <div className="mt-2">{item.value}</div>
         </div>
       ))}
     </div>

@@ -1,0 +1,11 @@
+{
+  "preferences": {
+    "title": "Einstellungen",
+    "subtitle": "Persönliche Einstellungen"
+  },
+  "updates": {
+    "title": "Aktualisierungen",
+    "autoFetchLabel": "Kurse beim ersten Öffnen jedes Portfolios automatisch aktualisieren",
+    "autoFetchHint": "Standardmäßig deaktiviert, um das API-Kontingent von Yahoo / AlphaVantage bei Container-Neustarts nicht zu verbrauchen. Aktivieren Sie diese Option, wenn Sie bei jedem Öffnen eines Portfolios in einem neuen Prozess aktuelle Kurse wünschen."
+  }
+}

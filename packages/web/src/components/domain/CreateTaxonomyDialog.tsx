@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCreateTaxonomy } from '@/api/use-taxonomy-mutations';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
+import { usePortfolio } from '@/context/PortfolioContext';
 
 const TEMPLATES = [
   { key: '', labelKey: 'templateEmpty' },
@@ -35,6 +37,7 @@ interface Props {
 export function CreateTaxonomyDialog({ open, onOpenChange }: Props) {
   const { t } = useTranslation('reports');
   const navigate = useNavigate();
+  const portfolio = usePortfolio();
   const createMutation = useCreateTaxonomy();
 
   const [name, setName] = useState('');
@@ -50,7 +53,8 @@ export function CreateTaxonomyDialog({ open, onOpenChange }: Props) {
     onOpenChange(v);
   }
 
-  async function handleSave() {
+  // Save-button re-entry guard: see frontend.md "Save-button re-entry guard".
+  const { run: handleSave, inFlight } = useGuardedSubmit(async () => {
     if (!name.trim()) {
       toast.error(t('taxonomyManagement.nameLabel'));
       return;
@@ -61,11 +65,11 @@ export function CreateTaxonomyDialog({ open, onOpenChange }: Props) {
         ...(template ? { template } : {}),
       });
       handleClose(false);
-      navigate(`/allocation?taxonomy=${result.id}`);
+      navigate(`/p/${portfolio.id}/allocation?taxonomy=${result.id}`);
     } catch {
       toast.error(t('common:toasts.errorSaving'));
     }
-  }
+  });
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -107,7 +111,7 @@ export function CreateTaxonomyDialog({ open, onOpenChange }: Props) {
           <Button variant="outline" onClick={() => handleClose(false)}>
             {t('common:cancel')}
           </Button>
-          <Button onClick={handleSave} disabled={createMutation.isPending}>
+          <Button onClick={() => void handleSave()} disabled={inFlight || createMutation.isPending}>
             {t('taxonomyManagement.createTaxonomy')}
           </Button>
         </DialogFooter>

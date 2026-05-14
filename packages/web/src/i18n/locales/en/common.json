@@ -43,6 +43,10 @@
     "pageOf": "Page {{current}} of {{total}}",
     "showing": "Showing {{from}}–{{to}} of {{total}}"
   },
+  "aria": {
+    "sortAscending": "{{column}} sorted ascending",
+    "sortDescending": "{{column}} sorted descending"
+  },
   "transactionCount_one": "{{count}} transaction",
   "transactionCount_other": "{{count}} transactions",
   "toasts": {

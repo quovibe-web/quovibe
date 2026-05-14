@@ -1,0 +1,144 @@
+// packages/api/src/services/portfolio-db-pool.ts
+import type BetterSqlite3 from 'better-sqlite3';
+import { openDatabase, type OpenDatabaseResult } from '../db/open-db';
+import { PORTFOLIO_POOL_MAX, resolvePortfolioPath } from '../config';
+import type { PortfolioEntry } from '@quovibe/shared';
+
+interface PooledHandle {
+  handle: OpenDatabaseResult;
+  refCount: number;
+  lastReleased: number;
+}
+
+// quovibe:allow-module-state — the portfolio pool itself IS the sanctioned per-portfolio scope (ADR-016).
+const pool = new Map<string, PooledHandle>();
+
+/**
+ * Resolves a portfolio id to a sidecar entry via the registry module.
+ * Imported lazily to avoid a cycle between pool and registry.
+ */
+// quovibe:allow-module-state — wired once at startup by portfolio-registry; no portfolio data held.
+let resolveEntry: ((id: string) => PortfolioEntry | null) | null = null;
+export function setResolveEntry(fn: (id: string) => PortfolioEntry | null): void {
+  resolveEntry = fn;
+}
+
+/**
+ * Post-open hook fired exactly once after the pool opens a handle on cache miss.
+ * Used by auto-fetch wiring (ADR-015 §3.8a) and the FX scheduler. Multiple
+ * subscribers fire in registration order; errors are caught and logged.
+ */
+type OpenedHook = (id: string, sqlite: BetterSqlite3.Database) => void;
+// quovibe:allow-module-state — wired once at startup; callbacks only, no portfolio data held (ADR-016).
+const onOpenedHooks: OpenedHook[] = [];
+export function setOnOpened(fn: OpenedHook): void { onOpenedHooks.push(fn); }
+
+/**
+ * Post-evict hook fired exactly once per portfolio id when the pool drops a
+ * handle (manual `evictPortfolioDb` or idle-over-cap eviction). Used by the
+ * FX scheduler to clear its per-portfolio timer (ADR-016 — no portfolio data
+ * held). Multiple subscribers fire in registration order; errors are caught
+ * and logged.
+ */
+type OnEvictedHook = (id: string) => void;
+// quovibe:allow-module-state — wired once at startup; callbacks only, no portfolio data held (ADR-016).
+const onEvictedHooks: OnEvictedHook[] = [];
+export function setOnEvicted(fn: OnEvictedHook): void { onEvictedHooks.push(fn); }
+
+function evictIdleOverCap(): void {
+  if (pool.size <= PORTFOLIO_POOL_MAX) return;
+  const idle = [...pool.entries()]
+    .filter(([, e]) => e.refCount === 0)
+    .sort(([, a], [, b]) => a.lastReleased - b.lastReleased);
+  for (const [id, e] of idle) {
+    if (pool.size <= PORTFOLIO_POOL_MAX) break;
+    try { e.handle.sqlite.pragma('wal_checkpoint(TRUNCATE)'); } catch { /* ok */ }
+    try { e.handle.closeDb(); } catch { /* already closed */ }
+    pool.delete(id);
+    for (const hook of onEvictedHooks) {
+      try { hook(id); } catch (err) {
+        console.warn('[quovibe] onEvicted hook failed', { id, err: (err as Error).message });
+      }
+    }
+  }
+  if (pool.size > PORTFOLIO_POOL_MAX) {
+    console.warn('[quovibe] portfolio pool over soft cap (all handles busy)', {
+      size: pool.size,
+      cap: PORTFOLIO_POOL_MAX,
+    });
+  }
+}
+
+/**
+ * Acquire a pooled DB handle for the given portfolio id.
+ * Opens lazily on cache miss (including applyBootstrap via openDatabase).
+ * Caller MUST call releasePortfolioDb(id) exactly once per acquire.
+ */
+export function acquirePortfolioDb(id: string): OpenDatabaseResult {
+  let entry = pool.get(id);
+  let freshlyOpened = false;
+  if (!entry) {
+    if (!resolveEntry) throw new Error('portfolio-db-pool: resolveEntry not wired');
+    const sidecarEntry = resolveEntry(id);
+    if (!sidecarEntry) {
+      const err = new Error('PORTFOLIO_NOT_FOUND');
+      (err as Error & { code?: string }).code = 'PORTFOLIO_NOT_FOUND';
+      throw err;
+    }
+    const filePath = resolvePortfolioPath(sidecarEntry);
+    const handle = openDatabase(filePath);
+    entry = { handle, refCount: 0, lastReleased: Date.now() };
+    pool.set(id, entry);
+    freshlyOpened = true;
+  }
+  entry.refCount++;
+  evictIdleOverCap();
+  if (freshlyOpened) {
+    for (const hook of onOpenedHooks) {
+      try { hook(id, entry.handle.sqlite); } catch (err) {
+        console.warn('[quovibe] onOpened hook failed', { id, err: (err as Error).message });
+      }
+    }
+  }
+  return entry.handle;
+}
+
+export function releasePortfolioDb(id: string): void {
+  const entry = pool.get(id);
+  if (!entry) return;
+  entry.refCount--;
+  if (entry.refCount === 0) {
+    entry.lastReleased = Date.now();
+    evictIdleOverCap();
+  }
+}
+
+/**
+ * Evict a specific portfolio from the pool (used by deletePortfolio and
+ * renamePortfolio when the handle must be closed before file ops).
+ */
+export function evictPortfolioDb(id: string): void {
+  const entry = pool.get(id);
+  if (!entry) return;
+  try { entry.handle.sqlite.pragma('wal_checkpoint(TRUNCATE)'); } catch { /* ok */ }
+  try { entry.handle.closeDb(); } catch { /* already closed */ }
+  pool.delete(id);
+  for (const hook of onEvictedHooks) {
+    try { hook(id); } catch (err) {
+      console.warn('[quovibe] onEvicted hook failed', { id, err: (err as Error).message });
+    }
+  }
+}
+
+/** Debug / test helper. Never call from production code. */
+export function _poolStateForTests(): { size: number; entries: Array<{ id: string; refCount: number }> } {
+  return {
+    size: pool.size,
+    entries: [...pool.entries()].map(([id, e]) => ({ id, refCount: e.refCount })),
+  };
+}
+
+/** Shutdown helper. */
+export function closeAllPooledHandles(): void {
+  for (const [id] of pool) evictPortfolioDb(id);
+}

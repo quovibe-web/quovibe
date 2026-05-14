@@ -4,8 +4,7 @@ import { usePrivacy } from '@/context/privacy-context';
 import { getColor } from '@/lib/colors';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import NumberFlow from '@number-flow/react';
-import i18n from '@/i18n';
+import { AccessibleNumberFlow } from '@/components/shared/AccessibleNumberFlow';
 
 export default function WidgetCurrentDrawdown() {
   const { data, isLoading, isError, error } = useWidgetCalculation();
@@ -39,10 +38,8 @@ export default function WidgetCurrentDrawdown() {
         style={{ color: isPrivate || cd === 0 ? undefined : getColor('danger') }}
       >
         {isPrivate ? '••••••' : (
-          <NumberFlow
-            className="muted-fraction"
+          <AccessibleNumberFlow
             value={displayVal}
-            locales={i18n.language}
             format={{ style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }}
           />
         )}

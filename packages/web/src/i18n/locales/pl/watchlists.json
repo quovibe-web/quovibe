@@ -6,14 +6,19 @@
     "duplicate": "Duplikuj",
     "delete": "Usuń",
     "deleteConfirmTitle": "Usuń listę",
-    "deleteConfirmMessage": "Czy na pewno chcesz usunąć \"{{name}}\"? Papiery wartościowe nie zostaną usunięte.",
-    "defaultName": "Nowa lista"
+    "deleteConfirmMessage": "Czy na pewno chcesz usunąć \"{{name}}\"? Walory nie zostaną usunięte.",
+    "defaultName": "Nowa lista",
+    "newDescription": "Nadaj nazwę nowej liście."
   },
   "table": {
     "name": "Nazwa",
     "ticker": "Ticker",
     "price": "Kurs",
     "change": "Zmiana",
+    "change1d": "1D",
+    "change1w": "1T",
+    "change1m": "1M",
+    "change1y": "1R",
     "trend": "Trend 30d",
     "currency": "Waluta",
     "lastQuote": "Ostatni kurs",
@@ -21,31 +26,37 @@
     "noQuotes": "Brak kursów"
   },
   "actions": {
-    "addSecurity": "Dodaj papier wartościowy",
+    "addSecurity": "Dodaj walor",
     "viewDetails": "Pokaż szczegóły",
     "removeFromWatchlist": "Usuń z listy",
     "createNewInstrument": "Utwórz nowy instrument…",
     "editSecurity": "Edytuj"
   },
   "addDialog": {
-    "title": "Dodaj papier wartościowy do listy",
+    "title": "Dodaj walor do listy",
+    "description": "Wybierz walory do dodania do tej listy.",
     "search": "Szukaj po nazwie, ISIN lub tickerze...",
-    "existing": "Istniejące papiery wartościowe",
-    "createNew": "Utwórz nowy papier wartościowy",
+    "existing": "Istniejące walory",
+    "createNew": "Utwórz nowy walor",
     "alreadyAdded": "Już na liście",
-    "noResults": "Nie znaleziono papierów wartościowych",
+    "noResults": "Nie znaleziono walorów",
     "add": "Dodaj wybrane"
   },
   "empty": {
     "title": "Brak list obserwowanych",
-    "description": "Utwórz pierwszą listę, aby zacząć śledzić papiery wartościowe.",
+    "description": "Utwórz pierwszą listę, aby zacząć śledzić walory.",
     "createFirst": "Utwórz listę",
-    "noSecurities": "Brak papierów wartościowych na tej liście.",
+    "noSecurities": "Brak walorów na tej liście.",
     "addSome": "Dodaj kilka, aby rozpocząć śledzenie."
   },
   "widget": {
     "selectWatchlist": "Wybierz listę",
     "notFound": "Lista nie znaleziona",
     "configure": "Konfiguruj"
+  },
+  "columnGroups": {
+    "identity": "Identyfikacja",
+    "performance": "Wyniki",
+    "meta": "Metadane"
   }
 }

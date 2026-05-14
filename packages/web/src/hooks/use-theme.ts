@@ -1,7 +1,12 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { createElement } from 'react';
+import {
+  THEME_STORAGE_KEY,
+  VALID_THEMES,
+  type ThemeMode,
+} from '@/lib/preference-storage-keys';
 
-export type ThemeMode = 'light' | 'dark' | 'system';
+export type { ThemeMode };
 
 interface ThemeContextValue {
   theme: ThemeMode;
@@ -12,9 +17,8 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-const STORAGE_KEY = 'quovibe-theme';
+const STORAGE_KEY = THEME_STORAGE_KEY;
 const LEGACY_KEY = 'vibefolio-theme';
-const VALID_THEMES: readonly ThemeMode[] = ['light', 'dark', 'system'];
 
 function migrateStorageKey(): void {
   const legacy = localStorage.getItem(LEGACY_KEY);

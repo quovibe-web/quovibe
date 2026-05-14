@@ -1,9 +1,22 @@
 {
+  "empty": {
+    "title": "Welcome to your new portfolio.",
+    "importHeader": "Import transactions",
+    "importCsv": "Import from CSV",
+    "addManually": "Add account / transaction manually",
+    "wantToSee": "Want to see the app in action first?",
+    "tryDemo": "Try the demo instead"
+  },
   "title": "Dashboard",
   "hero": {
     "portfolioValue": "Portfoliowert",
+    "asOf": "Stand {{date}}",
     "configureMetrics": "Kennzahlen konfigurieren",
     "selectMetrics": "Kennzahlen auswählen"
+  },
+  "zones": {
+    "charts": "Diagramme",
+    "detailMetrics": "Detail-Kennzahlen"
   },
   "addDashboard": "Neues Dashboard",
   "addDashboardDescription": "Geben Sie einen Namen für das neue Dashboard ein",
@@ -24,31 +37,34 @@
   "widgetSizeLarge": "Groß (3 Sp.)",
   "dataSeriesMenuItem": "Datenreihen...",
   "period": "Zeitraum...",
+  "hideWidget": "Widget ausblenden",
+  "showWidget": "Widget einblenden",
   "deleteWidget": "Löschen",
+  "deleteWidgetConfirm": "Dieses Widget entfernen?",
+  "deleteWidgetConfirmDesc": "Dadurch wird \"{{name}}\" aus diesem Dashboard entfernt. Du kannst es jederzeit aus dem Widget-Katalog wieder hinzufügen.",
   "emptyDashboard": "Dieses Dashboard hat noch keine Widgets.",
   "unknownWidget": "Widget-Typ \"{{type}}\" nicht gefunden",
-  "widgetCatalog": "Widget catalog",
+  "widgetCatalog": "Widget-Katalog",
   "catalog": {
-    "searchPlaceholder": "Search widgets...",
-    "all": "All",
+    "searchPlaceholder": "Widgets suchen...",
+    "all": "Alle",
     "performance": "Performance",
-    "reports": "Reports",
-    "chart": "Charts",
-    "risk": "Risk",
+    "chart": "Diagramme",
+    "risk": "Risiko",
     "info": "Info",
-    "addToDashboard": "Add",
-    "noResults": "No widgets match your search.",
+    "addToDashboard": "Hinzufügen",
+    "noResults": "Keine Widgets entsprechen deiner Suche.",
     "description": "Widgets durchsuchen und zum Dashboard hinzufügen",
     "desc": {
-      "market-value": "Current market value of the selected data series at the end of the reporting period.",
-      "ttwror": "Cumulative true time-weighted return of the selected data series for the reporting period.",
-      "ttwror-pa": "Annualized true time-weighted return, useful for comparing performance across different time horizons.",
-      "irr": "Internal rate of return (money-weighted) that accounts for the timing and size of all cash flows.",
-      "delta": "Difference between the final and initial market value, adjusted for cash flows during the period.",
-      "absolute-performance": "Total profit or loss in absolute terms for the selected data series over the reporting period.",
-      "absolute-change": "Net change in portfolio value including all deposits, withdrawals and market movements.",
-      "calculation-compact": "Compact summary showing key performance metrics for the selected data series at a glance.",
-      "perf-chart": "Time series chart showing market value and TTWROR evolution for the reporting period.",
+      "market-value": "Aktueller Marktwert der ausgewählten Datenreihe am Ende des Berichtszeitraums.",
+      "ttwror": "Kumulierte echte zeitgewichtete Rendite (TTWROR) der ausgewählten Datenreihe im Berichtszeitraum.",
+      "ttwror-pa": "Annualisierte echte zeitgewichtete Rendite, nützlich zum Vergleich der Performance über verschiedene Zeithorizonte.",
+      "irr": "Interner Zinsfuß (IZF, kapitalgewichtet), der Zeitpunkt und Höhe aller Zahlungsströme berücksichtigt.",
+      "delta": "Differenz zwischen End- und Anfangsmarktwert, bereinigt um die Zahlungsströme im Zeitraum.",
+      "absolute-performance": "Gesamtgewinn oder -verlust in absoluten Zahlen für die ausgewählte Datenreihe im Berichtszeitraum.",
+      "absolute-change": "Nettoveränderung des Portfoliowerts inklusive aller Ein- und Auszahlungen sowie Marktbewegungen.",
+      "calculation-compact": "Kompakte Übersicht der wichtigsten Performance-Kennzahlen für die ausgewählte Datenreihe auf einen Blick.",
+      "perf-chart": "Zeitreihendiagramm der Entwicklung von Marktwert und TTWROR im Berichtszeitraum.",
       "max-drawdown": "Größter Rückgang vom Höchststand zum Tiefststand der kumulierten Performance im Berichtszeitraum.",
       "max-drawdown-duration": "Längste Zeitspanne zwischen zwei aufeinanderfolgenden Performance-Höchstständen im Berichtszeitraum.",
       "current-drawdown": "Aktueller Rückgang vom jüngsten Höchststand der kumulierten Performance.",
@@ -117,7 +133,12 @@
       "noHoldings": "Keine Positionen in diesem Zeitraum",
       "loadError": "Fehler beim Laden der Positionen",
       "showMore_one": "+ {{count}} weitere",
-      "showMore_other": "+ {{count}} weitere"
+      "showMore_other": "+ {{count}} weitere",
+      "headers": {
+        "weight": "Gewichtung",
+        "marketValue": "Wert",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "Keine Daten für diesen Zeitraum",

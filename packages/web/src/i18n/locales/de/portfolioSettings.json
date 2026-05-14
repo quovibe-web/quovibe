@@ -1,0 +1,53 @@
+{
+  "current": "Aktuelles Portfolio",
+  "real": "Real",
+  "builtInPlayground": "Integrierte Demo",
+  "createdOn": "Erstellt am {{date}}",
+  "updates": "Aktualisierungen",
+  "updatePrices": "Alle Kurse aktualisieren",
+  "export": "Dieses Portfolio exportieren",
+  "demoExplainer": "Eine persistente Sandbox, in der Sie frei hinzufügen, bearbeiten und löschen können. Sie können auch Ihre geänderte Demo exportieren — der Download wird beim erneuten Import zu einem regulären Portfolio, während die integrierte Demo unverändert bleibt. Die Demo selbst kann nicht umbenannt oder gelöscht werden — sie ist ein integrierter Bestandteil, kein Benutzerartefakt.",
+  "rename": {
+    "cta": "Umbenennen",
+    "title": "Portfolio umbenennen",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "success": "Portfolio umbenannt.",
+    "error": "Umbenennen fehlgeschlagen: {{msg}}"
+  },
+  "delete": {
+    "cta": "Dieses Portfolio löschen",
+    "title": "\"{{name}}\" löschen?",
+    "body": "Dadurch werden alle Konten, Buchungen und Daten dieses Portfolios dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.",
+    "cancel": "Abbrechen",
+    "confirm": "Löschen",
+    "success": "Portfolio gelöscht.",
+    "error": "Löschen fehlgeschlagen: {{msg}}"
+  },
+  "data": {
+    "sections": {
+      "accounting": "Buchhaltung",
+      "priceFeeds": "Kursfeeds"
+    },
+    "fields": {
+      "costMethod": "Kostenmethode",
+      "costMethodDescription": "Wie die Anschaffungskosten von Wertpapieren berechnet werden.",
+      "costMethodFifo": "FIFO",
+      "costMethodMovingAverage": "Gleitender Durchschnitt",
+      "currency": "Basiswährung",
+      "currencyDescription": "Alle Werte werden für Portfoliosummen in diese Währung umgerechnet.",
+      "calendar": "Kalender",
+      "calendarDescription": "Handelskalender, der die Markt-Feiertage bestimmt. Wähle \"Standard (global)\", um den Standardkalender des Systems zu verwenden.",
+      "calendarDefault": "Standard (global)",
+      "calendarUnknown": "unbekannt",
+      "alphaVantageApiKey": "Alpha-Vantage-API-Schlüssel",
+      "alphaVantageApiKeyDescription": "Erforderlich, um Kurse von Alpha Vantage abzurufen.",
+      "alphaVantageApiKeyConfigured": "Ein Schlüssel ist konfiguriert. Gib einen neuen Wert ein, um ihn zu ersetzen.",
+      "alphaVantageApiKeyPlaceholder": "API-Schlüssel eingeben…",
+      "alphaVantageApiKeyShow": "API-Schlüssel anzeigen",
+      "alphaVantageApiKeyHide": "API-Schlüssel verbergen",
+      "alphaVantageRateLimit": "Alpha-Vantage-Ratenlimit",
+      "alphaVantageRateLimitDescription": "Anrufe pro Minute, die dein Alpha-Vantage-Plan zulässt."
+    }
+  }
+}

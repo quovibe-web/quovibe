@@ -233,47 +233,94 @@ export function deleteCategory(
   sqlite: BetterSqlite3.Database,
   taxonomyUuid: string,
   categoryId: string,
+  opts?: { renormalize?: boolean },
 ): boolean {
   const existing = sqlite
     .prepare(`SELECT uuid, parent FROM taxonomy_category WHERE uuid = ? AND taxonomy = ?`)
     .get(categoryId, taxonomyUuid) as { uuid: string; parent: string | null } | undefined;
   if (!existing) return false;
-
-  // Guard: cannot delete root category (parent = null)
   if (existing.parent === null) {
     throw new Error('Cannot delete root category');
   }
 
+  const renormalize = opts?.renormalize === true;
+
   sqlite.transaction(() => {
-    // 1. Reparent child categories to this category's parent
+    // Affected items live DIRECTLY in the to-be-deleted category; descendant
+    // categories survive via the reparent, so their items are unaffected.
+    // Snapshot per-item pre-delete totals in one query grouped by item.
+    const preTotals = new Map<string, number>();
+    if (renormalize) {
+      const rows = sqlite
+        .prepare(
+          `SELECT item, SUM(weight) AS total FROM taxonomy_assignment
+           WHERE taxonomy = ?
+             AND item IN (SELECT DISTINCT item FROM taxonomy_assignment WHERE category = ? AND taxonomy = ?)
+           GROUP BY item`,
+        )
+        .all(taxonomyUuid, categoryId, taxonomyUuid) as { item: string; total: number }[];
+      for (const r of rows) preTotals.set(r.item, r.total);
+    }
+
     sqlite.prepare(
       `UPDATE taxonomy_category SET parent = ? WHERE parent = ? AND taxonomy = ?`,
     ).run(existing.parent, categoryId, taxonomyUuid);
 
-    // 2. Delete taxonomy_assignment_data for assignments in this category
     sqlite.prepare(
       `DELETE FROM taxonomy_assignment_data
        WHERE assignment IN (SELECT _id FROM taxonomy_assignment WHERE category = ? AND taxonomy = ?)`,
     ).run(categoryId, taxonomyUuid);
 
-    // 3. Delete assignments in this category
     sqlite.prepare(
       `DELETE FROM taxonomy_assignment WHERE category = ? AND taxonomy = ?`,
     ).run(categoryId, taxonomyUuid);
 
-    // 4. Delete taxonomy_data for this category
     sqlite.prepare(
       `DELETE FROM taxonomy_data WHERE category = ? AND taxonomy = ?`,
     ).run(categoryId, taxonomyUuid);
 
-    // 5. Delete the category
     sqlite.prepare(
       `DELETE FROM taxonomy_category WHERE uuid = ? AND taxonomy = ?`,
     ).run(categoryId, taxonomyUuid);
 
-    // 6. Compact ranks at the parent level so there are no gaps
     if (existing.parent) {
       compactCategoryRanks(sqlite, existing.parent);
+    }
+
+    if (renormalize && preTotals.size > 0) {
+      const remainingStmt = sqlite.prepare(
+        `SELECT _id, item, weight FROM taxonomy_assignment
+         WHERE taxonomy = ? AND item IN (${Array.from(preTotals.keys()).map(() => '?').join(',')})
+         ORDER BY item, _id`,
+      );
+      const remaining = remainingStmt.all(taxonomyUuid, ...preTotals.keys()) as { _id: number; item: string; weight: number }[];
+      const byItem = new Map<string, { _id: number; weight: number }[]>();
+      for (const r of remaining) {
+        const arr = byItem.get(r.item) ?? [];
+        arr.push({ _id: r._id, weight: r.weight });
+        byItem.set(r.item, arr);
+      }
+
+      const updateWeight = sqlite.prepare(`UPDATE taxonomy_assignment SET weight = ? WHERE _id = ?`);
+      for (const [itemId, preTotal] of preTotals) {
+        if (preTotal <= 0) continue;
+        const rows = byItem.get(itemId);
+        if (!rows || rows.length === 0) continue;
+        const postTotal = rows.reduce((acc, r) => acc + r.weight, 0);
+        if (postTotal <= 0 || postTotal >= preTotal) continue;
+
+        const scaled = rows.map(r => ({
+          _id: r._id,
+          weight: Math.max(0, Math.min(10000, Math.round((r.weight * preTotal) / postTotal))),
+        }));
+        // Absorb rounding residual into largest-weight row so Σ == preTotal exactly.
+        const residual = preTotal - scaled.reduce((acc, r) => acc + r.weight, 0);
+        if (residual !== 0) {
+          const absorber = scaled.reduce((best, r) => r.weight > best.weight ? r : best, scaled[0]);
+          absorber.weight = Math.max(0, Math.min(10000, absorber.weight + residual));
+        }
+        for (const r of scaled) updateWeight.run(r.weight, r._id);
+      }
     }
   })();
 
@@ -409,6 +456,83 @@ export function deleteAssignment(
     sqlite.prepare(`DELETE FROM taxonomy_assignment WHERE _id = ?`).run(assignmentId);
   })();
   return true;
+}
+
+/**
+ * Thrown by `updateCategoryAllocationsBulk` when any incoming id doesn't
+ * belong to the target taxonomy. Route handlers convert to HTTP 400
+ * `{ error: 'CATEGORY_NOT_IN_TAXONOMY' }`.
+ */
+export class CategoryNotInTaxonomyError extends Error {
+  readonly code = 'CATEGORY_NOT_IN_TAXONOMY' as const;
+  readonly offendingId: string;
+  constructor(offendingId: string) {
+    super(`Category ${offendingId} does not belong to the target taxonomy`);
+    this.offendingId = offendingId;
+  }
+}
+
+/**
+ * Bulk-update category allocations. Every id must belong to the target
+ * taxonomy or the whole batch rolls back with `CategoryNotInTaxonomyError`.
+ */
+export function updateCategoryAllocationsBulk(
+  sqlite: BetterSqlite3.Database,
+  taxonomyUuid: string,
+  items: Array<{ id: string; allocation: number }>,
+): void {
+  if (items.length === 0) return;
+  sqlite.transaction(() => {
+    const placeholders = items.map(() => '?').join(',');
+    const found = sqlite.prepare(
+      `SELECT uuid FROM taxonomy_category WHERE taxonomy = ? AND uuid IN (${placeholders})`,
+    ).all(taxonomyUuid, ...items.map(i => i.id)) as { uuid: string }[];
+    if (found.length !== items.length) {
+      const foundSet = new Set(found.map(r => r.uuid));
+      const missing = items.find(i => !foundSet.has(i.id))!;
+      throw new CategoryNotInTaxonomyError(missing.id);
+    }
+    const updateStmt = sqlite.prepare(
+      `UPDATE taxonomy_category SET weight = ? WHERE uuid = ? AND taxonomy = ?`,
+    );
+    for (const item of items) updateStmt.run(item.allocation, item.id, taxonomyUuid);
+  })();
+}
+
+/**
+ * Swap a category with its immediate sibling (under the same parent) in the
+ * rank order. Returns false at the sibling-set boundary (first-sibling + up,
+ * last-sibling + down) or when the category doesn't exist / is the root.
+ */
+export function reorderCategory(
+  sqlite: BetterSqlite3.Database,
+  taxonomyUuid: string,
+  categoryId: string,
+  direction: 'up' | 'down',
+): boolean {
+  const existing = sqlite
+    .prepare(`SELECT uuid, parent FROM taxonomy_category WHERE uuid = ? AND taxonomy = ?`)
+    .get(categoryId, taxonomyUuid) as { uuid: string; parent: string | null } | undefined;
+  if (!existing || existing.parent === null) return false;
+
+  return sqlite.transaction(() => {
+    // Close any gaps from past deletes so rank is dense 0..N-1 before the swap.
+    compactCategoryRanks(sqlite, existing.parent as string);
+
+    const siblings = sqlite.prepare(
+      `SELECT uuid FROM taxonomy_category WHERE parent = ? AND taxonomy = ? ORDER BY rank`,
+    ).all(existing.parent, taxonomyUuid) as { uuid: string }[];
+
+    const idx = siblings.findIndex(s => s.uuid === categoryId);
+    if (idx < 0) return false;
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= siblings.length) return false;
+
+    const update = sqlite.prepare('UPDATE taxonomy_category SET rank = ? WHERE uuid = ?');
+    update.run(swapIdx, siblings[idx].uuid);
+    update.run(idx, siblings[swapIdx].uuid);
+    return true;
+  })() as boolean;
 }
 
 export function reorderTaxonomy(

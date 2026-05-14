@@ -1,10 +1,13 @@
 import { z } from 'zod';
-import { AccountType } from '../enums';
+import { nonBlankString } from './utils';
 
+// Wire vocabulary uses ppxml2db DB literals: 'account' = deposit, 'portfolio' = securities.
+// AccountType enum (DEPOSIT/SECURITIES) remains the internal vocabulary used by
+// transaction-gating; it is NOT exposed on the wire (see plan: BUG-114).
 export const createAccountSchema = z.object({
-  name: z.string().min(1),
-  type: z.nativeEnum(AccountType),
-  // Only DEPOSIT accounts own a currency; SECURITIES inherit from referenceAccount
+  name: nonBlankString(128),
+  type: z.enum(['account', 'portfolio']),
+  // Only deposit accounts own a currency; securities accounts inherit from referenceAccount.
   currency: z.string().length(3).optional(),
   referenceAccountId: z.string().uuid().optional(),
 });

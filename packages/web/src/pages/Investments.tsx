@@ -4,7 +4,7 @@ import type { VisibilityState } from '@tanstack/react-table';
 import type { TableLayoutEntry } from '@quovibe/shared';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Briefcase, X } from 'lucide-react';
+import { Briefcase, Filter, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/shared/DataTable';
 import { TableToolbar } from '@/components/shared/TableToolbar';
@@ -33,7 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { useSecurities, useFetchAllPrices, useDeleteSecurity, SecurityHasTransactionsError } from '@/api/use-securities';
+import { useSecurities, useFetchAllPrices, useDeleteSecurity } from '@/api/use-securities';
 import { useAccountDetail, useAccountHoldings } from '@/api/use-accounts';
 import { useStatementOfAssets, useHoldings } from '@/api/use-reports';
 import { useReportingPeriod, usePerformanceSecurities } from '@/api/use-performance';
@@ -54,10 +54,44 @@ import {
 import { formatPercentage } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { StatementSecurityEntry, SecurityPerfResponse, HoldingsItem } from '@/api/types';
+import { useNavTitle } from '@/hooks/useNavTitle';
+
+interface FetchStatusProps {
+  totalFetched: number;
+  totalLabel: string;
+  errorsLabel: string;
+  errors: { key: string; label: string; error: string }[];
+}
+
+function FetchStatus({ totalFetched, totalLabel, errorsLabel, errors }: FetchStatusProps) {
+  return (
+    <div className="rounded-md border border-[var(--qv-border-subtle)] bg-[var(--qv-surface-elevated)] px-4 py-3">
+      <div className="qv-eyebrow text-[var(--qv-text-secondary)]">{totalLabel}</div>
+      <div className="qv-numeric text-lg font-medium mt-0.5">
+        {totalFetched}
+        {errors.length > 0 && (
+          <span className="ml-3 text-sm font-normal text-[var(--qv-danger)]">
+            {errors.length} {errorsLabel}
+          </span>
+        )}
+      </div>
+      {errors.length > 0 && (
+        <ul className="mt-2 space-y-0.5 text-sm text-[var(--qv-danger)]">
+          {errors.map(e => (
+            <li key={e.key}>
+              <span className="font-medium">{e.label}</span>: {e.error}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export default function Investments() {
   const { t } = useTranslation('investments');
   const { t: tCommon } = useTranslation('common');
+  useNavTitle('investments');
   const { t: tSecurities } = useTranslation('securities');
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -220,7 +254,12 @@ export default function Investments() {
 
   // Data hooks
   const { periodStart, periodEnd } = useReportingPeriod();
-  const { data: securities = [], isLoading: secLoading, isFetching } = useSecurities(showRetired);
+  // BUG-PRE14-09: pass `periodEnd` as `asOf` so the table membership matches
+  // `getStatementOfAssets(periodEnd)` exactly. Otherwise a security held at
+  // period end but exited since "now" disappears from the table while still
+  // appearing in the period-scoped treemap and SoA totals (mismatched count
+  // + market-value footer).
+  const { data: securities = [], isLoading: secLoading, isFetching } = useSecurities(showRetired, periodEnd);
   const { data: statement, isLoading: stmtLoading } = useStatementOfAssets(periodEnd, { enabled: needsStatement });
   // Always fetch perf data: the security drawer needs it regardless of which table columns are visible
   const { data: perfData, isLoading: perfLoading } = usePerformanceSecurities({ periodStart, periodEnd });
@@ -241,16 +280,18 @@ export default function Investments() {
     return securities.filter(s => heldIds.has(s.id));
   }, [securities, accountFilterId, filterHoldings]);
 
+  const trimmedSearchQuery = searchQuery.trim();
+
   // Client-side search filter (name, ISIN, ticker)
   const filteredSecurities = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = trimmedSearchQuery.toLowerCase();
     if (!q) return accountFiltered;
     return accountFiltered.filter(s =>
       s.name.toLowerCase().includes(q) ||
       (s.isin && s.isin.toLowerCase().includes(q)) ||
       (s.ticker && s.ticker.toLowerCase().includes(q))
     );
-  }, [accountFiltered, searchQuery]);
+  }, [accountFiltered, trimmedSearchQuery]);
 
   // Derived data
   const statementMap = useMemo(() => {
@@ -348,14 +389,9 @@ export default function Investments() {
         toast.success(tCommon('toasts.securityDeleted'));
         setDeleteTarget(null);
       },
-      onError: (err) => {
-        if (err instanceof SecurityHasTransactionsError) {
-          toast.error(tSecurities('errors.hasTransactions', { count: err.count }));
-        } else {
-          toast.error((err as Error).message ?? tCommon('toasts.errorDeleting'));
-        }
-        setDeleteTarget(null);
-      },
+      // Error toast is handled by the global MutationCache handler
+      // (query-client.ts → errors:server.*). We only clear the dialog state.
+      onError: () => { setDeleteTarget(null); },
     });
   }
 
@@ -363,13 +399,17 @@ export default function Investments() {
     fetchAll.mutate();
   };
 
+  // Empty-portfolio state: hide controls and summary; only EmptyState owns the page (BUG-44).
+  // Scope: only when not filtering to an account and the underlying securities list is truly empty.
+  const isEmptyPortfolio = !accountFilterId && !secLoading && securities.length === 0;
+
   return (
     <div className="qv-page space-y-6">
       {/* Page Header */}
       <PageHeader
         title={t('title')}
         subtitle={t('subtitle')}
-        actions={<>
+        actions={isEmptyPortfolio ? undefined : <>
           {/* Chart mode toggle */}
           <SegmentedControl
             segments={chartModes}
@@ -377,85 +417,77 @@ export default function Investments() {
             onChange={setChartMode}
           />
           <Separator orientation="vertical" className="h-6" />
-          <Button onClick={handleFetchAll} disabled={fetchAll.isPending}>
+          <Button variant="outline" onClick={handleFetchAll} disabled={fetchAll.isPending}>
             {fetchAll.isPending ? tSecurities('actions.updating') : tSecurities('actions.updatePrices')}
           </Button>
           <Button onClick={() => setWizardOpen(true)}>{tSecurities('actions.addInstrument')}</Button>
         </>}
       />
 
-      {/* Fetch prices status */}
-      {fetchAll.isSuccess && fetchAll.data && (
-        <div className="text-sm text-muted-foreground">
-          {fetchAll.data.totalFetched} {tSecurities('updateResults.pricesUpdated')}
-          {fetchAll.data.totalErrors > 0 && (
-            <>
-              <span className="text-destructive ml-2">({fetchAll.data.totalErrors} {tSecurities('updateResults.errors')})</span>
-              <ul className="mt-1 space-y-0.5">
-                {fetchAll.data.results
-                  .filter(r => r.error)
-                  .map(r => (
-                    <li key={r.securityId} className="text-destructive">
-                      <span className="font-medium">{r.name}</span>: {r.error}
-                    </li>
-                  ))}
-              </ul>
-            </>
-          )}
-        </div>
+      {!isEmptyPortfolio && fetchAll.isSuccess && fetchAll.data && (
+        <FetchStatus
+          totalFetched={fetchAll.data.totalFetched}
+          totalLabel={tSecurities('updateResults.pricesUpdated')}
+          errorsLabel={tSecurities('updateResults.errors')}
+          errors={fetchAll.data.results
+            .filter(r => r.error)
+            .map(r => ({ key: r.securityId, label: r.name, error: r.error! }))}
+        />
       )}
 
       {/* Summary strip — global or per-account */}
-      {((!accountFilterId && !summaryLoading && statement) || (accountFilterId && filterHoldings)) && (
+      {!isEmptyPortfolio && ((!accountFilterId && !summaryLoading && statement) || (accountFilterId && filterHoldings)) && (
         <SummaryStrip
           columns={4}
           items={[
             {
               label: t('summary.totalMV'),
               value: accountFilterId ? (
-                <CurrencyDisplay value={parseFloat(filterHoldings!.totalValue)} colorize className="text-2xl font-semibold tabular-nums" />
+                <CurrencyDisplay value={parseFloat(filterHoldings!.totalValue)} colorize className="qv-numeric text-2xl font-medium" />
               ) : statement ? (
-                <CurrencyDisplay value={parseFloat(statement.totals.marketValue)} colorize className="text-2xl font-semibold tabular-nums" />
+                <CurrencyDisplay value={parseFloat(statement.totals.marketValue)} colorize className="qv-numeric text-2xl font-medium" />
               ) : (
-                <span className="text-2xl font-semibold text-muted-foreground">—</span>
+                <span className="qv-numeric text-2xl font-medium text-muted-foreground">—</span>
               ),
             },
             {
               label: t('summary.holdings'),
-              value: <span className="text-2xl font-semibold tabular-nums">
+              // Card describes the portfolio (or the filtered account) — never the search query (BUG-24).
+              // Excludes zero-share / closed positions to align with the pie-chart legend (BUG-25).
+              value: <span className="qv-numeric text-2xl font-medium">
                 {accountFilterId
-                  ? filterHoldings!.holdings.length
-                  : filteredSecurities.filter(s => !s.isRetired).length}
+                  ? filterHoldings!.holdings.filter(h => parseFloat(h.shares) > 0).length
+                  : accountFiltered.filter(s => parseFloat(s.shares ?? '0') > 0).length}
               </span>,
             },
             {
               label: t('summary.cash'),
               value: accountFilterId ? (
                 depositAccount ? (
-                  <CurrencyDisplay value={parseFloat(depositAccount.balance)} colorize className="text-2xl font-semibold tabular-nums" />
+                  <CurrencyDisplay value={parseFloat(depositAccount.balance)} colorize className="qv-numeric text-2xl font-medium" />
                 ) : (
-                  <span className="text-2xl font-semibold text-muted-foreground">—</span>
+                  <span className="qv-numeric text-2xl font-medium text-muted-foreground">—</span>
                 )
               ) : statement ? (
                 <div>
-                  <CurrencyDisplay value={parseFloat(statement.totals.cashValue)} colorize className="text-2xl font-semibold tabular-nums" />
+                  <CurrencyDisplay value={parseFloat(statement.totals.cashValue)} colorize className="qv-numeric text-2xl font-medium" />
                   <CashBreakdown cashByCurrency={statement.totals.cashByCurrency ?? []} className="mt-1" />
                 </div>
               ) : (
-                <span className="text-2xl font-semibold text-muted-foreground">—</span>
+                <span className="qv-numeric text-2xl font-medium text-muted-foreground">—</span>
               ),
             },
             {
               label: t('summary.largest'),
               value: (() => {
                 const top = accountFilterId ? filteredTopHolding : topHolding;
-                if (!top) return <span className="text-2xl font-semibold text-muted-foreground">—</span>;
+                if (!top) return <span className="qv-numeric text-2xl font-medium text-muted-foreground">—</span>;
                 return (
                   <>
-                    <span className="text-lg font-semibold truncate block">
-                      {isPrivate ? '••••••' : top.name}
+                    <span className="text-lg font-medium truncate block">
+                      {top.name}
                     </span>
-                    <span className="text-sm text-muted-foreground tabular-nums">
+                    <span className="qv-numeric text-sm text-muted-foreground">
                       {isPrivate ? '••••' : formatPercentage(parseFloat(top.percentage) / 100)}
                     </span>
                   </>
@@ -467,8 +499,8 @@ export default function Investments() {
       )}
 
       {/* Allocation chart — global or per-account */}
-      {chartMode !== 'off' && chartItems.length > 0 && (!accountFilterId ? !summaryLoading : !!filterHoldings) && (
-        <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '180ms' }}>
+      {!isEmptyPortfolio && chartMode !== 'off' && chartItems.length > 0 && (!accountFilterId ? !summaryLoading : !!filterHoldings) && (
+        <Card className="rounded-md" style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '180ms' }}>
           <CardContent className="pt-6">
             <TaxonomyChart
               items={chartItems}
@@ -482,7 +514,8 @@ export default function Investments() {
 
       {/* Account filter banner */}
       {accountFilterId && filterAccount && (
-        <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-primary/10 border border-primary/20">
+        <div className="flex items-center gap-3 px-4 py-2.5 rounded-md bg-[var(--qv-surface-elevated)] border border-[var(--qv-border-subtle)]">
+          <Filter className="h-3.5 w-3.5 text-[var(--color-primary)]" />
           <span className="text-sm font-medium">
             {t('filter.showingAccount', { name: filterAccount.name })}
           </span>
@@ -494,25 +527,41 @@ export default function Investments() {
       )}
 
       {/* Toolbar: search + show retired */}
-      <TableToolbar
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder={t('search.placeholder')}
-      >
-        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-          <Checkbox checked={showRetired} onCheckedChange={(v) => setShowRetired(v === true)} />
-          {t('showRetired')}
-        </label>
-      </TableToolbar>
+      {!isEmptyPortfolio && (
+        <TableToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={t('search.placeholder')}
+        >
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+            <Checkbox checked={showRetired} onCheckedChange={(v) => setShowRetired(v === true)} />
+            {t('showRetired')}
+          </label>
+        </TableToolbar>
+      )}
 
       {/* Securities table or empty state */}
       {filteredSecurities.length === 0 && !tableLoading ? (
-        <EmptyState
-          icon={Briefcase}
-          title={t('empty.title')}
-          description={t('empty.description')}
-          action={<Button onClick={() => setWizardOpen(true)}>{tSecurities('actions.addInstrument')}</Button>}
-        />
+        isEmptyPortfolio ? (
+          <EmptyState
+            icon={Briefcase}
+            title={t('empty.title')}
+            description={t('empty.description')}
+            action={<Button onClick={() => setWizardOpen(true)}>{tSecurities('actions.addInstrument')}</Button>}
+          />
+        ) : trimmedSearchQuery ? (
+          <EmptyState
+            icon={Search}
+            title={t('search.noResults', { query: trimmedSearchQuery })}
+            description={t('search.noResultsHint')}
+          />
+        ) : (
+          <EmptyState
+            icon={Briefcase}
+            title={t('empty.noMatches')}
+            description={t('empty.noMatchesHint')}
+          />
+        )
       ) : (
         <FadeIn>
           <div className={cn(isFetching && !tableLoading && 'opacity-60 transition-opacity duration-200')}>
@@ -532,33 +581,33 @@ export default function Investments() {
             />
             {/* Total row */}
             {!tableLoading && filteredSecurities.length > 0 && (statementMap.size > 0 || perfMap.size > 0) && (
-              <div className="flex items-center justify-between px-4 py-2.5 mt-1 rounded-lg bg-muted/50 border border-border text-sm font-medium">
-                <span className="text-muted-foreground">
+              <div className="flex items-center justify-between px-4 py-2.5 mt-1 rounded-md bg-[var(--qv-surface-elevated)] border border-[var(--qv-border-subtle)] text-sm">
+                <span className="qv-eyebrow text-[var(--qv-text-secondary)]">
                   {t('totals.label', { count: filteredSecurities.length })}
                 </span>
                 <div className="flex items-center gap-6">
                   {statementMap.size > 0 && (
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground">{t('columns.marketValue')}:</span>
+                    <span className="flex items-center gap-2">
+                      <span className="qv-eyebrow text-[var(--qv-text-secondary)]">{t('columns.marketValue')}</span>
                       <CurrencyDisplay
                         value={filteredSecurities.reduce((sum, s) => {
                           const entry = statementMap.get(s.id);
                           return sum + (entry ? parseFloat(entry.marketValue) : 0);
                         }, 0)}
-                        className="font-semibold tabular-nums"
+                        className="qv-numeric font-medium"
                       />
                     </span>
                   )}
                   {perfMap.size > 0 && (
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground">{t('columns.unrealizedGain')}:</span>
+                    <span className="flex items-center gap-2">
+                      <span className="qv-eyebrow text-[var(--qv-text-secondary)]">{t('columns.unrealizedGain')}</span>
                       <CurrencyDisplay
                         value={filteredSecurities.reduce((sum, s) => {
                           const entry = perfMap.get(s.id);
                           return sum + (entry ? parseFloat(entry.unrealizedGain) : 0);
                         }, 0)}
                         colorize
-                        className="font-semibold tabular-nums"
+                        className="qv-numeric font-medium"
                       />
                     </span>
                   )}
@@ -621,7 +670,7 @@ export default function Investments() {
           <AlertDialogFooter>
             <AlertDialogCancel>{tCommon('deleteConfirm.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-[var(--qv-danger)] text-white hover:bg-[var(--qv-danger)]/90"
               onClick={handleConfirmDelete}
             >
               {tCommon('deleteConfirm.confirm')}

@@ -11,7 +11,7 @@
     "performance": "Wyniki",
     "identity": "Identyfikacja",
     "viewDetail": "Pełne szczegóły",
-    "editSecurity": "Edytuj papier",
+    "editSecurity": "Edytuj walor",
     "viewTransactions": "Transakcje",
     "addIsin": "Dodaj ISIN →",
     "refreshPrices": "Odśwież ceny"
@@ -64,13 +64,17 @@
     "clearFilter": "Pokaż wszystkie"
   },
   "search": {
-    "placeholder": "Szukaj po nazwie, ISIN lub ticker…"
+    "placeholder": "Szukaj po nazwie, ISIN lub ticker…",
+    "noResults": "Brak wyników dla '{{query}}'",
+    "noResultsHint": "Spróbuj innej nazwy, ISIN lub tickera."
   },
   "totals": {
-    "label": "Razem ({{count}} papierów)"
+    "label": "Razem ({{count}} walorów)"
   },
   "empty": {
-    "title": "Brak papierów wartościowych",
-    "description": "Dodaj swój pierwszy papier wartościowy, aby rozpocząć"
+    "title": "Brak walorów",
+    "description": "Dodaj swój pierwszy walor, aby rozpocząć",
+    "noMatches": "Brak walorów na tym koncie",
+    "noMatchesHint": "Dostosuj filtr konta, aby zobaczyć inne pozycje."
   }
 }

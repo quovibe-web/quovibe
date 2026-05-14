@@ -9,8 +9,7 @@ import { useWidgetChartCalculation } from '@/hooks/use-widget-chart-calculation'
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { useLightweightChart } from '@/hooks/use-lightweight-chart';
-import { differenceInDays, parseISO } from 'date-fns';
-import { formatPercentage, formatCurrency, computeTtwrorPa } from '@/lib/formatters';
+import { formatPercentage, formatCurrency } from '@/lib/formatters';
 import { useBaseCurrency } from '@/hooks/use-base-currency';
 import { cn } from '@/lib/utils';
 import { getSavedChartType, type ChartSeriesType } from '@/lib/chart-types';
@@ -20,12 +19,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChartToolbar } from '@/components/shared/ChartToolbar';
 import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
+import { ChartExportButton } from '@/components/shared/ChartExportButton';
 import { useWidgetToolbarPortal } from '@/components/domain/WidgetShell';
 
 
 const CHART_ID = 'widget-perf';
 
-type MetricMode = 'mv' | 'ttwror' | 'ttwrorPa';
+type MetricMode = 'mv' | 'ttwror';
 
 export default function WidgetPerfChart() {
   const { t } = useTranslation('performance');
@@ -50,9 +50,10 @@ export default function WidgetPerfChart() {
   });
 
   const seriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
   const [seriesVersion, setSeriesVersion] = useState(0);
 
-  const { data, isLoading, isError, error, isFetching, periodStart } = useWidgetChartCalculation();
+  const { data, isLoading, isError, error, isFetching } = useWidgetChartCalculation();
 
   const chartData = useMemo(
     () =>
@@ -70,16 +71,10 @@ export default function WidgetPerfChart() {
         .map((p) => ({ time: p.date, value: p.marketValue }))
         .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
     }
-    const start = parseISO(periodStart);
     return chartData
-      .map((p) => ({
-        time: p.date,
-        value: metric === 'ttwrorPa'
-          ? computeTtwrorPa(p.ttwror, differenceInDays(parseISO(p.date), start))
-          : p.ttwror,
-      }))
+      .map((p) => ({ time: p.date, value: p.ttwror }))
       .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
-  }, [chartData, metric, periodStart]);
+  }, [chartData, metric]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -111,7 +106,7 @@ export default function WidgetPerfChart() {
       series.applyOptions({
         priceFormat: {
           type: 'custom',
-          formatter: (price: number) => `${(price * 100).toFixed(2)}%`, // native-ok
+          formatter: (price: number) => formatPercentage(price),
         },
       } as Record<string, unknown>);
     }
@@ -124,9 +119,7 @@ export default function WidgetPerfChart() {
 
   const metricLabel = metric === 'mv'
     ? t('chart.marketValue')
-    : metric === 'ttwror'
-      ? t('chart.ttwror')
-      : t('chart.ttwrorPa');
+    : t('chart.ttwror');
 
   const legendItems: LegendSeriesItem[] = seriesVersion > 0 && seriesRef.current
     ? [
@@ -161,8 +154,7 @@ export default function WidgetPerfChart() {
       <SegmentedControl
         segments={[
           { value: 'mv', label: 'MV' },
-          { value: 'ttwror', label: t('chart.cumulative') },
-          { value: 'ttwrorPa', label: t('chart.annualizedPa') },
+          { value: 'ttwror', label: t('chart.ttwror') },
         ]}
         value={metric}
         onChange={setMetric}
@@ -174,6 +166,7 @@ export default function WidgetPerfChart() {
         hasOhlc={false}
         onTypeChange={handleTypeChange}
       />
+      <ChartExportButton chartRef={exportRef} filename="performance-chart" />
     </>
   );
 
@@ -194,6 +187,7 @@ export default function WidgetPerfChart() {
         {!toolbarTarget && toolbarElement}
       </div>
       <div
+        ref={exportRef}
         className={cn(
           'relative flex-1 min-h-0',
           isLoading && 'invisible',

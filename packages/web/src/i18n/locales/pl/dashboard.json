@@ -1,9 +1,22 @@
 {
+  "empty": {
+    "title": "Welcome to your new portfolio.",
+    "importHeader": "Import transactions",
+    "importCsv": "Import from CSV",
+    "addManually": "Add account / transaction manually",
+    "wantToSee": "Want to see the app in action first?",
+    "tryDemo": "Try the demo instead"
+  },
   "title": "Panel",
   "hero": {
     "portfolioValue": "Wartość portfela",
+    "asOf": "Na dzień {{date}}",
     "configureMetrics": "Konfiguruj metryki",
     "selectMetrics": "Wybierz metryki"
+  },
+  "zones": {
+    "charts": "Wykresy",
+    "detailMetrics": "Metryki szczegółowe"
   },
   "addDashboard": "Nowy panel",
   "addDashboardDescription": "Wprowadź nazwę dla nowego panelu",
@@ -24,31 +37,34 @@
   "widgetSizeLarge": "Duży (3 kol.)",
   "dataSeriesMenuItem": "Serie danych...",
   "period": "Okres...",
+  "hideWidget": "Ukryj widget",
+  "showWidget": "Pokaż widget",
   "deleteWidget": "Usuń",
+  "deleteWidgetConfirm": "Usunąć ten widget?",
+  "deleteWidgetConfirmDesc": "Spowoduje to usunięcie \"{{name}}\" z tego panelu. Możesz dodać go ponownie z katalogu widgetów.",
   "emptyDashboard": "Ten panel nie ma jeszcze widgetów.",
   "unknownWidget": "Typ widgetu \"{{type}}\" nie znaleziony",
-  "widgetCatalog": "Widget catalog",
+  "widgetCatalog": "Katalog widgetów",
   "catalog": {
-    "searchPlaceholder": "Search widgets...",
-    "all": "All",
-    "performance": "Performance",
-    "reports": "Reports",
-    "chart": "Charts",
-    "risk": "Risk",
-    "info": "Info",
-    "addToDashboard": "Add",
-    "noResults": "No widgets match your search.",
+    "searchPlaceholder": "Szukaj widgetów...",
+    "all": "Wszystkie",
+    "performance": "Wydajność",
+    "chart": "Wykresy",
+    "risk": "Ryzyko",
+    "info": "Informacje",
+    "addToDashboard": "Dodaj",
+    "noResults": "Żaden widget nie pasuje do wyszukiwania.",
     "description": "Przeglądaj i dodawaj widgety do panelu",
     "desc": {
-      "market-value": "Current market value of the selected data series at the end of the reporting period.",
-      "ttwror": "Cumulative true time-weighted return of the selected data series for the reporting period.",
-      "ttwror-pa": "Annualized true time-weighted return, useful for comparing performance across different time horizons.",
-      "irr": "Internal rate of return (money-weighted) that accounts for the timing and size of all cash flows.",
-      "delta": "Difference between the final and initial market value, adjusted for cash flows during the period.",
-      "absolute-performance": "Total profit or loss in absolute terms for the selected data series over the reporting period.",
-      "absolute-change": "Net change in portfolio value including all deposits, withdrawals and market movements.",
-      "calculation-compact": "Compact summary showing key performance metrics for the selected data series at a glance.",
-      "perf-chart": "Time series chart showing market value and TTWROR evolution for the reporting period.",
+      "market-value": "Aktualna wartość rynkowa wybranej serii danych na koniec okresu sprawozdawczego.",
+      "ttwror": "Skumulowana rzeczywista stopa zwrotu ważona czasem (TTWROR) wybranej serii danych w okresie sprawozdawczym.",
+      "ttwror-pa": "Zannualizowana rzeczywista stopa zwrotu ważona czasem, przydatna do porównywania wyników w różnych horyzontach czasowych.",
+      "irr": "Wewnętrzna stopa zwrotu (IRR, ważona kapitałem) uwzględniająca moment i wielkość wszystkich przepływów pieniężnych.",
+      "delta": "Różnica między końcową a początkową wartością rynkową, skorygowana o przepływy pieniężne w okresie.",
+      "absolute-performance": "Całkowity zysk lub strata w ujęciu bezwzględnym dla wybranej serii danych w okresie sprawozdawczym.",
+      "absolute-change": "Zmiana netto wartości portfela, uwzględniająca wszystkie wpłaty, wypłaty oraz ruchy rynkowe.",
+      "calculation-compact": "Zwięzłe podsumowanie najważniejszych wskaźników wyników dla wybranej serii danych w jednym widoku.",
+      "perf-chart": "Wykres szeregu czasowego przedstawiający ewolucję wartości rynkowej i TTWROR w okresie sprawozdawczym.",
       "max-drawdown": "Największy spadek od szczytu do dna w skumulowanej stopie zwrotu w okresie sprawozdawczym.",
       "max-drawdown-duration": "Najdłuższy czas między dwoma kolejnymi szczytami stopy zwrotu w okresie sprawozdawczym.",
       "current-drawdown": "Bieżący spadek w stosunku do ostatniego szczytu skumulowanej stopy zwrotu.",
@@ -58,7 +74,7 @@
       "sharpe-ratio": "Stopa zwrotu skorygowana o ryzyko: nadwyżka stopy zwrotu ponad stopę wolną od ryzyka podzielona przez zmienność.",
       "returns-heatmap": "Miesięczne i roczne stopy zwrotu przedstawione jako kolorowa mapa cieplna.",
       "benchmark-comparison": "Porównaj zwrot portfela z benchmarkiem z obliczeniem alfa.",
-      "movers": "Najlepsze i najgorsze papiery wartościowe według TTWROR z mini wykresami sparkline.",
+      "movers": "Najlepsze i najgorsze walory według TTWROR z mini wykresami sparkline.",
       "cost-tax-drag": "Wpływ opłat i podatków na zwrot brutto, pokazany jako procent skonsumowanych zysków i roczny wskaźnik kosztów.",
       "cash-drag": "Udział portfela w bezczynnej gotówce, wskazujący na potencjalny cash drag na wyniki.",
       "all-time-high": "Najwyższa kiedykolwiek odnotowana wartość portfela, z datą jej wystąpienia.",
@@ -80,7 +96,7 @@
     "days_many": "{{count}} dni",
     "days_other": "{{count}} dni",
     "selectBenchmark": "Wybierz benchmark",
-    "selectBenchmarkDescription": "Wyszukaj i wybierz papier wartościowy jako punkt odniesienia",
+    "selectBenchmarkDescription": "Wyszukaj i wybierz walor jako punkt odniesienia",
     "configure": "Konfiguruj...",
     "benchmarkLabel": "vs {{name}}",
     "portfolioLabel": "Portfel",
@@ -90,7 +106,7 @@
     "movers": {
       "topPerformers": "Najlepsi",
       "bottomPerformers": "Najgorsi",
-      "noSecurities": "Brak papierów wartościowych w tym okresie"
+      "noSecurities": "Brak walorów w tym okresie"
     },
     "costTaxDrag": {
       "fees": "Opłaty",
@@ -121,7 +137,12 @@
       "showMore_one": "+ {{count}} więcej",
       "showMore_few": "+ {{count}} więcej",
       "showMore_many": "+ {{count}} więcej",
-      "showMore_other": "+ {{count}} więcej"
+      "showMore_other": "+ {{count}} więcej",
+      "headers": {
+        "weight": "Waga",
+        "marketValue": "Wartość",
+        "ttwror": "TTWROR"
+      }
     }
   },
   "noChartData": "Brak danych dla tego okresu",
@@ -161,14 +182,16 @@
     "common": "Ogólne",
     "accounts": "Konta i Portfele",
     "taxonomies": "Klasyfikacje",
-    "securities": "Papiery wartościowe",
+    "securities": "Walory",
     "entirePortfolio": "Cały portfel",
     "withReference": "{{name}} + {{refName}}",
-    "noSecuritiesAccounts": "Nie znaleziono kont papierów wartościowych.",
+    "noSecuritiesAccounts": "Nie znaleziono kont walorów.",
     "noTaxonomies": "Brak zdefiniowanych klasyfikacji.",
     "createTaxonomyLink": "Utwórz jedną w Asset Allocation.",
-    "noSecurities": "Brak papierów wartościowych w portfelu.",
+    "noSecurities": "Brak walorów w portfelu.",
     "showMore_one": "Pokaż {{count}} więcej…",
+    "showMore_few": "Pokaż {{count}} więcej…",
+    "showMore_many": "Pokaż {{count}} więcej…",
     "showMore_other": "Pokaż {{count}} więcej…"
   },
   "periodOverride": {

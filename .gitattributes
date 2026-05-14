@@ -1,2 +1,1 @@
 * text=auto
-docker-entrypoint.sh text eol=lf

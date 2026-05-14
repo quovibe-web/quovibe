@@ -12,8 +12,8 @@
     "feesRefund": "Fees Refund",
     "taxes": "Taxes",
     "taxRefund": "Tax Refund",
-    "deliveryInbound": "Inbound Delivery",
-    "deliveryOutbound": "Outbound Delivery",
+    "deliveryInbound": "Delivery (Inbound)",
+    "deliveryOutbound": "Delivery (Outbound)",
     "securityTransfer": "Security transfer",
     "transferBetweenAccounts": "Transfer between accounts",
     "transferInbound": "Transfer In",
@@ -38,6 +38,8 @@
   },
   "form": {
     "dateTime": "Date & Time",
+    "time": "Time",
+    "openCalendar": "Open calendar",
     "datePlaceholder": "dd.MM.yyyy",
     "quantity": "Quantity",
     "price": "Price",
@@ -60,7 +62,7 @@
     "cashAccount": "Cash Account",
     "security": "Security",
     "securityOptional": "Security (optional)",
-    "crossAccount": "Cross Account",
+    "crossAccount": "Offset Account",
     "creditNote": "Credit Note",
     "debitNote": "Debit Note",
     "grossValue": "Gross Value",
@@ -102,6 +104,10 @@
     "sourceDestMustDiffer": "Source and destination must differ",
     "sharesMustBePositive": "Shares must be greater than 0",
     "amountMustBePositive": "Amount must be greater than 0",
+    "priceMustBePositive": "Price must be greater than 0",
+    "feesMustBeNonNegative": "Fees must be 0 or greater",
+    "taxesMustBeNonNegative": "Taxes must be 0 or greater",
+    "fxRateMustBePositive": "Exchange rate must be greater than 0",
     "nameRequired": "Name is required",
     "noteRequired": "Note is required.",
     "ratioRequired": "Split ratio is required (e.g. 2:1).",
@@ -110,7 +116,11 @@
   "actions": {
     "edit": "Edit",
     "delete": "Delete",
-    "new": "New"
+    "new": "New",
+    "importCsv": "Import CSV"
+  },
+  "a11y": {
+    "rowActions": "Actions for {{type}} on {{date}}"
   },
   "editTitles": {
     "buy": "Edit Buy",
@@ -124,8 +134,8 @@
     "taxes": "Edit Taxes",
     "removal": "Edit Withdrawal",
     "taxRefund": "Edit Tax Refund",
-    "deliveryInbound": "Edit Delivery Inbound",
-    "deliveryOutbound": "Edit Delivery Outbound",
+    "deliveryInbound": "Edit Delivery (Inbound)",
+    "deliveryOutbound": "Edit Delivery (Outbound)",
     "securityTransfer": "Edit Security Transfer",
     "transferBetweenAccounts": "Edit Transfer",
     "removalDescription": "Edit the details of this withdrawal",
@@ -133,6 +143,7 @@
   },
   "transactionType": "Transaction Type",
   "newTransaction": "New Transaction",
+  "newTransactionDescription": "Create a buy, sell, deposit, transfer, or other transaction.",
   "subtitle": "Browse and manage all portfolio transactions",
   "noLinkedDeposit": "This portfolio account has no linked deposit account.",
   "empty": {

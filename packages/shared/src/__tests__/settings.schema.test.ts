@@ -4,6 +4,7 @@ import {
   DEFAULT_SETTINGS,
   reportingPeriodDefSchema,
   tableIdSchema,
+  allocationViewSchema,
 } from '../schemas/settings.schema';
 
 describe('quovibeSettingsSchema', () => {
@@ -198,5 +199,28 @@ describe('tableIdSchema', () => {
     'a.b',          // dot
   ])('rejects invalid tableId: %s', (id) => {
     expect(() => tableIdSchema.parse(id)).toThrow();
+  });
+});
+
+describe('allocationViewSchema', () => {
+  it('applies default chartMode=pie when parsed from empty object', () => {
+    const parsed = allocationViewSchema.parse({});
+    expect(parsed.chartMode).toBe('pie');
+  });
+
+  it('accepts the three known chartMode values', () => {
+    for (const v of ['pie', 'treemap', 'off'] as const) {
+      expect(allocationViewSchema.parse({ chartMode: v }).chartMode).toBe(v);
+    }
+  });
+
+  it('rejects an unknown chartMode value', () => {
+    const res = allocationViewSchema.safeParse({ chartMode: 'donut' });
+    expect(res.success).toBe(false);
+  });
+
+  it('is included in the top-level quovibeSettingsSchema with a default', () => {
+    const parsed = quovibeSettingsSchema.parse({});
+    expect(parsed.allocationView).toEqual({ chartMode: 'pie' });
   });
 });

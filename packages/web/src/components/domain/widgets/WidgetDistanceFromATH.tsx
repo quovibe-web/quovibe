@@ -36,28 +36,24 @@ export default function WidgetDistanceFromATH() {
   // (currentMV − ATH) / ATH — always ≤ 0. Guard against ATH = 0.
   const distance = ath.gt(0) ? curr.minus(ath).div(ath) : new Decimal(0);
 
-  const colorClass = distance.gte(0)
-    ? 'text-[color:var(--qv-positive)]'
-    : 'text-[color:var(--qv-negative)]';
-
-  const privacyFilter = isPrivate ? 'blur(8px) saturate(0)' : 'none';
+  const colorClass = isPrivate
+    ? undefined
+    : distance.gte(0)
+      ? 'text-[color:var(--qv-positive)]'
+      : 'text-[color:var(--qv-negative)]';
 
   return (
     <div className="grid grid-rows-[1fr_auto] flex-1 items-center justify-items-center pb-2">
-      <span
-        className={cn('text-2xl font-semibold tabular-nums', colorClass)}
-        style={{ filter: privacyFilter }}
-      >
-        {formatPercentage(distance.toNumber())}
+      <span className={cn('text-2xl font-semibold tabular-nums', colorClass)}>
+        {isPrivate ? '••••' : formatPercentage(distance.toNumber())}
       </span>
-      <span
-        className="text-xs text-muted-foreground"
-        style={{ filter: privacyFilter }}
-      >
-        {t('widget.distanceFromAth.currentVsAth', {
-          current: formatCurrency(curr.toNumber(), baseCurrency),
-          ath: formatCurrency(ath.toNumber(), baseCurrency),
-        })}
+      <span className="text-xs text-muted-foreground">
+        {isPrivate
+          ? '••••'
+          : t('widget.distanceFromAth.currentVsAth', {
+              current: formatCurrency(curr.toNumber(), baseCurrency),
+              ath: formatCurrency(ath.toNumber(), baseCurrency),
+            })}
       </span>
     </div>
   );

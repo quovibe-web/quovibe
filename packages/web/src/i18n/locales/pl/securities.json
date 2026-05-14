@@ -1,6 +1,6 @@
 {
-  "title": "Papiery wartościowe",
-  "subtitle": "Manage your securities and instruments",
+  "title": "Walory",
+  "subtitle": "Zarządzaj swoimi walorami i instrumentami",
   "columns": {
     "name": "Nazwa",
     "isin": "ISIN",
@@ -13,13 +13,15 @@
     "edit": "Edytuj",
     "updatePrices": "Zaktualizuj wszystkie ceny",
     "updating": "Aktualizowanie…",
+    "refreshQuote": "Odśwież kurs",
+    "refreshing": "Aktualizowanie…",
     "addInstrument": "+ Dodaj instrument",
     "delete": "Usuń"
   },
   "updateResults": {
     "pricesUpdated": "cen zaktualizowanych",
     "errors": "błędów",
-    "failedSecurities": "{{count}} papierów wartościowych nie powiodło się:"
+    "failedSecurities": "{{count}} walorów nie powiodło się:"
   },
   "dialog": {
     "addTitle": "Dodaj instrument",
@@ -105,15 +107,15 @@
     "urlPlaceholder": "https://..."
   },
   "taxonomies": {
-    "notAssigned": "— Select category —",
-    "weight": "Weight %",
+    "notAssigned": "— Wybierz kategorię —",
+    "weight": "Waga %",
     "noTaxonomies": "Brak skonfigurowanych taksonomii.",
-    "addRow": "Add assignment",
-    "removeRow": "Remove",
-    "weightSum": "Weight sum",
-    "weightSumWarning": "Weight sum is less than 100%",
-    "weightSumError": "Weight sum exceeds 100%",
-    "weightSumOk": "Weight sum is 100%"
+    "addRow": "Dodaj przypisanie",
+    "removeRow": "Usuń",
+    "weightSum": "Suma wag",
+    "weightSumWarning": "Suma wag jest mniejsza niż 100%",
+    "weightSumError": "Suma wag przekracza 100%",
+    "weightSumOk": "Suma wag wynosi 100%"
   },
   "priceChart": {
     "noData": "Brak danych cenowych.",
@@ -124,11 +126,11 @@
   },
   "stockSplit": {
     "title": "Podział akcji",
-    "description": "Zarejestruj podział akcji dla papieru wartościowego"
+    "description": "Zarejestruj podział akcji dla waloru"
   },
   "corporateEvent": {
     "title": "Zdarzenie korporacyjne",
-    "description": "Zarejestruj zdarzenie korporacyjne dla papieru wartościowego"
+    "description": "Zarejestruj zdarzenie korporacyjne dla waloru"
   },
   "detail": {
     "info": "Info",
@@ -139,11 +141,14 @@
     "shares": "Udziały",
     "latestPrice": "Ostatnia cena",
     "marketValue": "Wartość Rynkowa",
-    "unrealizedPL": "Niezrealizowany Z&S",
+    "unrealizedPL": "Zyski niezrealizowane",
     "fromPurchase": "od zakupu",
     "performance": "Wyniki",
     "priceHistory": "Historia cen",
     "transactions": "Transakcje",
+    "taxonomies": "Taksonomie",
+    "notClassified": "Jeszcze niesklasyfikowane.",
+    "classify": "Sklasyfikuj →",
     "noTransactions": "Brak transakcji dla tego instrumentu",
     "noPrices": "Brak historii cen",
     "configureFeed": "Skonfiguruj kanał cen →",
@@ -194,7 +199,9 @@
     "noFilterResults": "Brak wyników dla tego typu filtru",
     "clearFilter": "Wyczyść filtr",
     "resultsCount_one": "{{count}} wynik",
-    "resultsCount_other": "{{count}} wyniki",
+    "resultsCount_few": "{{count}} wyniki",
+    "resultsCount_many": "{{count}} wyników",
+    "resultsCount_other": "{{count}} wyników",
     "backToResults": "Wróć do wyników",
     "currency": "Waluta",
     "exchange": "Giełda",
@@ -234,7 +241,7 @@
     "nameRequired": "Nazwa jest wymagana",
     "currency": "Waluta",
     "currencyRequired": "Waluta jest wymagana",
-    "currencyLocked": "Nie można zmienić — istnieją transakcje dla tego papieru wartościowego",
+    "currencyLocked": "Nie można zmienić — istnieją transakcje dla tego waloru",
     "isin": "ISIN",
     "isinPlaceholder": "np. IE00B3RBWM25",
     "symbol": "Symbol / Ticker",
@@ -275,7 +282,7 @@
       "noTaxonomy": "Brak przypisania taksonomii",
       "noFeed": "Brak skonfigurowanego feedu notowań",
       "noIsin": "Brak ISIN",
-      "isRetired": "Nieaktywny papier wartościowy",
+      "isRetired": "Nieaktywny walor",
       "configure": "Konfiguruj szczegóły"
     },
     "saved": "Zmiany zapisane",
@@ -286,15 +293,43 @@
     "save": "Zapisz zmiany",
     "saving": "Zapisywanie..."
   },
+  "attributeType": {
+    "editTitle": "Zmień nazwę typu atrybutu",
+    "fields": {
+      "name": "Nazwa",
+      "columnLabel": "Etykieta kolumny",
+      "type": "Typ"
+    },
+    "types": {
+      "text": "Tekst",
+      "number": "Liczba",
+      "percentage": "Procent",
+      "amount": "Kwota",
+      "date": "Data",
+      "boolean": "Tak / Nie"
+    },
+    "menu": {
+      "aria": "Akcje atrybutu",
+      "rename": "Zmień nazwę definicji typu",
+      "removeFromSec": "Usuń z tego waloru"
+    },
+    "empty": "Brak niestandardowych atrybutów.",
+    "empty.cta": "+ Utwórz typ atrybutu",
+    "validation": {
+      "nameRequired": "Nazwa jest wymagana.",
+      "nameTooLong": "Nazwa nie może przekraczać {{max}} znaków.",
+      "columnLabelTooLong": "Etykieta kolumny nie może przekraczać {{max}} znaków."
+    }
+  },
   "empty": {
-    "noSecurities": "Brak papierów wartościowych"
+    "noSecurities": "Brak walorów"
   },
   "errors": {
     "hasTransactions": "Nie można usunąć: ten instrument ma {{count}} powiązaną/e transakcję/e. Najpierw je usuń."
   },
   "summary": {
-    "totalSecurities": "Total Securities",
-    "activeSecurities": "Active",
-    "totalMarketValue": "Total Market Value"
+    "totalSecurities": "Walory razem",
+    "activeSecurities": "Aktywne",
+    "totalMarketValue": "Łączna wartość rynkowa"
   }
 }

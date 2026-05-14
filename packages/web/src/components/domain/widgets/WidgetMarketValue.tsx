@@ -31,7 +31,7 @@ export default function WidgetMarketValue() {
     <div className="grid grid-rows-[1fr_auto] flex-1 items-center justify-items-center pb-2">
       <CurrencyDisplay
         value={value}
-        className="text-2xl font-semibold tabular-nums"
+        className="qv-numeric text-3xl font-medium"
       />
       <span className="text-xs text-muted-foreground pt-5">{periodLabel}</span>
     </div>

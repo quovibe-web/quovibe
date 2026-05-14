@@ -50,7 +50,7 @@ export function TableToolbar({
   return (
     <div
       className={cn(
-        'flex flex-wrap gap-2 items-center rounded-lg bg-muted/30 border border-border/50 p-3',
+        'flex flex-wrap gap-2 items-center rounded-md bg-[var(--qv-surface-elevated)] border border-[var(--qv-border-subtle)] p-3',
         className,
       )}
     >
@@ -63,16 +63,19 @@ export function TableToolbar({
             value={searchValue ?? ''}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={searchPlaceholder ?? t('search', { defaultValue: 'Search…' })}
+            aria-label={searchPlaceholder ?? t('search', { defaultValue: 'Search…' })}
             className="pl-9 pr-8 h-9"
           />
           {searchValue && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => onSearchChange('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
             >
               <X className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           )}
         </div>
       )}

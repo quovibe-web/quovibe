@@ -101,13 +101,13 @@ export function CashAccountView({ depositAccountId }: CashAccountViewProps) {
                 value={parseFloat(account.balance)}
                 currency={account.currency}
                 colorize
-                className="text-lg font-semibold"
+                className="qv-numeric text-xl font-medium"
               />
             ),
           },
           {
             label: t('detail.currency'),
-            value: <span className="text-sm font-semibold">{account.currency ?? '\u2014'}</span>,
+            value: <span className="qv-numeric text-sm font-medium">{account.currency ?? '\u2014'}</span>,
           },
         ]}
         columns={2}

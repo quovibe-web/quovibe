@@ -1,6 +1,6 @@
 export interface BenchmarkSeriesPoint {
   date: string;
-  cumulative: number;
+  cumulative: string;
 }
 
 export interface BenchmarkSeriesItem {

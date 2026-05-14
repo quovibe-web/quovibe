@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { differenceInDays, parseISO } from 'date-fns';
-import { Settings } from 'lucide-react';
+import { useNavTitle } from '@/hooks/useNavTitle';
 import {
   LineSeries, BaselineSeries,
   LineStyle as LwcLineStyle,
@@ -9,13 +8,12 @@ import {
   type ISeriesApi, type SeriesType,
 } from 'lightweight-charts';
 import { Button } from '@/components/ui/button';
-import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { usePerformanceChart, useReportingPeriod, useCalculation } from '@/api/use-performance';
 import { ChartSummaryBar } from '@/components/domain/ChartSummaryBar';
 import { useChartSeries } from '@/api/use-chart-series';
 import { useSecurities } from '@/api/use-securities';
-import { formatPercentage, computeTtwrorPa } from '@/lib/formatters';
-import type { LineStyle } from '@quovibe/shared';
+import { formatPercentage } from '@/lib/formatters';
+import type { LineStyle, SeriesRole } from '@quovibe/shared';
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { useLightweightChart } from '@/hooks/use-lightweight-chart';
@@ -26,12 +24,18 @@ import {
   type ExtendedLegendSeriesItem,
 } from '@/components/shared/ChartLegendOverlay';
 import { useAnalyticsContext } from '@/context/analytics-context';
-import { DataSeriesPickerDialog } from '@/components/domain/DataSeriesPickerDialog';
+import { ChartSeriesSheet } from '@/components/domain/analytics/ChartSeriesSheet';
 import { cn } from '@/lib/utils';
 import { useChartConfig, useSaveChartConfig } from '@/api/use-chart-config';
 
-import { withAlpha } from '@/lib/chart-types';
 import { buildSeriesOptions } from '@/lib/chart-series-factory';
+import { resolveAxis } from './chart-helpers/resolve-axis';
+
+const PERCENT_FORMAT = {
+  style: 'percent',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+} as const;
 
 /** Map shared LineStyle string to lightweight-charts LineStyle enum */
 function toLwcLineStyle(style: LineStyle): LwcLineStyle {
@@ -44,6 +48,7 @@ function toLwcLineStyle(style: LineStyle): LwcLineStyle {
 
 export default function PerformanceChart() {
   const { t } = useTranslation('performance');
+  useNavTitle('chart');
   const { periodStart, periodEnd } = useReportingPeriod();
   const { data: chart, isLoading, isFetching } = usePerformanceChart({ periodStart, periodEnd });
   const { data: calcData, isLoading: calcLoading } = useCalculation();
@@ -69,19 +74,16 @@ export default function PerformanceChart() {
   function handleColorChange(id: string, color: string) {
     persistSeriesUpdate(id, { color });
 
-    // Apply directly to the LWC series for immediate feedback
+    // Apply directly to the LWC series for immediate feedback.
+    // areaFill === true → Baseline series with profit/loss zones; a single hex
+    // can't be hot-swapped into topFillColor1/bottomFillColor2/etc. without
+    // duplicating factory logic here. The persistSeriesUpdate above triggers
+    // the rebuild effect, which picks up the new color via the factory.
     const entry = seriesMapRef.current.get(id);
     if (!entry) return;
     const cfg = chartConfig?.series.find((s) => s.id === id);
-    if (cfg?.areaFill) {
-      entry.series.applyOptions({
-        lineColor: color,
-        topColor: withAlpha(color, 0.25),
-        bottomColor: 'transparent',
-      } as Record<string, unknown>);
-    } else {
-      entry.series.applyOptions({ color } as Record<string, unknown>);
-    }
+    if (cfg?.areaFill) return;
+    entry.series.applyOptions({ color } as Record<string, unknown>);
   }
 
   function handleLineStyleChange(id: string, style: LineStyle) {
@@ -170,8 +172,6 @@ export default function PerformanceChart() {
 
   const { setActions, setSubtitle } = useAnalyticsContext();
 
-  const [ttwrorMode, setTtwrorMode] = useState<'cumulative' | 'annualized'>('cumulative');
-
   useEffect(() => {
     setSubtitle(t('chart.subtitle'));
     return () => { setSubtitle(''); setActions(null); };
@@ -180,29 +180,21 @@ export default function PerformanceChart() {
   useEffect(() => {
     setActions(
       <>
-        <SegmentedControl
-          segments={[
-            { value: 'cumulative', label: t('chart.cumulative') },
-            { value: 'annualized', label: t('chart.annualizedPa') },
-          ]}
-          value={ttwrorMode}
-          onChange={setTtwrorMode}
-        />
         <ChartExportButton
           chartRef={chartContainerRef}
           filename={`performance-chart-${periodStart}-to-${periodEnd}`}
         />
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
+          variant="default"
+          size="sm"
+          className="h-8"
           onClick={() => setConfigOpen(true)}
         >
-          <Settings className="h-4 w-4" />
+          {t('chart.action.compare')}
         </Button>
       </>
     );
-  }, [ttwrorMode, t, setActions, setConfigOpen, chartContainerRef, periodStart, periodEnd]);
+  }, [t, setActions, setConfigOpen, chartContainerRef, periodStart, periodEnd]);
 
   // --- Portfolio TTWROR base data ---
 
@@ -215,18 +207,9 @@ export default function PerformanceChart() {
     [chart],
   );
 
-  const displayData = useMemo(() => {
-    if (ttwrorMode === 'cumulative') return chartData;
-    const start = parseISO(periodStart);
-    return chartData.map((p) => ({
-      ...p,
-      ttwror: computeTtwrorPa(p.ttwror, differenceInDays(parseISO(p.date), start)),
-    }));
-  }, [chartData, ttwrorMode, periodStart]);
-
   // Derive summary bar data
-  const totalReturn = displayData.length > 0
-    ? displayData[displayData.length - 1].ttwror // native-ok
+  const totalReturn = chartData.length > 0
+    ? chartData[chartData.length - 1].ttwror // native-ok
     : 0;
   const absoluteGain = calcData ? parseFloat(calcData.absolutePerformance) : 0;
 
@@ -235,7 +218,7 @@ export default function PerformanceChart() {
   const { containerRef, chartRef, ready } = useLightweightChart({
     options: {
       rightPriceScale: { visible: true },
-      leftPriceScale: { visible: false },
+      leftPriceScale: { visible: true },
     },
   });
 
@@ -277,10 +260,7 @@ export default function PerformanceChart() {
 
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart || !ready || displayData.length === 0) return; // native-ok
-
-    // Skip rebuild while any series data is still loading (prevents wiping existing series)
-    if (chartSeries.some((rs) => rs.isLoading)) return;
+    if (!chart || !ready || chartData.length === 0) return; // native-ok
 
     // Remove all existing series (guard: chart may be destroyed during unmount)
     try {
@@ -293,60 +273,71 @@ export default function PerformanceChart() {
       return;
     }
 
-    const periodStartDate = parseISO(periodStart);
-
     // --- Portfolio default series (always first) ---
     const portfolioConfig = chartSeries.find(
       (rs) => rs.config.type === 'portfolio' && rs.config.id === 'portfolio-default',
     );
-    const portfolioAreaFill = portfolioConfig?.config.areaFill ?? false;
-    const portfolioLineStyle = portfolioConfig?.config.lineStyle ?? 'solid';
-    const portfolioColor = portfolioConfig?.config.color ?? dividend;
-    const portfolioVisible = portfolioConfig?.config.visible ?? true;
+    const userPortfolio = chartSeries.find(
+      (rs) => rs.config.type === 'portfolio' && rs.config.id !== 'portfolio-default',
+    );
 
-    const portfolioData = displayData
-      .map((p) => ({ time: p.date, value: p.ttwror }))
-      .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
+    // Suppress the fallback stub when the user has explicitly added their own
+    // portfolio series — otherwise both render and the legend duplicates.
+    if (!userPortfolio) {
+      const portfolioAreaFill = portfolioConfig?.config.areaFill ?? false;
+      const portfolioLineStyle = portfolioConfig?.config.lineStyle ?? 'solid';
+      const portfolioColor = portfolioConfig?.config.color ?? dividend;
+      const portfolioVisible = portfolioConfig?.config.visible ?? true;
 
-    const portfolioType = portfolioAreaFill ? 'baseline' as const : 'line' as const;
-    const { options: portfolioOptions } = buildSeriesOptions(portfolioType, {
-      color: portfolioColor,
-      profitColor: portfolioColor,
-      lossColor: loss,
-      basePrice: 0,
-      lineStyle: toLwcLineStyle(portfolioLineStyle),
-      priceScaleId: 'right',
-      visible: portfolioVisible,
-    });
-    const PortfolioConstructor = portfolioAreaFill ? BaselineSeries : LineSeries;
-    const portfolioSeries = chart.addSeries(PortfolioConstructor, portfolioOptions);
-    portfolioSeries.setData(portfolioData);
-    seriesMapRef.current.set('portfolio-default', {
-      series: portfolioSeries,
-      visible: portfolioVisible,
-    });
+      const portfolioData = chartData
+        .map((p) => ({ time: p.date, value: p.ttwror }))
+        .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
+
+      const portfolioType = portfolioAreaFill ? 'baseline' as const : 'line' as const;
+      const { options: portfolioOptions } = buildSeriesOptions(portfolioType, {
+        color: portfolioColor,
+        profitColor: portfolioColor,
+        lossColor: loss,
+        basePrice: 0,
+        lineStyle: toLwcLineStyle(portfolioLineStyle),
+        priceScaleId: 'left',
+        visible: portfolioVisible,
+        seriesRole: 'portfolio',
+      });
+      const PortfolioConstructor = portfolioAreaFill ? BaselineSeries : LineSeries;
+      const portfolioSeries = chart.addSeries(PortfolioConstructor, portfolioOptions);
+      portfolioSeries.setData(portfolioData);
+      seriesMapRef.current.set('portfolio-default', {
+        series: portfolioSeries,
+        visible: portfolioVisible,
+      });
+    }
 
     // --- Additional series (securities, benchmarks, accounts, additional portfolios) ---
+    // Resolve portfolio reference for axis assignment (portfolioConfig already found above)
+    const portfolioRef = chartSeries.find((rs) => rs.config.id === 'portfolio-default');
+
     const sortedSeries = [...chartSeries]
       .filter((rs) => !(rs.config.type === 'portfolio' && rs.config.id === 'portfolio-default'))
-      .filter((rs) => rs.data.length > 0) // native-ok
       .sort((a, b) => (a.config.order ?? 0) - (b.config.order ?? 0));
 
     for (const rs of sortedSeries) {
+      if (rs.data.length === 0) continue; // native-ok — empty series renders in legend only, no chart line
+
       const color = rs.config.color ?? palette[0];
       const lineStyle = toLwcLineStyle(rs.config.lineStyle);
       const isVisible = rs.config.visible;
+      const axis = portfolioRef ? resolveAxis(rs, portfolioRef) : 'left';
 
-      // Build per-series data array, applying p.a. conversion when needed
       const seriesData = rs.data
-        .map((point) => {
-          let value = point.value;
-          if (ttwrorMode === 'annualized') {
-            value = computeTtwrorPa(value, differenceInDays(parseISO(point.date), periodStartDate));
-          }
-          return { time: point.date, value };
-        })
+        .map((point) => ({ time: point.date, value: point.value }))
         .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)); // native-ok
+
+      const role: SeriesRole =
+        (rs.config as { role?: SeriesRole }).role
+        ?? (rs.config.type === 'portfolio' ? 'portfolio'
+           : rs.config.type === 'benchmark' ? 'reference'
+           : 'holding');
 
       const rsType = rs.config.areaFill ? 'baseline' as const : 'line' as const;
       const { options: rsOptions } = buildSeriesOptions(rsType, {
@@ -355,8 +346,9 @@ export default function PerformanceChart() {
         lossColor: loss,
         basePrice: 0,
         lineStyle,
-        priceScaleId: 'right',
+        priceScaleId: axis,
         visible: isVisible,
+        seriesRole: role,
       });
       const RsConstructor = rs.config.areaFill ? BaselineSeries : LineSeries;
       const lwcSeries = chart.addSeries(RsConstructor, rsOptions);
@@ -364,17 +356,17 @@ export default function PerformanceChart() {
       seriesMapRef.current.set(rs.config.id, { series: lwcSeries, visible: isVisible });
     }
 
-    // Format right price scale as percentage (TTWROR values are fractions)
-    chart.priceScale('right').applyOptions({
-      mode: PriceScaleMode.Normal,
-    });
-    // Apply percentage formatter to the portfolio series (drives right scale labels)
-    const portfolioEntry = seriesMapRef.current.get('portfolio-default');
-    if (portfolioEntry) {
-      portfolioEntry.series.applyOptions({
+    // Format both price scales as percentage (TTWROR values are fractions)
+    chart.priceScale('right').applyOptions({ mode: PriceScaleMode.Normal });
+    chart.priceScale('left').applyOptions({ mode: PriceScaleMode.Normal });
+
+    // Apply percentage formatter to every series so each axis inherits correct labels.
+    // lightweight-charts derives axis labels from the price format of each series on that scale.
+    for (const [, entry] of seriesMapRef.current) {
+      entry.series.applyOptions({
         priceFormat: {
           type: 'custom',
-          formatter: (price: number) => `${(price * 100).toFixed(2)}%`, // native-ok
+          formatter: (price: number) => formatPercentage(price),
         },
       } as Record<string, unknown>);
     }
@@ -382,7 +374,7 @@ export default function PerformanceChart() {
     chart.timeScale().fitContent();
     setLegendTrigger((v) => v + 1); // native-ok — seriesMapRef is a ref, must trigger re-render for legend
 
-  }, [displayData, chartSeries, ttwrorMode, periodStart, dividend, loss, palette[0], ready]);
+  }, [chartData, chartSeries, dividend, loss, palette[0], ready]);
 
   // --- Build legend items for ExtendedChartLegendOverlay ---
 
@@ -395,48 +387,62 @@ export default function PerformanceChart() {
     const portfolioEntry = seriesMapRef.current.get('portfolio-default');
     const portfolioConfig = chartConfig?.series.find((s) => s.id === 'portfolio-default');
     if (portfolioEntry) {
-      const portfolioLabel = ttwrorMode === 'cumulative'
-        ? t('chart.entirePortfolio')
-        : `${t('chart.entirePortfolio')} (${t('chart.annualizedPa')})`;
+      const portfolioLast = chartData.at(-1)?.ttwror ?? null;
+
       items.push({
         id: 'portfolio-default',
-        label: portfolioLabel,
+        label: t('chart.entirePortfolio'),
         color: portfolioConfig?.color ?? dividend,
         series: portfolioEntry.series,
         visible: portfolioEntry.visible,
-        formatValue: (v: number) => formatPercentage(v),
+        formatValue: formatPercentage,
+        numberFormat: PERCENT_FORMAT,
         lineStyle: portfolioConfig?.lineStyle ?? 'solid',
         areaFill: portfolioConfig?.areaFill ?? false,
         locked: true,
+        status: 'ok',
+        lastValue: portfolioLast,
+        deltaVsPortfolio: null,
       });
     }
 
+    // Portfolio last value for delta computation
+    const portfolioLast = chartData.at(-1)?.ttwror ?? null;
+
     // Additional series (sorted by order)
     const sortedConfigs = [...chartSeries]
-      .filter((rs) => rs.config.visible && rs.data.length > 0) // native-ok
+      .filter((rs) => rs.config.visible)
       .filter((rs) => !(rs.config.type === 'portfolio' && rs.config.id === 'portfolio-default'))
       .sort((a, b) => (a.config.order ?? 0) - (b.config.order ?? 0));
 
     for (const rs of sortedConfigs) {
       const entry = seriesMapRef.current.get(rs.config.id);
-      if (!entry) continue;
 
       const info = seriesNameMap.get(rs.config.id);
       if (!info) continue;
+
+      const lastValue = rs.data.at(-1)?.value ?? null;
+
       items.push({
         id: rs.config.id,
         label: info.label,
         color: info.color,
-        series: entry.series,
-        visible: entry.visible,
-        formatValue: (v: number) => formatPercentage(v),
+        series: entry?.series ?? null,
+        visible: entry?.visible ?? rs.config.visible,
+        formatValue: formatPercentage,
+        numberFormat: PERCENT_FORMAT,
         lineStyle: rs.config.lineStyle ?? 'solid',
         areaFill: rs.config.areaFill ?? false,
+        status: rs.status,
+        lastValue,
+        deltaVsPortfolio: (lastValue == null || portfolioLast == null)
+          ? null
+          : lastValue - portfolioLast, // native-ok — display delta
       });
     }
 
     return items;
-  }, [legendTrigger, chartConfig, chartSeries, seriesNameMap, ttwrorMode, t, dividend, ready]);
+  }, [legendTrigger, chartConfig, chartSeries, seriesNameMap, t, dividend, ready, chartData]);
 
   return (
     <div className="space-y-3" style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '120ms' }}>
@@ -449,7 +455,7 @@ export default function PerformanceChart() {
         isLoading={isLoading || calcLoading}
       />
 
-      {/* Chart area */}
+      {/* Chart area — full width, no rail split */}
       <div className="relative" style={{ minHeight: 400 }}>
         {isLoading && <ChartSkeleton height={400} />}
         <div className={cn(isLoading && 'invisible')}>
@@ -482,7 +488,7 @@ export default function PerformanceChart() {
         </div>
       </div>
 
-      <DataSeriesPickerDialog open={configOpen} onOpenChange={setConfigOpen} />
+      <ChartSeriesSheet open={configOpen} onOpenChange={setConfigOpen} />
     </div>
   );
 }

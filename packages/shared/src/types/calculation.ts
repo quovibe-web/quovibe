@@ -161,9 +161,9 @@ export interface CalculationBreakdownResponse {
   maxDrawdownPeakDate: string | null;
   maxDrawdownTroughDate: string | null;
   maxDrawdownDuration: number;
-  volatility: string;
-  semivariance: string;
-  sharpeRatio: string | null;  // null when volatility = 0 or IRR did not converge
+  volatility: string | null;   // null when input series has fewer than 2 trading-day returns
+  semivariance: string | null; // null when input series has fewer than 2 trading-day returns
+  sharpeRatio: string | null;  // null when volatility is null/zero or IRR did not converge
   // lastDay* fields are added by the route handler (second getPortfolioCalc call
   // with includeItems=false), not by the service function itself.
   lastDayAbsoluteChange: string;

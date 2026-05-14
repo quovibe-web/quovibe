@@ -13,7 +13,7 @@ describe('WIDGET_REGISTRY', () => {
   });
 
   it('every category is valid', () => {
-    const validCategories = new Set(['performance', 'reports', 'chart', 'risk', 'info']);
+    const validCategories = new Set(['performance', 'chart', 'risk', 'info']);
     for (const w of WIDGET_REGISTRY) {
       expect(validCategories.has(w.category)).toBe(true);
     }

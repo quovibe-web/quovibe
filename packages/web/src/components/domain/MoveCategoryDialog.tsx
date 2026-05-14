@@ -14,6 +14,7 @@ import { useTaxonomyTree } from '@/api/use-taxonomy-tree';
 import { useUpdateCategory } from '@/api/use-taxonomy-mutations';
 import type { TaxonomyTreeCategory } from '@/api/types';
 import { cn } from '@/lib/utils';
+import { translateTaxonomyName } from '@/lib/taxonomy-i18n';
 
 interface FlatCategory {
   id: string;
@@ -83,7 +84,7 @@ export function MoveCategoryDialog({ taxonomyId, categoryId, categoryName, curre
         <DialogHeader>
           <DialogTitle>{t('taxonomyManagement.moveCategory')}</DialogTitle>
           <DialogDescription>
-            {t('taxonomyManagement.moveCategoryDescription', { name: categoryName })}
+            {t('taxonomyManagement.moveCategoryDescription', { name: translateTaxonomyName(categoryName) })}
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-64 overflow-y-auto space-y-0.5 py-2">
@@ -118,7 +119,7 @@ export function MoveCategoryDialog({ taxonomyId, categoryId, categoryName, curre
                   style={{ backgroundColor: cat.color }}
                 />
               )}
-              <span className="text-sm">{cat.name}</span>
+              <span className="text-sm">{translateTaxonomyName(cat.name)}</span>
               {cat.id === currentParentId && (
                 <Badge variant="secondary" className="ml-2 text-xs">
                   {t('taxonomyManagement.currentParent')}

@@ -9,7 +9,14 @@ import {
 } from '@quovibe/shared';
 import { watchlists } from '../db/schema';
 import { getDb, getSqlite } from '../helpers/request';
-import { updateWatchlistName, convertWatchlistPriceFromDb, deleteWatchlistById, duplicateWatchlistById } from '../services/watchlists.service';
+import {
+  updateWatchlistName,
+  convertWatchlistPriceFromDb,
+  computePeriodChange,
+  deleteWatchlistById,
+  duplicateWatchlistById,
+  type WatchlistPeriodChange,
+} from '../services/watchlists.service';
 
 export const watchlistsRouter: RouterType = Router();
 
@@ -21,6 +28,29 @@ interface WatchlistRow {
   _order: number;
 }
 
+interface WireWatchlistSecurity {
+  id: string;
+  name: string;
+  isin: string | null;
+  ticker: string | null;
+  currency: string;
+  logoUrl: string | null;
+  latestPrice: number | null;
+  latestPriceDate: string | null;
+  previousClose: number | null;
+  change1d: WatchlistPeriodChange | null;
+  change1w: WatchlistPeriodChange | null;
+  change1m: WatchlistPeriodChange | null;
+  change1y: WatchlistPeriodChange | null;
+}
+
+/** SQLite date() modifiers for each period-change window. */
+const PERIOD_WINDOWS = {
+  w: '-7 days',
+  m: '-1 month',
+  y: '-1 year',
+} as const;
+
 // ─── Handlers ────────────────────────────────────────────────────────────────
 
 const listWatchlists: RequestHandler = (req, res) => {
@@ -31,45 +61,86 @@ const listWatchlists: RequestHandler = (req, res) => {
     .all() as WatchlistRow[];
 
   const result = lists.map((wl) => {
+    // Derived table `base` computes the per-security anchor once
+    // (latest_price.tstamp if present else max(price.tstamp)) and the 1D
+    // predicate uses strict inequality against it — BUG-40 rule: today's
+    // intraday snapshot written by yf.chart() shares the anchor date and
+    // would otherwise collapse change1d to 0 (.claude/rules/latest-price.md).
+    // 1W/1M/1Y apply SQLite's date(anchor, '-N …') modifier; YYYY-MM-DD
+    // storage makes the string comparison well-ordered.
     const securities = sqlite
       .prepare(
         `SELECT
-           s.uuid        AS id,
-           s.name        AS name,
-           s.isin        AS isin,
-           s.tickerSymbol AS tickerSymbol,
-           s.currency    AS currency,
-           (SELECT sa.value FROM security_attr sa WHERE sa.security = s.uuid AND sa.value LIKE 'data:image%' LIMIT 1) AS logoUrl,
-           lp.value      AS latestPriceRaw,
-           lp.tstamp     AS latestPriceDate,
-           (SELECT p.value FROM price p WHERE p.security = s.uuid ORDER BY p.tstamp DESC LIMIT 1) AS previousCloseRaw
-         FROM watchlist_security ws
-         JOIN security s ON s.uuid = ws.security
-         LEFT JOIN latest_price lp ON lp.security = s.uuid
-         WHERE ws.list = ?`,
+           base.id,
+           base.name,
+           base.isin,
+           base.ticker,
+           base.currency,
+           base.logoUrl,
+           base.latestPriceRaw,
+           base.latestPriceDate,
+           base.currentPriceRaw,
+           (SELECT p.value  FROM price p WHERE p.security = base.id AND p.tstamp < base.anchorTstamp                        ORDER BY p.tstamp DESC LIMIT 1) AS prev1dRaw,
+           (SELECT p.tstamp FROM price p WHERE p.security = base.id AND p.tstamp < base.anchorTstamp                        ORDER BY p.tstamp DESC LIMIT 1) AS prev1dDate,
+           (SELECT p.value  FROM price p WHERE p.security = base.id AND p.tstamp <= date(base.anchorTstamp, '${PERIOD_WINDOWS.w}') ORDER BY p.tstamp DESC LIMIT 1) AS prev1wRaw,
+           (SELECT p.tstamp FROM price p WHERE p.security = base.id AND p.tstamp <= date(base.anchorTstamp, '${PERIOD_WINDOWS.w}') ORDER BY p.tstamp DESC LIMIT 1) AS prev1wDate,
+           (SELECT p.value  FROM price p WHERE p.security = base.id AND p.tstamp <= date(base.anchorTstamp, '${PERIOD_WINDOWS.m}') ORDER BY p.tstamp DESC LIMIT 1) AS prev1mRaw,
+           (SELECT p.tstamp FROM price p WHERE p.security = base.id AND p.tstamp <= date(base.anchorTstamp, '${PERIOD_WINDOWS.m}') ORDER BY p.tstamp DESC LIMIT 1) AS prev1mDate,
+           (SELECT p.value  FROM price p WHERE p.security = base.id AND p.tstamp <= date(base.anchorTstamp, '${PERIOD_WINDOWS.y}') ORDER BY p.tstamp DESC LIMIT 1) AS prev1yRaw,
+           (SELECT p.tstamp FROM price p WHERE p.security = base.id AND p.tstamp <= date(base.anchorTstamp, '${PERIOD_WINDOWS.y}') ORDER BY p.tstamp DESC LIMIT 1) AS prev1yDate
+         FROM (
+           SELECT
+             s.uuid AS id,
+             s.name,
+             s.isin,
+             s.tickerSymbol AS ticker,
+             s.currency,
+             (SELECT sa.value FROM security_attr sa WHERE sa.security = s.uuid AND sa.value LIKE 'data:image%' LIMIT 1) AS logoUrl,
+             lp.value  AS latestPriceRaw,
+             lp.tstamp AS latestPriceDate,
+             COALESCE(lp.value,  (SELECT p.value  FROM price p WHERE p.security = s.uuid ORDER BY p.tstamp DESC LIMIT 1)) AS currentPriceRaw,
+             COALESCE(lp.tstamp, (SELECT p.tstamp FROM price p WHERE p.security = s.uuid ORDER BY p.tstamp DESC LIMIT 1)) AS anchorTstamp
+           FROM watchlist_security ws
+           JOIN security s ON s.uuid = ws.security
+           LEFT JOIN latest_price lp ON lp.security = s.uuid
+           WHERE ws.list = ?
+         ) AS base`,
       )
       .all(wl._id) as Array<{
         id: string;
         name: string;
         isin: string | null;
-        tickerSymbol: string | null;
+        ticker: string | null;
         currency: string | null;
         logoUrl: string | null;
         latestPriceRaw: number | null;
         latestPriceDate: string | null;
-        previousCloseRaw: number | null;
+        currentPriceRaw: number | null;
+        prev1dRaw: number | null;
+        prev1dDate: string | null;
+        prev1wRaw: number | null;
+        prev1wDate: string | null;
+        prev1mRaw: number | null;
+        prev1mDate: string | null;
+        prev1yRaw: number | null;
+        prev1yDate: string | null;
       }>;
 
-    const mappedSecurities = securities.map((s) => ({
+    const mappedSecurities: WireWatchlistSecurity[] = securities.map((s) => ({
       id: s.id,
       name: s.name,
       isin: s.isin,
-      ticker: s.tickerSymbol,
+      ticker: s.ticker,
       currency: s.currency ?? 'EUR',
       logoUrl: s.logoUrl,
       latestPrice: convertWatchlistPriceFromDb(s.latestPriceRaw),
       latestPriceDate: s.latestPriceDate,
-      previousClose: convertWatchlistPriceFromDb(s.previousCloseRaw),
+      // `previousClose` = 1D anchor price — WidgetWatchlist wire compat.
+      previousClose: convertWatchlistPriceFromDb(s.prev1dRaw),
+      change1d: computePeriodChange(s.currentPriceRaw, s.prev1dRaw, s.prev1dDate),
+      change1w: computePeriodChange(s.currentPriceRaw, s.prev1wRaw, s.prev1wDate),
+      change1m: computePeriodChange(s.currentPriceRaw, s.prev1mRaw, s.prev1mDate),
+      change1y: computePeriodChange(s.currentPriceRaw, s.prev1yRaw, s.prev1yDate),
     }));
 
     return {
@@ -217,7 +288,7 @@ const addSecurity: RequestHandler = async (req, res) => {
     .prepare('SELECT 1 FROM watchlist_security WHERE list = ? AND security = ?')
     .get(id, input.securityId);
   if (alreadyIn) {
-    res.status(409).json({ error: 'Security already in watchlist' });
+    res.status(409).json({ error: 'SECURITY_ALREADY_IN_WATCHLIST' });
     return;
   }
 

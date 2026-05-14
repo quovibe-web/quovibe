@@ -95,22 +95,9 @@ export function buildCsvContent<TData>(table: Table<TData>): string | null {
   return BOM + [headers.join(','), ...dataLines].join('\r\n');
 }
 
-/**
- * Export a TanStack Table to CSV and trigger a browser download.
- */
-export function exportTableToCSV<TData>(
-  table: Table<TData>,
-  tableId: string,
-  options?: ExportOptions,
-): void {
-  const csv = buildCsvContent(table);
-  if (!csv) return;
-
-  // Build filename
+function downloadCsv(csv: string, tableId: string, options?: ExportOptions): void {
   const date = new Date().toISOString().slice(0, 10); // native-ok — date index
   const filename = options?.filename ?? `${tableId}_${date}`;
-
-  // Trigger download
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -121,4 +108,77 @@ export function exportTableToCSV<TData>(
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Export a TanStack Table to CSV and trigger a browser download.
+ */
+export function exportTableToCSV<TData>(
+  table: Table<TData>,
+  tableId: string,
+  options?: ExportOptions,
+): void {
+  const csv = buildCsvContent(table);
+  if (!csv) return;
+  downloadCsv(csv, tableId, options);
+}
+
+/**
+ * Build a CSV string from raw row data, using a TanStack Table only for
+ * column metadata (visibility / order / headers). Each row is read via the
+ * column's `accessorFn` if defined, otherwise via its `accessorKey`.
+ *
+ * Used by the server-paginated export path (BUG-60): the table holds only
+ * the current page, but the CSV must cover the full filtered dataset
+ * fetched on demand.
+ */
+export function buildCsvFromRows<TData>(
+  table: Table<TData>,
+  rows: TData[],
+): string | null {
+  const visibleColumns = table.getVisibleLeafColumns()
+    .filter(col => {
+      const meta = col.columnDef.meta as { locked?: boolean } | undefined;
+      return !meta?.locked;
+    });
+
+  if (visibleColumns.length === 0) return null;
+
+  const headers = visibleColumns.map(col => formatCsvValue(resolveHeader(col)));
+
+  const dataLines = rows.map((row, idx) => {
+    return visibleColumns.map(col => {
+      const def = col.columnDef as {
+        accessorKey?: string;
+        accessorFn?: (row: TData, index: number) => unknown;
+      };
+      let value: unknown;
+      if (typeof def.accessorFn === 'function') {
+        value = def.accessorFn(row, idx);
+      } else if (def.accessorKey) {
+        value = (row as Record<string, unknown>)[def.accessorKey];
+      } else {
+        value = (row as Record<string, unknown>)[col.id];
+      }
+      return formatCsvValue(value);
+    }).join(',');
+  });
+
+  const BOM = '﻿';
+  return BOM + [headers.join(','), ...dataLines].join('\r\n');
+}
+
+/**
+ * Export an externally-fetched row set to CSV using a TanStack Table for
+ * column metadata. Pair with `buildCsvFromRows`.
+ */
+export function exportRowsToCSV<TData>(
+  table: Table<TData>,
+  rows: TData[],
+  tableId: string,
+  options?: ExportOptions,
+): void {
+  const csv = buildCsvFromRows(table, rows);
+  if (!csv) return;
+  downloadCsv(csv, tableId, options);
 }

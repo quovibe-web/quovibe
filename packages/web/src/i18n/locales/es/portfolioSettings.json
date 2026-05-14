@@ -1,0 +1,53 @@
+{
+  "current": "Cartera actual",
+  "real": "Real",
+  "builtInPlayground": "Demo integrada",
+  "createdOn": "Creada el {{date}}",
+  "updates": "Actualizaciones",
+  "updatePrices": "Actualizar todos los precios",
+  "export": "Exportar esta cartera",
+  "demoExplainer": "Un entorno persistente donde puedes añadir, editar y eliminar libremente. También puedes exportar tu demo modificada — la descarga se convierte en una cartera normal al reimportarla, dejando intacto el conjunto demo integrado. La demo en sí no se puede renombrar ni eliminar — es un elemento integrado, no un artefacto de usuario.",
+  "rename": {
+    "cta": "Renombrar",
+    "title": "Renombrar cartera",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "success": "Cartera renombrada.",
+    "error": "Error al renombrar: {{msg}}"
+  },
+  "delete": {
+    "cta": "Eliminar esta cartera",
+    "title": "¿Eliminar \"{{name}}\"?",
+    "body": "Esto eliminará permanentemente todas las cuentas, transacciones y datos de esta cartera. No se puede deshacer.",
+    "cancel": "Cancelar",
+    "confirm": "Eliminar",
+    "success": "Cartera eliminada.",
+    "error": "Error al eliminar: {{msg}}"
+  },
+  "data": {
+    "sections": {
+      "accounting": "Contabilidad",
+      "priceFeeds": "Fuentes de precios"
+    },
+    "fields": {
+      "costMethod": "Método de coste",
+      "costMethodDescription": "Cómo se calcula el coste base de los valores.",
+      "costMethodFifo": "FIFO",
+      "costMethodMovingAverage": "Media móvil",
+      "currency": "Moneda base",
+      "currencyDescription": "Todos los valores se convierten a esta moneda para los totales de la cartera.",
+      "calendar": "Calendario",
+      "calendarDescription": "Calendario bursátil que determina los días festivos del mercado. Elige \"Predeterminado (global)\" para usar el calendario predeterminado del sistema.",
+      "calendarDefault": "Predeterminado (global)",
+      "calendarUnknown": "desconocido",
+      "alphaVantageApiKey": "Clave API de Alpha Vantage",
+      "alphaVantageApiKeyDescription": "Necesaria para obtener cotizaciones desde Alpha Vantage.",
+      "alphaVantageApiKeyConfigured": "Hay una clave configurada. Introduce un nuevo valor para sustituirla.",
+      "alphaVantageApiKeyPlaceholder": "Introduce la clave API…",
+      "alphaVantageApiKeyShow": "Mostrar clave API",
+      "alphaVantageApiKeyHide": "Ocultar clave API",
+      "alphaVantageRateLimit": "Límite de tasa de Alpha Vantage",
+      "alphaVantageRateLimitDescription": "Llamadas por minuto permitidas por tu plan de Alpha Vantage."
+    }
+  }
+}

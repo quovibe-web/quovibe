@@ -41,7 +41,11 @@
     "previous": "Vorige",
     "next": "Volgende",
     "pageOf": "Pagina {{current}} van {{total}}",
-    "showing": "Showing {{from}}–{{to}} of {{total}}"
+    "showing": "Toont {{from}}–{{to}} van {{total}}"
+  },
+  "aria": {
+    "sortAscending": "{{column}} oplopend gesorteerd",
+    "sortDescending": "{{column}} aflopend gesorteerd"
   },
   "transactionCount_one": "{{count}} transactie",
   "transactionCount_other": "{{count}} transacties",

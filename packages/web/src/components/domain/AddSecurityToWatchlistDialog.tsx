@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { apiFetch } from '@/api/fetch';
+import { useScopedApi } from '@/api/use-scoped-api';
 import { useAddWatchlistSecurity } from '@/api/use-watchlists';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -32,10 +33,11 @@ export function AddSecurityToWatchlistDialog({ open, onOpenChange, watchlistId, 
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const addMutation = useAddWatchlistSecurity();
+  const api = useScopedApi();
 
   const { data } = useQuery({
-    queryKey: ['securities', 'list'],
-    queryFn: () => apiFetch<{ data: Security[] }>('/api/securities'),
+    queryKey: ['portfolios', api.portfolioId, 'securities', 'list'],
+    queryFn: () => api.fetch<{ data: Security[] }>('/api/securities'),
     enabled: open,
   });
   const allSecurities = data?.data ?? [];
@@ -59,14 +61,15 @@ export function AddSecurityToWatchlistDialog({ open, onOpenChange, watchlistId, 
     });
   }
 
-  async function handleAdd() {
+  // Save-button re-entry guard: see frontend.md "Save-button re-entry guard".
+  const { run: handleAdd, inFlight } = useGuardedSubmit(async () => {
     for (const securityId of selected) {
       await addMutation.mutateAsync({ watchlistId, securityId });
     }
     setSelected(new Set());
     setSearch('');
     onOpenChange(false);
-  }
+  });
 
   function handleClose(isOpen: boolean) {
     if (!isOpen) {
@@ -83,6 +86,9 @@ export function AddSecurityToWatchlistDialog({ open, onOpenChange, watchlistId, 
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{t('addDialog.title')}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {t('addDialog.description')}
+          </DialogDescription>
         </DialogHeader>
 
         <Input
@@ -139,7 +145,7 @@ export function AddSecurityToWatchlistDialog({ open, onOpenChange, watchlistId, 
           <Button variant="outline" onClick={() => handleClose(false)}>
             {t('cancel', { ns: 'common', defaultValue: 'Cancel' })}
           </Button>
-          <Button onClick={handleAdd} disabled={selected.size === 0 || addMutation.isPending}>
+          <Button onClick={() => void handleAdd()} disabled={selected.size === 0 || inFlight || addMutation.isPending}>
             {t('addDialog.add')} {selected.size > 0 && `(${selected.size})`}
           </Button>
         </DialogFooter>

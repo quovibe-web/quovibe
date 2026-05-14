@@ -1,0 +1,11 @@
+# ppxml2db Python runtime dependencies.
+#
+# Production deploys install lxml via Alpine apk (`py3-lxml`) — see Dockerfile
+# Stage 4. This file is the source of truth for the upstream contract and
+# enables pip-based installs for non-Docker dev environments:
+#     pip install -r packages/api/vendor/requirements.txt
+#
+# All other imports in this directory are Python stdlib (sqlite3, argparse,
+# json, logging, os.path, sys, collections, pprint) — no pip install needed.
+
+lxml>=5.0.0,<6.0.0

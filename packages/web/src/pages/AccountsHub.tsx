@@ -2,11 +2,11 @@ import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueries } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Landmark } from 'lucide-react';
+import { Download, Landmark } from 'lucide-react';
 import { CostMethod } from '@quovibe/shared';
 import type { CalculationBreakdownResponse } from '@quovibe/shared';
 import { useAccounts, accountsKeys } from '@/api/use-accounts';
-import { apiFetch } from '@/api/fetch';
+import { useScopedApi } from '@/api/use-scoped-api';
 import type { AccountHoldingsResponse } from '@/api/types';
 import { useReportingPeriod, performanceKeys } from '@/api/use-performance';
 import { AccountSummaryStrip } from '@/components/domain/AccountSummaryStrip';
@@ -18,15 +18,19 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
 import { SegmentedControl } from '@/components/shared/SegmentedControl';
+import { SignedPercent } from '@/components/shared/SignedPercent';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePrivacy } from '@/context/privacy-context';
-import { formatPercentage, formatCurrency } from '@/lib/formatters';
 import { useBaseCurrency } from '@/hooks/use-base-currency';
+import { useNavTitle } from '@/hooks/useNavTitle';
+import { buildAccountsCsv, downloadAccountsCsv } from '@/lib/accounts-export';
 
 export default function AccountsHub() {
   const { t } = useTranslation('accounts');
+  const { t: tCommon } = useTranslation('common');
+  useNavTitle('accounts');
 
   // 1. State
   const [showRetired, setShowRetired] = useState(false);
@@ -37,6 +41,7 @@ export default function AccountsHub() {
   const { isPrivate } = usePrivacy();
   const baseCurrency = useBaseCurrency();
   const { periodStart, periodEnd } = useReportingPeriod();
+  const api = useScopedApi();
 
   // 2. Fetch accounts
   const { data: accounts = [], isLoading } = useAccounts(showRetired);
@@ -47,14 +52,14 @@ export default function AccountsHub() {
   // 4. Prefetch holdings and performance for all portfolios
   const holdingsQueries = useQueries({
     queries: portfolios.map(p => ({
-      queryKey: accountsKeys.holdings(p.id),
-      queryFn: () => apiFetch<AccountHoldingsResponse>(`/api/accounts/${p.id}/holdings`),
+      queryKey: accountsKeys.holdings(api.portfolioId, p.id),
+      queryFn: () => api.fetch<AccountHoldingsResponse>(`/api/accounts/${p.id}/holdings`),
     })),
   });
 
   const perfQueries = useQueries({
     queries: portfolios.map(p => ({
-      queryKey: performanceKeys.calculation(periodStart, periodEnd, true, CostMethod.MOVING_AVERAGE, p.id, true),
+      queryKey: performanceKeys.calculation(api.portfolioId, periodStart, periodEnd, true, CostMethod.MOVING_AVERAGE, p.id, true),
       queryFn: () => {
         const params = new URLSearchParams({
           periodStart,
@@ -64,7 +69,7 @@ export default function AccountsHub() {
           filter: p.id,
           withReference: 'true',
         });
-        return apiFetch<CalculationBreakdownResponse>(`/api/performance/calculation?${params}`);
+        return api.fetch<CalculationBreakdownResponse>(`/api/performance/calculation?${params}`);
       },
     })),
   });
@@ -86,7 +91,27 @@ export default function AccountsHub() {
     return map;
   }, [portfolios, perfQueries]);
 
-  // 6. Compute brokerageUnits and standaloneDeposits
+  // 6. Export CSV
+  const handleExportCsv = () => {
+    const csv = buildAccountsCsv(
+      accounts,
+      {
+        name: t('columns.name'),
+        type: t('columns.type'),
+        currency: t('columns.currency'),
+        balance: t('columns.balance'),
+        transactionCount: t('columns.transactionCount'),
+      },
+      {
+        portfolio: t('types.portfolio'),
+        deposit: t('types.deposit'),
+      },
+    );
+    const date = new Date().toISOString().slice(0, 10); // native-ok — date index
+    downloadAccountsCsv(csv, `accounts_${date}`);
+  };
+
+  // 7. Compute brokerageUnits and standaloneDeposits
   const { brokerageUnits, standaloneDeposits } = useMemo(() => {
     const deposits = accounts.filter(a => a.type === 'account');
     const linkedDepositIds = new Set<string>();
@@ -107,7 +132,30 @@ export default function AccountsHub() {
         title={t('title')}
         subtitle={t('hub.subtitle')}
         actions={!isLoading && accounts.length > 0
-          ? <Button onClick={() => setCreateDialogOpen(true)}>{t('actions.newAccount')}</Button>
+          ? (
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      disabled={isPrivate}
+                      onClick={handleExportCsv}
+                    >
+                      <Download className="h-4 w-4" />
+                      {tCommon('exportCsv')}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isPrivate ? tCommon('exportDisabledPrivacy') : tCommon('exportCsv')}
+                </TooltipContent>
+              </Tooltip>
+              <Button onClick={() => setCreateDialogOpen(true)}>{t('actions.newAccount')}</Button>
+            </div>
+          )
           : undefined}
       />
 
@@ -147,11 +195,11 @@ export default function AccountsHub() {
             <>
               {brokerageUnits.length > 0 && (
                 <div className="flex items-center gap-3 max-w-[720px]">
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="text-xs text-muted-foreground uppercase tracking-widest">
+                  <div className="flex-1 h-px bg-[var(--qv-border-subtle)]" />
+                  <span className="qv-eyebrow">
                     {t('brokerage.title')}
                   </span>
-                  <div className="flex-1 h-px bg-border" />
+                  <div className="flex-1 h-px bg-[var(--qv-border-subtle)]" />
                 </div>
               )}
 
@@ -170,11 +218,11 @@ export default function AccountsHub() {
               {standaloneDeposits.length > 0 && (
                 <>
                   <div className="flex items-center gap-3 max-w-[720px]">
-                    <div className="flex-1 h-px bg-border" />
-                    <span className="text-xs text-muted-foreground uppercase tracking-widest">
+                    <div className="flex-1 h-px bg-[var(--qv-border-subtle)]" />
+                    <span className="qv-eyebrow">
                       {t('standalone.title')}
                     </span>
-                    <div className="flex-1 h-px bg-border" />
+                    <div className="flex-1 h-px bg-[var(--qv-border-subtle)]" />
                   </div>
                   <div className="max-w-[720px] space-y-3.5">
                     {standaloneDeposits.map(d => (
@@ -189,11 +237,11 @@ export default function AccountsHub() {
           {viewMode === 'summary' && (
             <div className="max-w-[720px] space-y-4">
               {brokerageUnits.length > 0 && (
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <div className="px-4 py-2 bg-muted/50 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    {t('brokerage.title')}
+                <div className="rounded-md border border-border bg-card overflow-hidden">
+                  <div className="px-4 py-2 bg-[var(--qv-surface-elevated)] border-b border-[var(--qv-border-subtle)]">
+                    <p className="qv-eyebrow">{t('brokerage.title')}</p>
                   </div>
-                  <div className="divide-y divide-border">
+                  <div className="divide-y divide-[var(--qv-border-subtle)]">
                     {brokerageUnits.map(unit => {
                       const holdings = unit.holdings;
                       const mv = holdings ? parseFloat(holdings.totalValue ?? '0') : 0;
@@ -205,22 +253,28 @@ export default function AccountsHub() {
                       return (
                         <button
                           key={unit.portfolio.id}
-                          onClick={() => navigate(`/accounts/${unit.portfolio.id}`)}
-                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                          onClick={() => navigate(`/p/${api.portfolioId}/accounts/${unit.portfolio.id}`)}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--qv-surface-3)] transition-colors text-left"
                         >
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium truncate">{unit.portfolio.name}</div>
                             {unit.deposit && (
-                              <div className="text-[10px] text-muted-foreground truncate">{unit.deposit.name}</div>
+                              <div className="text-xs text-muted-foreground truncate">{unit.deposit.name}</div>
                             )}
                           </div>
                           <div className="text-right shrink-0">
-                            <CurrencyDisplay value={mv} className="text-sm" />
+                            <CurrencyDisplay value={mv} className="qv-numeric text-sm" />
                             {!isPrivate && perf && (
-                              <div className={cn('text-[10px] tabular-nums', isPositive ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]')}>
-                                {perfPct !== null ? formatPercentage(perfPct) : '—'}
+                              <div className="flex items-center justify-end gap-1.5 text-xs">
+                                <SignedPercent value={perfPct} />
                                 {absPerf !== null && (
-                                  <span className="ml-1 opacity-70">{formatCurrency(absPerf, baseCurrency)}</span>
+                                  <CurrencyDisplay
+                                    value={absPerf}
+                                    currency={baseCurrency}
+                                    colorize
+                                    colorSign={isPositive ? 1 : -1}
+                                    className="qv-numeric opacity-70"
+                                  />
                                 )}
                               </div>
                             )}
@@ -233,21 +287,21 @@ export default function AccountsHub() {
               )}
 
               {standaloneDeposits.length > 0 && (
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <div className="px-4 py-2 bg-muted/50 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    {t('standalone.title')}
+                <div className="rounded-md border border-border bg-card overflow-hidden">
+                  <div className="px-4 py-2 bg-[var(--qv-surface-elevated)] border-b border-[var(--qv-border-subtle)]">
+                    <p className="qv-eyebrow">{t('standalone.title')}</p>
                   </div>
-                  <div className="divide-y divide-border">
+                  <div className="divide-y divide-[var(--qv-border-subtle)]">
                     {standaloneDeposits.map(d => (
                       <button
                         key={d.id}
-                        onClick={() => navigate(`/accounts/${d.id}`)}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                        onClick={() => navigate(`/p/${api.portfolioId}/accounts/${d.id}`)}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--qv-surface-3)] transition-colors text-left"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium truncate">{d.name}</div>
                         </div>
-                        <CurrencyDisplay value={parseFloat(d.balance ?? '0')} className="text-sm" />
+                        <CurrencyDisplay value={parseFloat(d.balance ?? '0')} colorize className="qv-numeric text-sm" />
                       </button>
                     ))}
                   </div>

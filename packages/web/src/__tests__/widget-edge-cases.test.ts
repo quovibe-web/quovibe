@@ -8,37 +8,38 @@ import { CostMethod } from '@quovibe/shared';
 // ---------------------------------------------------------------------------
 
 describe('F1: performanceKeys.calculation — distinct cache keys', () => {
+  const pid = '00000000-0000-4000-8000-000000000000';
   const start = '2024-01-01';
   const end = '2024-12-31';
 
   test('different filter values produce different keys', () => {
-    const keyA = performanceKeys.calculation(start, end, false, CostMethod.FIFO, 'account-aaa');
-    const keyB = performanceKeys.calculation(start, end, false, CostMethod.FIFO, 'account-bbb');
+    const keyA = performanceKeys.calculation(pid, start, end, false, CostMethod.FIFO, 'account-aaa');
+    const keyB = performanceKeys.calculation(pid, start, end, false, CostMethod.FIFO, 'account-bbb');
     expect(keyA).not.toEqual(keyB);
   });
 
   test('preTax true vs false produce different keys', () => {
-    const keyTrue = performanceKeys.calculation(start, end, true, CostMethod.MOVING_AVERAGE);
-    const keyFalse = performanceKeys.calculation(start, end, false, CostMethod.MOVING_AVERAGE);
+    const keyTrue = performanceKeys.calculation(pid, start, end, true, CostMethod.MOVING_AVERAGE);
+    const keyFalse = performanceKeys.calculation(pid, start, end, false, CostMethod.MOVING_AVERAGE);
     expect(keyTrue).not.toEqual(keyFalse);
   });
 
   test('different costMethod values produce different keys', () => {
-    const keyFifo = performanceKeys.calculation(start, end, false, CostMethod.FIFO);
-    const keyAvg = performanceKeys.calculation(start, end, false, CostMethod.MOVING_AVERAGE);
+    const keyFifo = performanceKeys.calculation(pid, start, end, false, CostMethod.FIFO);
+    const keyAvg = performanceKeys.calculation(pid, start, end, false, CostMethod.MOVING_AVERAGE);
     expect(keyFifo).not.toEqual(keyAvg);
   });
 
   test('same params produce identical keys', () => {
-    const keyA = performanceKeys.calculation(start, end, true, CostMethod.FIFO, 'acc-1');
-    const keyB = performanceKeys.calculation(start, end, true, CostMethod.FIFO, 'acc-1');
+    const keyA = performanceKeys.calculation(pid, start, end, true, CostMethod.FIFO, 'acc-1');
+    const keyB = performanceKeys.calculation(pid, start, end, true, CostMethod.FIFO, 'acc-1');
     expect(keyA).toEqual(keyB);
   });
 
   test('taxonomyId and categoryId affect the key', () => {
-    const base = performanceKeys.calculation(start, end, false, CostMethod.FIFO, undefined, false);
-    const withTax = performanceKeys.calculation(start, end, false, CostMethod.FIFO, undefined, false, 'tax-1');
-    const withCat = performanceKeys.calculation(start, end, false, CostMethod.FIFO, undefined, false, 'tax-1', 'cat-1');
+    const base = performanceKeys.calculation(pid, start, end, false, CostMethod.FIFO, undefined, false);
+    const withTax = performanceKeys.calculation(pid, start, end, false, CostMethod.FIFO, undefined, false, 'tax-1');
+    const withCat = performanceKeys.calculation(pid, start, end, false, CostMethod.FIFO, undefined, false, 'tax-1', 'cat-1');
     expect(base).not.toEqual(withTax);
     expect(withTax).not.toEqual(withCat);
   });

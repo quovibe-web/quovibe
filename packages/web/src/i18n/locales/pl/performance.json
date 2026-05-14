@@ -2,11 +2,11 @@
   "title": "Wyniki",
   "metrics": {
     "mv": "Wartość rynkowa",
-    "mvDescription": "Aktualna wartość wszystkich papierów wartościowych po cenach rynkowych",
+    "mvDescription": "Aktualna wartość wszystkich walorów po cenach rynkowych",
     "irr": "IRR (rocz.)",
     "irrDescription": "Wewnętrzna stopa zwrotu, roczna",
     "ttwror": "TTWROR",
-    "ttwrorDescription": "True Time-Weighted Rate of Return",
+    "ttwrorDescription": "Rzeczywista ważona w czasie stopa zwrotu (skumulowana)",
     "ttwrorPa": "TTWROR rocz.",
     "ttwrorPaDescription": "TTWROR roczny",
     "delta": "Delta",
@@ -18,7 +18,7 @@
   },
   "calculation": {
     "title": "Obliczenia",
-    "subtitle": "Detailed calculation breakdown",
+    "subtitle": "Szczegółowy rozkład obliczeń",
     "preTax": "Przed opodatkowaniem",
     "afterTax": "Po opodatkowaniu",
     "initialValue": "Wartość początkowa (MVB)",
@@ -58,7 +58,7 @@
     "costMethodMa": "Średnia Krocząca",
     "descriptions": {
       "initialValue": "Wartość rynkowa portfela na początku okresu sprawozdawczego",
-      "capitalGains": "Zyski cenowe z papierów wartościowych, w tym efekty walutowe",
+      "capitalGains": "Zyski cenowe z walorów, w tym efekty walutowe",
       "earnings": "Dochody z dywidend i odsetek",
       "fees": "Opłaty transakcyjne i za zarządzanie w okresie",
       "taxes": "Obciążenia podatkowe od transakcji w okresie",
@@ -73,11 +73,89 @@
     "thereofFx": "Efekt walutowy",
     "columnName": "Nazwa",
     "columnAmount": "Kwota",
-    "columnDate": "Data"
+    "columnDate": "Data",
+    "viewToggle": {
+      "label": "Układ",
+      "premium": "Premium",
+      "classic": "Klasyczny"
+    },
+    "heroStrip": {
+      "ttwror": "Stopa zwrotu TWR",
+      "irr": "IRR (roczna)",
+      "deltaPercent": "Δ %",
+      "deltaAbsolute": "Δ absolutny",
+      "maxDrawdown": "Maksymalny spadek",
+      "sharpe": "Wskaźnik Sharpe'a",
+      "onMvb": "od wartości początkowej",
+      "netResult": "wynik netto",
+      "riskAdjustedReturn": "zwrot skorygowany o ryzyko",
+      "newtonRaphson": "Newton-Raphson"
+    },
+    "categories": {
+      "drivers": "Czynniki wydajności",
+      "frictions": "Tarcia",
+      "flows": "Przepływy kapitału",
+      "anchorsIdentity": "Punkty stałe i tożsamość",
+      "descriptions": {
+        "drivers": "Zyski kursowe, dywidendy, odsetki i efekty walutowe",
+        "frictions": "Opłaty i podatki naliczone w okresie",
+        "flows": "Wpłaty, wypłaty, dostawy — przepływy niewpływające na wynik",
+        "anchorsIdentity": "Początek, koniec i tożsamość arytmetyczna okresu"
+      }
+    },
+    "waterfall": {
+      "title": "Waterfall",
+      "mvb": "Początek",
+      "mve": "Koniec",
+      "drivers": "Czynniki",
+      "frictions": "Tarcia",
+      "flows": "Przepływy",
+      "clickToExpand": "Kliknij słupek, aby zobaczyć szczegóły",
+      "extremeMagnitudeNotice": "Jedna wartość przyćmiewa pozostałe — przełącz na skalę logarytmiczną, aby zobaczyć wszystkie słupki",
+      "linearScale": "Liniowa",
+      "logScale": "Log",
+      "emptyPeriod": "Brak transakcji w okresie"
+    },
+    "rightRail": {
+      "riskStyle": "Ryzyko i styl",
+      "openPosition": "Otwarta pozycja",
+      "lastDay": "Ostatni dzień Δ",
+      "volatility": "Zmienność",
+      "semivariance": "Semiwariancja",
+      "maxDdPeriod": "Okres maks. spadku",
+      "currentDrawdown": "Bieżący spadek",
+      "pmcConvention": "PMC",
+      "fifoConvention": "FIFO",
+      "cost": "Podstawa kosztów",
+      "marketValue": "Wartość rynkowa",
+      "unrealizedPnl": "Niezrealizowany PnL",
+      "peak": "Szczyt",
+      "trough": "Dołek",
+      "duration": "Czas trwania",
+      "days_one": "{{count}} dzień",
+      "days_few": "{{count}} dni",
+      "days_many": "{{count}} dni",
+      "days_other": "{{count}} dni"
+    },
+    "equation": {
+      "identityCheck": "Sprawdzenie tożsamości",
+      "labelMvb": "MVB",
+      "labelDrivers": "Czynniki",
+      "labelFrictions": "Tarcia",
+      "labelFlows": "Przepływy",
+      "labelMve": "MVE",
+      "identityOk": "zweryfikowano",
+      "identityDrift": "odchylenie {{value}}"
+    },
+    "density": {
+      "comfortable": "Wygodny",
+      "dense": "Gęsty",
+      "toggle": "Przełącz gęstość tabeli"
+    }
   },
   "securities": {
-    "title": "Wyniki — Papiery wartościowe",
-    "subtitle": "Performance breakdown by security",
+    "title": "Wyniki — Walory",
+    "subtitle": "Rozkład wyników według instrumentu",
     "columns": {
       "name": "Nazwa",
       "irr": "IRR (rocz.)",
@@ -96,24 +174,22 @@
   },
   "chart": {
     "title": "Wykres wyników",
-    "subtitle": "Time-weighted return over time",
+    "subtitle": "Stopa zwrotu ważona czasem w czasie",
     "marketValueAndTtwror": "Wartość rynkowa & TTWROR",
     "marketValue": "Wartość rynkowa",
     "ttwror": "TTWROR",
     "ttwrorPa": "TTWROR rocz.",
-    "cumulative": "Skumulowany",
-    "annualizedPa": "rocz.",
     "configureChart": "Konfiguruj wykres",
     "addBenchmark": "Dodaj benchmark",
     "removeBenchmark": "Usuń benchmark",
     "benchmarks": "Benchmarki",
-    "benchmarksDescription": "Dodaj papiery wartościowe jako punkty odniesienia do porównania wyników",
+    "benchmarksDescription": "Dodaj walory jako punkty odniesienia do porównania wyników",
     "noBenchmarks": "Brak skonfigurowanych benchmarków",
-    "searchSecurity": "Szukaj papieru wartościowego...",
+    "searchSecurity": "Szukaj waloru...",
     "benchmarkNoData": "Brak danych cenowych",
     "benchmarkSaved": "Konfiguracja benchmarku zapisana",
     "addBenchmarkCount": "Dodaj benchmark ({{count}}/{{max}})",
-    "noMatchingSecurities": "Nie znaleziono pasujących papierów wartościowych.",
+    "noMatchingSecurities": "Nie znaleziono pasujących walorów.",
     "maxBenchmarksReached": "Osiągnięto maksymalną liczbę {{max}} benchmarków.",
     "configureSeries": "Konfiguruj serie wykresu",
     "configureSeriesDescription": "Dodawaj, usuwaj i konfiguruj serie danych wykresu",
@@ -121,7 +197,7 @@
     "addSeries": "Dodaj serię",
     "noSeries": "Brak skonfigurowanych serii. Dodaj jedną poniżej.",
     "tabPortfolio": "Portfel",
-    "tabSecurities": "Papiery wartościowe",
+    "tabSecurities": "Walory",
     "tabBenchmarks": "Benchmarki",
     "entirePortfolio": "Cały portfel",
     "addAsSeries": "Dodaj jako serię",
@@ -163,18 +239,66 @@
     "styleDashed": "Przerywana",
     "styleDotted": "Kropkowana",
     "customColor": "Niestandardowy",
-    "presetColors": "Kolory predefiniowane"
+    "presetColors": "Kolory predefiniowane",
+    "status": {
+      "loading": "Ładowanie…",
+      "empty": "Brak danych w okresie",
+      "error": "Błąd ładowania"
+    },
+    "axis": {
+      "label": "Oś",
+      "shared": "Wspólna oś",
+      "pinLeft": "Przypnij do lewej",
+      "pinRight": "Przypnij do prawej"
+    },
+    "rail": {
+      "lastCol": "Ostatni",
+      "deltaCol": "vs Portfel",
+      "addSeries": "+ Dodaj serię",
+      "series": "Seria"
+    },
+    "sheet": {
+      "title": "Porównaj",
+      "description": "Dodaj walory i benchmarki do wykresu",
+      "empty": "Wyszukaj powyżej, aby dodać serie i benchmarki.",
+      "counter": "{{count}} z {{max}}",
+      "done": "Gotowe",
+      "search": "Szukaj ticker, ISIN, nazwa…",
+      "noResults": "Brak pasujących walorów",
+      "removeAll": "Usuń wszystkie",
+      "removeAllConfirm": "Usunąć wszystkie {{count}} serii?",
+      "removeAllCancel": "Anuluj",
+      "removeAllConfirmAction": "Usuń wszystkie",
+      "filter": {
+        "all": "Wszystko",
+        "owned": "Posiadane",
+        "index": "Indeksy",
+        "account": "Konta"
+      }
+    },
+    "action": {
+      "addHolding": "Dodaj jako pozycję",
+      "addReference": "Dodaj jako odniesienie",
+      "compare": "Porównaj"
+    },
+    "badge": {
+      "youHold": "Posiadasz",
+      "index": "Indeks"
+    },
+    "semantic": {
+      "tooltip": "Pozycja = TWR na Twojej pozycji (uwzględnia kupna i sprzedaże). Odniesienie = zwrot cenowy aktywa, niezależnie od pozycji."
+    }
   },
   "cardLinks": {
     "calculation": "Obliczenia",
     "calculationDesc": "Szczegółowy podział zysków, przychodów i opłat",
-    "securities": "Papiery wartościowe",
-    "securitiesDesc": "IRR, TTWROR i zyski na papier wartościowy",
+    "securities": "Walory",
+    "securitiesDesc": "IRR, TTWROR i zyski na walor",
     "chart": "Wykres",
     "chartDesc": "Wartość rynkowa i TTWROR w okresie"
   },
   "taxonomySeries": {
-    "subtitle": "Performance trends by category"
+    "subtitle": "Trendy wyników według kategorii"
   },
   "analytics": {
     "title": "Analizy",

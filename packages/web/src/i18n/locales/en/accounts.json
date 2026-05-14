@@ -1,14 +1,16 @@
 {
   "title": "Accounts",
-  "subtitle": "Overview of all portfolio and deposit accounts",
+  "subtitle": "Overview of all securities and deposit accounts",
   "types": {
-    "deposit": "Deposit",
-    "portfolio": "Portfolio"
+    "deposit": "Deposit Account",
+    "portfolio": "Securities Account"
   },
   "columns": {
     "name": "Name",
+    "type": "Type",
     "currency": "Currency",
     "balance": "Balance",
+    "transactionCount": "Transactions",
     "referenceAccount": "Reference Account"
   },
   "sections": {
@@ -27,7 +29,8 @@
     "changeLogo": "Change logo",
     "retire": "Retire account",
     "reactivateAccount": "Reactivate account",
-    "fetchLogo": "Fetch logo"
+    "fetchLogo": "Fetch logo",
+    "changeReferenceAccount": "Change reference deposit"
   },
   "menu": {
     "stockSplit": "Stock Split…",
@@ -67,8 +70,8 @@
     "name": "Name",
     "namePlaceholder": "Account name…",
     "type": "Type",
-    "typeDeposit": "Deposit",
-    "typeSecurities": "Securities",
+    "typeDeposit": "Deposit Account",
+    "typeSecurities": "Securities Account",
     "currency": "Currency",
     "referenceAccount": "Reference Deposit Account",
     "selectDeposit": "Select deposit account…",
@@ -76,12 +79,17 @@
     "newDepositAccount": "New deposit account",
     "depositAccountName": "Deposit Account Name",
     "depositNamePlaceholder": "e.g. My Cash Account",
-    "depositCurrency": "Currency"
+    "depositCurrency": "Currency",
+    "changeReferenceAccountTitle": "Change reference deposit account",
+    "changeReferenceAccountDescription": "Pick the cash account that will be this securities account's default counter-entry. Only {{currency}} accounts are listed.",
+    "newDepositCurrencyNote": "The new deposit account will be created in {{currency}}."
   },
   "toasts": {
     "depositCreated": "Deposit account created",
     "securitiesCreated": "Securities account created",
-    "errorCreating": "Error creating account"
+    "errorCreating": "Error creating account",
+    "duplicateName": "An account with this name already exists in this portfolio.",
+    "referenceUpdated": "Reference account updated"
   },
   "clickToChangeLogo": "Click to change logo",
   "hub": {

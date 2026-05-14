@@ -1,9 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  /* Typography */
+  /* Typography — Fraunces (display serif, variable opsz/wght), Plus Jakarta
+     Sans (body), IBM Plex Mono (tabular numerics). Logos use Fraunces too
+     (3 SVGs + Sidebar mark); no separate brand font loaded. */
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* ──────────────────────────────────────────────
      Brand palette (light mode defaults)
@@ -12,16 +15,24 @@
 
   /* ──────────────────────────────────────────────
      Surfaces (light) — Warm Flexoki-inspired
+
+     Surface stack runs LIGHTER on cards than on the page (magazine-print
+     pattern: card "lifts off" the paper backdrop). The page wash is
+     base-50; cards are paper. Inset/hover steps go progressively deeper.
+     NEVER invert — the editorial signal depends on this direction.
      ────────────────────────────────────────────── */
-  --qv-bg: #f2f0e5;
-  --qv-surface: #fffcf0;
-  --qv-surface-elevated: #e6e4d9;
-  --qv-surface-3: #d6d4c8;
-  --qv-border: #d0cdc2;
-  --qv-border-strong: #b7b5ac;
-  --qv-text-primary: #100f0f;
-  --qv-text-muted: #6f6e69;
-  --qv-text-faint: #b7b5ac;
+  --qv-bg: #f2f0e5;            /* base-50 — page backdrop (NEVER pure white) */
+  --qv-surface: #fffcf0;       /* paper — card fill (lifts above bg) */
+  --qv-surface-elevated: #e6e4d9; /* base-100 — input bg, table-row hover */
+  --qv-surface-3: #d6d4c8;     /* base-150 — deepest inset, pressed state */
+  --qv-border-subtle: #e6e4d9; /* near-invisible divider (between rows in a list) */
+  --qv-border: #d0cdc2;        /* default card / control border */
+  --qv-border-strong: #b7b5ac; /* focus ring stem, active-tab underline */
+  --qv-text-display: #0a0908;  /* hero numerics, h1/h2 headings (deeper than primary) */
+  --qv-text-primary: #100f0f;  /* body */
+  --qv-text-secondary: #575653;/* labels, supporting prose */
+  --qv-text-muted: #6f6e69;    /* captions, helper text */
+  --qv-text-faint: #b7b5ac;    /* muted-fraction digits, disabled */
 
   /* Semantic (light) */
   --qv-success: #66800b;
@@ -42,6 +53,8 @@
   --color-popover-foreground: var(--qv-text-primary);
   --color-primary: #205EA6;
   --color-primary-foreground: #ffffff;
+  --color-primary-hover: #1A4F8A;   /* 4% darken — button hover */
+  --color-primary-fg: #FFFCF0;      /* paper — text/icon on primary fill */
   --color-secondary: var(--qv-surface-elevated);
   --color-secondary-foreground: var(--qv-text-primary);
   --color-muted: var(--qv-surface-elevated);
@@ -78,12 +91,51 @@
   --color-loss: var(--qv-negative);
   --color-dividend: var(--color-chart-1);
 
-  /* Radius — institutional, not toy */
+  /* Radius — institutional, not toy. Card default = md (6px). Spec § 3.2:
+     larger radii read "casual SaaS"; 4/6/10 scale reads "statement /
+     report". --radius (anchor) stays at 0.5rem (8px) for shadcn defaults;
+     card/dialog overrides use --radius-md explicitly. */
   --radius: 0.5rem;
-  --radius-sm: 0.375rem;
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 0.25rem;                       /* 4px — inputs, pills, small buttons */
+  --radius-md: 0.375rem;                      /* 6px — cards, dialogs, popovers (DEFAULT) */
+  --radius-lg: 0.625rem;                      /* 10px — hero card, modal */
+  --radius-xl: calc(var(--radius) + 4px);     /* 12px — legacy alias; avoid in new code */
+
+  /* ──────────────────────────────────────────────
+     Shadows (light) — warm-tinted, restraint-first
+
+     All four steps mix near-black (#100F0F) into rgba so the bleed stays
+     warm rather than neutral-cool gray. In dark mode these all collapse
+     to none (see html.dark override) — depth carried by border + lightness
+     delta. NEVER shadow-xl+ (breaks the paper plane).
+     ────────────────────────────────────────────── */
+  --shadow-xs: 0 1px 0 0 rgba(16, 15, 15, 0.02);
+  --shadow-sm: 0 1px 2px 0 rgba(16, 15, 15, 0.04), 0 1px 1px 0 rgba(16, 15, 15, 0.02);
+  --shadow-md: 0 4px 6px -2px rgba(16, 15, 15, 0.06), 0 2px 4px -2px rgba(16, 15, 15, 0.04);
+  --shadow-lg: 0 10px 24px -4px rgba(16, 15, 15, 0.08), 0 4px 8px -2px rgba(16, 15, 15, 0.04);
+
+  /* ──────────────────────────────────────────────
+     Motion — qv-prefixed to avoid clash with Tailwind defaults
+     ────────────────────────────────────────────── */
+  --qv-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);    /* default UI ease */
+  --qv-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);   /* modal enter/exit */
+  --qv-duration-fast: 150ms;                         /* hover, focus */
+  --qv-duration-base: 200ms;                         /* state change, theme swap */
+  --qv-duration-slow: 300ms;                         /* modal, large reveal */
+
+  /* ──────────────────────────────────────────────
+     Density — drives table row + cell sizing. Toggle persists via sidecar
+     quovibe.settings.json (per .claude/rules feedback_sidecar_settings).
+     ────────────────────────────────────────────── */
+  --qv-row-h-comfortable: 3rem;        /* 48px */
+  --qv-row-h-compact: 2.25rem;         /* 36px */
+  --qv-row-h-dense: 1.75rem;           /* 28px */
+  --qv-cell-px-comfortable: 1rem;      /* 16px */
+  --qv-cell-px-compact: 0.75rem;       /* 12px */
+  --qv-cell-px-dense: 0.5rem;          /*  8px */
+  --qv-cell-py-comfortable: 0.75rem;   /* 12px */
+  --qv-cell-py-compact: 0.5rem;        /*  8px */
+  --qv-cell-py-dense: 0.25rem;         /*  4px */
 }
 
 /* ──────────────────────────────────────────────
@@ -99,11 +151,14 @@ html.dark {
   --qv-surface-3: #343331;
 
   /* Borders (opacity-based for layered surfaces) */
+  --qv-border-subtle: rgba(255, 252, 240, 0.04);  /* near-invisible row divider */
   --qv-border: rgba(255, 252, 240, 0.07);
   --qv-border-strong: rgba(255, 252, 240, 0.12);
 
   /* Typography (NEVER pure white) */
+  --qv-text-display: #fffcf0;     /* hero numerics, h1/h2 (brighter than primary) */
   --qv-text-primary: #cecdc3;
+  --qv-text-secondary: #b7b5ac;   /* labels, supporting prose */
   --qv-text-muted: #878580;
   --qv-text-faint: #575653;
 
@@ -118,8 +173,18 @@ html.dark {
   /* shadcn dark overrides */
   --color-primary: #4385BE;
   --color-primary-foreground: #ffffff;
+  --color-primary-hover: #5E9DCF;        /* 4% lighten — button hover on dark */
+  --color-primary-fg: #100F0F;           /* black — text/icon on primary fill */
   --color-popover: var(--qv-surface);
   --color-ring: rgba(67, 133, 190, 0.35);
+
+  /* Shadow scale collapses to none on dark — depth via border + lightness
+     delta only (spec § 3.3). Re-declare every step so consumers reading
+     `var(--shadow-*)` get a working value, not the light-mode rgba. */
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
 
   /* Chart palette — same Flexoki accents (work on both backgrounds) */
   --color-chart-1: #4385BE;
@@ -285,6 +350,10 @@ html.dark {
   }
 }
 
+@utility qv-stagger-fade {
+  animation: qv-stagger-in 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
 /* Shimmer for skeletons */
 @keyframes qv-shimmer {
   0% { transform: translateX(-100%); }
@@ -298,6 +367,17 @@ html.dark {
 }
 @utility qv-fade-in {
   animation: qv-fade-in 0.3s ease-out both;
+}
+
+/* Brief outline flash to confirm a scroll-into-view jump
+   (e.g. Income calendar cell → matching detail card). */
+@keyframes qv-bucket-flash-frames {
+  0%   { box-shadow: 0 0 0 0 rgba(67, 133, 190, 0); }
+  20%  { box-shadow: 0 0 0 3px rgba(67, 133, 190, 0.40); }
+  100% { box-shadow: 0 0 0 0 rgba(67, 133, 190, 0); }
+}
+.qv-bucket-flash {
+  animation: qv-bucket-flash-frames 1.4s var(--qv-ease-out) both;
 }
 
 /* Muted fraction digits for financial values (number-flow) */
@@ -323,6 +403,40 @@ number-flow-react.muted-fraction::part(fraction) {
 @layer utilities {
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Lucide icons — global stroke 1.5 for editorial weight (spec § 4).
+     Lucide React adds class `lucide` to every icon SVG; this rule retunes
+     them all without per-call props. Sized SVGs (height/width attribute
+     set explicitly) keep their dimensions; only stroke weight changes. */
+  svg.lucide {
+    stroke-width: 1.5;
+  }
+
+  /* Editorial eyebrow — UPPERCASE caption above section titles. The
+     wealth-management signal: every heading gets context above it.
+     Use over hero numerics ("TOTAL VALUE"), section headers
+     ("PORTFOLIO HOLDINGS"), table groups. Spec § 2.2 + § 5. */
+  .qv-eyebrow {
+    font-size: 0.6875rem;        /* 11px */
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--qv-text-muted);
+    font-family: var(--font-sans);
+    line-height: 1;
+  }
+
+  /* Tabular numerics — every number that sits in a column. Locks
+     digit width (tnum), full-height lining figures (lnum), slashed zero
+     (ss02) to distinguish 0 from O in account IDs / tickers. Spec § 2.3.
+     Pairs with --font-mono (IBM Plex Mono) for the ledger feel. Existing
+     `tabular-nums` Tailwind class continues to work for sans-rendered
+     numerics; use `.qv-numeric` when you also want mono. */
+  .qv-numeric {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums lining-nums slashed-zero;
+    font-feature-settings: "tnum" 1, "lnum" 1, "zero" 1, "ss02" 1;
   }
 }
 

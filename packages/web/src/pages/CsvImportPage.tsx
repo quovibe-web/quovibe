@@ -1,6 +1,8 @@
 // packages/web/src/pages/CsvImportPage.tsx
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavTitle } from '@/hooks/useNavTitle';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { CsvUploadStep } from '@/components/domain/csv-import/CsvUploadStep';
 import { CsvColumnMapStep } from '@/components/domain/csv-import/CsvColumnMapStep';
 import { CsvSecurityMatchStep } from '@/components/domain/csv-import/CsvSecurityMatchStep';
@@ -20,12 +22,16 @@ export interface WizardState {
 
   // Step 2 output
   columnMapping: Record<string, number>;
-  targetPortfolioId: string;
 
   // Step 3 output
   previewResult: TradePreviewResult | null;
   securityMapping: Record<string, string>;
   newSecurities: Array<{ name: string; isin?: string; ticker?: string; currency: string }>;
+
+  // BUG-54/55 Phase 6 — picked inner securities-account UUID. Resolved by
+  // CsvSecurityMatchStep on mount (auto-pick when N=1, picker when N>1).
+  // Phase 5 redirect handles N=0 before the user can reach this wizard.
+  targetSecuritiesAccountId: string | null;
 }
 
 const initialState: WizardState = {
@@ -36,14 +42,15 @@ const initialState: WizardState = {
   decimalSeparator: '.',
   thousandSeparator: '',
   columnMapping: {},
-  targetPortfolioId: '',
   previewResult: null,
   securityMapping: {},
   newSecurities: [],
+  targetSecuritiesAccountId: null,
 };
 
 export default function CsvImportPage() {
   const { t } = useTranslation('csv-import');
+  useNavTitle('csvImport');
   const [step, setStep] = useState(0);
   const [state, setState] = useState<WizardState>(initialState);
 
@@ -55,28 +62,41 @@ export default function CsvImportPage() {
 
   return (
     <div className="mx-auto max-w-5xl p-6">
-      <h1 className="text-2xl font-semibold mb-2">{t('title')}</h1>
-      <p className="text-muted-foreground mb-6">{t('subtitle')}</p>
+      <div className="mb-6">
+        <PageHeader title={t('title')} subtitle={t('subtitle')} />
+      </div>
 
       {/* Step indicator */}
       <div className="flex gap-2 mb-8">
-        {stepNames.map((name, i) => (
-          <div
-            key={name}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium ${
-              i === step
-                ? 'bg-primary text-primary-foreground'
-                : i < step
-                  ? 'bg-primary/10 text-primary'
-                  : 'bg-muted text-muted-foreground'
-            }`}
-          >
-            <span className="w-5 h-5 rounded-full bg-current/20 flex items-center justify-center text-xs">
-              {i + 1}
-            </span>
-            {name}
-          </div>
-        ))}
+        {stepNames.map((name, i) => {
+          const isActive = i === step;
+          const isDone = i < step;
+          return (
+            <div
+              key={name}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium ${
+                isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : isDone
+                    ? 'bg-[var(--qv-surface-elevated)] text-[var(--color-primary)]'
+                    : 'bg-[var(--qv-surface-elevated)] text-[var(--qv-text-secondary)]'
+              }`}
+            >
+              <span
+                className={`w-5 h-5 rounded-full flex items-center justify-center qv-numeric text-xs ${
+                  isActive
+                    ? 'bg-[var(--color-primary-fg)]/20'
+                    : isDone
+                      ? 'bg-[var(--color-primary)]/15'
+                      : 'bg-[var(--qv-surface-3)]'
+                }`}
+              >
+                {i + 1}
+              </span>
+              {name}
+            </div>
+          );
+        })}
       </div>
 
       {/* Step content */}

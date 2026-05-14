@@ -1,36 +1,37 @@
+// packages/api/src/db/backup.ts
 import type BetterSqlite3 from 'better-sqlite3';
-import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
-import { DB_PATH, DB_BACKUP_MAX } from '../config';
+import { DB_BACKUP_MAX, resolvePortfolioPath } from '../config';
+import { getPortfolioEntry } from '../services/portfolio-registry';
 
-export function backupDb(sqliteHandle?: BetterSqlite3.Database): string {
-  if (DB_PATH.includes(':memory:') || !fs.existsSync(DB_PATH)) return '';
-  const backupPath = DB_PATH + '.bak.' + Date.now();
+/**
+ * Create a rotated `.bak.{ts}` file next to the portfolio's `.db` file.
+ *
+ * Requires an open handle (the caller already acquired it from the pool).
+ * Uses `VACUUM INTO` which is WAL-safe and produces a standalone DB file
+ * (no accompanying -wal/-shm). Returns the backup path, or the empty string
+ * if the source DB does not exist on disk (e.g. `:memory:`).
+ */
+export function backupDb(portfolioId: string, sqlite: BetterSqlite3.Database): string {
+  const entry = getPortfolioEntry(portfolioId);
+  if (!entry) throw new Error('backupDb: portfolio not found');
+  const srcPath = resolvePortfolioPath(entry);
+  if (!fs.existsSync(srcPath)) return '';
+  const backupPath = srcPath + '.bak.' + Date.now();
+  sqlite.exec(`VACUUM INTO '${backupPath.replace(/'/g, "''")}'`);
+  rotateBackups(srcPath);
+  return backupPath;
+}
 
-  if (sqliteHandle) {
-    // Preferred: VACUUM INTO via the open connection — includes all WAL data
-    sqliteHandle.exec(`VACUUM INTO '${backupPath.replace(/'/g, "''")}'`);
-  } else {
-    // Fallback: checkpoint + copy (for contexts without an open handle)
-    const tmp = new Database(DB_PATH);
-    try {
-      tmp.pragma('wal_checkpoint(TRUNCATE)');
-      fs.copyFileSync(DB_PATH, backupPath);
-    } finally {
-      tmp.close();
-    }
-  }
-
-  // Rotate: keep only DB_BACKUP_MAX most recent backups
-  const dir = path.dirname(DB_PATH);
-  const base = path.basename(DB_PATH);
+function rotateBackups(srcPath: string): void {
+  const dir = path.dirname(srcPath);
+  const base = path.basename(srcPath);
   const backups = fs.readdirSync(dir)
     .filter(f => f.startsWith(base + '.bak.'))
     .sort();
   while (backups.length > DB_BACKUP_MAX) {
     const old = path.join(dir, backups.shift()!);
-    try { fs.unlinkSync(old); } catch { /* already deleted or busy — ignore */ }
+    try { fs.unlinkSync(old); } catch { /* ok */ }
   }
-  return backupPath;
 }

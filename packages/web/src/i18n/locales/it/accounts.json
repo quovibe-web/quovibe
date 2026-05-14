@@ -2,13 +2,15 @@
   "title": "Conti",
   "subtitle": "Panoramica di tutti i conti titoli e deposito",
   "types": {
-    "deposit": "Deposito",
-    "portfolio": "Portafoglio"
+    "deposit": "Conto deposito",
+    "portfolio": "Conto titoli"
   },
   "columns": {
     "name": "Nome",
+    "type": "Tipo",
     "currency": "Valuta",
     "balance": "Saldo",
+    "transactionCount": "Transazioni",
     "referenceAccount": "Conto di Riferimento"
   },
   "sections": {
@@ -27,7 +29,8 @@
     "changeLogo": "Cambia logo",
     "retire": "Archivia conto",
     "reactivateAccount": "Riattiva conto",
-    "fetchLogo": "Recupera logo"
+    "fetchLogo": "Recupera logo",
+    "changeReferenceAccount": "Cambia conto di riferimento"
   },
   "menu": {
     "stockSplit": "Frazionamento Azionario…",
@@ -67,8 +70,8 @@
     "name": "Nome",
     "namePlaceholder": "Nome del conto…",
     "type": "Tipo",
-    "typeDeposit": "Deposito",
-    "typeSecurities": "Titoli",
+    "typeDeposit": "Conto deposito",
+    "typeSecurities": "Conto titoli",
     "currency": "Valuta",
     "referenceAccount": "Conto Deposito di Riferimento",
     "selectDeposit": "Seleziona conto deposito…",
@@ -76,12 +79,17 @@
     "newDepositAccount": "Nuovo conto deposito",
     "depositAccountName": "Nome Conto Deposito",
     "depositNamePlaceholder": "es. Il Mio Conto Liquidità",
-    "depositCurrency": "Valuta"
+    "depositCurrency": "Valuta",
+    "changeReferenceAccountTitle": "Cambia conto deposito di riferimento",
+    "changeReferenceAccountDescription": "Scegli il conto liquidità predefinito per questo conto titoli. Sono elencati solo i conti in {{currency}}.",
+    "newDepositCurrencyNote": "Il nuovo conto deposito sarà creato in {{currency}}."
   },
   "toasts": {
     "depositCreated": "Conto deposito creato",
     "securitiesCreated": "Conto titoli creato",
-    "errorCreating": "Errore nella creazione del conto"
+    "errorCreating": "Errore nella creazione del conto",
+    "duplicateName": "Esiste già un conto con questo nome in questo portafoglio.",
+    "referenceUpdated": "Conto di riferimento aggiornato"
   },
   "clickToChangeLogo": "Clicca per cambiare logo",
   "hub": {

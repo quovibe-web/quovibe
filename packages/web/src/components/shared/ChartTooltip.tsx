@@ -1,16 +1,27 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 interface ChartTooltipProps {
   children: ReactNode;
   label?: string;
   className?: string;
+  /**
+   * When true, anchor the tooltip above-and-centered relative to the recharts
+   * `<Tooltip position={{x, y}}>` coordinate. Pairs with a `position` whose
+   * `x` is the bar center and `y` is the bar top.
+   */
+  centered?: boolean;
 }
 
-export function ChartTooltip({ children, label, className }: ChartTooltipProps) {
-  return (
+const CENTERED_ANCHOR_STYLE: CSSProperties = {
+  transform: 'translate(-50%, -100%)',
+  marginTop: -8,
+};
+
+export function ChartTooltip({ children, label, className, centered }: ChartTooltipProps) {
+  const card = (
     <div
-      style={{ animation: 'qv-fade-in 0.15s ease-out' }}
+      style={{ animation: 'qv-fade-in 0.15s ease-out both' }}
       className={cn(
         'rounded-lg border border-[var(--qv-border-strong)]',
         'bg-[var(--qv-surface)]/90 backdrop-blur-md',
@@ -25,6 +36,7 @@ export function ChartTooltip({ children, label, className }: ChartTooltipProps) 
       <div className="space-y-1 tabular-nums">{children}</div>
     </div>
   );
+  return centered ? <div style={CENTERED_ANCHOR_STYLE}>{card}</div> : card;
 }
 
 interface ChartTooltipRowProps {

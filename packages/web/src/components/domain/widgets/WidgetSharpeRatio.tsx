@@ -5,8 +5,7 @@ import { usePrivacy } from '@/context/privacy-context';
 import { getColor } from '@/lib/colors';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import NumberFlow from '@number-flow/react';
-import i18n from '@/i18n';
+import { AccessibleNumberFlow } from '@/components/shared/AccessibleNumberFlow';
 
 export default function WidgetSharpeRatio() {
   const { data, isLoading, isError, error } = useWidgetCalculation();
@@ -14,9 +13,9 @@ export default function WidgetSharpeRatio() {
   const { periodLabel } = useWidgetKpiMeta('widget.qualifier.period');
   const { options } = useWidgetConfig();
   const irr = data?.irr !== null ? parseFloat(data?.irr ?? '0') : null;
-  const vol = data ? parseFloat(data.volatility) : 0;
+  const vol = data?.volatility != null ? parseFloat(data.volatility) : Number.NaN;
   const riskFreeRate = typeof options.riskFreeRate === 'number' ? options.riskFreeRate : 0;
-  const sharpe = irr !== null && vol > 0 ? (irr - riskFreeRate) / vol : null;
+  const sharpe = irr !== null && Number.isFinite(vol) && vol > 0 ? (irr - riskFreeRate) / vol : null;
 
   if (isLoading) {
     return (
@@ -52,10 +51,8 @@ export default function WidgetSharpeRatio() {
         style={{ color }}
       >
         {isPrivate ? '••••••' : sharpe !== null ? (
-          <NumberFlow
-            className="muted-fraction"
+          <AccessibleNumberFlow
             value={sharpe}
-            locales={i18n.language}
             format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}
           />
         ) : '—'}

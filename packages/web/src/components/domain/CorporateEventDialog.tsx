@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { useSecurities } from '@/api/use-securities';
 import { useCreateSecurityEvent } from '@/api/use-security-events';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { getDateLocale } from '@/lib/formatters';
 
 interface CorporateEventDialogProps {
@@ -37,27 +38,30 @@ interface CorporateEventDialogProps {
 export function CorporateEventDialog({ open, onOpenChange, preselectedSecurityId }: CorporateEventDialogProps) {
   const { t } = useTranslation('securities');
   const { data: securities = [] } = useSecurities();
-  const { mutate, isPending } = useCreateSecurityEvent();
+  const { mutateAsync, isPending } = useCreateSecurityEvent();
 
   const [securityId, setSecurityId] = useState(preselectedSecurityId ?? '');
   const [date, setDate] = useState<Date>(new Date());
   const [calOpen, setCalOpen] = useState(false);
   const [note, setNote] = useState('');
 
-  function handleSubmit() {
+  // Save-button re-entry guard: see frontend.md "Save-button re-entry guard".
+  const { run: handleSubmit, inFlight } = useGuardedSubmit(async () => {
     if (!securityId) { toast.error(t('transactions:validation.securityRequired')); return; }
     if (!note.trim()) { toast.error(t('transactions:validation.noteRequired')); return; }
 
-    mutate(
-      {
+    try {
+      await mutateAsync({
         securityId,
         type: SecurityEventType.EVENT,
         date: format(date, 'yyyy-MM-dd'),
         details: JSON.stringify({ note }),
-      },
-      { onSuccess: () => onOpenChange(false) },
-    );
-  }
+      });
+      onOpenChange(false);
+    } catch {
+      // Global MutationCache toast surfaces the error; nothing to do locally.
+    }
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -116,8 +120,8 @@ export function CorporateEventDialog({ open, onOpenChange, preselectedSecurityId
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t('common:cancel')}</Button>
-          <Button onClick={handleSubmit} disabled={isPending}>
-            {isPending ? t('common:saving') : t('common:save')}
+          <Button onClick={() => void handleSubmit()} disabled={inFlight || isPending}>
+            {inFlight || isPending ? t('common:saving') : t('common:save')}
           </Button>
         </DialogFooter>
       </DialogContent>

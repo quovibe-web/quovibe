@@ -5,30 +5,24 @@ import os from 'os';
 
 // ---------------------------------------------------------------------------
 // Test isolation: use a temp directory so tests never touch the real sidecar.
-// We mock the config module before importing the service so that DB_PATH
-// points to a file inside our temp dir.
+// We point QUOVIBE_DATA_DIR at a temp dir, then reset config's module-level
+// constants so SIDECAR_PATH resolves inside our tempDir.
 // ---------------------------------------------------------------------------
 
 let tempDir: string;
-let tempDbPath: string;
 let sidecarPath: string;
 
 beforeEach(() => {
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'quovibe-settings-test-'));
-  tempDbPath = path.join(tempDir, 'portfolio.db');
   sidecarPath = path.join(tempDir, 'quovibe.settings.json');
 
-  // Override DB_PATH before the service module is evaluated
+  process.env.QUOVIBE_DATA_DIR = tempDir;
   vi.resetModules();
-  vi.doMock('../../config', () => ({
-    DB_PATH: tempDbPath,
-    DB_BACKUP_MAX: 3,
-    SCHEMA_PATH: path.join(tempDir, 'schema.db'),
-  }));
 });
 
 afterEach(() => {
   vi.resetModules();
+  delete process.env.QUOVIBE_DATA_DIR;
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
 
@@ -251,57 +245,6 @@ describe('reportingPeriods round-trip', () => {
   });
 });
 
-describe('dashboards round-trip', () => {
-  test('stores and retrieves dashboards array and activeDashboard', async () => {
-    const { loadSettings, updateSettings, getSettings } = await importService();
-    loadSettings();
-
-    const dashboards = [
-      {
-        id: 'd1',
-        name: 'Main',
-        widgets: [{ id: 'w1', type: 'ttwror', title: null, span: 1 as const, config: {} }],
-        columns: 'auto' as const,
-      },
-    ];
-
-    updateSettings({ dashboards, activeDashboard: 'd1' });
-
-    const settings = getSettings();
-    expect(settings.dashboards).toHaveLength(1);
-    expect(settings.dashboards[0].name).toBe('Main');
-    expect(settings.activeDashboard).toBe('d1');
-  });
-
-  test('allows setting activeDashboard to null', async () => {
-    const { loadSettings, updateSettings, getSettings } = await importService();
-    loadSettings();
-
-    updateSettings({ activeDashboard: 'd1' });
-    expect(getSettings().activeDashboard).toBe('d1');
-
-    updateSettings({ activeDashboard: null });
-    expect(getSettings().activeDashboard).toBeNull();
-  });
-
-  test('preserves dashboards when updating preferences', async () => {
-    const { loadSettings, updateSettings, getSettings } = await importService();
-    loadSettings();
-
-    updateSettings({
-      dashboards: [{ id: 'd1', name: 'Test', widgets: [], columns: 'auto' as const }],
-      activeDashboard: 'd1',
-    });
-
-    updateSettings({ preferences: { language: 'fr' } });
-
-    const settings = getSettings();
-    expect(settings.dashboards).toHaveLength(1);
-    expect(settings.activeDashboard).toBe('d1');
-    expect(settings.preferences.language).toBe('fr');
-  });
-});
-
 describe('tableLayouts round-trip', () => {
   test('stores and retrieves tableLayouts for a tableId', async () => {
     const { loadSettings, updateSettings, getSettings } = await importService();
@@ -362,5 +305,22 @@ describe('updatePreferences — defaultDataSeriesTaxonomyId round-trip', () => {
     loadSettings();
 
     expect(getSettings().preferences.defaultDataSeriesTaxonomyId).toBeUndefined();
+  });
+});
+
+describe('updateSettings — allocationView', () => {
+  test('partial-merges allocationView.chartMode', async () => {
+    const { loadSettings, updateSettings, getSettings } = await importService();
+    loadSettings();
+
+    const before = getSettings();
+    expect(before.allocationView.chartMode).toBe('pie');
+
+    updateSettings({ allocationView: { chartMode: 'treemap' } });
+
+    const after = getSettings();
+    expect(after.allocationView.chartMode).toBe('treemap');
+    // Sibling namespaces are untouched
+    expect(after.investmentsView).toEqual(before.investmentsView);
   });
 });

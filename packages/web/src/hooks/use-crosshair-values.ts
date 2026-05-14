@@ -18,6 +18,7 @@ export function useCrosshairValues(
     const values = new Map<string, string>();
     if (param.time) {
       for (const item of items) {
+        if (item.series === null) continue; // empty-data series: no chart line, skip crosshair lookup
         const data = param.seriesData.get(item.series);
         if (data) {
           const val = 'value' in data ? (data as { value: number }).value

@@ -1,0 +1,11 @@
+{
+  "preferences": {
+    "title": "Preferencias",
+    "subtitle": "Preferencias personales"
+  },
+  "updates": {
+    "title": "Actualizaciones",
+    "autoFetchLabel": "Actualizar precios automáticamente al abrir cada cartera por primera vez",
+    "autoFetchHint": "Desactivado por defecto para evitar consumir la cuota de API de Yahoo / AlphaVantage en reinicios de contenedor. Actívalo si deseas precios actualizados cada vez que abres una cartera en un nuevo proceso."
+  }
+}

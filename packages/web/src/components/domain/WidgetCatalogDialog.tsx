@@ -23,7 +23,6 @@ interface WidgetCatalogDialogProps {
 const CATEGORIES: Array<WidgetCategory | 'all'> = [
   'all',
   'performance',
-  'reports',
   'chart',
   'risk',
   'info',
@@ -153,10 +152,13 @@ export function WidgetCatalogDialog({ open, onClose, onAdd }: WidgetCatalogDialo
                 {filtered.map((def) => {
                   const Icon = def.icon ?? LayoutDashboard;
                   const isSelected = effectiveType === def.type;
+                  const label = t(def.i18nKey);
                   return (
                     <button
                       key={def.type}
                       onClick={() => setSelectedWidgetType(def.type)}
+                      title={label}
+                      aria-label={label}
                       className={cn(
                         'flex flex-col items-center justify-center gap-1.5 p-3 rounded-lg border cursor-pointer transition-colors',
                         isSelected
@@ -166,7 +168,7 @@ export function WidgetCatalogDialog({ open, onClose, onAdd }: WidgetCatalogDialo
                     >
                       <Icon className="h-7 w-7 text-muted-foreground shrink-0" />
                       <span className="text-xs text-center truncate w-full">
-                        {t(def.i18nKey)}
+                        {label}
                       </span>
                     </button>
                   );
@@ -177,7 +179,7 @@ export function WidgetCatalogDialog({ open, onClose, onAdd }: WidgetCatalogDialo
 
           {/* Right column — Preview panel */}
           <div className="hidden sm:flex flex-col h-full w-56 shrink-0 border-l border-border p-4">
-            {selectedDef ? (
+            {selectedDef && (
               <>
                 {/* Top: category + title */}
                 <div>
@@ -208,12 +210,6 @@ export function WidgetCatalogDialog({ open, onClose, onAdd }: WidgetCatalogDialo
                   {t('catalog.addToDashboard')}
                 </Button>
               </>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-sm text-muted-foreground">
-                  {t('catalog.noResults')}
-                </p>
-              </div>
             )}
           </div>
         </div>

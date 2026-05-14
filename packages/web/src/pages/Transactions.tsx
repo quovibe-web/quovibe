@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useNavTitle } from '@/hooks/useNavTitle';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ListX, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { ListX, MoreHorizontal, Pencil, Trash2, Upload } from 'lucide-react';
 import { dateColumnMeta, textColumnMeta, currencyColumnMeta, sharesColumnMeta } from '@/lib/column-factories';
 import { type ColumnVisibilityGroup } from '@/components/shared/DataTable';
 import { TableToolbar } from '@/components/shared/TableToolbar';
@@ -43,11 +44,11 @@ import {
 import { DataTable } from '@/components/shared/DataTable';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { SharesDisplay } from '@/components/shared/SharesDisplay';
-import { useTransactions, useDeleteTransaction } from '@/api/use-transactions';
+import { useTransactions, useDeleteTransaction, useExportTransactions } from '@/api/use-transactions';
 import { EditRemovalDialog } from '@/components/domain/EditRemovalDialog';
 import { EditBuyDialog } from '@/components/domain/EditBuyDialog';
 import { EditSellDialog } from '@/components/domain/EditSellDialog';
-import { EditTransferOutboundDialog } from '@/components/domain/EditTransferOutboundDialog';
+import { EditTransferDialog } from '@/components/domain/EditTransferDialog';
 import { EditTaxRefundDialog } from '@/components/domain/EditTaxRefundDialog';
 import { EditCashDialog } from '@/components/domain/EditCashDialog';
 import { EditDeliveryDialog } from '@/components/domain/EditDeliveryDialog';
@@ -74,9 +75,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { TransactionForm, type TransactionFormValues } from '@/components/domain/TransactionForm';
 import { TypeBadge } from '@/components/shared/TypeBadge';
 import { AccountAvatar } from '@/components/shared/AccountAvatar';
+import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
 import { useCreateTransaction } from '@/api/use-transactions';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { preparePayload } from '@/lib/transaction-payload';
 import { getTransactionCashflowSign } from '@/lib/transaction-display';
+import { usePortfolio } from '@/context/PortfolioContext';
 
 function NoteCell({ value }: { value: string | null }) {
   if (!value) return null;
@@ -88,7 +92,7 @@ function NoteCell({ value }: { value: string | null }) {
       <TooltipProvider delayDuration={200}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="text-muted-foreground text-xs cursor-help">{display}</span>
+            <span className="text-[var(--qv-text-secondary)] text-xs cursor-help">{display}</span>
           </TooltipTrigger>
           <TooltipContent side="top">
             <p className="max-w-xs text-xs">{value}</p>
@@ -98,14 +102,13 @@ function NoteCell({ value }: { value: string | null }) {
     );
   }
 
-  return <span className="text-muted-foreground text-xs">{value}</span>;
+  return <span className="text-[var(--qv-text-secondary)] text-xs">{value}</span>;
 }
 
 function buildColumns(
   onDelete: (uuid: string) => void,
   onEdit: (row: TransactionListItem) => void,
   t: (key: string, opts?: Record<string, unknown>) => string,
-  tCommon: (key: string, opts?: Record<string, unknown>) => string,
   logoMap: Map<string, string>,
   accountLogoMap: Map<string, string>,
 ): ColumnDef<TransactionListItem>[] {
@@ -127,7 +130,7 @@ function buildColumns(
         return (
           <div>
             <span>{formatted}</span>
-            {rel && <span className="text-muted-foreground text-[10px] ml-1.5">{rel}</span>}
+            {rel && <span className="qv-eyebrow ml-1.5">{rel}</span>}
           </div>
         );
       },
@@ -177,13 +180,9 @@ function buildColumns(
         if (!name) return '—';
         const logo = logoMap.get(row.original.securityId ?? '');
         return (
-          <div className="flex items-center gap-2">
-            {logo ? (
-              <img src={logo} alt="" className="h-5 w-5 rounded-md object-contain shrink-0" />
-            ) : (
-              <div className="h-5 w-5 shrink-0" />
-            )}
-            <span className="font-medium">{name}</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <SecurityAvatar name={name} logoUrl={logo} size="xs" />
+            <span className="font-medium truncate">{name}</span>
           </div>
         );
       },
@@ -206,6 +205,7 @@ function buildColumns(
               currency={row.original.currencyCode}
               colorize={sign !== 0}
               colorSign={sign !== 0 ? sign : undefined}
+              className="qv-numeric"
             />
           </div>
         );
@@ -219,7 +219,7 @@ function buildColumns(
       header: t('columns.shares'),
       cell: ({ getValue }) => (
         <div className="text-right">
-          <SharesDisplay value={getValue<string | null>()} className="text-sm" />
+          <SharesDisplay value={getValue<string | null>()} className="qv-numeric text-sm" />
         </div>
       ),
     },
@@ -237,6 +237,10 @@ function buildColumns(
               size="icon"
               className="h-7 w-7"
               onClick={(e) => e.stopPropagation()}
+              aria-label={t('a11y.rowActions', {
+                type: t('types.' + txTypeKey(row.original.type)),
+                date: formatDate(row.original.date),
+              })}
             >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
@@ -274,14 +278,16 @@ const PAGE_SIZE = 25;
 export default function Transactions() {
   const { t } = useTranslation('transactions');
   const { t: tCommon } = useTranslation('common');
+  const portfolio = usePortfolio();
+  useNavTitle('transactions');
   const [searchParams, setSearchParams] = useSearchParams();
   const periodStart = searchParams.get('periodStart');
   const periodEnd = searchParams.get('periodEnd');
 
   const [showRetired, setShowRetired] = useState(false);
-  const [typeFilter, setTypeFilter] = useState('ALL');
-  const [accountFilter, setAccountFilter] = useState('ALL');
-  const [securityFilter, setSecurityFilter] = useState('ALL');
+  const typeFilter = searchParams.get('type') ?? 'ALL';
+  const accountFilter = searchParams.get('account') ?? 'ALL';
+  const securityFilter = searchParams.get('security') ?? 'ALL';
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<TransactionListItem | null>(null);
@@ -290,8 +296,20 @@ export default function Transactions() {
   const [newTxType, setNewTxType] = useState<TransactionType>(TransactionType.BUY);
   const newTxFormRef = useRef<HTMLFormElement>(null);
   const createMutation = useCreateTransaction();
+  const { run: handleNewTxSubmit, inFlight: createInFlight } = useGuardedSubmit(
+    async (values: TransactionFormValues) => {
+      try {
+        await createMutation.mutateAsync(preparePayload(values));
+        toast.success(tCommon('toasts.transactionCreated'));
+        setNewSheetOpen(false);
+      } catch {
+        // Global MutationCache error toast handles user-visible feedback.
+      }
+    },
+  );
 
   const deleteMutation = useDeleteTransaction();
+  const fetchAllTransactions = useExportTransactions();
 
   const columnVisibilityGroups = useMemo<ColumnVisibilityGroup[]>(() => [
     { label: t('columnGroups.core'), columns: ['date', 'type', 'securityName', 'accountName'] },
@@ -366,13 +384,23 @@ export default function Transactions() {
 
   const hasActiveFilters = typeFilter !== 'ALL' || accountFilter !== 'ALL' || securityFilter !== 'ALL' || !!search;
 
-  function handleFilterChange(setter: (v: string) => void) {
-    return (v: string) => { setter(v); setPage(1); };
+  function handleFilterChange(paramKey: 'type' | 'account' | 'security') {
+    const current = searchParams.get(paramKey) ?? 'ALL';
+    return (v: string) => {
+      if (v === current) return;
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        if (v === 'ALL') next.delete(paramKey);
+        else next.set(paramKey, v);
+        return next;
+      }, { replace: true });
+      setPage(1);
+    };
   }
 
   const columns = useMemo(
-    () => buildColumns(setDeleteTarget, setEditTarget, t, tCommon, logoMap, accountLogoMap),
-    [t, tCommon, logoMap, accountLogoMap],
+    () => buildColumns(setDeleteTarget, setEditTarget, t, logoMap, accountLogoMap),
+    [t, logoMap, accountLogoMap],
   );
 
   function handleConfirmDelete() {
@@ -383,26 +411,22 @@ export default function Transactions() {
         setDeleteTarget(null);
       },
       onError: () => {
-        toast.error(tCommon('toasts.errorDeleting'));
         setDeleteTarget(null);
       },
     });
   }
 
   function clearAllFilters() {
-    setTypeFilter('ALL');
-    setAccountFilter('ALL');
-    setSecurityFilter('ALL');
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.delete('type');
+      next.delete('account');
+      next.delete('security');
+      next.delete('search');
+      return next;
+    }, { replace: true });
     setSearchInput('');
-  }
-
-  function handleNewTxSubmit(values: TransactionFormValues) {
-    createMutation.mutate(preparePayload(values), {
-      onSuccess: () => {
-        toast.success(tCommon('toasts.transactionCreated'));
-        setNewSheetOpen(false);
-      },
-    });
+    setPage(1);
   }
 
   return (
@@ -410,7 +434,17 @@ export default function Transactions() {
       <PageHeader
         title={t('title')}
         subtitle={t('subtitle')}
-        actions={<Button size="sm" onClick={() => setNewSheetOpen(true)}>{t('actions.new')}</Button>}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" asChild>
+              <Link to={`/p/${portfolio.id}/import/csv`}>
+                <Upload className="h-4 w-4 mr-1.5" />
+                {t('actions.importCsv')}
+              </Link>
+            </Button>
+            <Button size="sm" onClick={() => setNewSheetOpen(true)}>{t('actions.new')}</Button>
+          </div>
+        }
       />
 
       <TableToolbar
@@ -420,7 +454,7 @@ export default function Transactions() {
         enableReset={hasActiveFilters}
         onReset={clearAllFilters}
       >
-        <Select value={typeFilter} onValueChange={handleFilterChange(setTypeFilter)}>
+        <Select value={typeFilter} onValueChange={handleFilterChange('type')}>
           <SelectTrigger className="w-44">
             <SelectValue placeholder={t('columns.type')} />
           </SelectTrigger>
@@ -433,7 +467,7 @@ export default function Transactions() {
           </SelectContent>
         </Select>
 
-        <Select value={accountFilter} onValueChange={handleFilterChange(setAccountFilter)}>
+        <Select value={accountFilter} onValueChange={handleFilterChange('account')}>
           <SelectTrigger className="w-44">
             <SelectValue placeholder={t('columns.account')} />
           </SelectTrigger>
@@ -445,7 +479,7 @@ export default function Transactions() {
           </SelectContent>
         </Select>
 
-        <Select value={securityFilter} onValueChange={handleFilterChange(setSecurityFilter)}>
+        <Select value={securityFilter} onValueChange={handleFilterChange('security')}>
           <SelectTrigger className="w-44">
             <SelectValue placeholder={t('columns.security')} />
           </SelectTrigger>
@@ -457,13 +491,13 @@ export default function Transactions() {
           </SelectContent>
         </Select>
 
-        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+        <Label className="cursor-pointer font-normal">
           <Checkbox
             checked={showRetired}
             onCheckedChange={(v) => setShowRetired(v === true)}
           />
           {tCommon('showRetired')}
-        </label>
+        </Label>
 
 
       </TableToolbar>
@@ -483,7 +517,7 @@ export default function Transactions() {
         onOpenChange={(open) => { if (!open) setEditTarget(null); }}
         transaction={editTarget}
       />
-      <EditTransferOutboundDialog
+      <EditTransferDialog
         open={!!editTarget && editTarget.type === 'TRANSFER_BETWEEN_ACCOUNTS'}
         onOpenChange={(open) => { if (!open) setEditTarget(null); }}
         transaction={editTarget}
@@ -520,7 +554,7 @@ export default function Transactions() {
           <AlertDialogFooter>
             <AlertDialogCancel>{tCommon('deleteConfirm.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-[var(--qv-danger)] text-white hover:bg-[var(--qv-danger)]/90"
               onClick={handleConfirmDelete}
             >
               {tCommon('deleteConfirm.confirm')}
@@ -559,10 +593,13 @@ export default function Transactions() {
           enableColumnVisibility
           columnVisibilityGroups={columnVisibilityGroups}
           enableExport
+          exportFetcher={() =>
+            fetchAllTransactions(filters) as Promise<TransactionListItem[]>
+          }
         />
         )}
         {!isLoading && transactions.length > 0 && (
-          <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
+          <div className="flex items-center justify-between text-sm text-[var(--qv-text-secondary)] mt-2">
             <span>
               {tCommon('pagination.showing', {
                 from: (page - 1) * PAGE_SIZE + 1,
@@ -612,12 +649,12 @@ export default function Transactions() {
         <SheetContent side="right" className="sm:max-w-lg w-full flex flex-col">
           <SheetHeader>
             <SheetTitle>{t('newTransaction')}</SheetTitle>
-            <SheetDescription>{t('subtitle')}</SheetDescription>
+            <SheetDescription>{t('newTransactionDescription')}</SheetDescription>
           </SheetHeader>
           <div className="px-4 pb-2">
-            <Label className="mb-1.5 block">{t('transactionType')}</Label>
+            <Label htmlFor="new-tx-type" className="mb-1.5 block">{t('transactionType')}</Label>
             <Select value={newTxType} onValueChange={(v) => setNewTxType(v as TransactionType)}>
-              <SelectTrigger>
+              <SelectTrigger id="new-tx-type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -632,18 +669,19 @@ export default function Transactions() {
               key={newTxType}
               type={newTxType}
               onSubmit={handleNewTxSubmit}
-              isSubmitting={createMutation.isPending}
+              isSubmitting={createInFlight || createMutation.isPending}
               hideSubmitButton
               formRef={newTxFormRef}
+              serverError={createMutation.error}
             />
           </ScrollArea>
-          <SheetFooter className="border-t px-4 py-3 flex-row justify-end gap-2">
+          <SheetFooter className="border-t border-[var(--qv-border-subtle)] px-4 py-3 flex-row justify-end gap-2">
             <Button variant="outline" onClick={() => setNewSheetOpen(false)}>
               {t('common:cancel')}
             </Button>
             <Button
               onClick={() => newTxFormRef.current?.requestSubmit()}
-              disabled={createMutation.isPending}
+              disabled={createInFlight || createMutation.isPending}
             >
               {createMutation.isPending ? t('common:saving') : t('common:save')}
             </Button>

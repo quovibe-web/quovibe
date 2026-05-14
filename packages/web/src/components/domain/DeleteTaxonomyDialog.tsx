@@ -11,6 +11,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { useDeleteTaxonomy } from '@/api/use-taxonomy-mutations';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
+import { usePortfolio } from '@/context/PortfolioContext';
 
 interface Props {
   open: boolean;
@@ -22,17 +24,19 @@ interface Props {
 export function DeleteTaxonomyDialog({ open, onOpenChange, taxonomyId, taxonomyName }: Props) {
   const { t } = useTranslation('reports');
   const navigate = useNavigate();
+  const portfolio = usePortfolio();
   const deleteMutation = useDeleteTaxonomy();
 
-  async function handleDelete() {
+  // Save-button re-entry guard: see frontend.md "Save-button re-entry guard".
+  const { run: handleDelete, inFlight } = useGuardedSubmit(async () => {
     try {
       await deleteMutation.mutateAsync(taxonomyId);
       onOpenChange(false);
-      navigate('/allocation');
+      navigate(`/p/${portfolio.id}/allocation`);
     } catch {
       toast.error(t('taxonomyManagement.deleteError'));
     }
-  }
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -52,7 +56,7 @@ export function DeleteTaxonomyDialog({ open, onOpenChange, taxonomyId, taxonomyN
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t('common:cancel')}
           </Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
+          <Button variant="destructive" onClick={() => void handleDelete()} disabled={inFlight || deleteMutation.isPending}>
             {t('taxonomyManagement.deleteTaxonomy')}
           </Button>
         </DialogFooter>

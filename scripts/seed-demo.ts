@@ -1,19 +1,27 @@
 /**
  * seed-demo.ts — Generate a screenshot-ready demo database.
- * Usage: npx tsx scripts/seed-demo.ts
- * Output: data/demo.db + data/demo.settings.json (also copied to portfolio.db + quovibe.settings.json)
+ *
+ * Usage:   npx tsx scripts/seed-demo.ts
+ * Output:  data/demo.db
+ *
+ * Under ADR-015 this file is a bootstrap ARTIFACT, not a live portfolio. The
+ * Docker build copies it to `/app/assets/demo.db`; the API clones it to
+ * `data/portfolio-demo.db` the first time a user selects "Try demo" from the
+ * Welcome page. Schema is applied via `applyBootstrap` so the demo DB uses the
+ * exact same DDL as every other portfolio (single source of truth).
  */
 import Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
 import { format, isWeekend, eachDayOfInterval } from 'date-fns';
 import * as fs from 'fs';
 import * as path from 'path';
+import { applyBootstrap } from '../packages/api/src/db/apply-bootstrap';
+import { CURRENT_VERSION as WIDGETS_SCHEMA_VERSION } from '../packages/api/src/services/widget-migrations';
 
 const ROOT = path.resolve(__dirname, '..');
 const DB_OUT = path.join(ROOT, 'data/demo.db');
-const SETTINGS_OUT = path.join(ROOT, 'data/demo.settings.json');
 
-// Remove existing
+// Remove existing (plus WAL sidecars in case of a prior crashed run)
 if (fs.existsSync(DB_OUT)) fs.unlinkSync(DB_OUT);
 if (fs.existsSync(DB_OUT + '-shm')) fs.unlinkSync(DB_OUT + '-shm');
 if (fs.existsSync(DB_OUT + '-wal')) fs.unlinkSync(DB_OUT + '-wal');
@@ -54,243 +62,105 @@ function nextOrder(): number { return orderCounter++; }
 const now = ts();
 
 // ---------------------------------------------------------------------------
-// 1. DDL
+// 1. DDL — applied from bootstrap.sql (single source of truth, ADR-015 §3.5)
 // ---------------------------------------------------------------------------
-db.exec(`
-CREATE TABLE account(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  uuid VARCHAR(36) NOT NULL UNIQUE,
-  type VARCHAR(10) NOT NULL,
-  name VARCHAR(128),
-  referenceAccount VARCHAR(36) REFERENCES account(uuid),
-  currency VARCHAR(16),
-  note TEXT,
-  isRetired INT NOT NULL DEFAULT 0,
-  updatedAt VARCHAR(64) NOT NULL,
-  _xmlid INT NOT NULL,
-  _order INT NOT NULL
-);
-CREATE TABLE account_attr(
-  account VARCHAR(36) NOT NULL REFERENCES account(uuid),
-  attr_uuid VARCHAR(36) NOT NULL,
-  type VARCHAR(32) NOT NULL,
-  value TEXT,
-  seq INT NOT NULL DEFAULT 0
-);
-CREATE TABLE attribute_type(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  id VARCHAR(64) NOT NULL,
-  name VARCHAR(64) NOT NULL,
-  columnLabel VARCHAR(64) NOT NULL,
-  source VARCHAR(128),
-  target VARCHAR(128) NOT NULL,
-  type VARCHAR(128) NOT NULL,
-  converterClass VARCHAR(128) NOT NULL,
-  props_json TEXT
-);
-CREATE TABLE bookmark(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  label VARCHAR(64) NOT NULL,
-  pattern VARCHAR(256) NOT NULL
-);
-CREATE TABLE config_entry(
-  config_set INT NOT NULL REFERENCES config_set(_id),
-  uuid VARCHAR(255),
-  name VARCHAR(255),
-  data TEXT
-);
-CREATE TABLE config_set(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  name VARCHAR(64) NOT NULL
-);
-CREATE TABLE dashboard(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  id VARCHAR(64) NOT NULL,
-  name VARCHAR(64) NOT NULL,
-  config_json TEXT NOT NULL,
-  columns_json TEXT NOT NULL
-);
-CREATE TABLE latest_price(
-  security VARCHAR(36) NOT NULL REFERENCES security(uuid),
-  tstamp VARCHAR(32) NOT NULL,
-  value BIGINT NOT NULL,
-  open BIGINT,
-  high BIGINT,
-  low BIGINT,
-  volume BIGINT
-);
-CREATE TABLE price(
-  security VARCHAR(36) NOT NULL REFERENCES security(uuid),
-  tstamp VARCHAR(32) NOT NULL,
-  value BIGINT NOT NULL,
-  open BIGINT,
-  high BIGINT,
-  low BIGINT,
-  volume BIGINT
-);
-CREATE TABLE property(
-  name VARCHAR(64) NOT NULL,
-  special INT NOT NULL DEFAULT 0,
-  value TEXT NOT NULL
-);
-CREATE TABLE security(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  uuid VARCHAR(36) NOT NULL UNIQUE,
-  onlineId VARCHAR(64),
-  name VARCHAR(255),
-  currency VARCHAR(16),
-  targetCurrency VARCHAR(16),
-  note TEXT,
-  isin VARCHAR(16),
-  tickerSymbol VARCHAR(32),
-  calendar VARCHAR(32),
-  wkn VARCHAR(32),
-  feedTickerSymbol VARCHAR(32),
-  feed VARCHAR(32),
-  feedURL VARCHAR(512),
-  latestFeed VARCHAR(32),
-  latestFeedURL VARCHAR(512),
-  isRetired INT NOT NULL DEFAULT 0,
-  updatedAt VARCHAR(64) NOT NULL
-);
-CREATE TABLE security_attr(
-  security VARCHAR(36) NOT NULL REFERENCES security(uuid),
-  attr_uuid VARCHAR(36) NOT NULL,
-  type VARCHAR(32) NOT NULL,
-  value TEXT,
-  seq INT NOT NULL DEFAULT 0
-);
-CREATE TABLE security_event(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  security VARCHAR(36) NOT NULL REFERENCES security(uuid),
-  date VARCHAR(36) NOT NULL,
-  type VARCHAR(32) NOT NULL,
-  details TEXT
-);
-CREATE TABLE security_prop(
-  security VARCHAR(36) NOT NULL REFERENCES security(uuid),
-  type VARCHAR(32) NOT NULL,
-  name VARCHAR(36) NOT NULL,
-  value TEXT,
-  seq INT NOT NULL DEFAULT 0
-);
-CREATE TABLE taxonomy(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  uuid VARCHAR(36) NOT NULL UNIQUE,
-  name VARCHAR(100) NOT NULL,
-  root VARCHAR(36) NOT NULL
-);
-CREATE TABLE taxonomy_assignment(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  taxonomy VARCHAR(36) NOT NULL REFERENCES taxonomy(uuid),
-  category VARCHAR(36) NOT NULL REFERENCES taxonomy_category(uuid),
-  item_type VARCHAR(32) NOT NULL,
-  item VARCHAR(36) NOT NULL,
-  weight INT NOT NULL DEFAULT 10000,
-  rank INT NOT NULL DEFAULT 0
-);
-CREATE TABLE taxonomy_assignment_data(
-  assignment INT NOT NULL REFERENCES taxonomy_assignment(_id),
-  name VARCHAR(64) NOT NULL,
-  type VARCHAR(64) NOT NULL,
-  value VARCHAR(256) NOT NULL
-);
-CREATE TABLE taxonomy_category(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  uuid VARCHAR(36) NOT NULL UNIQUE,
-  taxonomy VARCHAR(36) NOT NULL REFERENCES taxonomy(uuid),
-  parent VARCHAR(36) REFERENCES taxonomy_category(uuid),
-  name VARCHAR(100) NOT NULL,
-  color VARCHAR(100) NOT NULL,
-  weight INT NOT NULL,
-  rank INT NOT NULL
-);
-CREATE TABLE taxonomy_data(
-  taxonomy VARCHAR(36) NOT NULL REFERENCES taxonomy(uuid),
-  category VARCHAR(36) REFERENCES taxonomy_category(uuid),
-  name VARCHAR(64) NOT NULL,
-  type VARCHAR(64) NOT NULL DEFAULT '',
-  value VARCHAR(256) NOT NULL
-);
-CREATE TABLE watchlist(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  name VARCHAR(64) NOT NULL,
-  _order INT NOT NULL
-);
-CREATE TABLE watchlist_security(
-  list INT NOT NULL REFERENCES watchlist(_id),
-  security VARCHAR(36) NOT NULL REFERENCES security(uuid)
-);
-CREATE TABLE xact(
-  _id INTEGER NOT NULL PRIMARY KEY,
-  uuid VARCHAR(36) NOT NULL UNIQUE,
-  acctype VARCHAR(10) NOT NULL,
-  account VARCHAR(36) NOT NULL REFERENCES account(uuid),
-  date VARCHAR(32) NOT NULL,
-  currency VARCHAR(16) NOT NULL,
-  amount BIGINT NOT NULL,
-  security VARCHAR(36) REFERENCES security(uuid),
-  shares BIGINT NOT NULL,
-  note TEXT,
-  source VARCHAR(255),
-  updatedAt VARCHAR(64) NOT NULL,
-  type VARCHAR(20) NOT NULL,
-  fees BIGINT NOT NULL DEFAULT 0,
-  taxes BIGINT NOT NULL DEFAULT 0,
-  _xmlid INT NOT NULL,
-  _order INT NOT NULL
-);
-CREATE TABLE xact_cross_entry(
-  type VARCHAR(32) NOT NULL,
-  from_acc VARCHAR(36) REFERENCES account(uuid),
-  from_xact VARCHAR(36) REFERENCES xact(uuid),
-  to_acc VARCHAR(36) NOT NULL REFERENCES account(uuid),
-  to_xact VARCHAR(36) NOT NULL REFERENCES xact(uuid)
-);
-CREATE TABLE xact_unit(
-  xact VARCHAR(36) NOT NULL REFERENCES xact(uuid),
-  type VARCHAR(16) NOT NULL,
-  amount BIGINT NOT NULL,
-  currency VARCHAR(16) NOT NULL,
-  forex_amount BIGINT,
-  forex_currency VARCHAR(16),
-  exchangeRate VARCHAR(16)
-);
-CREATE TABLE csv_import_config(
-  id VARCHAR(36) NOT NULL PRIMARY KEY,
-  name VARCHAR(128) NOT NULL,
-  type VARCHAR(16) NOT NULL,
-  config TEXT NOT NULL,
-  createdAt VARCHAR(64) NOT NULL,
-  updatedAt VARCHAR(64) NOT NULL
-);
-`);
+applyBootstrap(db);
+console.log('[DDL] bootstrap.sql applied');
 
-console.log('[DDL] Tables created');
+// ---------------------------------------------------------------------------
+// 1b. Portfolio metadata (vf_portfolio_meta) — required so the API's sidecar
+//     rebuild (§3.14) can auto-register the demo file when cloned into
+//     data/portfolio-demo.db on a fresh install.
+// ---------------------------------------------------------------------------
+const seedMeta = db.prepare('INSERT OR REPLACE INTO vf_portfolio_meta (key, value) VALUES (?, ?)');
+seedMeta.run('name', 'Demo Portfolio');
+seedMeta.run('createdAt', now);
+seedMeta.run('source', 'demo');
+seedMeta.run('schemaVersion', '1');
+console.log('[Meta] vf_portfolio_meta seeded');
+
+// ---------------------------------------------------------------------------
+// 1c. Default dashboard (vf_dashboard) — mirrors seedDefaultDashboard so a
+//     freshly cloned demo DB has a dashboard on first open.
+// ---------------------------------------------------------------------------
+const DEFAULT_DASHBOARD_ID = randomUUID();
+const RISK_DASHBOARD_ID = randomUUID();
+
+const insertDashboard = db.prepare(
+  `INSERT INTO vf_dashboard (id, name, position, widgets_json, schema_version, columns, createdAt, updatedAt)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+);
+
+insertDashboard.run(
+  DEFAULT_DASHBOARD_ID,
+  'Overview',
+  0,
+  JSON.stringify([
+    { id: 'w1', type: 'market-value',         title: null, span: 1, config: {} },
+    { id: 'w2', type: 'ttwror',               title: null, span: 1, config: {} },
+    { id: 'w3', type: 'irr',                  title: null, span: 1, config: {} },
+    { id: 'w4', type: 'delta',                title: null, span: 1, config: {} },
+    { id: 'w5', type: 'absolute-performance', title: null, span: 1, config: {} },
+    { id: 'w6', type: 'invested-capital',     title: null, span: 1, config: {} },
+    { id: 'w7', type: 'perf-chart',           title: null, span: 3, config: {} },
+    { id: 'w8', type: 'movers',               title: null, span: 2, config: {} },
+    { id: 'w9', type: 'top-holdings',         title: null, span: 1, config: {} },
+    { id: 'w10', type: 'watchlist',           title: null, span: 1, config: { options: { watchlistId: 1 } } },
+  ]),
+  WIDGETS_SCHEMA_VERSION,
+  3,
+  now,
+  now,
+);
+
+insertDashboard.run(
+  RISK_DASHBOARD_ID,
+  'Risk',
+  1,
+  JSON.stringify([
+    { id: 'r1', type: 'max-drawdown',      title: null, span: 1, config: {} },
+    { id: 'r2', type: 'current-drawdown',  title: null, span: 1, config: {} },
+    { id: 'r3', type: 'volatility',        title: null, span: 1, config: {} },
+    { id: 'r4', type: 'sharpe-ratio',      title: null, span: 1, config: { options: { riskFreeRate: 0 } } },
+    { id: 'r5', type: 'all-time-high',     title: null, span: 1, config: {} },
+    { id: 'r6', type: 'distance-from-ath', title: null, span: 1, config: {} },
+    { id: 'r7', type: 'drawdown-chart',    title: null, span: 3, config: {} },
+  ]),
+  WIDGETS_SCHEMA_VERSION,
+  3,
+  now,
+  now,
+);
+
+console.log('[Dashboards] 2 dashboards seeded (Overview + Risk)');
 
 // ---------------------------------------------------------------------------
 // 2. Accounts
 // ---------------------------------------------------------------------------
 const IB_CASH_ID = randomUUID();
+const IB_USD_CASH_ID = randomUUID();
 const IB_SEC_ID = randomUUID();
 const SC_CASH_ID = randomUUID();
 const SC_SEC_ID = randomUUID();
 const CASH_RESERVE_ID = randomUUID();
+const OLD_BANK_ID = randomUUID();
 
 const insertAccount = db.prepare(`
   INSERT INTO account(uuid, type, name, referenceAccount, currency, note, isRetired, updatedAt, _xmlid, _order)
-  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 db.transaction(() => {
-  insertAccount.run(IB_CASH_ID, 'account', 'Interactive Brokers (Cash)', null, 'EUR', null, now, nextXmlId(), nextOrder());
-  insertAccount.run(IB_SEC_ID, 'portfolio', 'Interactive Brokers (Securities)', IB_CASH_ID, null, null, now, nextXmlId(), nextOrder());
-  insertAccount.run(SC_CASH_ID, 'account', 'Scalable Capital (Cash)', null, 'EUR', null, now, nextXmlId(), nextOrder());
-  insertAccount.run(SC_SEC_ID, 'portfolio', 'Scalable Capital (Securities)', SC_CASH_ID, null, null, now, nextXmlId(), nextOrder());
-  insertAccount.run(CASH_RESERVE_ID, 'account', 'Cash Reserve', null, 'EUR', 'Emergency fund & savings', now, nextXmlId(), nextOrder());
+  insertAccount.run(IB_CASH_ID, 'account', 'Interactive Brokers (Cash)', null, 'EUR', null, 0, now, nextXmlId(), nextOrder());
+  insertAccount.run(IB_USD_CASH_ID, 'account', 'Interactive Brokers (USD Cash)', null, 'USD', 'Multi-currency sub-account', 0, now, nextXmlId(), nextOrder());
+  insertAccount.run(IB_SEC_ID, 'portfolio', 'Interactive Brokers (Securities)', IB_CASH_ID, null, null, 0, now, nextXmlId(), nextOrder());
+  insertAccount.run(SC_CASH_ID, 'account', 'Scalable Capital (Cash)', null, 'EUR', null, 0, now, nextXmlId(), nextOrder());
+  insertAccount.run(SC_SEC_ID, 'portfolio', 'Scalable Capital (Securities)', SC_CASH_ID, null, null, 0, now, nextXmlId(), nextOrder());
+  insertAccount.run(CASH_RESERVE_ID, 'account', 'Cash Reserve', null, 'EUR', 'Emergency fund & savings', 0, now, nextXmlId(), nextOrder());
+  insertAccount.run(OLD_BANK_ID, 'account', 'Old Checking (Closed)', null, 'EUR', 'Closed account — kept for historical reference', 1, now, nextXmlId(), nextOrder());
 })();
 
-console.log('[Accounts] 5 accounts inserted');
+console.log('[Accounts] 7 accounts inserted (incl. 1 USD sub-account, 1 retired)');
 
 // ---------------------------------------------------------------------------
 // 3. Properties
@@ -322,14 +192,20 @@ interface SecurityDef {
   dailyVol: number;
   portfolioId: string | null;
   depositId: string | null;
+  isRetired?: boolean;
+  currency: string;
+  note?: string | null;
 }
 
 function sec(
   name: string, ticker: string, isin: string, feedTicker: string,
   basePrice: number, targetReturn: number, dailyVol: number,
-  portfolioId: string | null, depositId: string | null
+  portfolioId: string | null, depositId: string | null,
+  isRetired = false,
+  currency = 'EUR',
+  note: string | null = null,
 ): SecurityDef {
-  return { uuid: randomUUID(), name, ticker, isin, feedTicker, basePrice, targetReturn, dailyVol, portfolioId, depositId };
+  return { uuid: randomUUID(), name, ticker, isin, feedTicker, basePrice, targetReturn, dailyVol, portfolioId, depositId, isRetired, currency, note };
 }
 
 // IB portfolio (8)
@@ -344,12 +220,21 @@ const SAP_SEC = sec('SAP SE', 'SAP.DE', 'DE0007164600', 'SAP.DE', 155, 0.35, 0.0
 
 // SC portfolio (7)
 const MSFT = sec('Microsoft Corp', 'MSFT.DE', 'US5949181045', 'MSFT.DE', 340, 0.18, 0.015, SC_SEC_ID, SC_CASH_ID);
-const NVDA = sec('NVIDIA Corp', 'NVDA.DE', 'US67066G1040', 'NVDA.DE', 55, 0.40, 0.025, SC_SEC_ID, SC_CASH_ID);
+const NVDA = sec('NVIDIA Corp', 'NVDA.DE', 'US67066G1040', 'NVDA.DE', 55, 0.40, 0.025, SC_SEC_ID, SC_CASH_ID, false, 'EUR', 'Speculative AI position — review quarterly.');
 const MC = sec('LVMH', 'MC.PA', 'FR0000121014', 'MC.PA', 780, 0.06, 0.013, SC_SEC_ID, SC_CASH_ID);
 const ALV = sec('Allianz SE', 'ALV.DE', 'DE0008404005', 'ALV.DE', 245, 0.12, 0.011, SC_SEC_ID, SC_CASH_ID);
 const IQQH = sec('iShares Global Clean Energy', 'IQQH.DE', 'IE00B1XNHC34', 'IQQH.DE', 9.50, -0.15, 0.020, SC_SEC_ID, SC_CASH_ID);
 const CJ1 = sec('Amundi MSCI Japan', 'CJ1.PA', 'LU1781541179', 'CJ1.PA', 245, -0.05, 0.012, SC_SEC_ID, SC_CASH_ID);
 const DTE = sec('Deutsche Telekom', 'DTE.DE', 'DE0005557508', 'DTE.DE', 22, 0.08, 0.010, SC_SEC_ID, SC_CASH_ID);
+
+// IB portfolio — USD-denominated security (cross-currency demo).
+const TSLA = sec(
+  'Tesla Inc', 'TSLA', 'US88160R1014', 'TSLA',
+  220, 0.05, 0.030,
+  IB_SEC_ID, IB_USD_CASH_ID,
+  false, 'USD',
+  'Speculative single-stock position — review quarterly.',
+);
 
 // Watchlist-only (6)
 const NOVO = sec('Novo Nordisk', 'NOVO-B.CO', 'DK0062498333', 'NOVO-B.CO', 780, 0.10, 0.018, null, null);
@@ -357,25 +242,24 @@ const TSM = sec('Taiwan Semiconductor', 'TSM.DE', 'US8740391003', 'TSM.DE', 140,
 const GOOGL = sec('Alphabet Inc', 'GOOGL.DE', 'US02079K3059', 'GOOGL.DE', 135, 0.15, 0.016, null, null);
 const AMZN = sec('Amazon.com', 'AMZN.DE', 'US0231351067', 'AMZN.DE', 150, 0.20, 0.017, null, null);
 const BTCE = sec('BTCetc Bitcoin ETP', 'BTCE.DE', 'DE000A27Z304', 'BTCE.DE', 55, 0.30, 0.035, null, null);
-const ZETH = sec('CoinShares Ether ETP', 'ZETH.DE', 'GB00BLD4ZL17', 'ZETH.DE', 12, 0.15, 0.040, null, null);
+const ZETH = sec('CoinShares Ether ETP', 'ZETH.DE', 'GB00BLD4ZL17', 'ZETH.DE', 12, 0.15, 0.040, null, null, true);
 
 const ALL_SECURITIES: SecurityDef[] = [
   VWCE, IWDA, SXR8, EIMI, XBLC, AAPL, ASML, SAP_SEC,
   MSFT, NVDA, MC, ALV, IQQH, CJ1, DTE,
+  TSLA,
   NOVO, TSM, GOOGL, AMZN, BTCE, ZETH
 ];
-
-const HELD_SECURITIES = ALL_SECURITIES.filter(s => s.portfolioId !== null);
 
 const insertSecurity = db.prepare(`
   INSERT INTO security(uuid, onlineId, name, currency, targetCurrency, note, isin, tickerSymbol, calendar, wkn,
     feedTickerSymbol, feed, feedURL, latestFeed, latestFeedURL, isRetired, updatedAt)
-  VALUES (?, ?, ?, 'EUR', NULL, NULL, ?, ?, NULL, NULL, ?, 'YAHOO', NULL, 'YAHOO', NULL, 0, ?)
+  VALUES (?, ?, ?, ?, NULL, ?, ?, ?, NULL, NULL, ?, 'YAHOO', NULL, 'YAHOO', NULL, ?, ?)
 `);
 
 db.transaction(() => {
   for (const s of ALL_SECURITIES) {
-    insertSecurity.run(s.uuid, s.feedTicker, s.name, s.isin, s.ticker, s.feedTicker, now);
+    insertSecurity.run(s.uuid, s.feedTicker, s.name, s.currency, s.note ?? null, s.isin, s.ticker, s.feedTicker, s.isRetired ? 1 : 0, now);
   }
 })();
 
@@ -398,13 +282,12 @@ const numDays = allTradingDays.length;
 // Map<secUUID, Map<dateStr, priceEUR>>
 const priceHistory = new Map<string, Map<string, number>>();
 
+// OHLC columns were removed from bootstrap.sql (ppxml2db schema parity).
 const insertPrice = db.prepare(`
-  INSERT INTO price(security, tstamp, value, open, high, low, volume)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO price(security, tstamp, value) VALUES (?, ?, ?)
 `);
 const insertLatestPrice = db.prepare(`
-  INSERT INTO latest_price(security, tstamp, value, open, high, low, volume)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO latest_price(security, tstamp, value) VALUES (?, ?, ?)
 `);
 
 db.transaction(() => {
@@ -424,13 +307,7 @@ db.transaction(() => {
       const dateStr = fmtDate(day);
       secPrices.set(dateStr, price);
 
-      // open: ±0.5% from close; high/low: +/- 1-2% from close
-      const open = Math.round((price * (1 + (seededRandom() - 0.5) * 0.01)) * 100) / 100;
-      const high = Math.round((price * (1 + seededRandom() * 0.02)) * 100) / 100;
-      const low = Math.round((price * (1 - seededRandom() * 0.02)) * 100) / 100;
-      const volume = Math.round(100000 + seededRandom() * 5000000);
-
-      insertPrice.run(sec.uuid, dateStr, price8(price), price8(open), price8(high), price8(low), volume);
+      insertPrice.run(sec.uuid, dateStr, price8(price));
     }
 
     priceHistory.set(sec.uuid, secPrices);
@@ -438,15 +315,26 @@ db.transaction(() => {
     // Latest price = last trading day
     const lastDay = fmtDate(allTradingDays[allTradingDays.length - 1]);
     const lastPrice = secPrices.get(lastDay)!;
-    const lastOpen = Math.round((lastPrice * 0.995) * 100) / 100;
-    const lastHigh = Math.round((lastPrice * 1.01) * 100) / 100;
-    const lastLow = Math.round((lastPrice * 0.99) * 100) / 100;
-    insertLatestPrice.run(sec.uuid, lastDay, price8(lastPrice), price8(lastOpen), price8(lastHigh), price8(lastLow),
-      Math.round(200000 + seededRandom() * 3000000));
+    insertLatestPrice.run(sec.uuid, lastDay, price8(lastPrice));
   }
 })();
 
-console.log(`[Prices] ${ALL_SECURITIES.length * numDays} price rows + ${ALL_SECURITIES.length} latest_price rows`);
+// Invariant: every latest_price row must share a tstamp with MAX(price.tstamp)
+// for its security. Orphans are dormant in the UI (effectiveLatestPrice in
+// securities.ts picks the newer historical close) but still wrong data — fail
+// loud at seed time so a future regression can't ship a polluted template.
+const latestPriceOrphans = db.prepare(`
+  SELECT s.name AS name, lp.tstamp AS lpTs,
+         (SELECT MAX(tstamp) FROM price WHERE security = s.uuid) AS histTs
+  FROM latest_price lp
+  JOIN security s ON s.uuid = lp.security
+  WHERE lp.tstamp != (SELECT MAX(tstamp) FROM price WHERE security = s.uuid)
+`).all();
+if (latestPriceOrphans.length > 0) {
+  throw new Error(`[Seed invariant] latest_price / price tstamp mismatch: ${JSON.stringify(latestPriceOrphans)}`);
+}
+
+console.log(`[Prices] ${ALL_SECURITIES.length * numDays} price rows + ${ALL_SECURITIES.length} latest_price rows (invariant checked)`);
 
 // ---------------------------------------------------------------------------
 // Helper: look up price from priceHistory, walking back up to 5 days for weekends
@@ -470,7 +358,7 @@ function lookupPrice(secUUID: string, dateStr: string): number {
 // ---------------------------------------------------------------------------
 const insertXact = db.prepare(`
   INSERT INTO xact(uuid, acctype, account, date, currency, amount, security, shares, note, source, updatedAt, type, fees, taxes, _xmlid, _order)
-  VALUES (?, ?, ?, ?, 'EUR', ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)
 `);
 const insertCrossEntry = db.prepare(`
   INSERT INTO xact_cross_entry(type, from_acc, from_xact, to_acc, to_xact)
@@ -478,21 +366,24 @@ const insertCrossEntry = db.prepare(`
 `);
 const insertXactUnit = db.prepare(`
   INSERT INTO xact_unit(xact, type, amount, currency, forex_amount, forex_currency, exchangeRate)
-  VALUES (?, ?, ?, 'EUR', NULL, NULL, NULL)
+  VALUES (?, ?, ?, ?, NULL, NULL, NULL)
 `);
-// insertXactUnit takes 3 params: xact uuid, type, amount
+const insertXactUnitForex = db.prepare(`
+  INSERT INTO xact_unit(xact, type, amount, currency, forex_amount, forex_currency, exchangeRate)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
+`);
 
 // ---------------------------------------------------------------------------
 // 6. Transactions — Deposits
 // ---------------------------------------------------------------------------
-function insertDeposit(accountId: string, dateStr: string, amountEur: number, note: string | null): void {
+function insertDeposit(accountId: string, dateStr: string, amountEur: number, note: string | null, currency = 'EUR'): void {
   const uuid = randomUUID();
-  insertXact.run(uuid, 'account', accountId, dateStr, hecto(amountEur), null, 0, note, now, 'DEPOSIT', 0, 0, nextXmlId(), nextOrder());
+  insertXact.run(uuid, 'account', accountId, dateStr, currency, hecto(amountEur), null, 0, note, now, 'DEPOSIT', 0, 0, nextXmlId(), nextOrder());
 }
 
 db.transaction(() => {
   // Initial deposits — Jan 2024
-  insertDeposit(IB_CASH_ID, '2024-01-03', 50000, 'Initial funding');
+  insertDeposit(IB_CASH_ID, '2024-01-03', 60000, 'Initial funding');
   insertDeposit(SC_CASH_ID, '2024-01-03', 30000, 'Initial funding');
   insertDeposit(CASH_RESERVE_ID, '2024-01-05', 10000, 'Emergency fund setup');
 
@@ -519,38 +410,51 @@ db.transaction(() => {
   // Cash Reserve top-ups
   insertDeposit(CASH_RESERVE_ID, '2024-06-03', 2000, 'Savings top-up');
   insertDeposit(CASH_RESERVE_ID, '2025-01-06', 1500, 'Savings top-up');
+
+  // Buffer top-up — funds the cross-currency transfer + standalone fees/taxes added below.
+  insertDeposit(IB_CASH_ID, '2024-07-15', 5000, 'Top-up — fund USD sub-account & misc costs');
+
+  // USD sub-account funding (cross-currency demo).
+  insertDeposit(IB_USD_CASH_ID, '2024-08-01', 5000, 'USD funding', 'USD');
+  insertDeposit(IB_USD_CASH_ID, '2025-04-15', 2000, 'USD top-up', 'USD');
+
+  // Retired account historical flow — opened, drained, closed.
+  insertDeposit(OLD_BANK_ID, '2024-01-04', 1000, 'Initial balance — old account');
 })();
 
-console.log('[Deposits] 21 deposit transactions inserted');
+console.log('[Deposits] 26 deposit transactions inserted');
 
 // ---------------------------------------------------------------------------
 // 7. Transactions — BUY (Double-Entry)
 // ---------------------------------------------------------------------------
 function insertBuy(
   portfolioId: string, depositId: string, secDef: SecurityDef,
-  dateStr: string, sharesCount: number, note: string | null
+  dateStr: string, sharesCount: number, note: string | null,
+  currency = 'EUR',
 ): void {
   const priceAtDate = lookupPrice(secDef.uuid, dateStr);
   const totalAmount = sharesCount * priceAtDate;
-  // Realistic brokerage fee: 0.15% of trade value, min €2.95, rounded to 2dp
+  // Realistic brokerage fee: 0.15% of trade value, min 2.95, rounded to 2dp
   const feeEur = Math.round(Math.max(2.95, totalAmount * 0.0015) * 100) / 100;
   const feeHecto = hecto(feeEur);
 
   // Securities-side xact
   const secSideUuid = randomUUID();
   insertXact.run(
-    secSideUuid, 'portfolio', portfolioId, dateStr,
+    secSideUuid, 'portfolio', portfolioId, dateStr, currency,
     hecto(totalAmount), secDef.uuid, shares8(sharesCount),
     note, now, 'BUY', feeHecto, 0, nextXmlId(), nextOrder()
   );
   // FEE unit so getFees(tx) picks it up in Cost & Tax Drag
-  insertXactUnit.run(secSideUuid, 'FEE', feeHecto);
+  insertXactUnit.run(secSideUuid, 'FEE', feeHecto, currency);
 
-  // Cash-side xact (same security, shares=0, fees=0, taxes=0)
+  // Cash-side xact (same security, shares=0, fees=0, taxes=0).
+  // ppxml2db convention: xact.amount is a non-negative magnitude; sign is
+  // carried by xact.type (BUY is an OUTFLOW). See transaction.service.ts:11-32.
   const cashSideUuid = randomUUID();
   insertXact.run(
-    cashSideUuid, 'account', depositId, dateStr,
-    -hecto(totalAmount + feeEur), secDef.uuid, 0,
+    cashSideUuid, 'account', depositId, dateStr, currency,
+    hecto(totalAmount + feeEur), secDef.uuid, 0,
     null, now, 'BUY', 0, 0, nextXmlId(), nextOrder()
   );
 
@@ -612,7 +516,8 @@ console.log('[BUYs] 76 buy orders (152 xact rows + 76 cross entries)');
 // ---------------------------------------------------------------------------
 function insertSell(
   portfolioId: string, depositId: string, secDef: SecurityDef,
-  dateStr: string, sharesCount: number, feeEur: number, taxEur: number, note: string | null
+  dateStr: string, sharesCount: number, feeEur: number, taxEur: number, note: string | null,
+  currency = 'EUR',
 ): void {
   const priceAtDate = lookupPrice(secDef.uuid, dateStr);
   const totalAmount = sharesCount * priceAtDate;
@@ -620,18 +525,18 @@ function insertSell(
   // Securities-side xact
   const secSideUuid = randomUUID();
   insertXact.run(
-    secSideUuid, 'portfolio', portfolioId, dateStr,
+    secSideUuid, 'portfolio', portfolioId, dateStr, currency,
     hecto(totalAmount), secDef.uuid, shares8(sharesCount),
     note, now, 'SELL', hecto(feeEur), hecto(taxEur), nextXmlId(), nextOrder()
   );
   // FEE and TAX units so getFees/getTaxes pick them up in Cost & Tax Drag
-  insertXactUnit.run(secSideUuid, 'FEE', hecto(feeEur));
-  if (taxEur > 0) insertXactUnit.run(secSideUuid, 'TAX', hecto(taxEur));
+  insertXactUnit.run(secSideUuid, 'FEE', hecto(feeEur), currency);
+  if (taxEur > 0) insertXactUnit.run(secSideUuid, 'TAX', hecto(taxEur), currency);
 
   // Cash-side xact (same security, shares=0, fees=0, taxes=0)
   const cashSideUuid = randomUUID();
   insertXact.run(
-    cashSideUuid, 'account', depositId, dateStr,
+    cashSideUuid, 'account', depositId, dateStr, currency,
     hecto(totalAmount - feeEur - taxEur), secDef.uuid, 0,
     null, now, 'SELL', 0, 0, nextXmlId(), nextOrder()
   );
@@ -667,19 +572,20 @@ console.log('[SELLs] 5 sell orders + 1 rebuy (12 xact rows + 6 cross entries)');
 // ---------------------------------------------------------------------------
 function insertDividend(
   depositId: string, secDef: SecurityDef,
-  dateStr: string, grossEur: number, taxEur: number, note: string | null
+  dateStr: string, grossEur: number, taxEur: number, note: string | null,
+  currency = 'EUR',
 ): void {
   const uuid = randomUUID();
   const netAmount = grossEur - taxEur;
   insertXact.run(
-    uuid, 'account', depositId, dateStr,
+    uuid, 'account', depositId, dateStr, currency,
     hecto(netAmount), secDef.uuid, 0,
-    note, now, 'DIVIDEND', 0, hecto(taxEur), nextXmlId(), nextOrder()
+    note, now, 'DIVIDENDS', 0, hecto(taxEur), nextXmlId(), nextOrder()
   );
 
   // Tax unit if tax > 0
   if (taxEur > 0) {
-    insertXactUnit.run(uuid, 'TAX', hecto(taxEur));
+    insertXactUnit.run(uuid, 'TAX', hecto(taxEur), currency);
   }
 }
 
@@ -725,9 +631,9 @@ console.log('[Dividends] 23 dividend transactions inserted');
 // ---------------------------------------------------------------------------
 // 9b. Transactions — Interest
 // ---------------------------------------------------------------------------
-function insertInterest(depositId: string, dateStr: string, amountEur: number, note: string | null): void {
+function insertInterest(depositId: string, dateStr: string, amountEur: number, note: string | null, currency = 'EUR'): void {
   const uuid = randomUUID();
-  insertXact.run(uuid, 'account', depositId, dateStr, hecto(amountEur), null, 0, note, now, 'INTEREST', 0, 0, nextXmlId(), nextOrder());
+  insertXact.run(uuid, 'account', depositId, dateStr, currency, hecto(amountEur), null, 0, note, now, 'INTEREST', 0, 0, nextXmlId(), nextOrder());
 }
 
 db.transaction(() => {
@@ -746,6 +652,48 @@ db.transaction(() => {
 console.log('[Interest] 9 interest transactions inserted');
 
 // ---------------------------------------------------------------------------
+// 9b2. Standalone cash-account transactions
+// Single xact row, single account, sign carried by xact.type. Each type
+// covers one of the per-type matrix entries the app supports beyond the
+// dual-entry / dividend / interest set above.
+// ---------------------------------------------------------------------------
+function insertCashTx(
+  type: string, accountId: string, dateStr: string, amountEur: number,
+  note: string | null, currency = 'EUR',
+): void {
+  const uuid = randomUUID();
+  insertXact.run(
+    uuid, 'account', accountId, dateStr, currency,
+    hecto(amountEur), null, 0, note, now, type, 0, 0, nextXmlId(), nextOrder(),
+  );
+}
+
+db.transaction(() => {
+  // REMOVAL — withdrawal from Cash Reserve.
+  insertCashTx('REMOVAL', CASH_RESERVE_ID, '2025-08-15', 500, 'Annual gift to family');
+
+  // REMOVAL — drain & close the legacy account.
+  insertCashTx('REMOVAL', OLD_BANK_ID, '2024-02-15', 1000, 'Closing old account — funds withdrawn');
+
+  // INTEREST_CHARGE — overdraft / margin interest charged.
+  insertCashTx('INTEREST_CHARGE', IB_CASH_ID, '2024-11-30', 5, 'Margin interest charge');
+
+  // FEES — standalone account-maintenance fee.
+  insertCashTx('FEES', IB_CASH_ID, '2025-01-31', 25, 'Annual platform fee');
+
+  // FEES_REFUND — broker rebate.
+  insertCashTx('FEES_REFUND', SC_CASH_ID, '2025-06-30', 10, 'Promotional fee rebate');
+
+  // TAXES — standalone tax payment (e.g. wealth-tax bolettino).
+  insertCashTx('TAXES', IB_CASH_ID, '2025-07-31', 50, 'Wealth tax (bolettino)');
+
+  // TAX_REFUND — annual tax reconciliation refund.
+  insertCashTx('TAX_REFUND', IB_CASH_ID, '2025-09-15', 30, 'Withholding-tax refund');
+})();
+
+console.log('[StandaloneCash] 7 standalone cash-account transactions inserted');
+
+// ---------------------------------------------------------------------------
 // 9c. Transactions — Transfer (IB Cash → SC Cash)
 // ---------------------------------------------------------------------------
 db.transaction(() => {
@@ -754,11 +702,11 @@ db.transaction(() => {
   const dateStr = '2024-09-02';
   const amount = 5000;
 
-  // TRANSFER_OUT from IB Cash
-  insertXact.run(outUuid, 'account', IB_CASH_ID, dateStr, -hecto(amount), null, 0, 'Transfer to Scalable', now, 'TRANSFER_OUT', 0, 0, nextXmlId(), nextOrder());
+  // TRANSFER_OUT from IB Cash (same magnitude convention as BUY cash-side above).
+  insertXact.run(outUuid, 'account', IB_CASH_ID, dateStr, 'EUR', hecto(amount), null, 0, 'Transfer to Scalable', now, 'TRANSFER_OUT', 0, 0, nextXmlId(), nextOrder());
 
   // TRANSFER_IN to SC Cash
-  insertXact.run(inUuid, 'account', SC_CASH_ID, dateStr, hecto(amount), null, 0, 'Transfer from IB', now, 'TRANSFER_IN', 0, 0, nextXmlId(), nextOrder());
+  insertXact.run(inUuid, 'account', SC_CASH_ID, dateStr, 'EUR', hecto(amount), null, 0, 'Transfer from IB', now, 'TRANSFER_IN', 0, 0, nextXmlId(), nextOrder());
 
   // Cross-entry
   insertCrossEntry.run('account-transfer', IB_CASH_ID, outUuid, SC_CASH_ID, inUuid);
@@ -767,15 +715,275 @@ db.transaction(() => {
 console.log('[Transfer] 1 account transfer inserted');
 
 // ---------------------------------------------------------------------------
+// 9d. Security transfers + standalone share deliveries
+// SECURITY_TRANSFER (Group D) — share movement between two portfolios, dual
+// xact rows + xact_cross_entry of type='portfolio-transfer'. DB type form:
+// source row TRANSFER_OUT, dest row TRANSFER_IN (see TYPE_MAP_TO_PPXML2DB
+// in transaction.service.ts).
+// DELIVERY_INBOUND / DELIVERY_OUTBOUND (Group C) — single xact row on a
+// portfolio account, shares only. We keep fees=0 here on purpose: the
+// service layer's outflow/inflow convention writes a negative xact.amount
+// for DELIVERY_OUTBOUND with fees (transaction.service.ts inflow rule),
+// which conflicts with the magnitude invariant pinned a few lines below.
+// Demo coverage of the FEE-bearing path is already exercised via BUY/SELL.
+// ---------------------------------------------------------------------------
+db.transaction(() => {
+  // SECURITY_TRANSFER — move 5 IWDA from IB → SC securities account.
+  const stOutUuid = randomUUID();
+  const stInUuid = randomUUID();
+  const stDate = '2025-02-20';
+  const stShares = 5;
+  insertXact.run(
+    stOutUuid, 'portfolio', IB_SEC_ID, stDate, 'EUR',
+    0, IWDA.uuid, shares8(stShares),
+    'Internal portfolio rebalance', now, 'TRANSFER_OUT', 0, 0, nextXmlId(), nextOrder(),
+  );
+  insertXact.run(
+    stInUuid, 'portfolio', SC_SEC_ID, stDate, 'EUR',
+    0, IWDA.uuid, shares8(stShares),
+    'Inbound from IB', now, 'TRANSFER_IN', 0, 0, nextXmlId(), nextOrder(),
+  );
+  insertCrossEntry.run('portfolio-transfer', IB_SEC_ID, stOutUuid, SC_SEC_ID, stInUuid);
+
+  // DELIVERY_INBOUND — 10 free MSFT (e.g. employer ESPP grant), no fees.
+  const diUuid = randomUUID();
+  insertXact.run(
+    diUuid, 'portfolio', SC_SEC_ID, '2024-10-15', 'EUR',
+    0, MSFT.uuid, shares8(10),
+    'Employer share grant', now, 'TRANSFER_IN', 0, 0, nextXmlId(), nextOrder(),
+  );
+
+  // DELIVERY_OUTBOUND — 2 NVDA shares gifted out, no fees.
+  const doUuid = randomUUID();
+  insertXact.run(
+    doUuid, 'portfolio', SC_SEC_ID, '2025-12-20', 'EUR',
+    0, NVDA.uuid, shares8(2),
+    'Gift transfer to family member', now, 'TRANSFER_OUT', 0, 0, nextXmlId(), nextOrder(),
+  );
+})();
+
+console.log('[SecTransfer/Delivery] 1 security-transfer (2 rows + 1 cross) + 1 inbound + 1 outbound');
+
+// ---------------------------------------------------------------------------
+// 9e. FX rates + cross-currency transactions
+// vf_exchange_rate is keyed (date, from_currency, to_currency); rate is the
+// qv-convention security-per-deposit value, i.e. amount_from × rate =
+// amount_to. fx.service.getRate forward-fills (closest previous date), so a
+// weekly cadence is sufficient for downstream lookups.
+// ---------------------------------------------------------------------------
+const insertFx = db.prepare(
+  `INSERT OR REPLACE INTO vf_exchange_rate (date, from_currency, to_currency, rate) VALUES (?, ?, ?, ?)`,
+);
+
+db.transaction(() => {
+  // Weekly EUR→USD rate, drifting around 1.05–1.15.
+  let rate = 1.10;
+  const allDays = tradingDays(PRICE_START, PRICE_END);
+  for (let i = 0; i < allDays.length; i += 5) {
+    const day = allDays[i];
+    rate = Math.max(1.05, Math.min(1.15, rate + gaussRandom(0, 0.005)));
+    insertFx.run(fmtDate(day), 'EUR', 'USD', rate.toFixed(6));
+  }
+})();
+
+console.log('[FX] EUR→USD weekly rates seeded into vf_exchange_rate');
+
+// USD same-currency BUY of TSLA — paid from the USD sub-account. No FOREX
+// unit because deposit and security currencies match.
+db.transaction(() => {
+  insertBuy(IB_SEC_ID, IB_USD_CASH_ID, TSLA, '2024-08-20', 10, 'TSLA initial position (USD)', 'USD');
+  insertBuy(IB_SEC_ID, IB_USD_CASH_ID, TSLA, '2025-05-16', 5, 'TSLA top-up (USD)', 'USD');
+})();
+
+console.log('[USD-BUY] 2 same-currency USD BUYs of TSLA');
+
+// Cross-currency BUY of TSLA — security-side denominates in USD but payment
+// flows from the EUR IB cash account. Mirrors transaction.service.ts BUY
+// FOREX-unit emission: xact.amount lives in deposit ccy (EUR), the FOREX
+// xact_unit carries the security-ccy magnitude in `forex_amount`.
+function insertCrossCurrencyBuy(
+  portfolioId: string, depositId: string, secDef: SecurityDef,
+  dateStr: string, sharesCount: number, fxRate: number, note: string | null,
+): void {
+  const priceSecCcy = lookupPrice(secDef.uuid, dateStr);     // already in security currency (USD here)
+  const grossSecurity = sharesCount * priceSecCcy;           // USD gross
+  const grossDeposit = grossSecurity / fxRate;               // EUR gross
+  // Realistic brokerage fee: 0.15% of trade value (EUR), min 2.95 EUR.
+  const feeEur = Math.round(Math.max(2.95, grossDeposit * 0.0015) * 100) / 100;
+  const feeHecto = hecto(feeEur);
+
+  // Securities-side xact in deposit currency.
+  const secSideUuid = randomUUID();
+  insertXact.run(
+    secSideUuid, 'portfolio', portfolioId, dateStr, 'EUR',
+    hecto(grossDeposit), secDef.uuid, shares8(sharesCount),
+    note, now, 'BUY', feeHecto, 0, nextXmlId(), nextOrder(),
+  );
+  // FEE unit (EUR).
+  insertXactUnit.run(secSideUuid, 'FEE', feeHecto, 'EUR');
+  // FOREX unit — amount=deposit hecto (EUR), forex_amount=security hecto (USD).
+  insertXactUnitForex.run(
+    secSideUuid, 'FOREX',
+    hecto(grossDeposit), 'EUR',
+    hecto(grossSecurity), secDef.currency,
+    String(fxRate),
+  );
+
+  // Cash-side xact (deposit currency, includes fee).
+  const cashSideUuid = randomUUID();
+  insertXact.run(
+    cashSideUuid, 'account', depositId, dateStr, 'EUR',
+    hecto(grossDeposit + feeEur), secDef.uuid, 0,
+    null, now, 'BUY', 0, 0, nextXmlId(), nextOrder(),
+  );
+
+  insertCrossEntry.run('buysell', portfolioId, secSideUuid, depositId, cashSideUuid);
+}
+
+db.transaction(() => {
+  insertCrossCurrencyBuy(IB_SEC_ID, IB_CASH_ID, TSLA, '2025-03-17', 4, 1.10, 'TSLA cross-currency BUY (EUR → USD)');
+})();
+
+console.log('[FX-BUY] 1 cross-currency BUY of TSLA (EUR cash → USD security)');
+
+// Cross-currency TRANSFER_BETWEEN_ACCOUNTS — EUR IB Cash → USD sub-account.
+// Both legs carry the source-side currency on xact.currency per the documented
+// upstream inheritance (csv-import.md "per-leg currency on transfers"); the
+// FOREX xact_unit on the source row records the destination magnitude.
+db.transaction(() => {
+  const fxOutUuid = randomUUID();
+  const fxInUuid = randomUUID();
+  const fxDate = '2025-09-22';
+  const amountEur = 2000;
+  const fxRate = 1.10;
+
+  insertXact.run(
+    fxOutUuid, 'account', IB_CASH_ID, fxDate, 'EUR',
+    hecto(amountEur), null, 0,
+    'Convert EUR → USD (rebalance)', now, 'TRANSFER_OUT', 0, 0, nextXmlId(), nextOrder(),
+  );
+  insertXact.run(
+    fxInUuid, 'account', IB_USD_CASH_ID, fxDate, 'EUR',
+    hecto(amountEur), null, 0,
+    'Convert EUR → USD (rebalance)', now, 'TRANSFER_IN', 0, 0, nextXmlId(), nextOrder(),
+  );
+  insertCrossEntry.run('account-transfer', IB_CASH_ID, fxOutUuid, IB_USD_CASH_ID, fxInUuid);
+  // FOREX unit on the source row.
+  insertXactUnitForex.run(
+    fxOutUuid, 'FOREX',
+    hecto(amountEur), 'EUR',
+    hecto(amountEur * fxRate), 'USD',
+    String(fxRate),
+  );
+})();
+
+console.log('[FX-Transfer] 1 cross-currency transfer (EUR → USD) inserted');
+
+// ---------------------------------------------------------------------------
+// Invariant: every xact.amount is a non-negative magnitude (ppxml2db
+// convention). Sign is carried by xact.type (OUTFLOW vs INFLOW) — see
+// transaction.service.ts:11-32 for the canonical rule. Getting this wrong
+// silently double-negates BUY/TRANSFER_OUT in getDepositBalance and inflates
+// cash balances; that was BUG-80.
+// ---------------------------------------------------------------------------
+const negativeAmountRows = db.prepare(`
+  SELECT type, COUNT(*) AS n
+  FROM xact
+  WHERE amount < 0
+  GROUP BY type
+`).all();
+if (negativeAmountRows.length > 0) {
+  throw new Error(
+    `[Seed invariant] xact.amount must be >= 0 (ppxml2db magnitude convention); ` +
+    `violations: ${JSON.stringify(negativeAmountRows)}`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Invariant: xact.type stores the ppxml2db form, not the quovibe enum form.
+// The live write path (transaction.service.ts:55-65) maps enum→DB for the
+// divergent names; the seed must produce the same on-disk shape or the
+// balance/reports queries that key on the DB form silently skip rows. The
+// only divergent name today is DIVIDEND→DIVIDENDS; extend this guard when
+// TYPE_MAP_TO_PPXML2DB grows.
+// ---------------------------------------------------------------------------
+const enumLeakRows = db.prepare(`
+  SELECT type, COUNT(*) AS n
+  FROM xact
+  WHERE type IN ('DIVIDEND')
+  GROUP BY type
+`).all();
+if (enumLeakRows.length > 0) {
+  throw new Error(
+    `[Seed invariant] xact.type must use ppxml2db form (e.g. 'DIVIDENDS' not 'DIVIDEND'); ` +
+    `violations: ${JSON.stringify(enumLeakRows)}`
+  );
+}
+
+console.log('[Xact] invariants checked (amount >= 0, DB type names)');
+
+// ---------------------------------------------------------------------------
+// Invariant: every cash account ends with a non-negative balance. CASE copies
+// getDepositBalance in accounts.service.ts:138-157 verbatim (DB-form, post
+// enum→ppxml2db rename). When TYPE_MAP_TO_PPXML2DB grows or a new
+// cash-affecting xact.type is introduced, this CASE and getDepositBalance's
+// must be updated in lockstep — they share the same sign table by definition.
+// Closes BUG-105: pre-fix, BUG-80's sign-flip silently inflated IB Cash so the
+// DCA + lump-sum schedule appeared solvent; the honest ledger ended at -€5,852.
+// ---------------------------------------------------------------------------
+const negativeCashAccounts = db.prepare(`
+  SELECT a.uuid, a.name,
+         COALESCE(SUM(
+           CASE x.type
+             WHEN 'DEPOSIT'         THEN  x.amount
+             WHEN 'REMOVAL'         THEN -x.amount
+             WHEN 'BUY'             THEN -x.amount
+             WHEN 'SELL'            THEN  x.amount
+             WHEN 'DIVIDENDS'       THEN  x.amount
+             WHEN 'INTEREST'        THEN  x.amount
+             WHEN 'FEES'            THEN -x.amount
+             WHEN 'FEES_REFUND'     THEN  x.amount
+             WHEN 'TAXES'           THEN -x.amount
+             WHEN 'TAX_REFUND'      THEN  x.amount
+             WHEN 'INTEREST_CHARGE' THEN -x.amount
+             WHEN 'TRANSFER_IN'     THEN  x.amount
+             WHEN 'TRANSFER_OUT'    THEN -x.amount
+             ELSE 0
+           END
+         ), 0) AS balance
+  FROM account a
+  LEFT JOIN xact x ON x.account = a.uuid
+  WHERE a.type = 'account'
+  GROUP BY a.uuid
+  HAVING balance < 0
+`).all();
+if (negativeCashAccounts.length > 0) {
+  throw new Error(
+    `[Seed invariant] cash accounts ended below zero (BUG-105): ` +
+    JSON.stringify(negativeCashAccounts)
+  );
+}
+
+console.log('[Cash] per-account balance invariant checked (all >= 0)');
+
+// ---------------------------------------------------------------------------
 // 10. Taxonomies
 // ---------------------------------------------------------------------------
 interface TaxonomyLeaf {
   name: string;
   color: string;
+  // Target allocation in basis points (10000 = 100%). Leaves within a
+  // taxonomy MUST sum to 10000 so the Rebalancing tab renders valid targets.
+  weight: number;
   items: { uuid: string; itemType: 'security' | 'account' }[];
 }
 
 function createTaxonomy(taxName: string, leaves: TaxonomyLeaf[]): void {
+  const weightSum = leaves.reduce((acc, leaf) => acc + leaf.weight, 0);
+  if (weightSum !== 10000) {
+    throw new Error(`[Taxonomies] "${taxName}" leaf weights must sum to 10000 bp (got ${weightSum}).`);
+  }
+
   const taxUuid = randomUUID();
   const rootUuid = randomUUID();
 
@@ -792,7 +1000,7 @@ function createTaxonomy(taxName: string, leaves: TaxonomyLeaf[]): void {
     const catUuid = randomUUID();
     rank++;
     db.prepare(`INSERT INTO taxonomy_category(uuid, taxonomy, parent, name, color, weight, rank)
-      VALUES (?, ?, ?, ?, ?, 10000, ?)`).run(catUuid, taxUuid, rootUuid, leaf.name, leaf.color, rank);
+      VALUES (?, ?, ?, ?, ?, ?, ?)`).run(catUuid, taxUuid, rootUuid, leaf.name, leaf.color, leaf.weight, rank);
 
     for (const item of leaf.items) {
       db.prepare(`INSERT INTO taxonomy_assignment(taxonomy, category, item_type, item, weight, rank)
@@ -809,33 +1017,39 @@ function accItem(uuid: string): { uuid: string; itemType: 'security' | 'account'
 }
 
 db.transaction(() => {
-  // Asset Class
+  // Asset Class (weights sum to 100%)
   createTaxonomy('Asset Class', [
-    { name: 'Equity ETF', color: '#4285F4', items: [secItem(VWCE), secItem(IWDA), secItem(SXR8), secItem(EIMI), secItem(IQQH), secItem(CJ1)] },
-    { name: 'Single Stock', color: '#EA4335', items: [secItem(AAPL), secItem(ASML), secItem(SAP_SEC), secItem(MSFT), secItem(NVDA), secItem(MC), secItem(ALV), secItem(DTE)] },
-    { name: 'Bond', color: '#FBBC04', items: [secItem(XBLC)] },
-    { name: 'Cash', color: '#34A853', items: [accItem(IB_CASH_ID), accItem(SC_CASH_ID), accItem(CASH_RESERVE_ID)] },
+    { name: 'Equity ETF', color: '#4285F4', weight: 5000, items: [secItem(VWCE), secItem(IWDA), secItem(SXR8), secItem(EIMI), secItem(IQQH), secItem(CJ1)] },
+    { name: 'Single Stock', color: '#EA4335', weight: 2000, items: [secItem(AAPL), secItem(ASML), secItem(SAP_SEC), secItem(MSFT), secItem(NVDA), secItem(MC), secItem(ALV), secItem(DTE)] },
+    { name: 'Bond', color: '#FBBC04', weight: 1500, items: [secItem(XBLC)] },
+    { name: 'Cash', color: '#34A853', weight: 1500, items: [accItem(IB_CASH_ID), accItem(SC_CASH_ID), accItem(CASH_RESERVE_ID)] },
   ]);
 
-  // Region
+  // Region (weights sum to 100%)
+  // Cash category mirrors the Asset-Class taxonomy so the Allocation surface's
+  // portfolio total matches across all three taxonomies (BUG-78).
   createTaxonomy('Region', [
-    { name: 'Global', color: '#4285F4', items: [secItem(VWCE), secItem(IWDA)] },
-    { name: 'North America', color: '#EA4335', items: [secItem(SXR8), secItem(AAPL), secItem(MSFT), secItem(NVDA)] },
-    { name: 'Europe', color: '#FBBC04', items: [secItem(ASML), secItem(SAP_SEC), secItem(MC), secItem(ALV), secItem(DTE), secItem(XBLC)] },
-    { name: 'Emerging Markets', color: '#34A853', items: [secItem(EIMI)] },
-    { name: 'Japan', color: '#FF6D01', items: [secItem(CJ1)] },
-    { name: 'Thematic', color: '#46BDC6', items: [secItem(IQQH)] },
+    { name: 'Global', color: '#4285F4', weight: 2500, items: [secItem(VWCE), secItem(IWDA)] },
+    { name: 'North America', color: '#EA4335', weight: 2500, items: [secItem(SXR8), secItem(AAPL), secItem(MSFT), secItem(NVDA)] },
+    { name: 'Europe', color: '#FBBC04', weight: 2000, items: [secItem(ASML), secItem(SAP_SEC), secItem(MC), secItem(ALV), secItem(DTE), secItem(XBLC)] },
+    { name: 'Emerging Markets', color: '#34A853', weight: 500, items: [secItem(EIMI)] },
+    { name: 'Japan', color: '#FF6D01', weight: 500, items: [secItem(CJ1)] },
+    { name: 'Thematic', color: '#46BDC6', weight: 500, items: [secItem(IQQH)] },
+    { name: 'Cash', color: '#9E9E9E', weight: 1500, items: [accItem(IB_CASH_ID), accItem(SC_CASH_ID), accItem(CASH_RESERVE_ID)] },
   ]);
 
-  // Sector
+  // Sector (weights sum to 100%)
+  // Cash category mirrors the Asset-Class taxonomy so the Allocation surface's
+  // portfolio total matches across all three taxonomies (BUG-78).
   createTaxonomy('Sector', [
-    { name: 'Technology', color: '#4285F4', items: [secItem(AAPL), secItem(ASML), secItem(SAP_SEC), secItem(MSFT), secItem(NVDA)] },
-    { name: 'Broad Market', color: '#EA4335', items: [secItem(VWCE), secItem(IWDA), secItem(SXR8), secItem(EIMI), secItem(CJ1)] },
-    { name: 'Finance & Insurance', color: '#FBBC04', items: [secItem(ALV)] },
-    { name: 'Luxury', color: '#34A853', items: [secItem(MC)] },
-    { name: 'Telecom', color: '#FF6D01', items: [secItem(DTE)] },
-    { name: 'Clean Energy', color: '#46BDC6', items: [secItem(IQQH)] },
-    { name: 'Fixed Income', color: '#9334E6', items: [secItem(XBLC)] },
+    { name: 'Technology', color: '#4285F4', weight: 2500, items: [secItem(AAPL), secItem(ASML), secItem(SAP_SEC), secItem(MSFT), secItem(NVDA)] },
+    { name: 'Broad Market', color: '#EA4335', weight: 2000, items: [secItem(VWCE), secItem(IWDA), secItem(SXR8), secItem(EIMI), secItem(CJ1)] },
+    { name: 'Finance & Insurance', color: '#FBBC04', weight: 1000, items: [secItem(ALV)] },
+    { name: 'Luxury', color: '#34A853', weight: 1000, items: [secItem(MC)] },
+    { name: 'Telecom', color: '#FF6D01', weight: 1000, items: [secItem(DTE)] },
+    { name: 'Clean Energy', color: '#46BDC6', weight: 500, items: [secItem(IQQH)] },
+    { name: 'Fixed Income', color: '#9334E6', weight: 500, items: [secItem(XBLC)] },
+    { name: 'Cash', color: '#9E9E9E', weight: 1500, items: [accItem(IB_CASH_ID), accItem(SC_CASH_ID), accItem(CASH_RESERVE_ID)] },
   ]);
 })();
 
@@ -861,69 +1075,85 @@ db.transaction(() => {
 console.log('[Watchlists] 2 watchlists created');
 
 // ---------------------------------------------------------------------------
-// 12. Settings Sidecar
+// 11b. Custom attribute types — exercises the user-editable attribute CRUD
+// surface (only `logo` is built-in; everything else is per-PP parity).
+// id is TEXT and used as the foreign key in security_attr.attr_uuid.
 // ---------------------------------------------------------------------------
-const dashOverviewId = randomUUID();
-const dashRiskId = randomUUID();
+const SECURITY_TARGET = 'name.abuchen.portfolio.model.Security';
+const insertAttrType = db.prepare(`
+  INSERT INTO attribute_type (id, name, columnLabel, source, target, type, converterClass, props_json)
+  VALUES (?, ?, ?, NULL, ?, ?, ?, '[]')
+`);
+const insertSecAttrCustom = db.prepare(`
+  INSERT INTO security_attr (security, attr_uuid, type, value, seq) VALUES (?, ?, ?, ?, 0)
+`);
 
-const settings = {
-  app: { lastImport: null },
-  preferences: {
-    language: 'en',
-    theme: 'system',
-    privacyMode: false,
-    costMethod: 'MOVING_AVERAGE',
-  },
-  reportingPeriods: [],
-  dashboards: [
-    {
-      id: dashOverviewId,
-      name: 'Overview',
-      widgets: [
-        { id: 'w1', type: 'market-value', title: null, span: 1, config: {} },
-        { id: 'w2', type: 'ttwror', title: null, span: 1, config: {} },
-        { id: 'w3', type: 'irr', title: null, span: 1, config: {} },
-        { id: 'w4', type: 'delta', title: null, span: 1, config: {} },
-        { id: 'w5', type: 'absolute-performance', title: null, span: 1, config: {} },
-        { id: 'w6', type: 'invested-capital', title: null, span: 1, config: {} },
-        { id: 'w7', type: 'perf-chart', title: null, span: 3, config: {} },
-        { id: 'w8', type: 'movers', title: null, span: 2, config: {} },
-        { id: 'w9', type: 'top-holdings', title: null, span: 1, config: {} },
-        { id: 'w10', type: 'watchlist', title: null, span: 1, config: { options: { watchlistId: 1 } } },
-      ],
-      metricsStripIds: [],
-    },
-    {
-      id: dashRiskId,
-      name: 'Risk',
-      widgets: [
-        { id: 'r1', type: 'max-drawdown', title: null, span: 1, config: {} },
-        { id: 'r2', type: 'current-drawdown', title: null, span: 1, config: {} },
-        { id: 'r3', type: 'volatility', title: null, span: 1, config: {} },
-        { id: 'r4', type: 'sharpe-ratio', title: null, span: 1, config: { options: { riskFreeRate: 0 } } },
-        { id: 'r5', type: 'all-time-high', title: null, span: 1, config: {} },
-        { id: 'r6', type: 'distance-from-ath', title: null, span: 1, config: {} },
-        { id: 'r7', type: 'drawdown-chart', title: null, span: 3, config: {} },
-      ],
-      metricsStripIds: [],
-    },
-  ],
-  activeDashboard: dashOverviewId,
-  investmentsView: { columns: [] },
-  chartConfig: { version: 2, series: [] },
-  tableLayouts: {},
-};
+db.transaction(() => {
+  insertAttrType.run(
+    'ter', 'TER', 'TER', SECURITY_TARGET,
+    'java.lang.Double',
+    'name.abuchen.portfolio.model.AttributeType$PercentConverter',
+  );
+  insertAttrType.run(
+    'vendor', 'Vendor', 'Vendor', SECURITY_TARGET,
+    'java.lang.String',
+    'name.abuchen.portfolio.model.AttributeType$StringConverter',
+  );
 
-fs.writeFileSync(SETTINGS_OUT, JSON.stringify(settings, null, 2), 'utf-8');
-console.log(`[Settings] Written to ${SETTINGS_OUT}`);
+  // TER values (decimal — 0.0022 == 22 bps).
+  const terValues: [SecurityDef, string][] = [
+    [VWCE, '0.0022'], [IWDA, '0.0020'], [SXR8, '0.0007'],
+    [EIMI, '0.0018'], [XBLC, '0.0012'], [IQQH, '0.0065'], [CJ1, '0.0045'],
+  ];
+  for (const [s, v] of terValues) {
+    insertSecAttrCustom.run(s.uuid, 'ter', 'string', v);
+  }
+
+  // Vendor (free-text).
+  const vendorValues: [SecurityDef, string][] = [
+    [VWCE, 'Vanguard'], [IWDA, 'iShares'], [SXR8, 'iShares'],
+    [EIMI, 'iShares'], [XBLC, 'Xtrackers'], [IQQH, 'iShares'],
+    [CJ1, 'Amundi'],
+  ];
+  for (const [s, v] of vendorValues) {
+    insertSecAttrCustom.run(s.uuid, 'vendor', 'string', v);
+  }
+})();
+
+console.log('[AttributeTypes] 2 custom attribute types + 14 security_attr values inserted');
 
 // ---------------------------------------------------------------------------
-// 13. Summary
+// 11c. Portfolio-scoped chart config (vf_chart_config) — exercises the chart
+// content surface (series refs, visibility, benchmarks). Aesthetics live in
+// sidecar preferences, NOT in this row.
+// ---------------------------------------------------------------------------
+db.prepare(
+  `INSERT INTO vf_chart_config (chart_id, config_json, schema_version, updatedAt) VALUES (?, ?, ?, ?)`,
+).run(
+  'dashboard-perf-chart',
+  JSON.stringify({
+    seriesRefs: [
+      { kind: 'account', id: IB_SEC_ID },
+      { kind: 'account', id: SC_SEC_ID },
+      { kind: 'security', id: VWCE.uuid },
+    ],
+    visibility: { [IB_SEC_ID]: true, [SC_SEC_ID]: true, [VWCE.uuid]: true },
+    benchmarks: [],
+  }),
+  1,
+  now,
+);
+
+console.log('[ChartConfig] 1 vf_chart_config row inserted');
+
+// ---------------------------------------------------------------------------
+// 12. Summary
 // ---------------------------------------------------------------------------
 const tables = [
   'account', 'security', 'price', 'latest_price', 'xact', 'xact_cross_entry',
   'xact_unit', 'property', 'taxonomy', 'taxonomy_category', 'taxonomy_assignment',
-  'watchlist', 'watchlist_security',
+  'watchlist', 'watchlist_security', 'attribute_type', 'security_attr',
+  'vf_portfolio_meta', 'vf_dashboard', 'vf_exchange_rate', 'vf_chart_config',
 ];
 
 console.log('\n--- Row counts ---');
@@ -933,7 +1163,7 @@ for (const t of tables) {
 }
 
 // ---------------------------------------------------------------------------
-// 14. Logos — fetched from Clearbit and stored as base64 data URIs
+// 13. Logos — fetched from Clearbit / Google favicon and stored as base64
 // ---------------------------------------------------------------------------
 const SEC_LOGOS: { id: string; domain: string }[] = [
   { id: VWCE.uuid,    domain: 'vanguard.com' },
@@ -998,7 +1228,7 @@ async function getLogoBase64(domain: string): Promise<string | null> {
 }
 
 void (async () => {
-  console.log('\n[Logos] Fetching logos from Clearbit...');
+  console.log('\n[Logos] Fetching logos...');
   let logosOk = 0;
   let logosFail = 0;
 
@@ -1009,7 +1239,7 @@ void (async () => {
       logosOk++;
     } else {
       logosFail++;
-      console.warn(`  ⚠ No logo for security ${id} (${domain})`);
+      console.warn(`  No logo for security ${id} (${domain})`);
     }
   }
 
@@ -1020,46 +1250,12 @@ void (async () => {
       logosOk++;
     } else {
       logosFail++;
-      console.warn(`  ⚠ No logo for account ${id} (${domain})`);
+      console.warn(`  No logo for account ${id} (${domain})`);
     }
   }
 
-  console.log(`[Logos] ${logosOk} logos stored, ${logosFail} failed`);
+  console.log(`[Logos] ${logosOk} stored, ${logosFail} failed`);
 
   db.close();
-  console.log(`\nDone! Database written to ${DB_OUT}`);
-
-  // ---------------------------------------------------------------------------
-  // Apply to live paths (portfolio.db + quovibe.settings.json)
-  // Must run with the dev server STOPPED — otherwise the SHM file is locked
-  // and copying the main DB while the old SHM remains causes SQLITE_CORRUPT.
-  // ---------------------------------------------------------------------------
-  const LIVE_DB = path.join(ROOT, 'data/portfolio.db');
-  const LIVE_SETTINGS = path.join(ROOT, 'data/quovibe.settings.json');
-  const LIVE_SHM = LIVE_DB + '-shm';
-
-  // Detect if the dev server has the DB open: SHM file exists and is non-empty
-  let shmLocked = false;
-  if (fs.existsSync(LIVE_SHM)) {
-    try {
-      fs.unlinkSync(LIVE_SHM);
-    } catch {
-      shmLocked = true;
-    }
-  }
-
-  if (shmLocked) {
-    console.warn('\n⚠  Dev server is running — portfolio.db-shm is locked.');
-    console.warn('   Stop the dev server first, then run this script again,');
-    console.warn('   OR copy manually after stopping:');
-    console.warn(`     copy "${DB_OUT.replace(/\//g, '\\')}" "${LIVE_DB.replace(/\//g, '\\')}"`);
-    console.warn(`     copy "${SETTINGS_OUT.replace(/\//g, '\\')}" "${LIVE_SETTINGS.replace(/\//g, '\\')}"`);
-    console.warn('   demo.db has been generated successfully — only the live copy was skipped.');
-  } else {
-    try { fs.unlinkSync(LIVE_DB + '-wal'); } catch { /* ok */ }
-    try { fs.unlinkSync(LIVE_DB); } catch { /* ok */ }
-    fs.copyFileSync(DB_OUT, LIVE_DB);
-    fs.copyFileSync(SETTINGS_OUT, LIVE_SETTINGS);
-    console.log(`[Apply] Copied to ${LIVE_DB} + ${LIVE_SETTINGS}`);
-  }
+  console.log(`\n[seed-demo] wrote ${DB_OUT}`);
 })();

@@ -23,9 +23,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSecuritySearch, usePreviewPrices, useCreateSecurity, useSecurities } from '@/api/use-securities';
-import { apiFetch } from '@/api/fetch';
+import { useScopedApi } from '@/api/use-scoped-api';
 import { useResolveLogo } from '@/api/use-logo';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { InstrumentSearch } from './InstrumentSearch';
 import { InstrumentResultsList } from './InstrumentResultsList';
 import { InstrumentDetail } from './InstrumentDetail';
@@ -48,6 +49,7 @@ export function AddInstrumentDialog({
   const { t } = useTranslation('securities');
   const { t: tCommon } = useTranslation('common');
   const queryClient = useQueryClient();
+  const api = useScopedApi();
   const { data: existingSecurities = [] } = useSecurities();
 
   // Track if dialog is still open during async operations
@@ -161,75 +163,86 @@ export function AddInstrumentDialog({
     void doCreate();
   }
 
-  async function doCreate() {
-    if (!selectedResult) return;
+  // Save-button re-entry guard: see frontend.md "Save-button re-entry guard".
+  // The previous useState-based `isSaving` flag could not protect the two
+  // same-tick clicks of the "Add" button (or the duplicate-confirm "Add
+  // anyway" button) — `setIsSaving(true)` doesn't flush synchronously
+  // between two consecutive React click handlers.
+  const { run: doCreate, inFlight: createInFlight } = useGuardedSubmit(
+    async () => {
+      if (!selectedResult) return;
 
-    setIsSaving(true);
-    setSaveError(null);
+      setIsSaving(true);
+      setSaveError(null);
 
-    try {
-      // Reuse already-created security if a previous attempt partially succeeded
-      let newId = pendingSecurityId;
-      if (!newId) {
-        const created = await createSecurity.mutateAsync({
-          name: selectedResult.name,
-          ticker: selectedResult.symbol,
-          currency: previewData?.currency ?? 'USD',
-          feed: 'YAHOO',
-          latestFeed: 'YAHOO',
-          feedTickerSymbol: selectedResult.symbol,
-        });
-        newId = created.id;
-        setPendingSecurityId(newId);
-      }
+      try {
+        // Reuse already-created security if a previous attempt partially succeeded
+        let newId = pendingSecurityId;
+        if (!newId) {
+          const created = await createSecurity.mutateAsync({
+            name: selectedResult.name,
+            ticker: selectedResult.symbol,
+            currency: previewData?.currency ?? 'USD',
+            feed: 'YAHOO',
+            latestFeed: 'YAHOO',
+            feedTickerSymbol: selectedResult.symbol,
+          });
+          newId = created.id;
+          setPendingSecurityId(newId);
+        }
 
-      // Import prices if available
-      if (previewData && previewData.prices.length > 0) {
-        await apiFetch<{ ok: boolean; count: number }>(`/api/securities/${newId}/prices/import`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prices: previewData.prices }),
-        });
-        // Invalidate caches after price import (creation mutation already invalidated securities)
-        queryClient.invalidateQueries({ queryKey: ['reports'] });
-        queryClient.invalidateQueries({ queryKey: ['performance'] });
-        queryClient.invalidateQueries({ queryKey: ['holdings'] });
-      }
-
-      // Dialog may have been closed during async operation
-      if (!openRef.current) return;
-
-      toast.success(t('addInstrument.successNamed', { name: selectedResult.name }));
-      onOpenChange(false);
-      onCreated?.(newId);
-
-      // Background logo fetch — non-blocking, captured before async close.
-      // Uses dedicated /logo endpoint (not /attributes) to avoid wiping other attributes
-      // if the SecurityEditor saves concurrently with empty state.
-      const secId = newId;
-      const instrType = selectedResult.type; // InstrumentType enum value
-      const ticker = selectedResult.symbol;
-      void resolveLogoMutation.mutateAsync({ ticker, instrumentType: instrType })
-        .then(({ logoUrl }) =>
-          apiFetch(`/api/securities/${secId}/logo`, {
-            method: 'PUT',
+        // Import prices if available
+        if (previewData && previewData.prices.length > 0) {
+          await api.fetch<{ ok: boolean; count: number }>(`/api/securities/${newId}/prices/import`, {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ logoUrl }),
-          }),
-        )
-        .then(() => {
-          queryClient.invalidateQueries({ queryKey: ['securities'] });
-          queryClient.invalidateQueries({ queryKey: ['securities', secId] });
-          queryClient.invalidateQueries({ queryKey: ['watchlists'] });
-        })
-        .catch(() => toast.warning(tCommon('toasts.logoNotFound')));
-    } catch (e) {
-      if (!openRef.current) return;
-      setSaveError(e instanceof Error ? e.message : t('addInstrument.error'));
-    } finally {
-      setIsSaving(false);
-    }
-  }
+            body: JSON.stringify({ prices: previewData.prices }),
+          });
+          // Invalidate caches after price import (creation mutation already invalidated securities)
+          queryClient.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'reports'] });
+          queryClient.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'performance'] });
+        }
+
+        // Dialog may have been closed during async operation
+        if (!openRef.current) return;
+
+        toast.success(t('addInstrument.successNamed', { name: selectedResult.name }));
+        onOpenChange(false);
+        onCreated?.(newId);
+
+        // Background logo fetch — non-blocking, captured before async close.
+        // Uses dedicated /logo endpoint (not /attributes) to avoid wiping other attributes
+        // if the SecurityEditor saves concurrently with empty state.
+        // Caller hint deliberately omitted — Yahoo /search's quoteType is
+        // sometimes stale or UNKNOWN; let the resolver classify via
+        // quoteSummary so ETFs route through the fund-family branch.
+        const secId = newId;
+        const ticker = selectedResult.symbol;
+        void resolveLogoMutation.mutateAsync({ ticker })
+          .then(({ logoUrl }) =>
+            api.fetch(`/api/securities/${secId}/logo`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ logoUrl }),
+            }),
+          )
+          .then(() => {
+            // 'securities' prefix invalidates both the list and the per-id detail.
+            queryClient.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'securities'] });
+            queryClient.invalidateQueries({ queryKey: ['portfolios', api.portfolioId, 'watchlists'] });
+          })
+          .catch((err) => {
+            console.warn('[auto-fetch-logo] failed', err);
+            toast.warning(tCommon('toasts.logoNotFound'));
+          });
+      } catch (e) {
+        if (!openRef.current) return;
+        setSaveError(e instanceof Error ? e.message : t('addInstrument.error'));
+      } finally {
+        setIsSaving(false);
+      }
+    },
+  );
 
   // ─── Keyboard navigation ─────────────────────────────────────────────────────
   function handleSearchKeyDown(e: React.KeyboardEvent) {
@@ -387,7 +400,7 @@ export function AddInstrumentDialog({
               result={selectedResult}
               previewData={previewData ?? null}
               isPreviewLoading={isPreviewFetching}
-              isSaving={isSaving}
+              isSaving={isSaving || createInFlight}
               saveError={saveError}
               onBack={handleBackToResults}
               onAdd={handleAdd}
@@ -423,6 +436,7 @@ export function AddInstrumentDialog({
               {t('addInstrument.duplicateViewExisting')}
             </AlertDialogAction>
             <AlertDialogAction
+              disabled={createInFlight}
               onClick={() => {
                 setDuplicateMatch(null);
                 void doCreate();

@@ -1,15 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { createApp } from '../../create-app';
+import type { createApp } from '../../create-app';
 
 let tempDir: string;
 let app: ReturnType<typeof createApp>;
-let sqlite: InstanceType<typeof Database>;
 
 // Check if native sqlite bindings are available
 let hasSqliteBindings = false;
@@ -19,29 +17,20 @@ const itIfSqlite = hasSqliteBindings ? it : it.skip;
 
 beforeEach(async () => {
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'quovibe-tl-test-'));
-  const tempDbPath = path.join(tempDir, 'portfolio.db');
+  process.env.QUOVIBE_DATA_DIR = tempDir;
 
   vi.resetModules();
-  vi.doMock('../../config', () => ({
-    DB_PATH: tempDbPath,
-    DB_BACKUP_MAX: 3,
-    SCHEMA_PATH: path.join(tempDir, 'schema.db'),
-  }));
-
-  sqlite = new Database(tempDbPath);
-  sqlite.exec('CREATE TABLE IF NOT EXISTS property (name TEXT PRIMARY KEY, value TEXT)');
-  const db = drizzle(sqlite);
 
   const settingsMod = await import('../../services/settings.service');
   settingsMod.loadSettings();
 
   const mod = await import('../../create-app');
-  app = mod.createApp(db as Parameters<typeof createApp>[0], sqlite);
+  app = mod.createApp();
 });
 
 afterEach(() => {
-  sqlite.close();
   vi.resetModules();
+  delete process.env.QUOVIBE_DATA_DIR;
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
 

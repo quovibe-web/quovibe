@@ -11,11 +11,20 @@
     "accounts": "Conti",
     "investments": "Investimenti",
     "transactions": "Transazioni",
+    "import": "Importa",
     "analytics": "Analisi",
     "assetAllocation": "Tassonomie",
     "dataSeries": "Serie Dati",
-    "settings": "Impostazioni",
-    "watchlists": "Liste di osservazione"
+    "settings": "Impostazioni portafoglio",
+    "preferences": "Preferenze",
+    "watchlists": "Liste di osservazione",
+    "income": "Proventi",
+    "chart": "Grafico",
+    "csvImport": "Importa CSV",
+    "account": "Conto",
+    "security": "Titolo",
+    "taxonomySeries": "Serie tassonomia",
+    "newTransaction": "Nuova transazione"
   },
   "period": "Periodo",
   "presets": {
@@ -33,8 +42,7 @@
   "theme": {
     "light": "Tema chiaro",
     "system": "Tema di sistema",
-    "dark": "Tema scuro",
-    "toggle": "Cambia tema"
+    "dark": "Tema scuro"
   },
   "more": "Altro",
   "morePeriods": "Altri periodi",
@@ -49,5 +57,19 @@
     "noResults": "Nessun risultato trovato.",
     "perfChart": "Grafico rendimento",
     "income": "Proventi"
+  },
+  "help": {
+    "button": "Aiuto",
+    "title": "Aiuto e informazioni",
+    "description": "Documentazione, scorciatoie da tastiera e versione.",
+    "about": "Informazioni",
+    "aboutBlurb": "quovibe è uno strumento open-source di analisi di portafoglio. Versione {{version}}.",
+    "shortcuts": "Scorciatoie da tastiera",
+    "shortcutPalette": "Apri pannello comandi",
+    "shortcutSidebar": "Mostra/Nascondi barra laterale",
+    "links": "Link",
+    "docs": "Documentazione",
+    "releaseNotes": "Note di versione",
+    "reportBug": "Segnala un bug"
   }
 }

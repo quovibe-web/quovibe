@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useWidgetConfig } from '@/context/widget-config-context';
-import { useDashboardConfig, useSaveDashboard } from '@/api/use-dashboard-config';
+import { useDashboard, useUpdateDashboard, type DashboardItem } from '@/api/use-dashboards';
 import { DataSeriesSelector } from './DataSeriesSelector';
 import type { DataSeriesValue } from '@quovibe/shared';
 
@@ -29,8 +29,8 @@ export function DataSeriesDialog({
 }: DataSeriesDialogProps) {
   const { t } = useTranslation('dashboard');
   const { dataSeries, setDataSeries } = useWidgetConfig();
-  const { data: dashConfig } = useDashboardConfig();
-  const saveDashboard = useSaveDashboard();
+  const { data: dashboard } = useDashboard(dashboardId);
+  const updateDashboard = useUpdateDashboard();
   const [draft, setDraft] = useState<DataSeriesValue | null>(dataSeries);
 
   useEffect(() => {
@@ -39,21 +39,13 @@ export function DataSeriesDialog({
 
   function handleApply() {
     setDataSeries(draft);
-    if (dashConfig) {
-      const updatedDashboards = dashConfig.dashboards.map((dash) => {
-        if (dash.id !== dashboardId) return dash;
-        return {
-          ...dash,
-          widgets: dash.widgets.map((w) => {
-            if (w.id !== widgetId) return w;
-            return { ...w, config: { ...w.config, dataSeries: draft } };
-          }),
-        };
+    if (dashboard) {
+      const widgets = (dashboard.widgets as DashboardItem['widgets']).map((raw) => {
+        const w = raw as { id: string; config?: Record<string, unknown> };
+        if (w.id !== widgetId) return raw;
+        return { ...w, config: { ...(w.config ?? {}), dataSeries: draft } };
       });
-      saveDashboard.mutate({
-        dashboards: updatedDashboards,
-        activeDashboard: dashConfig.activeDashboard,
-      });
+      updateDashboard.mutate({ id: dashboardId, input: { widgets } });
     }
     onClose();
   }

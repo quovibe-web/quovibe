@@ -9,7 +9,6 @@ export interface WidgetDef extends WidgetDefBase {
 
 export const CATEGORY_COLORS: Record<WidgetCategory, string> = {
   performance: '#3b82f6',
-  reports: '#22c55e',
   chart: '#a855f7',
   risk: '#ef4444',
   info: '#94a3b8',

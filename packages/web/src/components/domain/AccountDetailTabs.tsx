@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ListX, TrendingUp } from 'lucide-react';
@@ -96,6 +96,7 @@ export function AccountDetailTabs({ accountId, depositAccountId, isPortfolio }: 
   );
 
   const location = useLocation();
+  const { portfolioId } = useParams<{ portfolioId: string }>();
   const periodSearch = location.search;
 
   const defaultTab = 'cash';
@@ -140,21 +141,33 @@ export function AccountDetailTabs({ accountId, depositAccountId, isPortfolio }: 
   return (
     <div className="space-y-4">
       {isPortfolio && (
-        <Link
-          to={`/investments${periodSearch ? periodSearch + '&' : '?'}account=${accountId}`}
-          className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-lg border border-border w-fit transition-colors"
-        >
-          <TrendingUp className="h-4 w-4" />
-          {t('detail.viewHoldings')} →
-        </Link>
+        <Button variant="outline" size="sm" asChild className="w-fit">
+          <Link to={`/p/${portfolioId}/investments${periodSearch ? periodSearch + '&' : '?'}account=${accountId}`}>
+            <TrendingUp className="h-4 w-4" />
+            {t('detail.viewHoldings')} →
+          </Link>
+        </Button>
       )}
 
       <Tabs defaultValue={defaultTab}>
-        <TabsList>
+        <TabsList
+          variant="line"
+          className="w-full justify-start gap-4 px-0 h-auto border-b border-[var(--qv-border-subtle)] rounded-none"
+        >
           {(isPortfolio ? depositAccountId : true) && (
-            <TabsTrigger value="cash">{t('detail.tabs.cashAccount')}</TabsTrigger>
+            <TabsTrigger
+              value="cash"
+              className="data-[state=active]:after:bg-[var(--color-primary)] data-[state=active]:text-[var(--qv-text-display)] px-2 pb-2 flex-none"
+            >
+              {t('detail.tabs.cashAccount')}
+            </TabsTrigger>
           )}
-          <TabsTrigger value="transactions">{t('detail.tabs.transactions')}</TabsTrigger>
+          <TabsTrigger
+            value="transactions"
+            className="data-[state=active]:after:bg-[var(--color-primary)] data-[state=active]:text-[var(--qv-text-display)] px-2 pb-2 flex-none"
+          >
+            {t('detail.tabs.transactions')}
+          </TabsTrigger>
         </TabsList>
 
         {isPortfolio && depositAccountId && (

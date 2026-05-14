@@ -1,6 +1,6 @@
 {
   "title": "Effecten",
-  "subtitle": "Manage your securities and instruments",
+  "subtitle": "Beheer uw effecten en instrumenten",
   "columns": {
     "name": "Naam",
     "isin": "ISIN",
@@ -13,6 +13,8 @@
     "edit": "Bewerken",
     "updatePrices": "Alle koersen bijwerken",
     "updating": "Bijwerken…",
+    "refreshQuote": "Koers vernieuwen",
+    "refreshing": "Bijwerken…",
     "addInstrument": "+ Instrument toevoegen",
     "delete": "Verwijderen"
   },
@@ -105,15 +107,15 @@
     "urlPlaceholder": "https://..."
   },
   "taxonomies": {
-    "notAssigned": "— Select category —",
-    "weight": "Weight %",
+    "notAssigned": "— Categorie selecteren —",
+    "weight": "Gewicht %",
     "noTaxonomies": "Geen taxonomieën geconfigureerd.",
-    "addRow": "Add assignment",
-    "removeRow": "Remove",
-    "weightSum": "Weight sum",
-    "weightSumWarning": "Weight sum is less than 100%",
-    "weightSumError": "Weight sum exceeds 100%",
-    "weightSumOk": "Weight sum is 100%"
+    "addRow": "Toewijzing toevoegen",
+    "removeRow": "Verwijderen",
+    "weightSum": "Gewichtssom",
+    "weightSumWarning": "Gewichtssom is minder dan 100%",
+    "weightSumError": "Gewichtssom overschrijdt 100%",
+    "weightSumOk": "Gewichtssom is 100%"
   },
   "priceChart": {
     "noData": "Geen koersgegevens.",
@@ -139,11 +141,14 @@
     "shares": "Aandelen",
     "latestPrice": "Laatste koers",
     "marketValue": "Marktwaarde",
-    "unrealizedPL": "Niet-gerealiseerde W&V",
+    "unrealizedPL": "Ongerealiseerd koersresultaat",
     "fromPurchase": "sinds aankoop",
     "performance": "Rendement",
     "priceHistory": "Koersverloop",
     "transactions": "Transacties",
+    "taxonomies": "Taxonomieën",
+    "notClassified": "Nog niet geclassificeerd.",
+    "classify": "Classificeren →",
     "noTransactions": "Geen transacties voor dit instrument",
     "noPrices": "Geen koershistorie beschikbaar",
     "configureFeed": "Prijsfeed configureren →",
@@ -286,6 +291,34 @@
     "save": "Wijzigingen opslaan",
     "saving": "Opslaan..."
   },
+  "attributeType": {
+    "editTitle": "Attribuuttype hernoemen",
+    "fields": {
+      "name": "Naam",
+      "columnLabel": "Kolomlabel",
+      "type": "Type"
+    },
+    "types": {
+      "text": "Tekst",
+      "number": "Getal",
+      "percentage": "Percentage",
+      "amount": "Bedrag",
+      "date": "Datum",
+      "boolean": "Ja / Nee"
+    },
+    "menu": {
+      "aria": "Attribuutacties",
+      "rename": "Typedefinitie hernoemen",
+      "removeFromSec": "Verwijderen uit dit effect"
+    },
+    "empty": "Geen aangepaste attributen.",
+    "empty.cta": "+ Attribuuttype maken",
+    "validation": {
+      "nameRequired": "Naam is verplicht.",
+      "nameTooLong": "Naam mag niet langer zijn dan {{max}} tekens.",
+      "columnLabelTooLong": "Kolomlabel mag niet langer zijn dan {{max}} tekens."
+    }
+  },
   "empty": {
     "noSecurities": "Nog geen effecten"
   },
@@ -293,8 +326,8 @@
     "hasTransactions": "Kan niet verwijderen: dit instrument heeft {{count}} gekoppelde transactie(s). Verwijder ze eerst."
   },
   "summary": {
-    "totalSecurities": "Total Securities",
-    "activeSecurities": "Active",
-    "totalMarketValue": "Total Market Value"
+    "totalSecurities": "Totaal effecten",
+    "activeSecurities": "Actief",
+    "totalMarketValue": "Totale marktwaarde"
   }
 }

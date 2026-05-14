@@ -3,7 +3,7 @@
   "types": {
     "buy": "Kauf",
     "sell": "Verkauf",
-    "deposit": "Einzahlung",
+    "deposit": "Einlage",
     "removal": "Entnahme",
     "dividend": "Dividende",
     "interest": "Zinsen",
@@ -11,7 +11,7 @@
     "fees": "Gebühren",
     "feesRefund": "Gebührenerstattung",
     "taxes": "Steuern",
-    "taxRefund": "Steuererstattung",
+    "taxRefund": "Steuerrückerstattung",
     "deliveryInbound": "Einlieferung",
     "deliveryOutbound": "Auslieferung",
     "securityTransfer": "Wertpapiertransfer",
@@ -27,17 +27,19 @@
     "account": "Konto",
     "security": "Wertpapier",
     "amount": "Betrag",
-    "shares": "Anteile",
+    "shares": "Stück",
     "note": "Notiz"
   },
   "filters": {
     "allTypes": "Alle Typen",
     "allAccounts": "Alle Konten",
     "allSecurities": "Alle Wertpapiere",
-    "clearAll": "Clear all filters"
+    "clearAll": "Alle Filter löschen"
   },
   "form": {
     "dateTime": "Datum & Uhrzeit",
+    "time": "Uhrzeit",
+    "openCalendar": "Kalender öffnen",
     "datePlaceholder": "TT.MM.JJJJ",
     "quantity": "Anzahl",
     "price": "Kurs",
@@ -102,6 +104,10 @@
     "sourceDestMustDiffer": "Quelle und Ziel müssen unterschiedlich sein",
     "sharesMustBePositive": "Anteile müssen größer als 0 sein",
     "amountMustBePositive": "Betrag muss größer als 0 sein",
+    "priceMustBePositive": "Preis muss größer als 0 sein",
+    "feesMustBeNonNegative": "Gebühren müssen 0 oder größer sein",
+    "taxesMustBeNonNegative": "Steuern müssen 0 oder größer sein",
+    "fxRateMustBePositive": "Wechselkurs muss größer als 0 sein",
     "nameRequired": "Name ist erforderlich",
     "noteRequired": "Notiz ist erforderlich.",
     "ratioRequired": "Split-Verhältnis ist erforderlich (z.B. 2:1).",
@@ -110,7 +116,11 @@
   "actions": {
     "edit": "Bearbeiten",
     "delete": "Löschen",
-    "new": "Neu"
+    "new": "Neu",
+    "importCsv": "CSV importieren"
+  },
+  "a11y": {
+    "rowActions": "Aktionen für {{type}} am {{date}}"
   },
   "editTitles": {
     "buy": "Kauf bearbeiten",
@@ -123,7 +133,7 @@
     "feesRefund": "Gebührenerstattung bearbeiten",
     "taxes": "Steuern bearbeiten",
     "removal": "Entnahme bearbeiten",
-    "taxRefund": "Steuererstattung bearbeiten",
+    "taxRefund": "Steuerrückerstattung bearbeiten",
     "deliveryInbound": "Einlieferung bearbeiten",
     "deliveryOutbound": "Auslieferung bearbeiten",
     "securityTransfer": "Wertpapiertransfer bearbeiten",
@@ -133,11 +143,12 @@
   },
   "transactionType": "Buchungstyp",
   "newTransaction": "Neue Buchung",
-  "subtitle": "Browse and manage all portfolio transactions",
+  "newTransactionDescription": "Neuen Kauf, Verkauf, Einzahlung, Überweisung oder andere Buchung anlegen.",
+  "subtitle": "Alle Portfolio-Transaktionen durchsuchen und verwalten",
   "noLinkedDeposit": "Dieses Depot hat kein verknüpftes Verrechnungskonto.",
   "empty": {
-    "noResults": "No transactions match your filters",
-    "noResultsHint": "Try adjusting your filters"
+    "noResults": "Keine Transaktionen entsprechen Ihren Filtern",
+    "noResultsHint": "Versuchen Sie, Ihre Filter anzupassen"
   },
   "search": {
     "placeholder": "Transaktionen suchen...",

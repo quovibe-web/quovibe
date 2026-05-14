@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCsvContent } from '../table-export';
+import { buildCsvContent, buildCsvFromRows } from '../table-export';
 import type { Table } from '@tanstack/react-table';
 
 // ---------------------------------------------------------------------------
@@ -187,5 +187,103 @@ describe('buildCsvContent', () => {
     const withoutBom = csv.slice(1);
     expect(withoutBom).toContain('\r\n');
     expect(withoutBom.split('\r\n').length).toBeGreaterThan(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildCsvFromRows — used by server-paginated export path (BUG-60)
+// ---------------------------------------------------------------------------
+
+interface AccessorColumnSpec {
+  id: string;
+  header: string;
+  locked?: boolean;
+  accessorKey?: string;
+  accessorFn?: (row: TestRow, idx: number) => unknown;
+}
+
+function createAccessorMockTable(specs: AccessorColumnSpec[]): Table<TestRow> {
+  const visibleColumns = specs.map((spec) => ({
+    id: spec.id,
+    columnDef: {
+      header: spec.header,
+      meta: spec.locked ? { locked: true } : undefined,
+      ...(spec.accessorKey ? { accessorKey: spec.accessorKey } : {}),
+      ...(spec.accessorFn ? { accessorFn: spec.accessorFn } : {}),
+    },
+  }));
+  return {
+    getVisibleLeafColumns: () => visibleColumns,
+  } as unknown as Table<TestRow>;
+}
+
+describe('buildCsvFromRows', () => {
+  it('reads values via accessorKey and emits a full CSV', () => {
+    const table = createAccessorMockTable([
+      { id: 'name', header: 'Name', accessorKey: 'name' },
+      { id: 'amount', header: 'Amount', accessorKey: 'amount' },
+      { id: 'date', header: 'Date', accessorKey: 'date' },
+    ]);
+    const csv = buildCsvFromRows(table, testData)!;
+    const lines = csv.slice(1).split('\r\n');
+    expect(lines).toHaveLength(6);
+    expect(lines[0]).toBe('Name,Amount,Date');
+    expect(lines[1]).toBe('Alpha,1234.56,2026-01-15');
+    expect(lines[3]).toBe('Gamma,,');
+  });
+
+  it('reads values via accessorFn (with row index)', () => {
+    const table = createAccessorMockTable([
+      { id: 'name', header: 'Name', accessorKey: 'name' },
+      { id: 'rowNum', header: 'Row', accessorFn: (_r, idx) => idx + 1 },
+    ]);
+    const csv = buildCsvFromRows(table, testData.slice(0, 3))!;
+    const lines = csv.slice(1).split('\r\n');
+    expect(lines[1]).toBe('Alpha,1');
+    expect(lines[2]).toBe('Beta,2');
+    expect(lines[3]).toBe('Gamma,3');
+  });
+
+  it('excludes locked columns', () => {
+    const table = createAccessorMockTable([
+      { id: 'name', header: 'Name', accessorKey: 'name' },
+      { id: 'actions', header: '', locked: true },
+    ]);
+    const csv = buildCsvFromRows(table, testData)!;
+    const headers = csv.slice(1).split('\r\n')[0].split(',');
+    expect(headers).toEqual(['Name']);
+  });
+
+  it('falls back to col.id when no accessorKey/accessorFn', () => {
+    const table = createAccessorMockTable([
+      { id: 'name', header: 'Name' },
+    ]);
+    const csv = buildCsvFromRows(table, testData)!;
+    const lines = csv.slice(1).split('\r\n');
+    expect(lines[1]).toBe('Alpha');
+  });
+
+  it('returns null when no visible non-locked columns', () => {
+    const table = createAccessorMockTable([
+      { id: 'actions', header: '', locked: true },
+    ]);
+    expect(buildCsvFromRows(table, testData)).toBeNull();
+  });
+
+  it('handles 137 rows (BUG-60 regression — full filtered dataset, not 25-row page)', () => {
+    const big: TestRow[] = Array.from({ length: 137 }, (_, i) => ({
+      name: `Row${i}`,
+      amount: i,
+      date: '2026-01-01',
+      active: i % 2 === 0,
+      notes: null,
+    }));
+    const table = createAccessorMockTable([
+      { id: 'name', header: 'Name', accessorKey: 'name' },
+    ]);
+    const csv = buildCsvFromRows(table, big)!;
+    const lines = csv.slice(1).split('\r\n');
+    expect(lines).toHaveLength(138); // header + 137 rows
+    expect(lines[137]).toBe('Row136');
   });
 });

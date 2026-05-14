@@ -39,13 +39,39 @@
     "groupBy": {
       "month": "Mese",
       "quarter": "Trimestre",
-      "year": "Anno"
+      "year": "Anno",
+      "security": "Strumento",
+      "type": "Tipo"
     },
+    "byTitle": "Riepilogo per {{groupBy}}",
+    "cashOrNoSecurity": "Liquidità / nessuno strumento",
     "earningsChart": "Ricavi (Lordo/Netto)",
     "dividends": "Dividendi",
     "interest": "Interessi",
     "dividendsPerGroup": "Dividendi per {{groupBy}}",
     "interestPerGroup": "Interessi per {{groupBy}}",
+    "incomePerGroupGross": "Reddito per {{groupBy}} · lordo",
+    "incomePerGroupNet": "Reddito per {{groupBy}} · netto",
+    "hero": {
+      "titleGross": "Proventi totali (lordi)",
+      "titleNet": "Proventi totali (netti)",
+      "avgMonth": "Media / mese",
+      "peakMonth": "Mese di picco",
+      "payments": "Pagamenti",
+      "topSecurity": "Titolo principale",
+      "priorPeak": "picco precedente"
+    },
+    "calendar": {
+      "title": "Cadenza mensile",
+      "yearLabel": "Anno",
+      "total": "Totale",
+      "totalLabel": "Totale",
+      "deltaHeader": "Δ",
+      "averageRow": "Media",
+      "headerChipAvg": "Media/mese {{value}}",
+      "headerChipYoy": "▲ rispetto al '{{year}}",
+      "headerChipYoyDown": "▼ rispetto al '{{year}}"
+    },
     "columns": {
       "date": "Data",
       "type": "Tipo",
@@ -53,7 +79,11 @@
       "account": "Conto",
       "amount": "Importo"
     },
-    "empty": "Nessun pagamento nel periodo selezionato.",
+    "empty": {
+      "noPayments": "Nessun pagamento nel periodo selezionato.",
+      "filtered": "Nessun pagamento corrisponde ai filtri attivi",
+      "clearFilters": "Cancella filtri"
+    },
     "paymentCount_one": "{{count}} pagamento",
     "paymentCount_other": "{{count}} pagamenti",
     "breakdown": {
@@ -63,7 +93,44 @@
       "byTitle": "per titolo",
       "byAccount": "per conto"
     },
-    "subtitle": "Dividendi, interessi e altri proventi"
+    "yoy": {
+      "vsPrior": "▲ +{{share}}% rispetto a {{priorTotal}} {{priorLabel}}",
+      "vsPriorDown": "▼ {{share}}% rispetto a {{priorTotal}} {{priorLabel}}",
+      "priorYearLabel": "YTD {{year}}"
+    },
+    "detail": {
+      "headerCount": "Dettaglio · {{count, number}} pagamenti",
+      "filtered": "{{filtered, number}} di {{total, number}}",
+      "filter": {
+        "allTypes": "Tutti i tipi",
+        "dividend": "Dividendi",
+        "interest": "Interessi",
+        "addSecurity": "+ Titolo",
+        "selectSecurities": "Seleziona titoli",
+        "searchSecurities": "Cerca titoli…"
+      },
+      "sort": {
+        "label": "Ordina",
+        "dateDesc": "Data · più recente",
+        "dateAsc": "Data · meno recente",
+        "amountDesc": "Importo · più alto",
+        "securityAsc": "Titolo · A → Z"
+      },
+      "year": {
+        "ytd": "YTD",
+        "payments": "{{count, number}} pagamenti"
+      }
+    },
+    "rail": {
+      "topPayers": "Migliori pagatori",
+      "morePayers": "+ altri {{count, number}}",
+      "byType": "Per tipo",
+      "cashInterest": "Interessi su liquidità"
+    },
+    "concentration": {
+      "title": "Concentrazione",
+      "top3": "Top 3 = {{share}}% del reddito"
+    }
   },
   "returnsHeatmap": {
     "title": "Heatmap Rendimenti",
@@ -110,6 +177,7 @@
   },
   "assetAllocation": {
     "title": "Tassonomie",
+    "subtitle": "Allocazione e ribilanciamento per tassonomia",
     "noTaxonomies": "Nessuna tassonomia definita. Importa un portafoglio con dati tassonomici per utilizzare questa vista.",
     "date": "Data",
     "columns": {
@@ -128,7 +196,7 @@
     },
     "expandAll": "Espandi tutto",
     "collapseAll": "Comprimi tutto",
-    "subtitle": "Allocazione e ribilanciamento per tassonomia"
+    "withoutClassification": "Senza Classificazione"
   },
   "taxonomySeries": {
     "title": "Serie Dati",
@@ -145,7 +213,16 @@
     "dividends": "Dividendi",
     "fees": "Commissioni",
     "selectTaxonomy": "Tassonomia",
-    "subtitle": "Andamento performance per categoria"
+    "categoryLabel": "Categoria",
+    "subtitle": "Andamento performance per categoria",
+    "best": "Migliore",
+    "worst": "Peggiore",
+    "spread": "Differenza",
+    "spreadAcross": "su {{count}} categorie",
+    "categoriesLabel": "Categorie",
+    "composition": "Composizione",
+    "topPerformers": "Migliori categorie",
+    "noCategoryData": "Nessun dato disponibile per la categoria."
   },
   "taxonomyNodePicker": {
     "loading": "Caricamento…",
@@ -220,6 +297,51 @@
     "editWeightDescription": "Imposta la percentuale di peso obiettivo",
     "assignCategoryDescription": "Seleziona una categoria da assegnare",
     "deleteError": "Errore durante l'eliminazione della tassonomia",
-    "renameDescription": "Inserisci un nuovo nome per questa tassonomia"
+    "renameDescription": "Inserisci un nuovo nome per questa tassonomia",
+    "emptyCategories": {
+      "title": "Questa tassonomia non ha ancora categorie.",
+      "cta": "Aggiungi la prima categoria"
+    },
+    "resetTargets": {
+      "button": "Ripristina obiettivi",
+      "confirmTitle": "Ripristinare gli obiettivi ai valori salvati?",
+      "confirmBody": "Questo sostituisce gli obiettivi correnti con i valori presenti al caricamento della vista.",
+      "confirmAction": "Ripristina"
+    },
+    "deleteCategoryDetailed": {
+      "title": "Eliminare \"{{name}}\"?",
+      "assignments_one": "{{count}} assegnazione verrà rimossa.",
+      "assignments_other": "{{count}} assegnazioni verranno rimosse.",
+      "subcategories_one": "{{count}} sottocategoria verrà spostata al genitore.",
+      "subcategories_other": "{{count}} sottocategorie verranno spostate al genitore.",
+      "empty": "Questa categoria è vuota."
+    },
+    "renormalize": {
+      "checkbox": "Ridistribuisci proporzionalmente i pesi degli elementi interessati",
+      "hint": "I totali esistenti rimangono ai valori pre-eliminazione."
+    }
+  },
+  "taxonomyUi": {
+    "chartMode": {
+      "donut": "Ciambella",
+      "treemap": "Mappa",
+      "off": "Nessuno"
+    },
+    "columns": {
+      "target": "Obiettivo %",
+      "actual": "Reale %",
+      "delta": "Δ",
+      "split": "Ripartizione"
+    },
+    "withoutClassification": {
+      "empty": "Tutto classificato ✓"
+    },
+    "allocationSumWarning": "I figli sommano a {{sum}}%. Dovrebbero sommare a 100%.",
+    "picker": {
+      "searchPlaceholder": "Cerca categorie...",
+      "noMatches": "Nessuna categoria corrisponde a \"{{query}}\"",
+      "breadcrumbSeparator": " › ",
+      "entireTaxonomy": "Intera tassonomia"
+    }
   }
 }

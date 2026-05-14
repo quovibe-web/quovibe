@@ -1,7 +1,6 @@
-import NumberFlow from '@number-flow/react';
+import { AccessibleNumberFlow } from '@/components/shared/AccessibleNumberFlow';
 import { usePrivacy } from '@/context/privacy-context';
 import { cn } from '@/lib/utils';
-import i18n from '@/i18n';
 
 interface GainBadgeProps {
   /** Fractional value (e.g. 0.05 = 5%) */
@@ -34,9 +33,8 @@ export function GainBadge({ value, className, signDisplay = 'always' }: GainBadg
         : 'bg-[var(--qv-negative)] text-[var(--qv-bg)]',
       className,
     )}>
-      <NumberFlow
+      <AccessibleNumberFlow
         value={value}
-        locales={i18n.language}
         format={{
           style: 'percent',
           minimumFractionDigits: 2,

@@ -1,22 +1,36 @@
+import { z } from 'zod';
 import { Router, type RequestHandler, type Router as RouterType } from 'express';
-import { reportingPeriodDefSchema, resolveReportingPeriod, investmentsViewSchema, chartConfigV2Schema, tableIdSchema, tableLayoutEntrySchema } from '@quovibe/shared';
+import { reportingPeriodDefSchema, resolveReportingPeriod, investmentsViewSchema, allocationViewSchema, calculationViewSchema, chartConfigV2Schema, chartConfigV3Schema, migrateChartConfigV2toV3, tableIdSchema, tableLayoutEntrySchema, preferencesSchema } from '@quovibe/shared';
 import { getSettings, updateSettings } from '../services/settings.service';
-import { getSqlite } from '../helpers/request';
 
 export const settingsRouter: RouterType = Router();
 
+// GET /api/settings — full sidecar payload for the user-level settings page.
+// Read-only; Zod validation not needed.
+settingsRouter.get('/', (_req, res) => {
+  const s = getSettings();
+  res.json({ preferences: s.preferences, app: s.app });
+});
+
+// PUT /api/settings/preferences — partial merge into the sidecar's preferences section.
+const putPreferencesSchema = preferencesSchema.removeDefault().partial();
+settingsRouter.put('/preferences', (req, res) => {
+  const parsed = putPreferencesSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'INVALID_PREFERENCES', details: parsed.error.format() });
+    return;
+  }
+  const updated = updateSettings({ preferences: parsed.data });
+  res.json(updated.preferences);
+});
+
 /** GET /api/settings/reporting-periods */
-const getReportingPeriods: RequestHandler = (req, res) => {
+const getReportingPeriods: RequestHandler = (_req, res) => {
   const { reportingPeriods } = getSettings();
 
-  // Resolve the portfolio's calendar from DB for trading-day fallback
-  const sqlite = getSqlite(req);
-  let globalCalendar = 'default';
-  try {
-    const row = sqlite.prepare('SELECT value FROM property WHERE name = ?')
-      .get('portfolio.calendar') as { value: string } | undefined;
-    if (row) globalCalendar = row.value;
-  } catch { /* use default */ }
+  // Per ADR-015 the settings router is not portfolio-scoped. Calendar lookup
+  // falls back to 'default'; period definitions may override via period.calendarId.
+  const globalCalendar = 'default';
 
   const today = new Date().toISOString().slice(0, 10);
   const resolved = reportingPeriods.map((period) => {
@@ -102,22 +116,67 @@ settingsRouter.put('/investments-view', (req, res) => {
   res.json(updated.investmentsView);
 });
 
+// GET /api/settings/allocation-view
+settingsRouter.get('/allocation-view', (_req, res) => {
+  const { allocationView } = getSettings();
+  res.json(allocationView ?? { chartMode: 'pie' });
+});
+
+// PUT /api/settings/allocation-view
+settingsRouter.put('/allocation-view', (req, res) => {
+  const parsed = allocationViewSchema.removeDefault().partial().safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'INVALID_ALLOCATION_VIEW', details: parsed.error.format() });
+    return;
+  }
+  const updated = updateSettings({ allocationView: parsed.data });
+  res.json(updated.allocationView);
+});
+
+// GET /api/settings/calculation-view
+settingsRouter.get('/calculation-view', (_req, res) => {
+  const { calculationView } = getSettings();
+  res.json(calculationView ?? { layout: 'premium', tableDensity: 'comfortable' });
+});
+
+// PUT /api/settings/calculation-view
+settingsRouter.put('/calculation-view', (req, res) => {
+  const parsed = calculationViewSchema.removeDefault().partial().safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'INVALID_CALCULATION_VIEW', details: parsed.error.format() });
+    return;
+  }
+  const updated = updateSettings({ calculationView: parsed.data });
+  res.json(updated.calculationView);
+});
+
 // GET /api/settings/chart-config
+// v2→v3 migration happens in loadSettings at boot; this handler always serves v3.
 settingsRouter.get('/chart-config', (_req, res) => {
   const { chartConfig } = getSettings();
-  res.json(chartConfig ?? { version: 2, series: [] });
+  res.json(chartConfig ?? { version: 3, series: [] });
 });
 
 // PUT /api/settings/chart-config
 // Note: .partial() intentionally omitted — PUT replaces the entire chartConfig.
+// Accepts both v3 (canonical) and v2 (legacy clients); v2 is migrated → v3 before persisting.
 settingsRouter.put('/chart-config', (req, res) => {
-  const parsed = chartConfigV2Schema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: 'INVALID_CHART_CONFIG', details: parsed.error.format() });
+  const v3 = chartConfigV3Schema.safeParse(req.body);
+  if (v3.success) {
+    const updated = updateSettings({ chartConfig: v3.data });
+    res.json(updated.chartConfig);
     return;
   }
-  const updated = updateSettings({ chartConfig: parsed.data });
-  res.json(updated.chartConfig);
+  // Fall back to v2 — older clients may still send v2; migrate transparently.
+  const v2 = chartConfigV2Schema.safeParse(req.body);
+  if (v2.success) {
+    const migrated = migrateChartConfigV2toV3(v2.data);
+    const updated = updateSettings({ chartConfig: migrated });
+    res.json(updated.chartConfig);
+    return;
+  }
+  // Neither shape parsed — return the v3 error (more informative for new clients).
+  res.status(400).json({ error: 'INVALID_CHART_CONFIG', details: v3.error.format() });
 });
 
 // ---------------------------------------------------------------------------
@@ -208,3 +267,23 @@ settingsRouter.delete('/table-layouts/:tableId', (req, res) => {
   updateSettings({ tableLayouts: rest });
   res.json({ ok: true });
 });
+
+// PUT /api/settings/auto-fetch — toggle the prices auto-fetch app flag.
+// Body shape: { autoFetchPricesOnFirstOpen: boolean }; response echoes the same shape.
+function makeAppFlagPut<K extends 'autoFetchPricesOnFirstOpen'>(
+  key: K,
+): RequestHandler {
+  // zod-ok: dynamic generic-key schema built per-call from K, cannot be hoisted to shared
+  const schema = z.object({ [key]: z.boolean() } as Record<K, z.ZodBoolean>); // zod-ok
+  return (req, res) => {
+    const p = schema.safeParse(req.body);
+    if (!p.success) { res.status(400).json({ error: 'INVALID_INPUT' }); return; }
+    const current = getSettings();
+    const updated = updateSettings({
+      app: { ...current.app, [key]: (p.data as Record<K, boolean>)[key] },
+    });
+    res.json({ [key]: updated.app[key] });
+  };
+}
+
+settingsRouter.put('/auto-fetch', makeAppFlagPut('autoFetchPricesOnFirstOpen'));

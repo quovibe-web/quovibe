@@ -11,11 +11,20 @@
     "accounts": "Rekeningen",
     "investments": "Beleggingen",
     "transactions": "Transacties",
+    "import": "Importeren",
     "analytics": "Analyses",
     "assetAllocation": "Taxonomieën",
     "dataSeries": "Gegevensreeksen",
-    "settings": "Instellingen",
-    "watchlists": "Volglijsten"
+    "settings": "Portefeuille-instellingen",
+    "preferences": "Voorkeuren",
+    "watchlists": "Volglijsten",
+    "income": "Inkomsten",
+    "chart": "Grafiek",
+    "csvImport": "CSV-import",
+    "account": "Rekening",
+    "security": "Effect",
+    "taxonomySeries": "Taxonomiereeks",
+    "newTransaction": "Nieuwe transactie"
   },
   "period": "Periode",
   "presets": {
@@ -33,8 +42,7 @@
   "theme": {
     "light": "Licht thema",
     "system": "Systeemthema",
-    "dark": "Donker thema",
-    "toggle": "Thema wisselen"
+    "dark": "Donker thema"
   },
   "more": "Meer",
   "morePeriods": "Meer perioden",
@@ -49,5 +57,19 @@
     "noResults": "Geen resultaten gevonden.",
     "perfChart": "Rendementsgrafiek",
     "income": "Inkomsten"
+  },
+  "help": {
+    "button": "Help",
+    "title": "Help & info",
+    "description": "Documentatie, sneltoetsen en versie-informatie.",
+    "about": "Over",
+    "aboutBlurb": "quovibe is een open-source tool voor portefeuille-analyse. Versie {{version}}.",
+    "shortcuts": "Sneltoetsen",
+    "shortcutPalette": "Open opdrachtenpalet",
+    "shortcutSidebar": "Zijbalk omschakelen",
+    "links": "Links",
+    "docs": "Documentatie",
+    "releaseNotes": "Release-opmerkingen",
+    "reportBug": "Bug melden"
   }
 }

@@ -1,0 +1,12 @@
+{
+  "noPortfolio": "Kein Portfolio",
+  "newPortfolio": "+ Neues Portfolio…",
+  "tryDemo": "🧪 Demo testen",
+  "allPortfolios": "Alle Portfolios…",
+  "demoBadge": "Demo",
+  "moreHidden_one": "{{count}} weiteres ausgeblendet — siehe Alle Portfolios…",
+  "moreHidden_other": "{{count}} weitere ausgeblendet — siehe Alle Portfolios…",
+  "errors": {
+    "demoFailed": "Demo konnte nicht geöffnet werden: {{msg}}"
+  }
+}

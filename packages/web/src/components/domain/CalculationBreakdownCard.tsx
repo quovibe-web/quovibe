@@ -1,9 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useParams } from 'react-router-dom';
 import { useWidgetConfig } from '@/context/widget-config-context';
 import { useCalculation, useReportingPeriod } from '@/api/use-performance';
+import { usePortfolioRegistry } from '@/api/use-portfolios';
 import { CALCULATION_ROWS } from '@/lib/calculation-rows';
 import type { RowDef } from '@/lib/calculation-rows';
+import { buildCalculationCsv, downloadCalculationCsv, slugifyFilename } from '@/lib/analytics-export';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { MetricCardSkeleton } from '@/components/shared/MetricCardSkeleton';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
@@ -18,7 +21,8 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ChevronRight, ChevronDown, ChevronsUpDown, ChevronsDownUp } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ChevronRight, ChevronDown, ChevronsUpDown, ChevronsDownUp, Download } from 'lucide-react';
 import { formatPercentage } from '@/lib/formatters';
 import { formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
@@ -65,7 +69,7 @@ export function CalculationBreakdownCard({ mode }: CalculationBreakdownCardProps
   }
 
   return (
-    <FullView data={data} isLoading={isLoading} isError={isError} error={error} />
+    <ClassicView data={data} isLoading={isLoading} isError={isError} error={error} />
   );
 }
 
@@ -112,7 +116,7 @@ function CompactView({ data, isLoading, isError, error }: ViewProps) {
             className="flex items-center justify-between py-1 text-sm"
           >
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs text-muted-foreground w-5 text-center">
+              <span className="qv-numeric text-xs text-muted-foreground w-5 text-center">
                 {row.sign}
               </span>
               <span className="text-muted-foreground">{t(row.i18nKey)}</span>
@@ -120,7 +124,7 @@ function CompactView({ data, isLoading, isError, error }: ViewProps) {
             <CurrencyDisplay
               value={displayValue}
               colorize={row.colorSign}
-              className="tabular-nums"
+              className="qv-numeric"
             />
           </div>
         );
@@ -150,19 +154,29 @@ function CompactView({ data, isLoading, isError, error }: ViewProps) {
 
 function MetricChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 text-xs">
+    <div className="flex items-center gap-1.5 rounded-md bg-[var(--qv-surface-elevated)] border border-[var(--qv-border-subtle)] px-2 py-1 text-xs">
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium tabular-nums">{value}</span>
+      <span className="qv-numeric font-medium">{value}</span>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Full View
+// Classic View (frozen)
+//
+// This view is the legacy Portfolio-Performance "Calculation" tab port,
+// kept for users who select Layout = "classic" in the page header.
+// FROZEN: bug-fix-only. New metrics + new features go to
+// CalculationPremiumView (components/domain/analytics/calculation/).
 // ---------------------------------------------------------------------------
 
-function FullView({ data, isLoading, isError, error }: ViewProps) {
+function ClassicView({ data, isLoading, isError, error }: ViewProps) {
   const { t } = useTranslation('performance');
+  const { t: tCommon } = useTranslation('common');
+  const { isPrivate } = usePrivacy();
+  const { portfolioId } = useParams<{ portfolioId: string }>();
+  const registry = usePortfolioRegistry();
+  const { periodStart, periodEnd } = useReportingPeriod();
 
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
@@ -186,6 +200,16 @@ function FullView({ data, isLoading, isError, error }: ViewProps) {
   const expandAll = () => setExpandedRows(new Set(expandableKeys));
   const collapseAll = () => setExpandedRows(new Set());
 
+  const handleExport = () => {
+    if (!data || isPrivate) return;
+    const portfolioName =
+      registry.data?.portfolios.find((p) => p.id === portfolioId)?.name ?? 'portfolio';
+    const slug = slugifyFilename(portfolioName);
+    const filename = `analytics-calculation-${slug}-${periodStart}-${periodEnd}`;
+    const csv = buildCalculationCsv(data, t, data.irrConverged);
+    downloadCalculationCsv(csv, filename);
+  };
+
   if (isLoading) {
     return <SectionSkeleton rows={9} />;
   }
@@ -205,18 +229,39 @@ function FullView({ data, isLoading, isError, error }: ViewProps) {
   return (
     <div className="max-w-lg">
     <div className="space-y-1">
-      {expandableKeys.length > 0 && (
-        <div className="flex items-center gap-1 mb-4">
-          <Button variant="ghost" size="sm" onClick={expandAll}>
-            <ChevronsUpDown size={14} className="mr-1" />
-            {t('calculation.expandAll')}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={collapseAll}>
-            <ChevronsDownUp size={14} className="mr-1" />
-            {t('calculation.collapseAll')}
-          </Button>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-1">
+          {expandableKeys.length > 0 && (
+            <>
+              <Button variant="ghost" size="sm" onClick={expandAll}>
+                <ChevronsUpDown size={14} className="mr-1" />
+                {t('calculation.expandAll')}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={collapseAll}>
+                <ChevronsDownUp size={14} className="mr-1" />
+                {t('calculation.collapseAll')}
+              </Button>
+            </>
+          )}
         </div>
-      )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleExport}
+              disabled={isPrivate}
+              aria-label={tCommon('exportCsv')}
+            >
+              <Download className="h-4 w-4" />
+              <span className="ml-1">{tCommon('exportCsv')}</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isPrivate ? tCommon('exportDisabledPrivacy') : tCommon('exportCsv')}
+          </TooltipContent>
+        </Tooltip>
+      </div>
 
       {CALCULATION_ROWS.map((row) => {
         const total = row.extractTotal(data);
@@ -279,7 +324,7 @@ function FullRowHeader({ row, total, isExpandable, isExpanded, onToggle }: FullR
     <div
       className={cn(
         'flex items-center justify-between py-2 px-2 rounded-md',
-        isExpandable && 'cursor-pointer hover:bg-muted/50',
+        isExpandable && 'cursor-pointer hover:bg-[var(--qv-surface-3)]',
       )}
       onClick={isExpandable ? onToggle : undefined}
       role={isExpandable ? 'button' : undefined}
@@ -306,7 +351,7 @@ function FullRowHeader({ row, total, isExpandable, isExpanded, onToggle }: FullR
         ) : (
           <span className="w-4" />
         )}
-        <span className="font-mono text-xs text-muted-foreground w-5 text-center">
+        <span className="qv-numeric text-xs text-muted-foreground w-5 text-center">
           {row.sign}
         </span>
         <span className="text-sm font-medium">{t(row.i18nKey)}</span>
@@ -314,7 +359,7 @@ function FullRowHeader({ row, total, isExpandable, isExpanded, onToggle }: FullR
       <CurrencyDisplay
         value={row.negate ? -parseFloat(total) : parseFloat(total)}
         colorize={row.colorSign}
-        className="text-sm font-medium tabular-nums"
+        className="qv-numeric text-sm font-medium"
       />
     </div>
   );
@@ -362,6 +407,7 @@ function ExpandedTable({ rowKey, items, negate }: ExpandedTableProps) {
                 <CurrencyDisplay
                   value={negate ? -parseFloat(item.amount) : parseFloat(item.amount)}
                   colorize
+                  className="qv-numeric"
                 />
               </TableCell>
               {showFxColumn && (
@@ -369,11 +415,10 @@ function ExpandedTable({ rowKey, items, negate }: ExpandedTableProps) {
                   <CurrencyDisplay
                     value={parseFloat(item.subLabel ?? '0')}
                     colorize
-                    className={
-                      parseFloat(item.subLabel ?? '0') === 0
-                        ? 'text-muted-foreground'
-                        : undefined
-                    }
+                    className={cn(
+                      'qv-numeric',
+                      parseFloat(item.subLabel ?? '0') === 0 && 'text-muted-foreground',
+                    )}
                   />
                 </TableCell>
               )}

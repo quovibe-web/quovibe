@@ -1,20 +1,21 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Pencil, RefreshCw, Trash2 } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SecurityListItem, StatementSecurityEntry, SecurityPerfResponse } from '@/api/types';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { SharesDisplay } from '@/components/shared/SharesDisplay';
 import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
+import { SignedPercent } from '@/components/shared/SignedPercent';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatDate, formatPercentage } from '@/lib/formatters';
 import { usePrivacy } from '@/context/privacy-context';
-import { COLORS } from '@/lib/colors';
 import { textColumnMeta, currencyColumnMeta, percentColumnMeta, sharesColumnMeta, dateColumnMeta } from '@/lib/column-factories';
 import { cn } from '@/lib/utils';
+import { useFetchPrices } from '@/api/use-securities';
 
 interface UseInvestmentsColumnsParams {
   statementMap: Map<string, StatementSecurityEntry>;
@@ -25,14 +26,47 @@ interface UseInvestmentsColumnsParams {
   onDelete: (id: string) => void;
 }
 
-/** Local helper — colored percentage cell for performance columns */
-function PctCell({ value }: { value: string }) {
-  const { isPrivate } = usePrivacy();
-  const n = parseFloat(value);
+/** Row actions dropdown — isolated so useFetchPrices can be bound per-row. */
+function SecurityRowActions({
+  id,
+  onEdit,
+  onDelete,
+}: {
+  id: string;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { t } = useTranslation('securities');
+  const { t: tCommon } = useTranslation('common');
+  const fetchPrices = useFetchPrices(id);
   return (
-    <span style={{ color: !isPrivate && n >= 0 ? COLORS.profit : COLORS.loss }}>
-      {isPrivate ? '••••••' : formatPercentage(n)}
-    </span>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} onCloseAutoFocus={(e) => e.preventDefault()}>
+        <DropdownMenuItem
+          disabled={fetchPrices.isPending}
+          onSelect={(e) => {
+            e.preventDefault();
+            fetchPrices.mutate('merge');
+          }}
+        >
+          <RefreshCw className={cn('mr-2 h-4 w-4', fetchPrices.isPending && 'animate-spin')} />
+          {fetchPrices.isPending ? t('actions.refreshing') : t('actions.refreshQuote')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onEdit(id)}>
+          <Pencil className="mr-2 h-4 w-4" />
+          {tCommon('edit')}
+        </DropdownMenuItem>
+        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(id)}>
+          <Trash2 className="mr-2 h-4 w-4" />
+          {tCommon('delete')}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -64,10 +98,12 @@ export function useInvestmentsColumns({
             />
             <span className={cn('truncate', row.original.isRetired ? 'text-muted-foreground' : 'font-medium')}>
               {row.original.name}
-              {row.original.isRetired && (
-                <span className="ml-2 text-xs">{tCommon('retired')}</span>
-              )}
             </span>
+            {row.original.isRetired && (
+              <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-[var(--qv-warning)]/15 text-[var(--qv-warning)]">
+                {tCommon('retired')}
+              </span>
+            )}
           </div>
         ),
       },
@@ -82,7 +118,7 @@ export function useInvestmentsColumns({
         maxSize: 180,
         enableSorting: true,
         cell: ({ getValue }) => (
-          <span className="font-mono text-sm">{getValue<string | null>() ?? '—'}</span>
+          <span className="qv-numeric text-sm">{getValue<string | null>() ?? '—'}</span>
         ),
       },
 
@@ -126,7 +162,7 @@ export function useInvestmentsColumns({
           const shares = statementMap.get(row.original.id)?.shares ?? perfMap.get(row.original.id)?.shares;
           return (
             <div className="text-right">
-              <SharesDisplay value={shares} className="text-sm" />
+              <SharesDisplay value={shares} className="qv-numeric text-sm" />
             </div>
           );
         },
@@ -150,7 +186,7 @@ export function useInvestmentsColumns({
           if (!entry) return <div className="text-right">—</div>;
           return (
             <div className="text-right">
-              <CurrencyDisplay value={parseFloat(entry.pricePerShare)} currency={entry.currency} className="text-sm" />
+              <CurrencyDisplay value={parseFloat(entry.pricePerShare)} currency={entry.currency} className="qv-numeric text-sm" />
             </div>
           );
         },
@@ -174,7 +210,7 @@ export function useInvestmentsColumns({
           if (!entry) return <div className="text-right">—</div>;
           return (
             <div className="text-right">
-              <CurrencyDisplay value={parseFloat(entry.marketValue)} currency={entry.currency} className="text-sm font-medium" />
+              <CurrencyDisplay value={parseFloat(entry.marketValue)} currency={entry.currency} className="qv-numeric text-sm font-medium" />
             </div>
           );
         },
@@ -201,7 +237,7 @@ export function useInvestmentsColumns({
           const pct = (parseFloat(entry.marketValue) / totalSecurityValue) * 100;
           return (
             <div className="text-right">
-              <span className="text-sm tabular-nums text-muted-foreground">
+              <span className="qv-numeric text-sm text-muted-foreground">
                 {isPrivate ? '••••••' : formatPercentage(pct / 100)}
               </span>
             </div>
@@ -224,7 +260,7 @@ export function useInvestmentsColumns({
           if (!price) return <div className="text-right">—</div>;
           return (
             <div className="text-right">
-              <CurrencyDisplay value={parseFloat(price)} currency={row.original.currency} className="text-sm" />
+              <CurrencyDisplay value={parseFloat(price)} currency={row.original.currency} className="qv-numeric text-sm" />
             </div>
           );
         },
@@ -268,7 +304,7 @@ export function useInvestmentsColumns({
           if (!perf) return <div className="text-right text-muted-foreground">—</div>;
           if (!perf.irrConverged || perf.irr === null)
             return <div className="text-right text-[var(--qv-warning)] text-xs">{t('columns.irrNotConverged')}</div>;
-          return <div className="text-right"><PctCell value={perf.irr} /></div>;
+          return <div className="text-right"><SignedPercent value={parseFloat(perf.irr)} /></div>;
         },
         enableSorting: true,
       },
@@ -288,7 +324,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.ttwror) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><PctCell value={perf.ttwror} /></div>;
+          return <div className="text-right"><SignedPercent value={parseFloat(perf.ttwror)} /></div>;
         },
         enableSorting: true,
       },
@@ -308,7 +344,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.ttwrorPa) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><PctCell value={perf.ttwrorPa} /></div>;
+          return <div className="text-right"><SignedPercent value={parseFloat(perf.ttwrorPa)} /></div>;
         },
         enableSorting: true,
       },
@@ -328,7 +364,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.purchaseValue) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.purchaseValue)} /></div>;
+          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.purchaseValue)} className="qv-numeric text-sm" /></div>;
         },
         enableSorting: true,
       },
@@ -348,7 +384,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.mve) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right font-medium"><CurrencyDisplay value={parseFloat(perf.mve)} /></div>;
+          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.mve)} className="qv-numeric text-sm font-medium" /></div>;
         },
         enableSorting: true,
       },
@@ -368,7 +404,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.unrealizedGain) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.unrealizedGain)} colorize /></div>;
+          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.unrealizedGain)} colorize className="qv-numeric text-sm" /></div>;
         },
         enableSorting: true,
       },
@@ -388,7 +424,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.realizedGain) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.realizedGain)} colorize /></div>;
+          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.realizedGain)} colorize className="qv-numeric text-sm" /></div>;
         },
         enableSorting: true,
       },
@@ -408,7 +444,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.dividends) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.dividends)} /></div>;
+          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.dividends)} className="qv-numeric text-sm" /></div>;
         },
         enableSorting: true,
       },
@@ -428,7 +464,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.fees) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.fees)} /></div>;
+          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.fees)} className="qv-numeric text-sm" /></div>;
         },
         enableSorting: true,
       },
@@ -448,7 +484,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.taxes) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.taxes)} /></div>;
+          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.taxes)} className="qv-numeric text-sm" /></div>;
         },
         enableSorting: true,
       },
@@ -463,23 +499,7 @@ export function useInvestmentsColumns({
         enableSorting: false,
         meta: { sticky: 'right', locked: true },
         cell: ({ row }) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} onCloseAutoFocus={(e) => e.preventDefault()}>
-              <DropdownMenuItem onClick={() => onEdit(row.original.id)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                {tCommon('edit')}
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(row.original.id)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                {tCommon('delete')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <SecurityRowActions id={row.original.id} onEdit={onEdit} onDelete={onDelete} />
         ),
       },
     ];

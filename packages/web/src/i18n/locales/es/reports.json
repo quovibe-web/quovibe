@@ -14,7 +14,7 @@
       "balance": "Saldo",
       "currency": "Moneda"
     },
-    "subtitle": "Portfolio snapshot at period end",
+    "subtitle": "Instantánea de la cartera al final del período",
     "empty": "No securities in portfolio"
   },
   "holdings": {
@@ -38,13 +38,39 @@
     "groupBy": {
       "month": "Mes",
       "quarter": "Trimestre",
-      "year": "Año"
+      "year": "Año",
+      "security": "Instrumento",
+      "type": "Tipo"
     },
+    "byTitle": "Desglose por {{groupBy}}",
+    "cashOrNoSecurity": "Efectivo / sin instrumento",
     "earningsChart": "Ingresos (Bruto/Neto)",
     "dividends": "Dividendos",
     "interest": "Intereses",
     "dividendsPerGroup": "Dividendos por {{groupBy}}",
     "interestPerGroup": "Intereses por {{groupBy}}",
+    "incomePerGroupGross": "Ingresos por {{groupBy}} · bruto",
+    "incomePerGroupNet": "Ingresos por {{groupBy}} · neto",
+    "hero": {
+      "titleGross": "Ingresos totales (brutos)",
+      "titleNet": "Ingresos totales (netos)",
+      "avgMonth": "Media / mes",
+      "peakMonth": "Mes pico",
+      "payments": "Pagos",
+      "topSecurity": "Valor principal",
+      "priorPeak": "pico anterior"
+    },
+    "calendar": {
+      "title": "Cadencia mensual",
+      "yearLabel": "Año",
+      "total": "Total",
+      "totalLabel": "Total",
+      "deltaHeader": "Δ",
+      "averageRow": "Media",
+      "headerChipAvg": "Media/mes {{value}}",
+      "headerChipYoy": "▲ vs '{{year}}",
+      "headerChipYoyDown": "▼ vs '{{year}}"
+    },
     "columns": {
       "date": "Fecha",
       "type": "Tipo",
@@ -52,7 +78,11 @@
       "account": "Cuenta",
       "amount": "Importe"
     },
-    "empty": "Sin pagos en el período seleccionado.",
+    "empty": {
+      "noPayments": "Sin pagos en el período seleccionado.",
+      "filtered": "Ningún pago coincide con los filtros activos",
+      "clearFilters": "Borrar filtros"
+    },
     "paymentCount_one": "{{count}} pago",
     "paymentCount_other": "{{count}} pagos",
     "breakdown": {
@@ -62,7 +92,45 @@
       "byTitle": "por valor",
       "byAccount": "por cuenta"
     },
-    "subtitle": "Dividends, interest, and other income"
+    "subtitle": "Dividendos, intereses y otros ingresos",
+    "yoy": {
+      "vsPrior": "▲ +{{share}}% vs {{priorTotal}} {{priorLabel}}",
+      "vsPriorDown": "▼ {{share}}% vs {{priorTotal}} {{priorLabel}}",
+      "priorYearLabel": "YTD {{year}}"
+    },
+    "detail": {
+      "headerCount": "Detalle · {{count, number}} pagos",
+      "filtered": "{{filtered, number}} de {{total, number}}",
+      "filter": {
+        "allTypes": "Todos los tipos",
+        "dividend": "Dividendos",
+        "interest": "Intereses",
+        "addSecurity": "+ Valor",
+        "selectSecurities": "Seleccionar valores",
+        "searchSecurities": "Buscar valores…"
+      },
+      "sort": {
+        "label": "Ordenar",
+        "dateDesc": "Fecha · más reciente",
+        "dateAsc": "Fecha · más antigua",
+        "amountDesc": "Importe · más alto",
+        "securityAsc": "Valor · A → Z"
+      },
+      "year": {
+        "ytd": "YTD",
+        "payments": "{{count, number}} pagos"
+      }
+    },
+    "rail": {
+      "topPayers": "Mejores pagadores",
+      "morePayers": "+ {{count, number}} más",
+      "byType": "Por tipo",
+      "cashInterest": "Intereses en efectivo"
+    },
+    "concentration": {
+      "title": "Concentración",
+      "top3": "Top 3 = {{share}}% del ingreso"
+    }
   },
   "returnsHeatmap": {
     "title": "Mapa de calor de rentabilidades",
@@ -109,6 +177,7 @@
   },
   "assetAllocation": {
     "title": "Taxonomías",
+    "subtitle": "Asignación y reequilibrio por taxonomía",
     "noTaxonomies": "No hay taxonomías definidas. Importe una cartera con datos de taxonomía para usar esta vista.",
     "date": "Fecha",
     "columns": {
@@ -127,7 +196,7 @@
     },
     "expandAll": "Expandir todo",
     "collapseAll": "Contraer todo",
-    "subtitle": "Allocation and rebalancing by taxonomy"
+    "withoutClassification": "Sin Clasificación"
   },
   "taxonomySeries": {
     "title": "Series de datos",
@@ -144,7 +213,16 @@
     "dividends": "Dividendos",
     "fees": "Comisiones",
     "selectTaxonomy": "Taxonomía",
-    "subtitle": "Performance trends by category"
+    "categoryLabel": "Categoría",
+    "subtitle": "Tendencias de rendimiento por categoría",
+    "best": "Mejor",
+    "worst": "Peor",
+    "spread": "Diferencia",
+    "spreadAcross": "en {{count}} categorías",
+    "categoriesLabel": "Categorías",
+    "composition": "Composición",
+    "topPerformers": "Mejores categorías",
+    "noCategoryData": "No hay datos de categoría disponibles."
   },
   "taxonomyNodePicker": {
     "loading": "Cargando…",
@@ -153,24 +231,24 @@
     "noCategories": "Sin categorías"
   },
   "rebalancing": {
-    "title": "Rebalancing",
-    "viewDefinition": "Definition",
-    "viewRebalancing": "Rebalancing",
+    "title": "Reequilibrio",
+    "viewDefinition": "Definición",
+    "viewRebalancing": "Reequilibrio",
     "columns": {
-      "category": "Category",
-      "allocation": "Allocation %",
-      "weight": "Weight %",
-      "actualValue": "Actual Value",
-      "targetValue": "Target Value",
+      "category": "Categoría",
+      "allocation": "Asignación %",
+      "weight": "Peso %",
+      "actualValue": "Valor actual",
+      "targetValue": "Valor objetivo",
       "deltaValue": "Delta",
       "deltaPercent": "Delta %",
-      "rebalanceAmount": "Rebalance",
-      "rebalanceShares": "Shares"
+      "rebalanceAmount": "Reequilibrar",
+      "rebalanceShares": "Títulos"
     },
     "allocationSumWarning": "Suma de asignación: {{sum}}% / {{expected}}%",
-    "noData": "No rebalancing data.",
-    "totalPortfolioValue": "Total Portfolio Value",
-    "excluded": "Excluded from rebalancing"
+    "noData": "Sin datos de reequilibrio.",
+    "totalPortfolioValue": "Valor total de la cartera",
+    "excluded": "Excluido del reequilibrio"
   },
   "taxonomyManagement": {
     "newTaxonomy": "Nueva Clasificación",
@@ -219,6 +297,51 @@
     "editWeightDescription": "Establezca el porcentaje de peso objetivo",
     "assignCategoryDescription": "Seleccione una categoría para asignar",
     "deleteError": "Error al eliminar la taxonomía",
-    "renameDescription": "Introduzca un nuevo nombre para esta taxonomía"
+    "renameDescription": "Introduzca un nuevo nombre para esta taxonomía",
+    "emptyCategories": {
+      "title": "Esta taxonomía aún no tiene categorías.",
+      "cta": "Añadir primera categoría"
+    },
+    "resetTargets": {
+      "button": "Restablecer objetivos",
+      "confirmTitle": "¿Restablecer los objetivos a los valores guardados?",
+      "confirmBody": "Reemplaza los objetivos actuales con los valores existentes al cargar la vista.",
+      "confirmAction": "Restablecer"
+    },
+    "deleteCategoryDetailed": {
+      "title": "¿Eliminar \"{{name}}\"?",
+      "assignments_one": "Se eliminará {{count}} asignación.",
+      "assignments_other": "Se eliminarán {{count}} asignaciones.",
+      "subcategories_one": "Se moverá {{count}} subcategoría al padre.",
+      "subcategories_other": "Se moverán {{count}} subcategorías al padre.",
+      "empty": "Esta categoría está vacía."
+    },
+    "renormalize": {
+      "checkbox": "Redistribuir proporcionalmente los pesos de los elementos afectados",
+      "hint": "Los totales existentes se mantienen en los valores previos a la eliminación."
+    }
+  },
+  "taxonomyUi": {
+    "chartMode": {
+      "donut": "Donut",
+      "treemap": "Mapa de árbol",
+      "off": "Ninguno"
+    },
+    "columns": {
+      "target": "Objetivo %",
+      "actual": "Real %",
+      "delta": "Δ",
+      "split": "Desglose"
+    },
+    "withoutClassification": {
+      "empty": "Todo clasificado ✓"
+    },
+    "allocationSumWarning": "Los elementos secundarios suman {{sum}}%. Deberían sumar 100%.",
+    "picker": {
+      "searchPlaceholder": "Buscar categorías...",
+      "noMatches": "Ninguna categoría coincide con \"{{query}}\"",
+      "breadcrumbSeparator": " › ",
+      "entireTaxonomy": "Taxonomía completa"
+    }
   }
 }

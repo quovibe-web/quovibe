@@ -1,16 +1,8 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
-import {
-  BarChart,
-  Bar,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -18,141 +10,176 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  BarChart,
+  Bar,
+  Cell,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import type { TooltipContentProps } from 'recharts';
+import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
+import { Coins, Percent, Receipt } from 'lucide-react';
+import { useNavTitle } from '@/hooks/useNavTitle';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
-import { usePayments, reportsKeys } from '@/api/use-reports';
-import { useReportingPeriod } from '@/api/use-performance';
-import { apiFetch } from '@/api/fetch';
-import { PaymentBreakdownTooltip } from '@/components/domain/PaymentBreakdownTooltip';
-import type { PaymentBreakdownResponse } from '@quovibe/shared';
-import { formatDate } from '@/lib/formatters';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { usePayments } from '@/api/use-reports';
+import { AggregatedPaymentTooltip } from '@/components/domain/AggregatedPaymentTooltip';
+import { formatDate, formatNumber } from '@/lib/formatters';
 import { usePrivacy } from '@/context/privacy-context';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { useChartTheme } from '@/hooks/use-chart-theme';
+import { useActiveBar } from '@/hooks/use-active-bar';
 import { ChartSkeleton } from '@/components/shared/ChartSkeleton';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
 import { FadeIn } from '@/components/shared/FadeIn';
 import { SegmentedControl } from '@/components/shared/SegmentedControl';
 import { useAnalyticsContext } from '@/context/analytics-context';
+import { useReportingPeriod } from '@/api/use-performance';
+import { IncomeHero } from '@/components/domain/IncomeHero';
+import { IncomeCalendar } from '@/components/domain/IncomeCalendar';
+import { IncomeStackedBar } from '@/components/domain/IncomeStackedBar';
+import { IncomeRightRail } from '@/components/domain/IncomeRightRail';
+import {
+  IncomeDetailList,
+  type IncomeDetailListHandle,
+} from '@/components/domain/IncomeDetailList';
+import {
+  parseFilterUrlParams,
+  serializeFilterUrlParams,
+  type DetailFilters,
+  type DetailSort,
+  type DetailFilterType,
+} from '@/components/domain/IncomeDetailList.utils';
 import { cn, txTypeKey } from '@/lib/utils';
 import type { PaymentGroup } from '@/api/types';
 
+const compactNumberFormat = (v: number) =>
+  formatNumber(v, { notation: 'compact', maximumFractionDigits: 1 });
+
+const ANCHORED_TOOLTIP_WRAPPER_STYLE = {
+  outline: 'none',
+  pointerEvents: 'none' as const,
+  transition: 'none',
+};
+
 type AmountMode = 'gross' | 'net';
+type TimeGroupByMode = 'month' | 'quarter' | 'year';
+type GroupByMode = TimeGroupByMode | 'security' | 'type';
 
-function PaymentBarChart({
-  groups,
-  amountMode,
-  color,
-  title,
-  isPrivate,
-  type,
+// ─── Aggregated chart helpers (kept for security/type modes) ───────────────
+
+function aggregateBySecurity(
+  combinedGroups: PaymentGroup[],
+  amountMode: AmountMode,
+  cashLabel: string,
+): Array<{ bucket: string; total: number }> {
+  const totals = new Map<string, number>();
+  for (const group of combinedGroups) {
+    for (const payment of group.payments) {
+      const key = payment.securityName ?? cashLabel;
+      const amount = parseFloat(amountMode === 'gross' ? payment.grossAmount : payment.netAmount);
+      totals.set(key, (totals.get(key) ?? 0) + amount);
+    }
+  }
+  return Array.from(totals.entries())
+    .map(([bucket, total]) => ({ bucket, total }))
+    .sort((a, b) => b.total - a.total);
+}
+
+function aggregateByTypeChart(
+  combinedGroups: PaymentGroup[],
+  amountMode: AmountMode,
+  dividendLabel: string,
+  interestLabel: string,
+): Array<{ bucket: string; total: number; isDividend: boolean }> {
+  let dividendTotal = 0;
+  let interestTotal = 0;
+  for (const group of combinedGroups) {
+    for (const payment of group.payments) {
+      const amount = parseFloat(amountMode === 'gross' ? payment.grossAmount : payment.netAmount);
+      if (payment.type === 'DIVIDEND') dividendTotal += amount;
+      else interestTotal += amount;
+    }
+  }
+  const result: Array<{ bucket: string; total: number; isDividend: boolean }> = [];
+  if (dividendTotal > 0) result.push({ bucket: dividendLabel, total: dividendTotal, isDividend: true });
+  if (interestTotal > 0) result.push({ bucket: interestLabel, total: interestTotal, isDividend: false });
+  return result;
+}
+
+function AggregatedBarChart({
+  combinedGroups,
   groupBy,
+  amountMode,
+  isPrivate,
+  dividendColor,
+  interestColor,
 }: {
-  groups: PaymentGroup[];
+  combinedGroups: PaymentGroup[];
+  groupBy: 'security' | 'type';
   amountMode: AmountMode;
-  color: string;
-  title: string;
   isPrivate: boolean;
-  type: 'DIVIDEND' | 'INTEREST';
-  groupBy: 'month' | 'quarter' | 'year';
+  dividendColor: string;
+  interestColor: string;
 }) {
-  const { i18n } = useTranslation('common');
+  const { t } = useTranslation('reports');
   const { gridColor, gridOpacity, tickColor, isDark } = useChartTheme();
-  const [activeBucket, setActiveBucket] = useState<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const queryClient = useQueryClient();
-  const { periodStart, periodEnd } = useReportingPeriod();
+  const { barHandlers, tooltipProps } = useActiveBar();
 
-  const chartData = groups.map((g) => ({
-    bucket: g.bucket,
-    total: parseFloat(amountMode === 'gross' ? g.totalGross : g.totalNet),
-  }));
+  const cashLabel = t('payments.cashOrNoSecurity');
+  const dividendLabel = t('payments.dividends');
+  const interestLabel = t('payments.interest');
 
-  const handleMouseMove = useCallback((state: { activeLabel?: string }) => {
-    const bucket = state?.activeLabel ?? null;
-    if (!bucket) return;
-    // Prefetch immediately — fetch starts 250ms before debounce fires
-    queryClient.prefetchQuery({
-      queryKey: reportsKeys.paymentsBreakdown(bucket, type, groupBy, periodStart, periodEnd),
-      queryFn: () =>
-        apiFetch<PaymentBreakdownResponse>(
-          `/api/reports/payments/breakdown?bucket=${encodeURIComponent(bucket)}&type=${type}&groupBy=${groupBy}&periodStart=${periodStart}&periodEnd=${periodEnd}`,
-        ),
-      staleTime: 5 * 60 * 1000,
-    });
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setActiveBucket(bucket);
-    }, 250);
-  }, [queryClient, periodStart, periodEnd, type, groupBy]);
-
-  const handleMouseLeave = useCallback(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setActiveBucket(null);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
+  const chartData = useMemo(() => {
+    if (groupBy === 'security') {
+      return aggregateBySecurity(combinedGroups, amountMode, cashLabel).map((d) => ({ ...d, color: dividendColor }));
+    }
+    return aggregateByTypeChart(combinedGroups, amountMode, dividendLabel, interestLabel).map((d) => ({
+      ...d,
+      color: d.isDividend ? dividendColor : interestColor,
+    }));
+  }, [combinedGroups, groupBy, amountMode, cashLabel, dividendLabel, interestLabel, dividendColor, interestColor]);
 
   if (chartData.length === 0) return null;
+  const title = t('payments.byTitle', { groupBy: t(`payments.groupBy.${groupBy}`) });
 
   return (
-    <Card>
+    <Card className="mt-6 rounded-md">
       <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
+        <CardTitle className="text-base font-medium">{title}</CardTitle>
       </CardHeader>
       <CardContent>
         <div style={{ filter: isPrivate ? 'blur(8px) saturate(0)' : 'none', transition: 'filter 0.2s ease' }}>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart
-              data={chartData}
-              margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-            >
+            <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} strokeOpacity={gridOpacity} vertical={false} />
-              <XAxis
-                dataKey="bucket"
-                tick={{ fill: tickColor, fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-              />
-              <YAxis
-                tick={{ fill: tickColor, fontSize: 11, style: { fontFeatureSettings: '"tnum"' } }}
-                tickLine={false}
-                axisLine={false}
-                tickMargin={4}
-                tickFormatter={(v: number) =>
-                  new Intl.NumberFormat(i18n.language, {
-                    notation: 'compact',
-                    maximumFractionDigits: 1,
-                  }).format(v)
-                }
-              />
+              <XAxis dataKey="bucket" tick={{ fill: tickColor, fontSize: 11 }} tickLine={false} axisLine={false} tickMargin={8} />
+              <YAxis tick={{ fill: tickColor, fontSize: 11, style: { fontFeatureSettings: '"tnum"' } }} tickLine={false} axisLine={false} tickMargin={4} tickFormatter={compactNumberFormat} />
               <Tooltip
+                {...tooltipProps}
                 cursor={false}
-                wrapperStyle={{ outline: 'none' }}
-                content={(props) => (
-                  <PaymentBreakdownTooltip
-                    {...props}
-                    activeBucket={activeBucket}
-                    type={type}
-                    groupBy={groupBy}
-                    amountMode={amountMode}
-                  />
+                wrapperStyle={ANCHORED_TOOLTIP_WRAPPER_STYLE}
+                content={(props: TooltipContentProps<ValueType, NameType>) => (
+                  <AggregatedPaymentTooltip {...props} amountMode={amountMode} />
                 )}
               />
               <Bar
                 dataKey="total"
-                fill={color}
                 radius={[3, 3, 0, 0]}
                 animationDuration={600}
                 animationEasing="ease-out"
                 activeBar={{ style: { filter: isDark ? 'brightness(1.6) saturate(1.5)' : 'brightness(1.15) saturate(1.2)', transition: 'filter 0.15s ease' } }}
-              />
+                fill={dividendColor}
+                {...barHandlers}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -161,14 +188,77 @@ function PaymentBarChart({
   );
 }
 
+// ─── Page ──────────────────────────────────────────────────────────────────
+
 export default function Payments() {
   const { t } = useTranslation('reports');
-  const [groupBy, setGroupBy] = useState<'month' | 'quarter' | 'year'>('month');
+  useNavTitle('income');
+  const [groupBy, setGroupBy] = useState<GroupByMode>('month');
   const [amountMode, setAmountMode] = useState<AmountMode>('gross');
-  const { data, isLoading, isFetching } = usePayments(groupBy);
+  const apiGroupBy: TimeGroupByMode =
+    groupBy === 'security' || groupBy === 'type' ? 'month' : groupBy;
+  const { data, isLoading, isFetching } = usePayments(apiGroupBy);
   const { isPrivate } = usePrivacy();
   const { dividend, interest } = useChartColors();
   const { setActions, setSubtitle } = useAnalyticsContext();
+  const { periodEnd } = useReportingPeriod();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { filters: detailFilters, sort: detailSort } = useMemo(
+    () => parseFilterUrlParams(searchParams),
+    [searchParams],
+  );
+
+  const updateUrlState = useCallback(
+    (filters: DetailFilters, sort: DetailSort) => {
+      const next = serializeFilterUrlParams(filters, sort);
+      // Preserve other params (periodStart/periodEnd)
+      for (const [k, v] of searchParams.entries()) {
+        if (k !== 'filterType' && k !== 'securityIds' && k !== 'sort') next.set(k, v);
+      }
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
+
+  const setFilters = useCallback(
+    (filters: DetailFilters) => updateUrlState(filters, detailSort),
+    [updateUrlState, detailSort],
+  );
+  const setSort = useCallback(
+    (sort: DetailSort) => updateUrlState(detailFilters, sort),
+    [updateUrlState, detailFilters],
+  );
+  const clearFilters = useCallback(
+    () => updateUrlState({ type: null, securityIds: [] }, detailSort),
+    [updateUrlState, detailSort],
+  );
+
+  const onTypeFilterToggle = useCallback(
+    (type: 'DIVIDEND' | 'INTEREST') => {
+      const next: DetailFilterType = detailFilters.type === type ? null : type;
+      setFilters({ ...detailFilters, type: next });
+    },
+    [detailFilters, setFilters],
+  );
+
+  // Map securityName → securityId for the right-rail Top Payers links.
+  const securityIdByName = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const g of data?.combinedGroups ?? []) {
+      for (const p of g.payments) {
+        if (p.securityName && p.securityId && !map.has(p.securityName)) {
+          map.set(p.securityName, p.securityId);
+        }
+      }
+    }
+    return map;
+  }, [data]);
+
+  const detailListRef = useRef<IncomeDetailListHandle>(null);
+  const handleMonthClick = useCallback((bucket: string) => {
+    detailListRef.current?.scrollToMonth(bucket);
+  }, []);
 
   useEffect(() => {
     setSubtitle(t('payments.subtitle'));
@@ -178,7 +268,6 @@ export default function Payments() {
   useEffect(() => {
     setActions(
       <div className="flex items-center gap-3">
-        {/* Gross / Net toggle */}
         <SegmentedControl
           segments={[
             { value: 'gross', label: t('payments.gross') },
@@ -187,8 +276,7 @@ export default function Payments() {
           value={amountMode}
           onChange={setAmountMode}
         />
-
-        <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
+        <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupByMode)}>
           <SelectTrigger className="w-36">
             <SelectValue />
           </SelectTrigger>
@@ -196,148 +284,184 @@ export default function Payments() {
             <SelectItem value="month">{t('payments.groupBy.month')}</SelectItem>
             <SelectItem value="quarter">{t('payments.groupBy.quarter')}</SelectItem>
             <SelectItem value="year">{t('payments.groupBy.year')}</SelectItem>
+            <SelectItem value="security">{t('payments.groupBy.security')}</SelectItem>
+            <SelectItem value="type">{t('payments.groupBy.type')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
     );
   }, [amountMode, groupBy, t, setActions]);
 
-  const earningsValue = amountMode === 'gross'
-    ? data?.totals.earningsGross
-    : data?.totals.earningsNet;
-  const dividendsValue = amountMode === 'gross'
-    ? data?.totals.dividendsGross
-    : data?.totals.dividendsNet;
-  const interestValue = amountMode === 'gross'
-    ? data?.totals.interestGross
-    : data?.totals.interestNet;
+  const isTimeMode = groupBy === 'month' || groupBy === 'quarter' || groupBy === 'year';
+  const showRail = isTimeMode && (data?.combinedGroups.length ?? 0) > 0;
 
   return (
     <>
       {isLoading ? (
         <>
-          <ChartSkeleton height={100} />
-          <ChartSkeleton height={240} />
-          <ChartSkeleton height={240} />
-          <SectionSkeleton rows={3} />
+          <ChartSkeleton height={140} />
+          <ChartSkeleton height={200} />
+          <ChartSkeleton height={280} />
+          <SectionSkeleton rows={5} />
         </>
       ) : (
         <div className={cn(isFetching && !isLoading && 'opacity-60 transition-opacity duration-200')}>
           <FadeIn>
-          {/* Section 0: Earnings Summary Card */}
-          {data && (
-            <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '0ms' }}>
-              <CardContent className="pt-6">
-                <div className="text-sm text-muted-foreground mb-1">
-                  {t('payments.earningsChart')}
-                </div>
-                <div className="text-2xl font-semibold tracking-tight">
-                  <CurrencyDisplay value={parseFloat(earningsValue ?? '0')} />
-                </div>
-                <div className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
-                  <span>
-                    {t('payments.dividends')}: <CurrencyDisplay value={parseFloat(dividendsValue ?? '0')} className="text-foreground font-medium" />
-                  </span>
-                  <span className="text-border">·</span>
-                  <span>
-                    {t('payments.interest')}: <CurrencyDisplay value={parseFloat(interestValue ?? '0')} className="text-foreground font-medium" />
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+            <div className={cn('grid grid-cols-1 gap-6', showRail && 'lg:grid-cols-[minmax(0,1fr)_220px]')}>
+              {/* Hero — full-width even at lg+ */}
+              <div className={cn(showRail && 'lg:col-span-2')} style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '0ms' }}>
+                <IncomeHero amountMode={amountMode} />
+              </div>
 
-          {/* Section A: Dividends Chart */}
-          <div className="mt-6">
-            <PaymentBarChart
-              groups={data?.dividendGroups ?? []}
-              amountMode={amountMode}
-              color={dividend}
-              title={t('payments.dividendsPerGroup', { groupBy: t(`payments.groupBy.${groupBy}`) })}
-              isPrivate={isPrivate}
-              type="DIVIDEND"
-              groupBy={groupBy}
-            />
-          </div>
+              {/* Calendar — full-width even at lg+ */}
+              {isTimeMode && (
+                <div className={cn(showRail && 'lg:col-span-2')} style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '60ms' }}>
+                  <IncomeCalendar
+                    amountMode={amountMode}
+                    pageGroupBy={groupBy}
+                    onMonthClick={handleMonthClick}
+                  />
+                </div>
+              )}
 
-          {/* Section B: Interest Chart */}
-          <div className="mt-6">
-            <PaymentBarChart
-              groups={data?.interestGroups ?? []}
-              amountMode={amountMode}
-              color={interest}
-              title={t('payments.interestPerGroup', { groupBy: t(`payments.groupBy.${groupBy}`) })}
-              isPrivate={isPrivate}
-              type="INTEREST"
-              groupBy={groupBy}
-            />
-          </div>
+              {/* Main column: bar chart + detail list */}
+              <div>
+                {isTimeMode && data && (
+                  <IncomeStackedBar
+                    dividendGroups={data.dividendGroups}
+                    interestGroups={data.interestGroups}
+                    amountMode={amountMode}
+                    groupBy={groupBy}
+                    periodStart={data.periodStart}
+                    periodEnd={data.periodEnd}
+                    onBarClick={handleMonthClick}
+                  />
+                )}
 
-          {/* Section C: Combined Detail Cards */}
-          <div className="space-y-4 mt-6">
-            {(data?.combinedGroups ?? []).map((group) => (
-              <Card key={group.bucket}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold">{group.bucket}</CardTitle>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>{t('payments.paymentCount', { count: group.count })}</span>
-                      <CurrencyDisplay
-                        value={parseFloat(amountMode === 'gross' ? group.totalGross : group.totalNet)}
-                        className="font-medium text-foreground"
-                      />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left px-4 py-2 font-medium text-muted-foreground">{t('payments.columns.date')}</th>
-                        <th className="text-left px-4 py-2 font-medium text-muted-foreground">{t('payments.columns.type')}</th>
-                        <th className="text-left px-4 py-2 font-medium text-muted-foreground">{t('payments.columns.security')}</th>
-                        <th className="text-left px-4 py-2 font-medium text-muted-foreground">{t('payments.columns.account')}</th>
-                        <th className="text-right px-4 py-2 font-medium text-muted-foreground">{t('payments.columns.amount')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.payments.map((payment) => (
-                        <tr key={payment.id} className="border-b last:border-0 hover:bg-muted/30">
-                          <td className="px-4 py-2">{formatDate(payment.date)}</td>
-                          <td className="px-4 py-2">
-                            <span
-                              className={cn(
-                                'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                                payment.type === 'DIVIDEND'
-                                  ? 'bg-primary/15 text-primary'
-                                  : 'bg-[var(--color-chart-5)]/15 text-[var(--color-chart-5)]',
-                              )}
-                            >
-                              {t(`types.${txTypeKey(payment.type)}`, { ns: 'transactions' })}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2">{payment.securityName ?? '—'}</td>
-                          <td className="px-4 py-2">{payment.accountName ?? '—'}</td>
-                          <td className="px-4 py-2 text-right">
-                            <CurrencyDisplay
-                              value={parseFloat(amountMode === 'gross' ? payment.grossAmount : payment.netAmount)}
-                              currency={payment.currencyCode}
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
-            ))}
-            {(data?.combinedGroups ?? []).length === 0 && (
-              <p className="text-muted-foreground text-sm">{t('payments.empty')}</p>
-            )}
-          </div>
+                {!isTimeMode && data && (
+                  <AggregatedBarChart
+                    combinedGroups={data.combinedGroups}
+                    groupBy={groupBy}
+                    amountMode={amountMode}
+                    isPrivate={isPrivate}
+                    dividendColor={dividend}
+                    interestColor={interest}
+                  />
+                )}
+
+                <div className="mt-6">
+                  {isTimeMode ? (
+                    <IncomeDetailList
+                      ref={detailListRef}
+                      combinedGroups={data?.combinedGroups ?? []}
+                      amountMode={amountMode}
+                      groupBy={groupBy}
+                      filters={detailFilters}
+                      sort={detailSort}
+                      onFiltersChange={setFilters}
+                      onSortChange={setSort}
+                      onClearFilters={clearFilters}
+                      periodEnd={periodEnd}
+                    />
+                  ) : (
+                    <LegacyAggregatedDetailList
+                      groups={data?.combinedGroups ?? []}
+                      amountMode={amountMode}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Right rail */}
+              {showRail && data && (
+                <div>
+                  <IncomeRightRail
+                    combinedGroups={data.combinedGroups}
+                    amountMode={amountMode}
+                    activeTypeFilter={detailFilters.type}
+                    onTypeFilterToggle={onTypeFilterToggle}
+                    securityIdByName={securityIdByName}
+                  />
+                </div>
+              )}
+            </div>
           </FadeIn>
         </div>
       )}
     </>
+  );
+}
+
+// Legacy detail list used only in security/type modes (no year axis).
+function LegacyAggregatedDetailList({
+  groups,
+  amountMode,
+}: {
+  groups: PaymentGroup[];
+  amountMode: AmountMode;
+}) {
+  const { t } = useTranslation('reports');
+  const { t: txT } = useTranslation('transactions');
+  if (groups.length === 0) {
+    return <EmptyState icon={Receipt} title={t('payments.empty.noPayments')} />;
+  }
+  return (
+    <div className="space-y-4">
+      {groups.map((group) => (
+        <Card key={group.bucket} id={`payment-bucket-${group.bucket}`} className="rounded-md scroll-mt-6">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">{group.bucket}</CardTitle>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>{t('payments.paymentCount', { count: group.count })}</span>
+                <CurrencyDisplay
+                  value={parseFloat(amountMode === 'gross' ? group.totalGross : group.totalNet)}
+                  className="qv-numeric font-medium text-foreground"
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--qv-border-subtle)]">
+                  <th className="qv-eyebrow text-left px-4 py-2">{t('payments.columns.date')}</th>
+                  <th className="qv-eyebrow text-left px-4 py-2">{t('payments.columns.type')}</th>
+                  <th className="qv-eyebrow text-left px-4 py-2">{t('payments.columns.security')}</th>
+                  <th className="qv-eyebrow text-left px-4 py-2">{t('payments.columns.account')}</th>
+                  <th className="qv-eyebrow text-right px-4 py-2">{t('payments.columns.amount')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {group.payments.map((payment) => (
+                  <tr key={payment.id} className="border-b border-[var(--qv-border-subtle)] last:border-0 hover:bg-[var(--qv-surface-3)]">
+                    <td className="qv-numeric px-4 py-2">{formatDate(payment.date)}</td>
+                    <td className="px-4 py-2">
+                      <Badge variant="outline" className="rounded-sm gap-1">
+                        {payment.type === 'DIVIDEND' ? (
+                          <Coins className="h-3 w-3" />
+                        ) : (
+                          <Percent className="h-3 w-3" />
+                        )}
+                        {txT(`types.${txTypeKey(payment.type)}`)}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2">{payment.securityName ?? '—'}</td>
+                    <td className="px-4 py-2">{payment.accountName ?? '—'}</td>
+                    <td className="px-4 py-2 text-right">
+                      <CurrencyDisplay
+                        value={parseFloat(amountMode === 'gross' ? payment.grossAmount : payment.netAmount)}
+                        currency={payment.currencyCode ?? undefined}
+                        className="qv-numeric"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }

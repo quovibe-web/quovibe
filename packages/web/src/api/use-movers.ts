@@ -1,5 +1,5 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { apiFetch } from './fetch';
+import { useScopedApi } from './use-scoped-api';
 import { useWidgetConfig } from '@/context/widget-config-context';
 import { useReportingPeriod } from './use-performance';
 import { resolveDataSeriesToParams } from '@/lib/data-series-utils';
@@ -10,15 +10,17 @@ const VALID_COST_METHODS = new Set(Object.values(CostMethod));
 
 export const moversKeys = {
   list: (
+    pid: string,
     start: string, end: string, count: number,
     preTax: boolean, costMethod: CostMethod,
     filter?: string, withReference?: boolean,
     taxonomyId?: string, categoryId?: string,
-  ) => ['performance', 'movers', start, end, count, preTax, costMethod,
+  ) => ['portfolios', pid, 'performance', 'movers', start, end, count, preTax, costMethod,
         filter, withReference, taxonomyId, categoryId] as const,
 };
 
 export function useMovers(count = 3) {
+  const api = useScopedApi();
   const { dataSeries, periodOverride, options } = useWidgetConfig();
   const { periodStart: urlStart, periodEnd: urlEnd } = useReportingPeriod();
 
@@ -33,6 +35,7 @@ export function useMovers(count = 3) {
 
   return useQuery({
     queryKey: moversKeys.list(
+      api.portfolioId,
       periodStart, periodEnd, count,
       dsParams.preTax, costMethod,
       dsParams.filter, dsParams.withReference,
@@ -50,7 +53,7 @@ export function useMovers(count = 3) {
       if (dsParams.withReference !== undefined) params.set('withReference', String(dsParams.withReference));
       if (dsParams.taxonomyId) params.set('taxonomyId', dsParams.taxonomyId);
       if (dsParams.categoryId) params.set('categoryId', dsParams.categoryId);
-      return apiFetch<MoversResponse>(`/api/performance/movers?${params.toString()}`);
+      return api.fetch<MoversResponse>(`/api/performance/movers?${params.toString()}`);
     },
     placeholderData: keepPreviousData,
   });

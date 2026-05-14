@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
+import { PRIVACY_STORAGE_KEY } from '@/lib/preference-storage-keys';
 
 interface PrivacyContextValue {
   isPrivate: boolean;
@@ -12,7 +13,7 @@ const PrivacyContext = createContext<PrivacyContextValue>({
   setPrivacy: () => {},
 });
 
-const STORAGE_KEY = 'quovibe_privacy_mode';
+const STORAGE_KEY = PRIVACY_STORAGE_KEY;
 const LEGACY_KEY = 'vibefolio_privacy_mode';
 
 function migrateStorageKey(): void {

@@ -14,7 +14,7 @@
       "balance": "Saldo",
       "currency": "Valuta"
     },
-    "subtitle": "Portfolio snapshot at period end",
+    "subtitle": "Momentopname van portefeuille aan einde periode",
     "empty": "No securities in portfolio"
   },
   "holdings": {
@@ -38,13 +38,39 @@
     "groupBy": {
       "month": "Maand",
       "quarter": "Kwartaal",
-      "year": "Jaar"
+      "year": "Jaar",
+      "security": "Effect",
+      "type": "Type"
     },
+    "byTitle": "Overzicht per {{groupBy}}",
+    "cashOrNoSecurity": "Liquide middelen / geen effect",
     "earningsChart": "Inkomsten (Bruto/Netto)",
     "dividends": "Dividenden",
     "interest": "Rente",
     "dividendsPerGroup": "Dividenden per {{groupBy}}",
     "interestPerGroup": "Rente per {{groupBy}}",
+    "incomePerGroupGross": "Inkomen per {{groupBy}} · bruto",
+    "incomePerGroupNet": "Inkomen per {{groupBy}} · netto",
+    "hero": {
+      "titleGross": "Totale inkomsten (bruto)",
+      "titleNet": "Totale inkomsten (netto)",
+      "avgMonth": "Gem. / maand",
+      "peakMonth": "Topmaand",
+      "payments": "Betalingen",
+      "topSecurity": "Top-effect",
+      "priorPeak": "vorige piek"
+    },
+    "calendar": {
+      "title": "Maandcadans",
+      "yearLabel": "Jaar",
+      "total": "Totaal",
+      "totalLabel": "Totaal",
+      "deltaHeader": "Δ",
+      "averageRow": "Gem.",
+      "headerChipAvg": "Gem./mnd {{value}}",
+      "headerChipYoy": "▲ t.o.v. '{{year}}",
+      "headerChipYoyDown": "▼ t.o.v. '{{year}}"
+    },
     "columns": {
       "date": "Datum",
       "type": "Type",
@@ -52,7 +78,11 @@
       "account": "Rekening",
       "amount": "Bedrag"
     },
-    "empty": "Geen betalingen in de geselecteerde periode.",
+    "empty": {
+      "noPayments": "Geen betalingen in de geselecteerde periode.",
+      "filtered": "Geen betalingen voldoen aan de actieve filters",
+      "clearFilters": "Filters wissen"
+    },
     "paymentCount_one": "{{count}} betaling",
     "paymentCount_other": "{{count}} betalingen",
     "breakdown": {
@@ -62,7 +92,45 @@
       "byTitle": "per effect",
       "byAccount": "per rekening"
     },
-    "subtitle": "Dividends, interest, and other income"
+    "subtitle": "Dividenden, rente en andere inkomsten",
+    "yoy": {
+      "vsPrior": "▲ +{{share}}% t.o.v. {{priorTotal}} {{priorLabel}}",
+      "vsPriorDown": "▼ {{share}}% t.o.v. {{priorTotal}} {{priorLabel}}",
+      "priorYearLabel": "YTD {{year}}"
+    },
+    "detail": {
+      "headerCount": "Detail · {{count, number}} betalingen",
+      "filtered": "{{filtered, number}} van {{total, number}}",
+      "filter": {
+        "allTypes": "Alle types",
+        "dividend": "Dividenden",
+        "interest": "Rente",
+        "addSecurity": "+ Effect",
+        "selectSecurities": "Effecten selecteren",
+        "searchSecurities": "Effecten zoeken…"
+      },
+      "sort": {
+        "label": "Sorteren",
+        "dateDesc": "Datum · nieuwste eerst",
+        "dateAsc": "Datum · oudste eerst",
+        "amountDesc": "Bedrag · hoogste eerst",
+        "securityAsc": "Effect · A → Z"
+      },
+      "year": {
+        "ytd": "YTD",
+        "payments": "{{count, number}} betalingen"
+      }
+    },
+    "rail": {
+      "topPayers": "Top-betalers",
+      "morePayers": "+ {{count, number}} meer",
+      "byType": "Per type",
+      "cashInterest": "Rente op kasgeld"
+    },
+    "concentration": {
+      "title": "Concentratie",
+      "top3": "Top 3 = {{share}}% van inkomsten"
+    }
   },
   "returnsHeatmap": {
     "title": "Rendementenheatmap",
@@ -109,6 +177,7 @@
   },
   "assetAllocation": {
     "title": "Taxonomieën",
+    "subtitle": "Allocatie en herbalancering per taxonomie",
     "noTaxonomies": "Geen taxonomieën gedefinieerd. Importeer een portefeuille met taxonomiegegevens om deze weergave te gebruiken.",
     "date": "Datum",
     "columns": {
@@ -127,7 +196,7 @@
     },
     "expandAll": "Alles uitvouwen",
     "collapseAll": "Alles samenvouwen",
-    "subtitle": "Allocation and rebalancing by taxonomy"
+    "withoutClassification": "Zonder Classificatie"
   },
   "taxonomySeries": {
     "title": "Gegevensreeksen",
@@ -144,7 +213,16 @@
     "dividends": "Dividenden",
     "fees": "Vergoedingen",
     "selectTaxonomy": "Taxonomie",
-    "subtitle": "Performance trends by category"
+    "categoryLabel": "Categorie",
+    "subtitle": "Prestatietrends per categorie",
+    "best": "Beste",
+    "worst": "Slechtste",
+    "spread": "Verschil",
+    "spreadAcross": "over {{count}} categorieën",
+    "categoriesLabel": "Categorieën",
+    "composition": "Samenstelling",
+    "topPerformers": "Beste categorieën",
+    "noCategoryData": "Geen categoriegegevens beschikbaar."
   },
   "taxonomyNodePicker": {
     "loading": "Laden…",
@@ -153,24 +231,24 @@
     "noCategories": "Geen categorieën"
   },
   "rebalancing": {
-    "title": "Rebalancing",
-    "viewDefinition": "Definition",
-    "viewRebalancing": "Rebalancing",
+    "title": "Herbalanceren",
+    "viewDefinition": "Definitie",
+    "viewRebalancing": "Herbalanceren",
     "columns": {
-      "category": "Category",
-      "allocation": "Allocation %",
-      "weight": "Weight %",
-      "actualValue": "Actual Value",
-      "targetValue": "Target Value",
+      "category": "Categorie",
+      "allocation": "Allocatie %",
+      "weight": "Gewicht %",
+      "actualValue": "Actuele waarde",
+      "targetValue": "Doelwaarde",
       "deltaValue": "Delta",
       "deltaPercent": "Delta %",
-      "rebalanceAmount": "Rebalance",
-      "rebalanceShares": "Shares"
+      "rebalanceAmount": "Herbalanceren",
+      "rebalanceShares": "Aandelen"
     },
     "allocationSumWarning": "Allocatiesom: {{sum}}% / {{expected}}%",
-    "noData": "No rebalancing data.",
-    "totalPortfolioValue": "Total Portfolio Value",
-    "excluded": "Excluded from rebalancing"
+    "noData": "Geen herbalanceringsgegevens.",
+    "totalPortfolioValue": "Totale portefeuillewaarde",
+    "excluded": "Uitgesloten van herbalanceren"
   },
   "taxonomyManagement": {
     "newTaxonomy": "Nieuwe Classificatie",
@@ -219,6 +297,51 @@
     "editWeightDescription": "Stel het doelgewichtpercentage in",
     "assignCategoryDescription": "Selecteer een categorie om toe te wijzen",
     "deleteError": "Fout bij het verwijderen van de classificatie",
-    "renameDescription": "Voer een nieuwe naam in voor deze classificatie"
+    "renameDescription": "Voer een nieuwe naam in voor deze classificatie",
+    "emptyCategories": {
+      "title": "Deze classificatie heeft nog geen categorieën.",
+      "cta": "Eerste categorie toevoegen"
+    },
+    "resetTargets": {
+      "button": "Doelen herstellen",
+      "confirmTitle": "Doelen herstellen naar opgeslagen waarden?",
+      "confirmBody": "Vervangt de huidige doelen door de waarden die aanwezig waren bij het laden van de weergave.",
+      "confirmAction": "Herstellen"
+    },
+    "deleteCategoryDetailed": {
+      "title": "\"{{name}}\" verwijderen?",
+      "assignments_one": "{{count}} toewijzing wordt verwijderd.",
+      "assignments_other": "{{count}} toewijzingen worden verwijderd.",
+      "subcategories_one": "{{count}} subcategorie wordt naar de ouder verplaatst.",
+      "subcategories_other": "{{count}} subcategorieën worden naar de ouder verplaatst.",
+      "empty": "Deze categorie is leeg."
+    },
+    "renormalize": {
+      "checkbox": "Gewichten van betrokken items proportioneel herverdelen",
+      "hint": "Bestaande totalen blijven op de waarden van vóór het verwijderen."
+    }
+  },
+  "taxonomyUi": {
+    "chartMode": {
+      "donut": "Donut",
+      "treemap": "Treemap",
+      "off": "Geen"
+    },
+    "columns": {
+      "target": "Doel %",
+      "actual": "Actueel %",
+      "delta": "Δ",
+      "split": "Verdeling"
+    },
+    "withoutClassification": {
+      "empty": "Alles geclassificeerd ✓"
+    },
+    "allocationSumWarning": "Onderliggende elementen tellen op tot {{sum}}%. Moeten 100% zijn.",
+    "picker": {
+      "searchPlaceholder": "Categorieën zoeken...",
+      "noMatches": "Geen categorie komt overeen met \"{{query}}\"",
+      "breadcrumbSeparator": " › ",
+      "entireTaxonomy": "Volledige taxonomie"
+    }
   }
 }

@@ -43,6 +43,10 @@
     "pageOf": "Pagina {{current}} di {{total}}",
     "showing": "Mostra {{from}}–{{to}} di {{total}}"
   },
+  "aria": {
+    "sortAscending": "{{column}} ordinato in modo crescente",
+    "sortDescending": "{{column}} ordinato in modo decrescente"
+  },
   "transactionCount_one": "{{count}} transazione",
   "transactionCount_other": "{{count}} transazioni",
   "toasts": {

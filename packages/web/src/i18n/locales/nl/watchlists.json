@@ -7,13 +7,18 @@
     "delete": "Verwijderen",
     "deleteConfirmTitle": "Volglijst verwijderen",
     "deleteConfirmMessage": "Weet u zeker dat u \"{{name}}\" wilt verwijderen? De effecten worden niet verwijderd.",
-    "defaultName": "Nieuwe volglijst"
+    "defaultName": "Nieuwe volglijst",
+    "newDescription": "Geef uw nieuwe volglijst een naam."
   },
   "table": {
     "name": "Naam",
     "ticker": "Ticker",
     "price": "Koers",
     "change": "Wijziging",
+    "change1d": "1D",
+    "change1w": "1W",
+    "change1m": "1M",
+    "change1y": "1J",
     "trend": "30d Trend",
     "currency": "Valuta",
     "lastQuote": "Laatste koers",
@@ -29,6 +34,7 @@
   },
   "addDialog": {
     "title": "Effect toevoegen aan volglijst",
+    "description": "Selecteer effecten om aan deze volglijst toe te voegen.",
     "search": "Zoeken op naam, ISIN of ticker...",
     "existing": "Bestaande effecten",
     "createNew": "Nieuw effect aanmaken",
@@ -47,5 +53,10 @@
     "selectWatchlist": "Selecteer een volglijst",
     "notFound": "Volglijst niet gevonden",
     "configure": "Configureren"
+  },
+  "columnGroups": {
+    "identity": "Identiteit",
+    "performance": "Rendement",
+    "meta": "Metadata"
   }
 }

@@ -5,29 +5,30 @@ import { useTranslation } from 'react-i18next';
 import { isPeriodSensitivePath, extractPeriodSearch } from '@/lib/period-utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { ExpandableNavItem } from './ExpandableNavItem';
+import { HelpDialog } from './HelpDialog';
 import { CreateTaxonomyDialog } from '../domain/CreateTaxonomyDialog';
 import { DeleteTaxonomyDialog } from '../domain/DeleteTaxonomyDialog';
-import { apiFetch } from '@/api/fetch';
+import { useScopedApi } from '@/api/use-scoped-api';
+import { usePortfolio } from '@/context/PortfolioContext';
 import { taxonomyKeys } from '@/api/use-taxonomies';
 import { useReorderTaxonomy } from '@/api/use-taxonomy-mutations';
 import { useTheme } from '@/hooks/use-theme';
-import { useUpdateSettings } from '@/api/use-portfolio';
+import { useUpdatePreferences } from '@/api/use-preferences';
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import {
-  LayoutDashboard,
-  Landmark,
-  TrendingUp,
-  ArrowLeftRight,
-  BarChart3,
-  Layers,
-  GitBranch,
-  List,
-  Settings,
+  NAV_SUFFIXES,
+  MOBILE_NAV_SUFFIXES,
+  scopeItems,
+  scopeSections,
+  type NavItem,
+} from '@/lib/nav-suffixes';
+import {
   Menu,
   ExternalLink,
   Sun,
   Moon,
   Monitor,
+  HelpCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,52 +53,6 @@ import {
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
-type NavItem = { to: string; labelKey: string; icon: React.ElementType; end?: boolean };
-type NavSection = { sectionKey: string; items: NavItem[] };
-
-const NAV: NavSection[] = [
-  {
-    sectionKey: 'sections.main',
-    items: [
-      { to: '/', labelKey: 'items.dashboard', icon: LayoutDashboard },
-      { to: '/watchlists', labelKey: 'items.watchlists', icon: List },
-    ],
-  },
-  {
-    sectionKey: 'sections.data',
-    items: [
-      { to: '/accounts', labelKey: 'items.accounts', icon: Landmark },
-      { to: '/investments', labelKey: 'items.investments', icon: TrendingUp },
-      { to: '/transactions', labelKey: 'items.transactions', icon: ArrowLeftRight },
-    ],
-  },
-  {
-    sectionKey: 'sections.analysis',
-    items: [
-      { to: '/analytics', labelKey: 'items.analytics', icon: BarChart3, end: false },
-    ],
-  },
-  {
-    sectionKey: 'sections.taxonomies',
-    items: [
-      { to: '/allocation', labelKey: 'items.assetAllocation', icon: Layers },
-      { to: '/taxonomies/data-series', labelKey: 'items.dataSeries', icon: GitBranch },
-    ],
-  },
-  {
-    sectionKey: 'sections.system',
-    items: [{ to: '/settings', labelKey: 'items.settings', icon: Settings }],
-  },
-];
-
-/** Mobile bottom nav — consultation pages only */
-const MOBILE_NAV: NavItem[] = [
-  { to: '/', labelKey: 'items.dashboard', icon: LayoutDashboard },
-  { to: '/investments', labelKey: 'items.investments', icon: TrendingUp },
-  { to: '/transactions', labelKey: 'items.transactions', icon: ArrowLeftRight },
-  { to: '/analytics', labelKey: 'items.analytics', icon: BarChart3 },
-];
-
 function QuovibeLogo() {
   return (
     <div className="flex items-center gap-2.5">
@@ -109,8 +64,8 @@ function QuovibeLogo() {
         <circle cx="60" cy="60" r="6" fill="var(--qv-warning)" />
       </svg>
       <span className="text-xl" style={{ letterSpacing: '-0.3px' }}>
-        <span style={{ fontFamily: "'DM Serif Display', serif", color: 'var(--qv-text-primary)' }}>quo</span>
-        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 300, color: 'var(--qv-text-muted)' }}>vibe</span>
+        <span style={{ fontFamily: 'var(--font-display)', fontVariationSettings: "'opsz' 72, 'wght' 500", color: 'var(--qv-text-primary)' }}>quo</span>
+        <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 300, color: 'var(--qv-text-muted)' }}>vibe</span>
       </span>
     </div>
   );
@@ -126,7 +81,7 @@ function VersionBadge({ className }: { className?: string }) {
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        'group inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] text-[var(--qv-text-faint)] transition-colors hover:text-muted-foreground',
+        'group inline-flex items-center gap-1.5 rounded-md px-2 py-1 qv-eyebrow text-[var(--qv-text-faint)] transition-colors hover:text-muted-foreground',
         className,
       )}
     >
@@ -156,7 +111,7 @@ function SidebarNavItem({ item, onClick }: { item: NavItem; onClick?: () => void
           'relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
           isActive
             ? 'bg-[var(--qv-surface-elevated)] text-foreground font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-4 before:w-[3px] before:rounded-full before:bg-primary'
-            : 'text-muted-foreground hover:bg-[var(--qv-surface-elevated)] hover:text-foreground'
+            : 'text-muted-foreground hover:bg-[var(--qv-surface-3)] hover:text-foreground'
         )
       }
     >
@@ -174,10 +129,14 @@ export function DesktopSidebar() {
   const { t } = useTranslation('navigation');
   const { t: tr } = useTranslation('reports');
   const qc = useQueryClient();
+  const api = useScopedApi();
+  const portfolio = usePortfolio();
+  const NAV = scopeSections(portfolio.id, NAV_SUFFIXES);
   const reorderMutation = useReorderTaxonomy();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const handleRename = useCallback((id: string, currentName: string) => {
     setRenameTarget({ id, name: currentName });
@@ -204,10 +163,13 @@ export function DesktopSidebar() {
         <nav className="space-y-6">
           {NAV.map((section) => (
             <div key={section.sectionKey}>
+              <p className="qv-eyebrow text-[var(--qv-text-faint)] mb-1.5 px-3">
+                {t(section.sectionKey)}
+              </p>
               <ul className="space-y-0.5">
                 {section.items.map((item) => (
                   <li key={item.to}>
-                    {item.to === '/allocation' ? (
+                    {item.to.endsWith('/allocation') ? (
                       <ExpandableNavItem
                         labelKey={item.labelKey}
                         icon={item.icon}
@@ -229,11 +191,28 @@ export function DesktopSidebar() {
         </nav>
       </ScrollArea>
 
-      {/* Version */}
-      <div className="px-4 py-3 border-t border-border">
+      {/* Version + Help */}
+      <div className="px-4 py-3 border-t border-[var(--qv-border-subtle)] flex items-center justify-between">
         <VersionBadge />
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground"
+                onClick={() => setHelpOpen(true)}
+                aria-label={t('help.button')}
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t('help.button')}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
+      <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
       <CreateTaxonomyDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
       {deleteTarget && (
         <DeleteTaxonomyDialog
@@ -260,12 +239,12 @@ export function DesktopSidebar() {
               setRenameTarget(null);
               return;
             }
-            await apiFetch(`/api/taxonomies/${renameTarget.id}`, {
+            await api.fetch(`/api/taxonomies/${renameTarget.id}`, {
               method: 'PATCH',
               body: JSON.stringify({ name: newName }),
             });
-            qc.invalidateQueries({ queryKey: taxonomyKeys.all });
-            qc.invalidateQueries({ queryKey: taxonomyKeys.tree(renameTarget.id) });
+            qc.invalidateQueries({ queryKey: taxonomyKeys.all(api.portfolioId) });
+            qc.invalidateQueries({ queryKey: taxonomyKeys.tree(api.portfolioId, renameTarget.id) });
             setRenameTarget(null);
           }}>
             <div className="py-4">
@@ -296,11 +275,16 @@ export function DesktopSidebar() {
 export function MobileNav() {
   const { t } = useTranslation('navigation');
   const [moreOpen, setMoreOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const location = useLocation();
+  const portfolio = usePortfolio();
+  const MOBILE_NAV = scopeItems(portfolio.id, MOBILE_NAV_SUFFIXES);
+  const NAV = scopeSections(portfolio.id, NAV_SUFFIXES);
 
+  const portfolioRoot = `/p/${portfolio.id}`;
   const mobileNavPaths = MOBILE_NAV.map((i) => i.to);
   const isMoreActive = !mobileNavPaths.some(
-    (p) => (p === '/' ? location.pathname === '/' : location.pathname.startsWith(p))
+    (p) => (p === portfolioRoot ? location.pathname === portfolioRoot : location.pathname.startsWith(p))
   );
 
   return (
@@ -313,7 +297,7 @@ export function MobileNav() {
             <NavLink
               key={item.to}
               to={to}
-              end={item.to === '/'}
+              end={item.to === portfolioRoot}
               className="relative flex flex-col items-center gap-0.5 px-3 py-1.5 min-w-0"
             >
               {({ isActive }) => {
@@ -359,7 +343,7 @@ export function MobileNav() {
               <nav className="space-y-5 pb-8">
                 {NAV.map((section) => (
                   <div key={section.sectionKey}>
-                    <p className="px-3 mb-1.5 text-xs font-medium text-[var(--qv-text-faint)] uppercase tracking-wider">
+                    <p className="qv-eyebrow text-[var(--qv-text-faint)] mb-1.5 px-3">
                       {t(section.sectionKey)}
                     </p>
                     <ul className="space-y-0.5">
@@ -373,12 +357,22 @@ export function MobileNav() {
                 ))}
               </nav>
             </ScrollArea>
-            <div className="border-t border-border px-4 py-3">
+            <div className="border-t border-[var(--qv-border-subtle)] px-4 py-3 flex items-center justify-between">
               <VersionBadge />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 text-muted-foreground"
+                onClick={() => { setMoreOpen(false); setHelpOpen(true); }}
+              >
+                <HelpCircle className="h-4 w-4" />
+                {t('help.button')}
+              </Button>
             </div>
           </SheetContent>
         </Sheet>
       </div>
+      <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
     </nav>
   );
 }
@@ -390,6 +384,9 @@ export function MobileNav() {
 export function CollapsedSidebar() {
   const { t } = useTranslation('navigation');
   const location = useLocation();
+  const portfolio = usePortfolio();
+  const NAV = scopeSections(portfolio.id, NAV_SUFFIXES);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const allItems = NAV.flatMap((section) => section.items);
 
@@ -429,7 +426,7 @@ export function CollapsedSidebar() {
                         'relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
                         isActive
                           ? 'bg-[var(--qv-surface-elevated)] text-foreground after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-4 after:h-[3px] after:rounded-full after:bg-primary'
-                          : 'text-muted-foreground hover:bg-[var(--qv-surface-elevated)] hover:text-foreground'
+                          : 'text-muted-foreground hover:bg-[var(--qv-surface-3)] hover:text-foreground'
                       )
                     }
                   >
@@ -443,13 +440,37 @@ export function CollapsedSidebar() {
             );
           })}
         </nav>
+
+        {/* Help button — bottom of rail, mirrors DesktopSidebar's bottom row */}
+        <div className="py-3 border-t border-[var(--qv-border-subtle)] w-full flex items-center justify-center">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                onClick={() => setHelpOpen(true)}
+                aria-label={t('help.button')}
+              >
+                <HelpCircle className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>
+              {t('help.button')}
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </TooltipProvider>
+
+      <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
     </aside>
   );
 }
 
 // ---------------------------------------------------------------------------
-// SidebarDrawer — full nav in a sheet from the left (hamburger / Ctrl+B)
+// SidebarDrawer — full nav in a sheet from the left (hamburger / Ctrl+B).
+// Mobile + tablet only (<lg). Desktop has DesktopSidebar already; rendering
+// the drawer there is duplicate-nav noise.
 // ---------------------------------------------------------------------------
 
 interface SidebarDrawerProps {
@@ -460,16 +481,19 @@ interface SidebarDrawerProps {
 export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
   const { t } = useTranslation('navigation');
   const { theme, setTheme } = useTheme();
-  const { mutate: updateSettings } = useUpdateSettings();
+  const { mutate: updatePreferences } = useUpdatePreferences();
+  const portfolio = usePortfolio();
+  const NAV = scopeSections(portfolio.id, NAV_SUFFIXES);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   function handleTheme(next: 'light' | 'dark' | 'system') {
     setTheme(next);
-    updateSettings({ theme: next });
+    updatePreferences({ theme: next });
   }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="w-64 p-0 bg-[var(--qv-bg)]">
+      <SheetContent side="left" className="w-64 p-0 bg-[var(--qv-bg)] lg:hidden">
         <SheetHeader className="px-5 py-5">
           <SheetTitle className="sr-only">{t('sheetTitle')}</SheetTitle>
           <QuovibeLogo />
@@ -479,6 +503,9 @@ export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
           <nav className="space-y-6">
             {NAV.map((section) => (
               <div key={section.sectionKey}>
+                <p className="qv-eyebrow text-[var(--qv-text-faint)] mb-1.5 px-3">
+                  {t(section.sectionKey)}
+                </p>
                 <ul className="space-y-0.5">
                   {section.items.map((item) => (
                     <li key={item.to}>
@@ -491,7 +518,7 @@ export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
           </nav>
         </ScrollArea>
         {/* Theme + Language (mobile only — hidden from TopBar on small screens) */}
-        <div className="border-t border-border px-4 py-3 flex items-center justify-between">
+        <div className="border-t border-[var(--qv-border-subtle)] px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-1 rounded-full bg-muted p-0.5">
             <button
               onClick={() => handleTheme('light')}
@@ -529,11 +556,20 @@ export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
           </div>
           <LanguageSwitcher />
         </div>
-        <div className="border-t border-border px-4 py-3">
+        <div className="border-t border-[var(--qv-border-subtle)] px-4 py-3 flex items-center justify-between">
           <VersionBadge />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 text-muted-foreground"
+            onClick={() => setHelpOpen(true)}
+          >
+            <HelpCircle className="h-4 w-4" />
+            {t('help.button')}
+          </Button>
         </div>
       </SheetContent>
+      <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
     </Sheet>
   );
 }
-

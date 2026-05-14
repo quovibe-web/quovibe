@@ -2,11 +2,14 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'path';
 import os from 'os';
-import { fileURLToPath } from 'url';
+import fs from 'fs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const testDbPath = path.join(os.tmpdir(), `quovibe-e2e-${Date.now()}.db`);
-const schemaPath = path.resolve(__dirname, '../../data/schema.db');
+// ADR-015: the API resolves per-portfolio .db paths from the sidecar under
+// QUOVIBE_DATA_DIR. For E2E we point the API at an ephemeral data dir so
+// tests never pollute the developer's real data/ folder.
+const testDataDir = path.join(os.tmpdir(), `quovibe-e2e-${Date.now()}`);
+fs.mkdirSync(testDataDir, { recursive: true });
+
 const API_URL = 'http://localhost:3000';
 
 export default defineConfig({
@@ -19,7 +22,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: `cross-env DB_PATH="${testDbPath}" SCHEMA_PATH="${schemaPath}" pnpm --filter @quovibe/api dev`,
+      command: `cross-env QUOVIBE_DATA_DIR="${testDataDir}" pnpm --filter @quovibe/api dev`,
       url: `${API_URL}/api`,
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,

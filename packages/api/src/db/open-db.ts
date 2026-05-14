@@ -3,8 +3,9 @@ import type BetterSqlite3 from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import * as schema from './schema';
-import * as extensions from './extensions';
-import { verifySchema, verifyColumnTypes, applyExtensions } from './verify';
+import { applyBootstrap } from './apply-bootstrap';
+import { verifySchema, verifyColumnTypes } from './verify';
+import { verifyPortfolioSchemaVersion } from './schema-version';
 
 export interface OpenDatabaseResult {
   db: BetterSQLite3Database<Record<string, unknown>>;
@@ -14,7 +15,7 @@ export interface OpenDatabaseResult {
 
 /**
  * Opens a better-sqlite3 connection, sets pragmas, verifies schema,
- * applies extensions, and returns drizzle + raw sqlite handles.
+ * applies bootstrap DDL, and returns drizzle + raw sqlite handles.
  * Can be called multiple times (no singleton state).
  */
 export function openDatabase(dbPath: string): OpenDatabaseResult {
@@ -39,11 +40,19 @@ export function openDatabase(dbPath: string): OpenDatabaseResult {
   // Verify column types (non-blocking)
   verifyColumnTypes(sqlite);
 
-  // quovibe extensions
-  applyExtensions(sqlite);
+  // Apply bootstrap DDL (idempotent — creates vf_* tables, indexes)
+  applyBootstrap(sqlite);
+
+  // Missing row is OK — seedMeta() writes it after openDatabase returns.
+  try {
+    verifyPortfolioSchemaVersion(sqlite);
+  } catch (err) {
+    sqlite.close();
+    throw err;
+  }
 
   const db = drizzle(sqlite, {
-    schema: { ...schema, ...extensions },
+    schema,
   });
 
   const closeDb = () => sqlite.close();

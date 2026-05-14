@@ -1,30 +1,32 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useNavTitle } from '@/hooks/useNavTitle';
 import type { ColumnDef } from '@tanstack/react-table';
 import { parseISO, isAfter, isBefore, startOfDay } from 'date-fns';
-import { TrendingUp, ListX, ArrowLeft } from 'lucide-react';
+import { TrendingUp, ListX, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/shared/DataTable';
 import { dateColumnMeta, textColumnMeta, currencyColumnMeta, sharesColumnMeta } from '@/lib/column-factories';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { useSecurityDetail } from '@/api/use-securities';
+import { useSecurityDetail, useFetchPrices } from '@/api/use-securities';
 import { SecurityEditor, type EditorSection } from '@/components/domain/SecurityEditor';
 import { PriceChart } from '@/components/domain/PriceChart';
 import { useTransactions } from '@/api/use-transactions';
 import { usePerformanceSecurities, useReportingPeriod } from '@/api/use-performance';
 import type { TransactionListItem } from '@/api/types';
-import { formatDate, formatPercentage } from '@/lib/formatters';
+import { formatDate } from '@/lib/formatters';
 import { usePrivacy } from '@/context/privacy-context';
 import { SharesDisplay } from '@/components/shared/SharesDisplay';
 import { SectionSkeleton } from '@/components/shared/SectionSkeleton';
 import { ChartSkeleton } from '@/components/shared/ChartSkeleton';
+import { TaxonomyAssignmentsCard } from '@/components/domain/SecurityDetail/TaxonomyAssignmentsCard';
 import { cn } from '@/lib/utils';
 import { getTransactionCashflowSign } from '@/lib/transaction-display';
 import { TypeBadge } from '@/components/shared/TypeBadge';
-import { COLORS } from '@/lib/colors';
+import { SignedPercent } from '@/components/shared/SignedPercent';
 
 function SharesCell({ value }: { value: string | null }) {
   const { isPrivate } = usePrivacy();
@@ -48,33 +50,32 @@ function PerfMetric({ label, value, type, currency, isPrivate, converged, notCon
   if (isPrivate) {
     return (
       <div>
-        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{label}</p>
-        <p className="text-base font-semibold tabular-nums">••••••</p>
+        <p className="qv-eyebrow mb-0.5">{label}</p>
+        <p className="qv-numeric text-base font-medium">••••••</p>
       </div>
     );
   }
-  if (value === null || (converged === false)) {
+  if (value === null || converged === false) {
     return (
       <div>
-        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{label}</p>
-        <p className="text-base font-semibold text-[var(--qv-warning)]">{notConvergedLabel ?? '—'}</p>
+        <p className="qv-eyebrow mb-0.5">{label}</p>
+        <p className="qv-numeric text-base font-medium text-[var(--qv-warning)]">{notConvergedLabel ?? '—'}</p>
       </div>
     );
   }
   const num = parseFloat(value);
   if (type === 'pct') {
-    const color = num >= 0 ? COLORS.profit : COLORS.loss;
     return (
       <div>
-        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{label}</p>
-        <p className="text-base font-semibold tabular-nums" style={{ color }}>{formatPercentage(num)}</p>
+        <p className="qv-eyebrow mb-0.5">{label}</p>
+        <SignedPercent value={num} className="text-base" />
       </div>
     );
   }
   return (
     <div>
-      <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{label}</p>
-      <CurrencyDisplay value={num} currency={currency} className="text-base font-semibold tabular-nums" />
+      <p className="qv-eyebrow mb-0.5">{label}</p>
+      <CurrencyDisplay value={num} currency={currency} className="qv-numeric text-base font-medium" />
     </div>
   );
 }
@@ -84,9 +85,11 @@ export default function SecurityDetail() {
   const navigate = useNavigate();
   const { t } = useTranslation('securities');
   const { t: tCommon } = useTranslation('common');
+  useNavTitle('security');
   const { t: tTx } = useTranslation('transactions');
   const { isPrivate } = usePrivacy();
   const { data: security, isLoading, isFetching } = useSecurityDetail(id ?? '');
+  const fetchPrices = useFetchPrices(id ?? '');
   const { data: perfData } = usePerformanceSecurities();
   const { data: txPage, isLoading: txLoading } = useTransactions({ security: id }, 1, 9999);
   const transactions = (txPage?.data ?? []) as TransactionListItem[];
@@ -191,53 +194,91 @@ export default function SecurityDetail() {
         {t('detail.back')}
       </Button>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          {security.logoUrl && <img src={security.logoUrl} alt="" className="h-8 w-8 rounded-md object-contain" />}
-          <h1 className="text-lg font-semibold text-foreground tracking-tight">{security.name}</h1>
-          <span className="text-sm text-muted-foreground">{[security.isin, security.ticker, security.currency].filter(Boolean).join(' · ')}</span>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {security.logoUrl && <img src={security.logoUrl} alt="" className="h-10 w-10 rounded-md object-contain" />}
+          <div>
+            <h1
+              className="font-display text-3xl md:text-4xl text-[var(--qv-text-display)]"
+              style={{ fontVariationSettings: '"opsz" 144', fontWeight: 500, letterSpacing: '-0.02em' }}
+            >
+              {security.name}
+            </h1>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {security.ticker && (
+                <span className="qv-numeric text-xs font-medium px-1.5 py-0.5 rounded-sm bg-[var(--qv-surface-3)] text-foreground">
+                  {security.ticker}
+                </span>
+              )}
+              {security.isin && (
+                <span className="qv-numeric text-sm text-muted-foreground">{security.isin}</span>
+              )}
+              {security.currency && (
+                <span className="text-sm text-muted-foreground">{security.currency}</span>
+              )}
+            </div>
+          </div>
         </div>
-        <Button variant="outline" onClick={() => openEditor()}>{tCommon('edit')}</Button>
+        <div className="sm:ml-auto flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            disabled={fetchPrices.isPending || !id}
+            onClick={() => fetchPrices.mutate('merge')}
+          >
+            <RefreshCw className={cn('h-4 w-4', fetchPrices.isPending && 'animate-spin')} />
+            {fetchPrices.isPending ? t('actions.refreshing') : t('actions.refreshQuote')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => openEditor()}>{tCommon('edit')}</Button>
+        </div>
       </div>
 
       {/* Hero metrics: Market Value + Unrealized P&L */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-primary opacity-80" />
+        <Card className="bg-[var(--qv-surface-elevated)] border-[var(--qv-border-subtle)]">
           <CardContent className="pt-5 pb-4">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1">{t('detail.marketValue')}</p>
+            <p className="qv-eyebrow mb-1">{t('detail.marketValue')}</p>
             {perf ? (
               <>
-                <CurrencyDisplay value={parseFloat(perf.mve)} currency={security.currency} className="text-2xl font-semibold tabular-nums" />
+                <CurrencyDisplay value={parseFloat(perf.mve)} currency={security.currency} className="qv-numeric text-2xl font-medium" />
                 <p className="text-xs text-muted-foreground mt-1">
-                  <SharesDisplay value={security.shares} className="tabular-nums" /> × <CurrencyDisplay value={security.latestPrice ? parseFloat(security.latestPrice) : 0} currency={security.currency} className="tabular-nums" />
+                  <SharesDisplay value={security.shares} className="qv-numeric" /> × <CurrencyDisplay value={security.latestPrice ? parseFloat(security.latestPrice) : 0} currency={security.currency} className="qv-numeric" />
                 </p>
               </>
             ) : (
-              <span className="text-2xl font-semibold text-muted-foreground">—</span>
+              <span className="qv-numeric text-2xl font-medium text-muted-foreground">—</span>
             )}
           </CardContent>
         </Card>
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-primary opacity-80" />
+        <Card className="bg-[var(--qv-surface-elevated)] border-[var(--qv-border-subtle)]">
           <CardContent className="pt-5 pb-4">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1">{t('detail.unrealizedPL')}</p>
+            <p className="qv-eyebrow mb-1">{t('detail.unrealizedPL')}</p>
             {perf ? (
               <>
-                <CurrencyDisplay value={parseFloat(perf.unrealizedGain)} currency={security.currency} colorize className="text-2xl font-semibold tabular-nums" />
+                <CurrencyDisplay value={parseFloat(perf.unrealizedGain)} currency={security.currency} colorize className="qv-numeric text-2xl font-medium" />
                 {parseFloat(perf.purchaseValue) > 0 && (
-                  <p className="text-xs mt-1" style={{ color: parseFloat(perf.unrealizedGain) >= 0 ? COLORS.profit : COLORS.loss }}>
-                    {isPrivate ? '••••' : formatPercentage(parseFloat(perf.unrealizedGain) / parseFloat(perf.purchaseValue))}
-                    {' '}{t('detail.fromPurchase')}
+                  <p className="mt-1 flex items-center gap-1.5 text-xs">
+                    <SignedPercent
+                      value={parseFloat(perf.unrealizedGain) / parseFloat(perf.purchaseValue)}
+                      className="text-xs"
+                    />
+                    <span className="text-muted-foreground">{t('detail.fromPurchase')}</span>
                   </p>
                 )}
               </>
             ) : (
-              <span className="text-2xl font-semibold text-muted-foreground">—</span>
+              <span className="qv-numeric text-2xl font-medium text-muted-foreground">—</span>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Taxonomies — classification surfaced read-only here, edit via the Editor modal */}
+      <TaxonomyAssignmentsCard
+        assignments={security.taxonomyAssignments ?? []}
+        onClassify={() => openEditor('taxonomies')}
+      />
 
       {/* Performance card */}
       {perf && (

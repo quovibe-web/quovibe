@@ -3,12 +3,12 @@ import { Badge } from '@/components/ui/badge';
 import { getTransactionBadgeVariant, getTransactionLabelKey, TX_TYPE_ICON } from '@/lib/transaction-display';
 import type { BadgeVariant } from '@/lib/transaction-display';
 
-/** Muted tint overrides — desaturated bg + matching text for both themes */
+/** Semantic-token tint — Flexoki palette via design system vars (§1.3 + §1.5). */
 const VARIANT_TINT: Record<BadgeVariant, string> = {
-  profit: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20',
-  loss: 'bg-rose-500/10 text-rose-700 border-rose-500/20 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20',
-  dividend: 'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/20',
-  neutral: 'bg-muted text-muted-foreground border-border',
+  profit: 'bg-[var(--qv-positive)]/12 text-[var(--qv-positive)] border-[var(--qv-positive)]/25',
+  loss: 'bg-[var(--qv-negative)]/12 text-[var(--qv-negative)] border-[var(--qv-negative)]/25',
+  dividend: 'bg-[var(--qv-warning)]/12 text-[var(--qv-warning)] border-[var(--qv-warning)]/25',
+  neutral: 'bg-[var(--qv-surface-elevated)] text-[var(--qv-text-secondary)] border-[var(--qv-border-subtle)]',
 };
 
 interface TypeBadgeProps {

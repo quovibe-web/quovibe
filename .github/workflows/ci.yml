@@ -29,6 +29,14 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python deps (ppxml2db)
+        run: pip install -r packages/api/vendor/requirements.txt
+
       - name: Install dependencies
         run: pnpm install
 
@@ -43,6 +51,9 @@ jobs:
 
       - name: Architecture checks
         run: pnpm check:arch
+
+      - name: Bootstrap parity (Gate 1 — bootstrap.sql vs ppxml2db_init.py)
+        run: pnpm check:bootstrap
 
       - name: Tests
         run: pnpm test

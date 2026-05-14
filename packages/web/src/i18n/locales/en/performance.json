@@ -73,7 +73,83 @@
     "thereofFx": "Currency Effect",
     "columnName": "Name",
     "columnAmount": "Amount",
-    "columnDate": "Date"
+    "columnDate": "Date",
+    "viewToggle": {
+      "label": "Layout",
+      "premium": "Premium",
+      "classic": "Classic"
+    },
+    "heroStrip": {
+      "ttwror": "Time-weighted return",
+      "irr": "IRR (ann.)",
+      "deltaPercent": "Δ %",
+      "deltaAbsolute": "Δ absolute",
+      "maxDrawdown": "Max drawdown",
+      "sharpe": "Sharpe ratio",
+      "onMvb": "on initial value",
+      "netResult": "net result",
+      "riskAdjustedReturn": "risk-adjusted return",
+      "newtonRaphson": "Newton-Raphson"
+    },
+    "categories": {
+      "drivers": "Performance drivers",
+      "frictions": "Frictions",
+      "flows": "Capital flows",
+      "anchorsIdentity": "Anchors & identity",
+      "descriptions": {
+        "drivers": "Price gains, dividends, interest, and currency effects",
+        "frictions": "Fees and taxes charged during the period",
+        "flows": "Deposits, removals, deliveries — flows that do not affect performance",
+        "anchorsIdentity": "Period start, end, and the arithmetic identity"
+      }
+    },
+    "waterfall": {
+      "title": "Waterfall",
+      "mvb": "Initial",
+      "mve": "Final",
+      "drivers": "Drivers",
+      "frictions": "Frictions",
+      "flows": "Flows",
+      "clickToExpand": "Click a bar to see the breakdown",
+      "extremeMagnitudeNotice": "One value dwarfs the others — switch to log scale to see all bars",
+      "linearScale": "Linear",
+      "logScale": "Log",
+      "emptyPeriod": "Period has no transactions"
+    },
+    "rightRail": {
+      "riskStyle": "Risk & style",
+      "openPosition": "Open position",
+      "lastDay": "Last day Δ",
+      "volatility": "Volatility",
+      "semivariance": "Semivariance",
+      "maxDdPeriod": "Max DD period",
+      "currentDrawdown": "Current drawdown",
+      "pmcConvention": "PMC",
+      "fifoConvention": "FIFO",
+      "cost": "Cost basis",
+      "marketValue": "Market value",
+      "unrealizedPnl": "Unrealized PnL",
+      "peak": "Peak",
+      "trough": "Trough",
+      "duration": "Duration",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days"
+    },
+    "equation": {
+      "identityCheck": "Identity check",
+      "labelMvb": "MVB",
+      "labelDrivers": "Drivers",
+      "labelFrictions": "Frictions",
+      "labelFlows": "Flows",
+      "labelMve": "MVE",
+      "identityOk": "verified",
+      "identityDrift": "drift {{value}}"
+    },
+    "density": {
+      "comfortable": "Comfortable",
+      "dense": "Dense",
+      "toggle": "Toggle table density"
+    }
   },
   "securities": {
     "title": "Performance — Securities",
@@ -101,8 +177,6 @@
     "marketValue": "Market Value",
     "ttwror": "TTWROR",
     "ttwrorPa": "TTWROR p.a.",
-    "cumulative": "Cumulative",
-    "annualizedPa": "p.a.",
     "configureChart": "Configure Chart",
     "addBenchmark": "Add Benchmark",
     "removeBenchmark": "Remove Benchmark",
@@ -163,7 +237,55 @@
     "styleDashed": "Dashed",
     "styleDotted": "Dotted",
     "customColor": "Custom",
-    "presetColors": "Preset Colors"
+    "presetColors": "Preset Colors",
+    "status": {
+      "loading": "Loading…",
+      "empty": "No data in range",
+      "error": "Failed to load"
+    },
+    "axis": {
+      "label": "Axis",
+      "shared": "Shared axis",
+      "pinLeft": "Pin to left axis",
+      "pinRight": "Pin to right axis"
+    },
+    "rail": {
+      "lastCol": "Last",
+      "deltaCol": "vs Portfolio",
+      "addSeries": "+ Add series",
+      "series": "Series"
+    },
+    "sheet": {
+      "title": "Compare",
+      "description": "Add securities and benchmarks to the chart",
+      "empty": "Use the search above to add series and benchmarks.",
+      "counter": "{{count}} of {{max}}",
+      "done": "Done",
+      "search": "Search ticker, ISIN, name…",
+      "noResults": "No matching securities",
+      "removeAll": "Remove all",
+      "removeAllConfirm": "Remove all {{count}} series?",
+      "removeAllCancel": "Cancel",
+      "removeAllConfirmAction": "Remove all",
+      "filter": {
+        "all": "All",
+        "owned": "Owned",
+        "index": "Indexes",
+        "account": "Accounts"
+      }
+    },
+    "action": {
+      "addHolding": "Add as holding",
+      "addReference": "Add as reference",
+      "compare": "Compare"
+    },
+    "badge": {
+      "youHold": "You hold",
+      "index": "Index"
+    },
+    "semantic": {
+      "tooltip": "Holding = your TWR on the position (accounts for your buys and sells). Reference = the asset's price return, regardless of holdings."
+    }
   },
   "cardLinks": {
     "calculation": "Calculation",

@@ -116,7 +116,7 @@ const taxonomySeriesHandler: RequestHandler = (req, res) => {
     return;
   }
 
-  const categoryIds = categoryIdsRaw.split(',').filter(Boolean).slice(0, 10);
+  const categoryIds = categoryIdsRaw.split(',').filter(Boolean).slice(0, 50);
   if (categoryIds.length === 0) {
     res.status(400).json({ error: 'categoryIds must contain at least one valid UUID' });
     return;
@@ -173,7 +173,7 @@ const benchmarkSeriesHandler: RequestHandler = (req, res) => {
   }
 
   if (securityIds.length > 5) {
-    res.status(400).json({ error: 'Maximum 5 benchmarks allowed' });
+    res.status(400).json({ error: 'BENCHMARK_LIMIT_EXCEEDED', maxBenchmarks: 5 });
     return;
   }
 

@@ -13,6 +13,8 @@
     "edit": "Modifica",
     "updatePrices": "Aggiorna Tutti i Prezzi",
     "updating": "Aggiornamento…",
+    "refreshQuote": "Aggiorna Quotazione",
+    "refreshing": "Aggiornamento…",
     "addInstrument": "+ Aggiungi Strumento",
     "delete": "Elimina"
   },
@@ -139,11 +141,14 @@
     "shares": "Quote",
     "latestPrice": "Ultimo Prezzo",
     "marketValue": "Valore di Mercato",
-    "unrealizedPL": "P&L Non Realizzato",
+    "unrealizedPL": "Utili non realizzati",
     "fromPurchase": "dall'acquisto",
     "performance": "Performance",
     "priceHistory": "Storico Prezzi",
     "transactions": "Transazioni",
+    "taxonomies": "Tassonomie",
+    "notClassified": "Non ancora classificato.",
+    "classify": "Classifica →",
     "noTransactions": "Nessuna transazione per questo titolo",
     "noPrices": "Nessuno storico prezzi disponibile",
     "configureFeed": "Configura feed prezzi →",
@@ -285,6 +290,34 @@
     "unsavedKeepEditing": "Continua a modificare",
     "save": "Salva modifiche",
     "saving": "Salvataggio..."
+  },
+  "attributeType": {
+    "editTitle": "Rinomina tipo di attributo",
+    "fields": {
+      "name": "Nome",
+      "columnLabel": "Etichetta colonna",
+      "type": "Tipo"
+    },
+    "types": {
+      "text": "Testo",
+      "number": "Numero",
+      "percentage": "Percentuale",
+      "amount": "Importo",
+      "date": "Data",
+      "boolean": "Sì / No"
+    },
+    "menu": {
+      "aria": "Azioni attributo",
+      "rename": "Rinomina definizione del tipo",
+      "removeFromSec": "Rimuovi da questo titolo"
+    },
+    "empty": "Nessun attributo personalizzato.",
+    "empty.cta": "+ Crea tipo di attributo",
+    "validation": {
+      "nameRequired": "Il nome è obbligatorio.",
+      "nameTooLong": "Il nome non può superare {{max}} caratteri.",
+      "columnLabelTooLong": "L'etichetta colonna non può superare {{max}} caratteri."
+    }
   },
   "empty": {
     "noSecurities": "Nessun titolo ancora"

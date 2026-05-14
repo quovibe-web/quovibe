@@ -41,7 +41,11 @@
     "previous": "Précédent",
     "next": "Suivant",
     "pageOf": "Page {{current}} sur {{total}}",
-    "showing": "Showing {{from}}–{{to}} of {{total}}"
+    "showing": "Affichage de {{from}}–{{to}} sur {{total}}"
+  },
+  "aria": {
+    "sortAscending": "{{column}} trié par ordre croissant",
+    "sortDescending": "{{column}} trié par ordre décroissant"
   },
   "transactionCount_one": "{{count}} transaction",
   "transactionCount_other": "{{count}} transactions",

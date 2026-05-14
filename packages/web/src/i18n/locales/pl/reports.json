@@ -2,7 +2,7 @@
   "statementOfAssets": {
     "title": "Zestawienie aktywów",
     "date": "Data",
-    "securities": "Papiery wartościowe",
+    "securities": "Walory",
     "depositAccounts": "Rachunki gotówkowe",
     "totalMarketValue": "Całkowita wartość rynkowa",
     "cash": "Gotówka",
@@ -14,7 +14,7 @@
       "balance": "Saldo",
       "currency": "Waluta"
     },
-    "subtitle": "Portfolio snapshot at period end",
+    "subtitle": "Migawka portfela na koniec okresu",
     "empty": "No securities in portfolio"
   },
   "holdings": {
@@ -38,21 +38,51 @@
     "groupBy": {
       "month": "Miesiąc",
       "quarter": "Kwartał",
-      "year": "Rok"
+      "year": "Rok",
+      "security": "Walor",
+      "type": "Typ"
     },
+    "byTitle": "Podział według {{groupBy}}",
+    "cashOrNoSecurity": "Gotówka / brak waloru",
     "earningsChart": "Przychody (Brutto/Netto)",
     "dividends": "Dywidendy",
     "interest": "Odsetki",
     "dividendsPerGroup": "Dywidendy na {{groupBy}}",
     "interestPerGroup": "Odsetki na {{groupBy}}",
+    "incomePerGroupGross": "Dochód za {{groupBy}} · brutto",
+    "incomePerGroupNet": "Dochód za {{groupBy}} · netto",
+    "hero": {
+      "titleGross": "Przychody łącznie (brutto)",
+      "titleNet": "Przychody łącznie (netto)",
+      "avgMonth": "Śr. / mies.",
+      "peakMonth": "Najlepszy miesiąc",
+      "payments": "Płatności",
+      "topSecurity": "Główny walor",
+      "priorPeak": "poprzedni szczyt"
+    },
+    "calendar": {
+      "title": "Kadencja miesięczna",
+      "yearLabel": "Rok",
+      "total": "Razem",
+      "totalLabel": "Razem",
+      "deltaHeader": "Δ",
+      "averageRow": "Śr.",
+      "headerChipAvg": "Śr./mies. {{value}}",
+      "headerChipYoy": "▲ wzg. '{{year}}",
+      "headerChipYoyDown": "▼ wzg. '{{year}}"
+    },
     "columns": {
       "date": "Data",
       "type": "Typ",
-      "security": "Papier wartościowy",
+      "security": "Walor",
       "account": "Konto",
       "amount": "Kwota"
     },
-    "empty": "Brak płatności w wybranym okresie.",
+    "empty": {
+      "noPayments": "Brak płatności w wybranym okresie.",
+      "filtered": "Brak płatności spełniających aktywne filtry",
+      "clearFilters": "Wyczyść filtry"
+    },
     "paymentCount_one": "{{count}} płatność",
     "paymentCount_few": "{{count}} płatności",
     "paymentCount_many": "{{count}} płatności",
@@ -61,10 +91,48 @@
       "totalGross": "Łącznie (brutto)",
       "totalNet": "Łącznie (netto)",
       "error": "Nie można załadować szczegółów",
-      "byTitle": "według papieru wartościowego",
+      "byTitle": "według waloru",
       "byAccount": "według konta"
     },
-    "subtitle": "Dividends, interest, and other income"
+    "subtitle": "Dywidendy, odsetki i inne dochody",
+    "yoy": {
+      "vsPrior": "▲ +{{share}}% wzg. {{priorTotal}} {{priorLabel}}",
+      "vsPriorDown": "▼ {{share}}% wzg. {{priorTotal}} {{priorLabel}}",
+      "priorYearLabel": "YTD {{year}}"
+    },
+    "detail": {
+      "headerCount": "Szczegóły · {{count, number}} płatności",
+      "filtered": "{{filtered, number}} z {{total, number}}",
+      "filter": {
+        "allTypes": "Wszystkie typy",
+        "dividend": "Dywidendy",
+        "interest": "Odsetki",
+        "addSecurity": "+ Walor",
+        "selectSecurities": "Wybierz walory",
+        "searchSecurities": "Szukaj walorów…"
+      },
+      "sort": {
+        "label": "Sortuj",
+        "dateDesc": "Data · najnowsze",
+        "dateAsc": "Data · najstarsze",
+        "amountDesc": "Kwota · największa",
+        "securityAsc": "Papier · A → Z"
+      },
+      "year": {
+        "ytd": "YTD",
+        "payments": "{{count, number}} płatności"
+      }
+    },
+    "rail": {
+      "topPayers": "Najlepsi płatnicy",
+      "morePayers": "+ {{count, number}} więcej",
+      "byType": "Według typu",
+      "cashInterest": "Odsetki gotówkowe"
+    },
+    "concentration": {
+      "title": "Koncentracja",
+      "top3": "Top 3 = {{share}}% dochodu"
+    }
   },
   "returnsHeatmap": {
     "title": "Mapa ciepła stóp zwrotu",
@@ -111,6 +179,7 @@
   },
   "assetAllocation": {
     "title": "Taksonomie",
+    "subtitle": "Alokacja i rebalansacja według taksonomii",
     "noTaxonomies": "Brak zdefiniowanych taksonomii. Zaimportuj portfel z danymi taksonomii, aby użyć tego widoku.",
     "date": "Data",
     "columns": {
@@ -129,7 +198,7 @@
     },
     "expandAll": "Rozwiń wszystko",
     "collapseAll": "Zwiń wszystko",
-    "subtitle": "Allocation and rebalancing by taxonomy"
+    "withoutClassification": "Bez Klasyfikacji"
   },
   "taxonomySeries": {
     "title": "Serie danych",
@@ -146,7 +215,16 @@
     "dividends": "Dywidendy",
     "fees": "Opłaty",
     "selectTaxonomy": "Taksonomia",
-    "subtitle": "Performance trends by category"
+    "categoryLabel": "Kategoria",
+    "subtitle": "Trendy wyników według kategorii",
+    "best": "Najlepsza",
+    "worst": "Najgorsza",
+    "spread": "Rozpiętość",
+    "spreadAcross": "w {{count}} kategoriach",
+    "categoriesLabel": "Kategorie",
+    "composition": "Skład",
+    "topPerformers": "Najlepsze kategorie",
+    "noCategoryData": "Brak danych dla kategorii."
   },
   "taxonomyNodePicker": {
     "loading": "Ładowanie…",
@@ -155,24 +233,24 @@
     "noCategories": "Brak kategorii"
   },
   "rebalancing": {
-    "title": "Rebalancing",
-    "viewDefinition": "Definition",
-    "viewRebalancing": "Rebalancing",
+    "title": "Równoważenie",
+    "viewDefinition": "Definicja",
+    "viewRebalancing": "Równoważenie",
     "columns": {
-      "category": "Category",
-      "allocation": "Allocation %",
-      "weight": "Weight %",
-      "actualValue": "Actual Value",
-      "targetValue": "Target Value",
+      "category": "Kategoria",
+      "allocation": "Alokacja %",
+      "weight": "Waga %",
+      "actualValue": "Aktualna wartość",
+      "targetValue": "Wartość docelowa",
       "deltaValue": "Delta",
       "deltaPercent": "Delta %",
-      "rebalanceAmount": "Rebalance",
-      "rebalanceShares": "Shares"
+      "rebalanceAmount": "Zrównoważ",
+      "rebalanceShares": "Udziały"
     },
     "allocationSumWarning": "Suma alokacji: {{sum}}% / {{expected}}%",
-    "noData": "No rebalancing data.",
-    "totalPortfolioValue": "Total Portfolio Value",
-    "excluded": "Excluded from rebalancing"
+    "noData": "Brak danych równoważenia.",
+    "totalPortfolioValue": "Łączna wartość portfela",
+    "excluded": "Wyłączone z równoważenia"
   },
   "taxonomyManagement": {
     "newTaxonomy": "Nowa Klasyfikacja",
@@ -190,7 +268,7 @@
     "templateAssetAllocation": "Alokacja aktywów",
     "templateRegions": "Regiony",
     "templateRegionsMsci": "Regiony (MSCI)",
-    "templateTypeSecurity": "Typ papieru wartościowego",
+    "templateTypeSecurity": "Typ waloru",
     "nameLabel": "Nazwa",
     "namePlaceholder": "Nazwa klasyfikacji",
     "addSubcategory": "Dodaj Podkategorię",
@@ -221,6 +299,55 @@
     "editWeightDescription": "Ustaw docelowy procent wagi",
     "assignCategoryDescription": "Wybierz kategorię do przypisania",
     "deleteError": "Błąd podczas usuwania klasyfikacji",
-    "renameDescription": "Wprowadź nową nazwę dla tej klasyfikacji"
+    "renameDescription": "Wprowadź nową nazwę dla tej klasyfikacji",
+    "emptyCategories": {
+      "title": "Ta klasyfikacja nie ma jeszcze kategorii.",
+      "cta": "Dodaj pierwszą kategorię"
+    },
+    "resetTargets": {
+      "button": "Zresetuj cele",
+      "confirmTitle": "Zresetować cele do zapisanych wartości?",
+      "confirmBody": "Zastępuje bieżące cele wartościami obecnymi w momencie wczytania widoku.",
+      "confirmAction": "Zresetuj"
+    },
+    "deleteCategoryDetailed": {
+      "title": "Usunąć \"{{name}}\"?",
+      "assignments_one": "Zostanie usunięte {{count}} przypisanie.",
+      "assignments_few": "Zostaną usunięte {{count}} przypisania.",
+      "assignments_many": "Zostanie usuniętych {{count}} przypisań.",
+      "assignments_other": "Zostanie usuniętych {{count}} przypisań.",
+      "subcategories_one": "{{count}} podkategoria zostanie przeniesiona do kategorii nadrzędnej.",
+      "subcategories_few": "{{count}} podkategorie zostaną przeniesione do kategorii nadrzędnej.",
+      "subcategories_many": "{{count}} podkategorii zostanie przeniesionych do kategorii nadrzędnej.",
+      "subcategories_other": "{{count}} podkategorii zostanie przeniesionych do kategorii nadrzędnej.",
+      "empty": "Ta kategoria jest pusta."
+    },
+    "renormalize": {
+      "checkbox": "Proporcjonalnie rozłóż wagi dotkniętych elementów",
+      "hint": "Istniejące sumy pozostają na wartościach sprzed usunięcia."
+    }
+  },
+  "taxonomyUi": {
+    "chartMode": {
+      "donut": "Donut",
+      "treemap": "Mapa drzewa",
+      "off": "Brak"
+    },
+    "columns": {
+      "target": "Cel %",
+      "actual": "Rzeczywisty %",
+      "delta": "Δ",
+      "split": "Podział"
+    },
+    "withoutClassification": {
+      "empty": "Wszystko sklasyfikowane ✓"
+    },
+    "allocationSumWarning": "Elementy podrzędne sumują się do {{sum}}%. Powinny sumować się do 100%.",
+    "picker": {
+      "searchPlaceholder": "Szukaj kategorii...",
+      "noMatches": "Żadna kategoria nie pasuje do \"{{query}}\"",
+      "breadcrumbSeparator": " › ",
+      "entireTaxonomy": "Cała taksonomia"
+    }
   }
 }

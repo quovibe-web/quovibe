@@ -19,7 +19,9 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Eye, EyeOff, GripVertical, X, Mountain } from 'lucide-react';
 import type { IChartApi, ISeriesApi, SeriesType } from 'lightweight-charts';
+import type { Format } from '@number-flow/react';
 import type { LineStyle } from '@quovibe/shared';
+import { AccessibleNumberFlow } from '@/components/shared/AccessibleNumberFlow';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -42,9 +44,11 @@ export interface LegendSeriesItem {
   id: string;
   label: string;
   color: string;
-  series: ISeriesApi<SeriesType>;
+  series: ISeriesApi<SeriesType> | null;
   visible: boolean;
   formatValue?: (value: number) => string;
+  /** When present, period-end value cell renders via AccessibleNumberFlow (animated digit transition). */
+  numberFormat?: Format;
 }
 
 interface ChartLegendOverlayProps {
@@ -102,6 +106,11 @@ export interface ExtendedLegendSeriesItem extends LegendSeriesItem {
   areaFill: boolean;
   /** If true, the item cannot be removed (e.g. the portfolio series) */
   locked?: boolean;
+  status?: 'loading' | 'ok' | 'empty' | 'error';
+  /** Period-end value (mode-adjusted). Shown when crosshair is off the chart. */
+  lastValue?: number | null;
+  /** Delta vs portfolio at period end. Null when item IS the portfolio or no portfolio data. */
+  deltaVsPortfolio?: number | null;
 }
 
 interface ExtendedChartLegendOverlayProps {
@@ -119,7 +128,7 @@ interface ExtendedChartLegendOverlayProps {
 
 // ---------- Color Picker (popover version) ----------
 
-function LegendColorPicker({ currentColor, onSelect }: { currentColor: string; onSelect: (c: string) => void }) {
+export function LegendColorPicker({ currentColor, onSelect }: { currentColor: string; onSelect: (c: string) => void }) {
   const { t } = useTranslation('performance');
   const { palette } = useChartColors();
   // Convert palette colors (may be HSL from CSS vars) to hex for schema compatibility
@@ -188,9 +197,9 @@ function LineStyleIndicator({ style, color }: { style: LineStyle; color: string 
 
 // ---------- Cycle helper ----------
 
-const LINE_STYLES: LineStyle[] = ['solid', 'dashed', 'dotted'];
+export const LINE_STYLES: LineStyle[] = ['solid', 'dashed', 'dotted'];
 
-function nextLineStyle(current: LineStyle): LineStyle {
+export function nextLineStyle(current: LineStyle): LineStyle {
   const idx = LINE_STYLES.indexOf(current); // native-ok
   return LINE_STYLES[(idx + 1) % LINE_STYLES.length]; // native-ok
 }
@@ -351,10 +360,56 @@ function SortableExtendedItem({
             {item.label}
           </span>
 
-          {/* Crosshair value */}
-          {crosshairValue && (
-            <span className={cn('tabular-nums whitespace-nowrap text-muted-foreground', isPrivate && 'blur-sm')}>
-              {crosshairValue}
+          {/* Status badges */}
+          {item.status === 'empty' && (
+            <span className="rounded bg-[var(--qv-warning)]/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--qv-warning)]">
+              {t('chart.status.empty')}
+            </span>
+          )}
+          {item.status === 'error' && (
+            <span className="rounded bg-[var(--qv-danger)]/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--qv-danger)]">
+              {t('chart.status.error')}
+            </span>
+          )}
+          {item.status === 'loading' && (
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground animate-pulse">
+              {t('chart.status.loading')}
+            </span>
+          )}
+
+          {/* NumberFlow's parent span stays mounted across crosshair toggles (only `display` flips)
+              so the digit-transition animation isn't reset on every cursor entry/exit.
+              Crosshair-active value stays plain text — animation under 30Hz scrub would jitter. */}
+          {(crosshairValue !== undefined || item.lastValue != null) && (
+            <span className={cn('tabular-nums whitespace-nowrap font-medium text-foreground text-[10.5px]', isPrivate && 'blur-sm')}>
+              {isPrivate ? (
+                '••••'
+              ) : (
+                <>
+                  {crosshairValue !== undefined && <span>{crosshairValue}</span>}
+                  {item.lastValue != null && item.numberFormat && (
+                    <span style={crosshairValue !== undefined ? { display: 'none' } : undefined}>
+                      <AccessibleNumberFlow value={item.lastValue} format={item.numberFormat} />
+                    </span>
+                  )}
+                  {item.lastValue != null && !item.numberFormat && crosshairValue === undefined && (
+                    <>{item.formatValue?.(item.lastValue) ?? `${item.lastValue}`}</>
+                  )}
+                </>
+              )}
+            </span>
+          )}
+
+          {/* Delta vs portfolio — shown when applicable and no crosshair override */}
+          {item.deltaVsPortfolio != null && crosshairValue === undefined && (
+            <span className={cn(
+              'tabular-nums whitespace-nowrap text-[9.5px]',
+              item.deltaVsPortfolio >= 0 ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]',
+              isPrivate && 'blur-sm',
+            )}>
+              {isPrivate
+                ? '••••'
+                : `${item.deltaVsPortfolio >= 0 ? '+' : ''}${item.formatValue?.(item.deltaVsPortfolio) ?? item.deltaVsPortfolio}`}
             </span>
           )}
 

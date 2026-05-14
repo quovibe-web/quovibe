@@ -1,6 +1,7 @@
 import type BetterSqlite3 from 'better-sqlite3';
 import Decimal from 'decimal.js';
-import { getCachedStatement, getCachedReferenceData } from './statement-cache';
+import { getStatementOfAssets } from './performance.service';
+import { getReferenceData } from './reference-data';
 
 interface SecurityDetail {
   securityId: string;
@@ -84,8 +85,8 @@ export function computeRebalancing(
     }
   }
 
-  // Resolve ALL security/account names, retirement status, and logos (cached)
-  const refData = getCachedReferenceData(sqlite);
+  // Resolve ALL security/account names, retirement status, and logos
+  const refData = getReferenceData(sqlite);
   const secNameMap = new Map(refData.securities.map(s => [s.uuid, s.name]));
   const retiredSecIds = new Set(refData.securities.filter(s => s.isRetired === 1).map(s => s.uuid));
   const acctNameMap = new Map(refData.accounts.map(a => [a.uuid, a.name]));
@@ -94,8 +95,8 @@ export function computeRebalancing(
     ...refData.acctLogoMap,
   ]);
 
-  // 5. Get statement of assets (market values) — cached
-  const statement = getCachedStatement(sqlite, date);
+  // 5. Get statement of assets (market values)
+  const statement = getStatementOfAssets(sqlite, date);
   const totalMV = new Decimal(statement.totals.marketValue);
 
   const mvByItemId = new Map<string, Decimal>();

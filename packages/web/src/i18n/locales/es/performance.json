@@ -6,7 +6,7 @@
     "irr": "TIR (ann.)",
     "irrDescription": "Tasa Interna de Retorno, anualizada",
     "ttwror": "TTWROR",
-    "ttwrorDescription": "True Time-Weighted Rate of Return",
+    "ttwrorDescription": "Rentabilidad ponderada por tiempo (acumulada)",
     "ttwrorPa": "TTWROR p.a.",
     "ttwrorPaDescription": "TTWROR anualizado",
     "delta": "Delta",
@@ -18,7 +18,7 @@
   },
   "calculation": {
     "title": "Cálculo",
-    "subtitle": "Detailed calculation breakdown",
+    "subtitle": "Detalle del cálculo",
     "preTax": "Antes de impuestos",
     "afterTax": "Después de impuestos",
     "initialValue": "Valor inicial (MVB)",
@@ -73,11 +73,87 @@
     "thereofFx": "Efecto cambiario",
     "columnName": "Nombre",
     "columnAmount": "Importe",
-    "columnDate": "Fecha"
+    "columnDate": "Fecha",
+    "viewToggle": {
+      "label": "Diseño",
+      "premium": "Premium",
+      "classic": "Clásico"
+    },
+    "heroStrip": {
+      "ttwror": "Rendimiento TWR",
+      "irr": "TIR (anual)",
+      "deltaPercent": "Δ %",
+      "deltaAbsolute": "Δ absoluto",
+      "maxDrawdown": "Drawdown máximo",
+      "sharpe": "Ratio de Sharpe",
+      "onMvb": "sobre el valor inicial",
+      "netResult": "resultado neto",
+      "riskAdjustedReturn": "rendimiento ajustado al riesgo",
+      "newtonRaphson": "Newton-Raphson"
+    },
+    "categories": {
+      "drivers": "Motores de rendimiento",
+      "frictions": "Fricciones",
+      "flows": "Flujos de capital",
+      "anchorsIdentity": "Anclajes e identidad",
+      "descriptions": {
+        "drivers": "Ganancias de precio, dividendos, intereses y efectos de divisa",
+        "frictions": "Comisiones e impuestos cobrados en el periodo",
+        "flows": "Depósitos, retiros, entregas — flujos que no afectan al rendimiento",
+        "anchorsIdentity": "Inicio, fin e identidad aritmética del periodo"
+      }
+    },
+    "waterfall": {
+      "title": "Waterfall",
+      "mvb": "Inicio",
+      "mve": "Final",
+      "drivers": "Motores",
+      "frictions": "Fricciones",
+      "flows": "Flujos",
+      "clickToExpand": "Haga clic en una barra para ver el desglose",
+      "extremeMagnitudeNotice": "Un valor eclipsa a los demás — cambie a escala logarítmica para ver todas las barras",
+      "linearScale": "Lineal",
+      "logScale": "Log",
+      "emptyPeriod": "El periodo no tiene transacciones"
+    },
+    "rightRail": {
+      "riskStyle": "Riesgo y estilo",
+      "openPosition": "Posición abierta",
+      "lastDay": "Último día Δ",
+      "volatility": "Volatilidad",
+      "semivariance": "Semivarianza",
+      "maxDdPeriod": "Periodo de DD máximo",
+      "currentDrawdown": "Drawdown actual",
+      "pmcConvention": "PMC",
+      "fifoConvention": "FIFO",
+      "cost": "Base de costo",
+      "marketValue": "Valor de mercado",
+      "unrealizedPnl": "PnL no realizado",
+      "peak": "Máximo",
+      "trough": "Mínimo",
+      "duration": "Duración",
+      "days_one": "{{count}} día",
+      "days_other": "{{count}} días"
+    },
+    "equation": {
+      "identityCheck": "Verificación de identidad",
+      "labelMvb": "MVB",
+      "labelDrivers": "Motores",
+      "labelFrictions": "Fricciones",
+      "labelFlows": "Flujos",
+      "labelMve": "MVE",
+      "identityOk": "verificado",
+      "identityDrift": "desviación {{value}}"
+    },
+    "density": {
+      "comfortable": "Cómodo",
+      "dense": "Denso",
+      "toggle": "Alternar densidad de tabla"
+    }
   },
   "securities": {
     "title": "Rendimiento — Valores",
-    "subtitle": "Performance breakdown by security",
+    "subtitle": "Desglose de rendimiento por valor",
     "columns": {
       "name": "Nombre",
       "irr": "TIR (ann.)",
@@ -96,13 +172,11 @@
   },
   "chart": {
     "title": "Gráfico de rendimiento",
-    "subtitle": "Time-weighted return over time",
+    "subtitle": "Rendimiento ponderado por tiempo",
     "marketValueAndTtwror": "Valor de mercado & TTWROR",
     "marketValue": "Valor de mercado",
     "ttwror": "TTWROR",
     "ttwrorPa": "TTWROR p.a.",
-    "cumulative": "Acumulado",
-    "annualizedPa": "p.a.",
     "configureChart": "Configurar gráfico",
     "addBenchmark": "Añadir índice de referencia",
     "removeBenchmark": "Eliminar índice de referencia",
@@ -159,11 +233,59 @@
     "areaFillLabel": "Relleno de área",
     "removeFromChart": "Eliminar del gráfico",
     "isolateMode": "Mostrando solo: {{name}}",
-    "styleSolid": "Continuo",
-    "styleDashed": "Discontinuo",
-    "styleDotted": "Punteado",
+    "styleSolid": "Sólida",
+    "styleDashed": "Discontinua",
+    "styleDotted": "Punteada",
     "customColor": "Personalizado",
-    "presetColors": "Colores predefinidos"
+    "presetColors": "Colores predefinidos",
+    "status": {
+      "loading": "Cargando…",
+      "empty": "Sin datos en el periodo",
+      "error": "Error al cargar"
+    },
+    "axis": {
+      "label": "Eje",
+      "shared": "Eje compartido",
+      "pinLeft": "Fijar a la izquierda",
+      "pinRight": "Fijar a la derecha"
+    },
+    "rail": {
+      "lastCol": "Último",
+      "deltaCol": "vs Cartera",
+      "addSeries": "+ Añadir serie",
+      "series": "Serie"
+    },
+    "sheet": {
+      "title": "Comparar",
+      "description": "Añade valores y benchmarks al gráfico",
+      "empty": "Usa la búsqueda para añadir series y benchmarks.",
+      "counter": "{{count}} de {{max}}",
+      "done": "Hecho",
+      "search": "Buscar ticker, ISIN, nombre…",
+      "noResults": "No hay valores que coincidan",
+      "removeAll": "Quitar todo",
+      "removeAllConfirm": "¿Quitar las {{count}} series?",
+      "removeAllCancel": "Cancelar",
+      "removeAllConfirmAction": "Quitar todo",
+      "filter": {
+        "all": "Todos",
+        "owned": "Poseídos",
+        "index": "Índices",
+        "account": "Cuentas"
+      }
+    },
+    "action": {
+      "addHolding": "Añadir como posición",
+      "addReference": "Añadir como referencia",
+      "compare": "Comparar"
+    },
+    "badge": {
+      "youHold": "Lo tienes",
+      "index": "Índice"
+    },
+    "semantic": {
+      "tooltip": "Posición = TWR sobre tu posición (considera compras y ventas). Referencia = rendimiento de precio del activo, sin tener en cuenta posiciones."
+    }
   },
   "cardLinks": {
     "calculation": "Cálculo",
@@ -174,7 +296,7 @@
     "chartDesc": "Valor de mercado y TTWROR en el período"
   },
   "taxonomySeries": {
-    "subtitle": "Performance trends by category"
+    "subtitle": "Tendencias de rendimiento por categoría"
   },
   "analytics": {
     "title": "Análisis",

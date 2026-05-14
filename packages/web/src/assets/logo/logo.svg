@@ -6,6 +6,6 @@
     <path d="M8.8 24 Q8.8 15.2, 17.6 15.2" stroke="#100f0f" stroke-width="2.4" fill="none" stroke-linecap="round"/>
     <circle cx="24" cy="24" r="2.4" fill="#ad8301"/>
   </g>
-  <text x="100" y="82" font-family="'DM Serif Display', serif" font-size="30" fill="#100f0f" text-anchor="middle" letter-spacing="-0.5">quo</text>
+  <text x="100" y="82" font-family="'Fraunces', Georgia, serif" font-size="30" font-weight="500" style="font-variation-settings: 'opsz' 144, 'wght' 500;" fill="#100f0f" text-anchor="middle" letter-spacing="-0.5">quo</text>
   <text x="145" y="82" font-family="'Plus Jakarta Sans', sans-serif" font-size="30" font-weight="300" fill="#6f6e69" text-anchor="middle" letter-spacing="-0.5">vibe</text>
 </svg>

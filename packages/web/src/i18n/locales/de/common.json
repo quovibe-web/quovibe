@@ -41,7 +41,11 @@
     "previous": "Zurück",
     "next": "Weiter",
     "pageOf": "Seite {{current}} von {{total}}",
-    "showing": "Showing {{from}}–{{to}} of {{total}}"
+    "showing": "Zeige {{from}}–{{to}} von {{total}}"
+  },
+  "aria": {
+    "sortAscending": "{{column}} aufsteigend sortiert",
+    "sortDescending": "{{column}} absteigend sortiert"
   },
   "transactionCount_one": "{{count}} Buchung",
   "transactionCount_other": "{{count}} Buchungen",
