@@ -4,6 +4,7 @@
 [![GitHub release](https://img.shields.io/github/v/release/quovibe-web/quovibe)](https://github.com/quovibe-web/quovibe/releases)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Docker](https://img.shields.io/badge/docker-ghcr.io-blue?logo=docker)](https://ghcr.io/quovibe-web/quovibe)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-F16061?logo=ko-fi&logoColor=white)](https://ko-fi.com/quovibe)
 
 
 > A web-based, self-hosted portfolio tracker developed with the assistance of AI ([Claude Code](https://claude.ai/code)).
