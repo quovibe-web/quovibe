@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { getTransactionCashflowSign } from '@/lib/transaction-display';
 import { TypeBadge } from '@/components/shared/TypeBadge';
 import { SignedPercent } from '@/components/shared/SignedPercent';
+import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
 
 function SharesCell({ value }: { value: string | null }) {
   const { isPrivate } = usePrivacy();
@@ -194,9 +195,14 @@ export default function SecurityDetail() {
         {t('detail.back')}
       </Button>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          {security.logoUrl && <img src={security.logoUrl} alt="" className="h-10 w-10 rounded-md object-contain" />}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-3">
+        <div className="flex flex-col gap-3">
+          <SecurityAvatar
+            name={security.name}
+            logoUrl={security.logoUrl}
+            size="xl"
+            rounded="lg"
+          />
           <div>
             <h1
               className="font-display text-3xl md:text-4xl text-[var(--qv-text-display)]"
