@@ -8,6 +8,9 @@
 
 
 A web-based, self-hosted portfolio tracker developed with the assistance of AI ([Claude Code](https://claude.ai/code)).
+
+Support Quovibe on [Ko-fi](https://ko-fi.com/quovibe) to help fund development.
+
 > Import your portfolio XML and instantly access performance analytics, holdings, dividends, and asset allocation — running fully locally.
 
 
