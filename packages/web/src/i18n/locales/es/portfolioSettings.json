@@ -7,6 +7,7 @@
   "updatePrices": "Actualizar todos los precios",
   "export": "Exportar esta cartera",
   "demoExplainer": "Un entorno persistente donde puedes añadir, editar y eliminar libremente. También puedes exportar tu demo modificada — la descarga se convierte en una cartera normal al reimportarla, dejando intacto el conjunto demo integrado. La demo en sí no se puede renombrar ni eliminar — es un elemento integrado, no un artefacto de usuario.",
+  "demoUpdateDisabled": "Las actualizaciones de precios están desactivadas para la cartera de demostración. Visita Inversiones para ver los últimos datos de mercado o importa una cartera real.",
   "rename": {
     "cta": "Renombrar",
     "title": "Renombrar cartera",

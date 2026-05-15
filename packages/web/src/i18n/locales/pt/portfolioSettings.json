@@ -7,6 +7,7 @@
   "updatePrices": "Atualizar todos os preços",
   "export": "Exportar esta carteira",
   "demoExplainer": "Um ambiente persistente onde pode adicionar, editar e eliminar livremente. Também pode exportar a sua demo modificada — a transferência torna-se uma carteira normal ao reimportar, deixando o conjunto demo integrado intacto. A própria demo não pode ser renomeada nem eliminada — é um elemento integrado, não um artefacto do utilizador.",
+  "demoUpdateDisabled": "As atualizações de preços estão desativadas para o portfólio de demonstração. Acesse Investimentos para ver os dados de mercado mais recentes ou importe um portfólio real.",
   "rename": {
     "cta": "Renomear",
     "title": "Renomear carteira",

@@ -7,6 +7,7 @@
   "updatePrices": "Alle Kurse aktualisieren",
   "export": "Dieses Portfolio exportieren",
   "demoExplainer": "Eine persistente Sandbox, in der Sie frei hinzufügen, bearbeiten und löschen können. Sie können auch Ihre geänderte Demo exportieren — der Download wird beim erneuten Import zu einem regulären Portfolio, während die integrierte Demo unverändert bleibt. Die Demo selbst kann nicht umbenannt oder gelöscht werden — sie ist ein integrierter Bestandteil, kein Benutzerartefakt.",
+  "demoUpdateDisabled": "Preisaktualisierungen sind für das Demo-Portfolio deaktiviert. Besuchen Sie Investitionen, um die neuesten Marktdaten zu sehen, oder importieren Sie ein echtes Portfolio.",
   "rename": {
     "cta": "Umbenennen",
     "title": "Portfolio umbenennen",

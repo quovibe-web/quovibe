@@ -7,6 +7,7 @@
   "updatePrices": "Aggiorna tutti i prezzi",
   "export": "Esporta questo portafoglio",
   "demoExplainer": "Un ambiente persistente in cui puoi aggiungere, modificare ed eliminare liberamente. Puoi anche esportare la tua demo modificata: il file scaricato diventa un normale portafoglio dopo la re-importazione, lasciando intatto il dataset demo integrato. La demo stessa non può essere rinominata né eliminata — è un dataset integrato, non un artefatto utente.",
+  "demoUpdateDisabled": "Gli aggiornamenti dei prezzi sono disabilitati per il portafoglio demo. Vai a Investimenti per vedere i dati di mercato più recenti o importa un portafoglio reale.",
   "rename": {
     "cta": "Rinomina",
     "title": "Rinomina portafoglio",
