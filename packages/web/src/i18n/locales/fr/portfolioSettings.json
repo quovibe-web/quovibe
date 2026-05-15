@@ -7,6 +7,7 @@
   "updatePrices": "Mettre à jour tous les cours",
   "export": "Exporter ce portefeuille",
   "demoExplainer": "Un bac à sable persistant où vous pouvez ajouter, modifier et supprimer librement. Vous pouvez aussi exporter votre démo modifiée — le téléchargement devient un portefeuille normal lors de la réimportation, laissant la démo intégrée intacte. La démo elle-même ne peut être ni renommée ni supprimée — c'est un élément intégré, pas un artefact utilisateur.",
+  "demoUpdateDisabled": "Les mises à jour des prix sont désactivées pour le portefeuille de démonstration. Rendez-vous dans Investissements pour consulter les dernières données de marché ou importez un vrai portefeuille.",
   "rename": {
     "cta": "Renommer",
     "title": "Renommer le portefeuille",

@@ -7,6 +7,7 @@
   "updatePrices": "Aktualizuj wszystkie ceny",
   "export": "Eksportuj ten portfel",
   "demoExplainer": "Trwałe środowisko, w którym możesz swobodnie dodawać, edytować i usuwać. Możesz również wyeksportować zmodyfikowaną wersję demo — pobrany plik staje się zwykłym portfelem po ponownym imporcie, pozostawiając wbudowane demo bez zmian. Samego demo nie można zmienić nazwy ani usunąć — to wbudowany element, a nie obiekt użytkownika.",
+  "demoUpdateDisabled": "Aktualizacje cen są wyłączone dla portfela demonstracyjnego. Przejdź do Inwestycji, aby zobaczyć najnowsze dane rynkowe lub zaimportuj prawdziwy portfel.",
   "rename": {
     "cta": "Zmień nazwę",
     "title": "Zmień nazwę portfela",

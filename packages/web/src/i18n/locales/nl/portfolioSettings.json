@@ -7,6 +7,7 @@
   "updatePrices": "Alle koersen bijwerken",
   "export": "Deze portefeuille exporteren",
   "demoExplainer": "Een persistente sandbox waar je vrij kunt toevoegen, bewerken en verwijderen. Je kunt ook je gewijzigde demo exporteren — de download wordt bij heropname een gewone portefeuille, terwijl de ingebouwde demo onaangetast blijft. De demo zelf kan niet worden hernoemd of verwijderd — het is een ingebouwd onderdeel, geen gebruikersartefact.",
+  "demoUpdateDisabled": "Prijsupdates zijn uitgeschakeld voor het demo-portfolio. Bezoek Beleggingen om de laatste marktgegevens te bekijken of importeer een echt portfolio.",
   "rename": {
     "cta": "Hernoemen",
     "title": "Portefeuille hernoemen",
