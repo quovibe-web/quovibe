@@ -6,14 +6,15 @@ const SIZE: Record<string, string> = {
   sm: 'h-6 w-6 text-[9px]',
   md: 'h-8 w-8 text-xs',
   lg: 'h-10 w-10 text-sm',
+  xl: 'h-20 w-20 text-xl',
 };
 
 interface SecurityAvatarProps {
   name: string;
   logoUrl?: string | null;
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
-  rounded?: 'md' | 'full';
+  rounded?: 'md' | 'full' | 'lg';
 }
 
 export function SecurityAvatar({
@@ -33,7 +34,10 @@ export function SecurityAvatar({
     .toUpperCase();
 
   const sizeClass = SIZE[size] ?? SIZE.sm;
-  const roundedClass = rounded === 'full' ? 'rounded-full' : 'rounded';
+  const roundedClass =
+    rounded === 'full' ? 'rounded-full' :
+    rounded === 'lg'   ? 'rounded-lg'   :
+    'rounded';
 
   if (logoUrl && !errored) {
     return (
