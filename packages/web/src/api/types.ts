@@ -167,6 +167,7 @@ export interface TaxonomyAssignment {
 }
 
 export interface SecurityDetailResponse extends SecurityListItem {
+  logoUrl: string | null;
   wkn: string | null;
   note: string | null;
   calendar: string | null;
