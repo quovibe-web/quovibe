@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-const SIZE: Record<string, string> = {
+const SIZE: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', string> = {
   xs: 'h-5 w-5 text-[8px]',
   sm: 'h-6 w-6 text-[9px]',
   md: 'h-8 w-8 text-xs',
