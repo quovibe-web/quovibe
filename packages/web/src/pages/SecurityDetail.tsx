@@ -196,7 +196,7 @@ export default function SecurityDetail() {
       </Button>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-3">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 min-w-0">
           <SecurityAvatar
             name={security.name}
             logoUrl={security.logoUrl}
