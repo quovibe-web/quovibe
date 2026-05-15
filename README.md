@@ -1,6 +1,7 @@
 # quovibe
 
 [![CI](https://github.com/quovibe-web/quovibe/actions/workflows/ci.yml/badge.svg)](https://github.com/quovibe-web/quovibe/actions/workflows/ci.yml)
+[![Maintenance](https://img.shields.io/maintenance/yes/2026.svg)](https://github.com/quovibe-web/quovibe/graphs/commit-activity)
 [![GitHub release](https://img.shields.io/github/v/release/quovibe-web/quovibe)](https://github.com/quovibe-web/quovibe/releases)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Docker](https://img.shields.io/badge/docker-ghcr.io-blue?logo=docker)](https://ghcr.io/quovibe-web/quovibe)
