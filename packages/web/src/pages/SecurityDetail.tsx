@@ -195,14 +195,9 @@ export default function SecurityDetail() {
         {t('detail.back')}
       </Button>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-3">
-        <div className="flex flex-col gap-3 min-w-0">
-          <SecurityAvatar
-            name={security.name}
-            logoUrl={security.logoUrl}
-            size="xl"
-            rounded="lg"
-          />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <SecurityAvatar name={security.name} logoUrl={security.logoUrl} size="md" />
           <div>
             <h1
               className="font-display text-3xl md:text-4xl text-[var(--qv-text-display)]"
