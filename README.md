@@ -7,13 +7,10 @@
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-F16061?logo=ko-fi&logoColor=white)](https://ko-fi.com/quovibe)
 
 
-> A web-based, self-hosted portfolio tracker developed with the assistance of AI ([Claude Code](https://claude.ai/code)).
+A web-based, self-hosted portfolio tracker developed with the assistance of AI ([Claude Code](https://claude.ai/code)).
 > Import your portfolio XML and instantly access performance analytics, holdings, dividends, and asset allocation — running fully locally.
->
-> > Support Quovibe on [Ko-fi](https://ko-fi.com/quovibe) to help fund development.
 
 
----
 
 <p align="center">
   <img src="docs/screenshots/quovibe1.png" width="75%" alt="Quovibe Dashboard">
