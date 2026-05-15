@@ -217,6 +217,8 @@ const getSecurity: RequestHandler = async (req, res) => {
     `)
     .all(id) as { typeId: string; typeName: string | null; value: string | null }[];
 
+  const logoAttr = attrRows.find(a => a.typeId === 'logo');
+
   const taxRows = sqlite
     .prepare(`
       SELECT category as categoryId, taxonomy as taxonomyId, weight
@@ -262,6 +264,7 @@ const getSecurity: RequestHandler = async (req, res) => {
     shares: netShares,
     prices: historicalPrices,
     calendar: r.calendar ?? null,
+    logoUrl: logoAttr?.value ?? null,
     attributes: attrRows.map(a => ({
       typeId: a.typeId,
       typeName: a.typeName ?? a.typeId,
