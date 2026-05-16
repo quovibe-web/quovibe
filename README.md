@@ -6,6 +6,16 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Docker](https://img.shields.io/badge/docker-ghcr.io-blue?logo=docker)](https://ghcr.io/quovibe-web/quovibe)
 
+# quovibe
+
+[![GitHub stars](https://img.shields.io/github/stars/quovibe-web/quovibe?style=social)](https://github.com/quovibe-web/quovibe)
+
+⭐ If you like this project, please consider starring the repository on GitHub.
+
+## Description
+
+(qui il resto del README)
+
 [![Support Quovibe on Ko-fi](https://img.shields.io/badge/Support%20Quovibe%20on%20Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/quovibe)
 
 If Quovibe helps you, consider supporting development on [Ko-fi](https://ko-fi.com/quovibe).
