@@ -6,8 +6,6 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Docker](https://img.shields.io/badge/docker-ghcr.io-blue?logo=docker)](https://ghcr.io/quovibe-web/quovibe)
 
-# quovibe
-
 [![GitHub stars](https://img.shields.io/github/stars/quovibe-web/quovibe?style=social)](https://github.com/quovibe-web/quovibe)
 
 ⭐ If you like this project, please consider starring the repository on GitHub.
