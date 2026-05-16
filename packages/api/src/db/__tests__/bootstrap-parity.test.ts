@@ -38,10 +38,16 @@ function parseBootstrap(): Record<string, Record<string, string>> {
   return tables;
 }
 
-/** OHLC columns declared by ppxml2db but never populated (spec allowance). */
+/**
+ * Columns installed at runtime via `apply-bootstrap.ts > VENDOR_COLUMN_PATCHES`
+ * rather than declared in `bootstrap.sql`. Drizzle declares them so service
+ * code can typecheck against the post-patch schema; the parity test would
+ * otherwise flag them as missing from bootstrap.sql. See ADR-015 §3 and
+ * `.claude/rules/csv-import.md` for the OHLC + Open extension scope.
+ */
 const DRIZZLE_MISSING_ALLOWLIST = new Set([
-  'price:high', 'price:low', 'price:volume',
-  'latest_price:high', 'latest_price:low', 'latest_price:volume',
+  'price:open', 'price:high', 'price:low', 'price:volume',
+  'latest_price:open', 'latest_price:high', 'latest_price:low', 'latest_price:volume',
 ]);
 
 describe('Gate 2: bootstrap.sql ↔ schema.ts parity', () => {

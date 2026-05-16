@@ -74,4 +74,26 @@ describe('GET /api/p/:pid/securities/:id — logoUrl field', () => {
     expect(res.status).toBe(200);
     expect(res.body.logoUrl).toBe(fakeDataUri);
   });
+
+  it('PUT /attributes does not wipe logo (regression: SecurityEditor save after auto-logo fetch)', async () => {
+    const { app, pid, secId } = await setup();
+    const fakeDataUri = 'data:image/png;base64,regression123';
+
+    // Set logo via dedicated endpoint (as background fetch does after AddInstrumentDialog)
+    const rLogo = await request(app)
+      .put(`/api/p/${pid}/securities/${secId}/logo`)
+      .send({ logoUrl: fakeDataUri });
+    expect(rLogo.status).toBe(200);
+
+    // Save non-logo attributes (as SecurityEditor handleSave does — logo is filtered out)
+    const rAttrs = await request(app)
+      .put(`/api/p/${pid}/securities/${secId}/attributes`)
+      .send({ attributes: [] });
+    expect(rAttrs.status).toBe(200);
+
+    // Logo must survive the attributes PUT
+    const res = await request(app).get(`/api/p/${pid}/securities/${secId}`);
+    expect(res.status).toBe(200);
+    expect(res.body.logoUrl).toBe(fakeDataUri);
+  });
 });

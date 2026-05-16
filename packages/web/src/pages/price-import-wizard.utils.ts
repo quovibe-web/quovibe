@@ -2,7 +2,7 @@ import type { CsvParseResult } from '@quovibe/shared';
 
 export type PriceWizardStep = 'security' | 'upload' | 'map' | 'confirm';
 
-export const PRICE_COLUMN_KEYS = ['date', 'close', 'high', 'low', 'volume'] as const;
+export const PRICE_COLUMN_KEYS = ['date', 'close', 'open', 'high', 'low', 'volume'] as const;
 export type PriceColumnKey = (typeof PRICE_COLUMN_KEYS)[number];
 
 export type PriceColumnMapping = Partial<Record<PriceColumnKey, number>>;
@@ -28,6 +28,20 @@ export const initialPriceWizardState: PriceWizardState = {
   thousandSeparator: '',
   columnMapping: {},
 };
+
+export function buildInitialPriceWizardState(
+  preselect?: { securityId: string; securityName: string },
+): PriceWizardState {
+  if (preselect) {
+    return {
+      ...initialPriceWizardState,
+      step: 'upload',
+      securityId: preselect.securityId,
+      securityName: preselect.securityName,
+    };
+  }
+  return initialPriceWizardState;
+}
 
 export type PriceWizardAction =
   | { type: 'pickSecurity'; securityId: string; securityName: string }

@@ -17,10 +17,18 @@ const BOOTSTRAP_SQL = readFileSync(
  * `ALTER TABLE ADD COLUMN IF NOT EXISTS`, so we check `PRAGMA table_info` and
  * add missing columns per-run — cheap and idempotent.
  *
- * Context: `ppxml2db.py` is more expressive than its paired init `.sql` files.
- * `handle_latest` in particular extracts high/low/volume from each <latest>
- * XML node but `vendor/latest_price.sql` never listed those columns. We fill
- * the gap here so INSERTs succeed without modifying the vendored file.
+ * Two sources need columns the vendor SQL doesn't list:
+ *  - `ppxml2db.py > handle_latest` extracts high/low/volume from each
+ *    <latest> XML node (latest_price.{high,low,volume}).
+ *  - The quovibe CSV price wizard (`executePriceImport`) writes Open + OHLCV
+ *    onto both `price` and `latest_price` so user-supplied historical bars
+ *    can drive candlestick charts for securities that have no live ticker
+ *    (crowdlending, private equity). `handle_price` does not populate these
+ *    today — they stay NULL on PP-XML imports until the upstream parser is
+ *    extended.
+ *
+ * Stored as price-scaled integers (× 10^8) to match `price.value`. Existing
+ * rows on contaminated DBs are left NULL (ALTER TABLE ADD COLUMN default).
  */
 interface VendorColumnPatch {
   table: string;
@@ -29,6 +37,11 @@ interface VendorColumnPatch {
 }
 
 const VENDOR_COLUMN_PATCHES: readonly VendorColumnPatch[] = [
+  { table: 'price',        column: 'open',   type: 'BIGINT' },
+  { table: 'price',        column: 'high',   type: 'BIGINT' },
+  { table: 'price',        column: 'low',    type: 'BIGINT' },
+  { table: 'price',        column: 'volume', type: 'BIGINT' },
+  { table: 'latest_price', column: 'open',   type: 'BIGINT' },
   { table: 'latest_price', column: 'high',   type: 'BIGINT' },
   { table: 'latest_price', column: 'low',    type: 'BIGINT' },
   { table: 'latest_price', column: 'volume', type: 'BIGINT' },

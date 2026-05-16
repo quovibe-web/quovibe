@@ -29,6 +29,8 @@ export interface FetchAllResult {
   totalErrors: number;
 }
 
+type PriceDbRow = { tstamp: string; value: number; open: number | null; high: number | null; low: number | null; volume: number | null };
+
 // ─── Environment config ───────────────────────────────────────────────────────
 
 const PRICE_FETCH_MAX_CONCURRENT = parseInt(
@@ -73,10 +75,13 @@ function writeLatestQuote(
   securityName: string,
 ): boolean {
   try {
-    const dbClose = convertPriceToDb({ close: quote.price });
+    const db = convertPriceToDb({ close: quote.price, open: quote.open, high: quote.high, low: quote.low });
     sqlite
-      .prepare(`INSERT OR REPLACE INTO latest_price (security, tstamp, value) VALUES (?, ?, ?)`)
-      .run(securityId, quote.date, dbClose.close);
+      .prepare(`
+        INSERT OR REPLACE INTO latest_price (security, tstamp, value, open, high, low, volume)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `)
+      .run(securityId, quote.date, db.close, db.open ?? null, db.high ?? null, db.low ?? null, null);
     console.log(`[prices] Latest quote for ${securityName}: ${quote.price} @ ${quote.date}`);
     return true;
   } catch (err) {
@@ -101,19 +106,26 @@ function savePricesToDb(
   // latest_price and we must not overwrite it with the (potentially stale) historical close.
 
   const insertPrice = sqlite.prepare(`
-    INSERT INTO price (security, tstamp, value) VALUES (?, ?, ?)
-      ON CONFLICT(security, tstamp) DO UPDATE SET value = excluded.value
+    INSERT INTO price (security, tstamp, value, open, high, low, volume)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(security, tstamp) DO UPDATE SET
+      value = excluded.value,
+      open = excluded.open,
+      high = excluded.high,
+      low = excluded.low,
+      volume = excluded.volume
   `);
 
   const insertLatest = sqlite.prepare(`
-    INSERT OR REPLACE INTO latest_price (security, tstamp, value) VALUES (?, ?, ?)
+    INSERT OR REPLACE INTO latest_price (security, tstamp, value, open, high, low, volume)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
   const deletePrice = sqlite.prepare(`DELETE FROM price WHERE security = ?`);
   const deleteLatest = sqlite.prepare(`DELETE FROM latest_price WHERE security = ?`);
 
   const selectGlobalMax = sqlite.prepare(
-    `SELECT tstamp, value FROM price WHERE security = ? ORDER BY tstamp DESC LIMIT 1`,
+    `SELECT tstamp, value, open, high, low, volume FROM price WHERE security = ? ORDER BY tstamp DESC LIMIT 1`,
   );
 
   const sorted = [...fetchedPrices].sort((a, b) => a.date.localeCompare(b.date));
@@ -126,15 +138,15 @@ function savePricesToDb(
     }
 
     for (const p of sorted) {
-      const dbPrice = convertPriceToDb({ close: p.close });
-      insertPrice.run(securityId, p.date, dbPrice.close);
+      const dbPrice = convertPriceToDb({ close: p.close, open: p.open, high: p.high, low: p.low });
+      insertPrice.run(securityId, p.date, dbPrice.close, dbPrice.open ?? null, dbPrice.high ?? null, dbPrice.low ?? null, p.volume ?? null);
     }
 
     if (!skipLatestPriceSync) {
       // Sync latest_price from global max — includes newly inserted rows
-      const globalMax = selectGlobalMax.get(securityId) as { tstamp: string; value: number } | undefined;
+      const globalMax = selectGlobalMax.get(securityId) as PriceDbRow | undefined;
       if (globalMax) {
-        insertLatest.run(securityId, globalMax.tstamp, globalMax.value);
+        insertLatest.run(securityId, globalMax.tstamp, globalMax.value, globalMax.open ?? null, globalMax.high ?? null, globalMax.low ?? null, globalMax.volume ?? null);
       }
     }
   });
@@ -183,6 +195,21 @@ export async function fetchSecurityPrices(
 
   // Read global settings (for API keys)
   const globalSettings = readGlobalSettings(sqlite);
+
+  // OHLC backfill for Yahoo-backed securities: when any existing price row
+  // lacks open data, switch to replace so full history is re-fetched with OHLC.
+  // Runs every merge call but is a fast LIMIT 1 query; self-terminates after
+  // the first successful backfill (no rows with open IS NULL remain).
+  // Non-Yahoo providers don't return OHLC — skip them.
+  if (mode === 'merge' && effectiveFeed === 'YAHOO') {
+    const hasNullOhlc = sqlite
+      .prepare(`SELECT 1 FROM price WHERE security = ? AND open IS NULL LIMIT 1`)
+      .get(securityId);
+    if (hasNullOhlc) {
+      mode = 'replace';
+      console.log(`[prices] OHLC backfill triggered for ${row.name} — switching to replace mode`);
+    }
+  }
 
   // Auto-determine startDate
   let effectiveStart = startDate;

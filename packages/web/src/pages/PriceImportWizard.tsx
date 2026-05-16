@@ -1,4 +1,5 @@
 import { useReducer } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useNavTitle } from '@/hooks/useNavTitle';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -7,7 +8,7 @@ import { PriceCsvUploadStep } from '@/components/domain/csv-import/price-wizard/
 import { PriceColumnMapStep } from '@/components/domain/csv-import/price-wizard/PriceColumnMapStep';
 import { PriceConfirmStep } from '@/components/domain/csv-import/price-wizard/PriceConfirmStep';
 import {
-  initialPriceWizardState,
+  buildInitialPriceWizardState,
   priceWizardReducer,
   type PriceWizardStep,
 } from './price-import-wizard.utils';
@@ -17,7 +18,20 @@ const STEPS: PriceWizardStep[] = ['security', 'upload', 'map', 'confirm'];
 export default function PriceImportWizard() {
   const { t } = useTranslation('csv-import');
   useNavTitle('import');
-  const [state, dispatch] = useReducer(priceWizardReducer, initialPriceWizardState);
+  const [searchParams] = useSearchParams();
+
+  const preselectId = searchParams.get('securityId');
+  const preselectName = searchParams.get('securityName');
+  const preselect =
+    preselectId && preselectName
+      ? { securityId: preselectId, securityName: preselectName }
+      : undefined;
+
+  const [state, dispatch] = useReducer(
+    priceWizardReducer,
+    undefined,
+    () => buildInitialPriceWizardState(preselect),
+  );
   const stepIndex = STEPS.indexOf(state.step); // native-ok
 
   return (

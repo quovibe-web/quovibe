@@ -23,6 +23,7 @@ export interface SecurityPerfResponse {
   dividends: string;
   interest: string;
   shares: string;
+  currency: string;
 }
 
 export interface MoverEntry {
@@ -177,7 +178,14 @@ export interface SecurityDetailResponse extends SecurityListItem {
   latestFeed: string | null;
   feedTickerSymbol: string | null;
   feedProperties: Record<string, string>;
-  prices: Array<{ date: string; value: string }>;
+  prices: Array<{
+    date: string;
+    value: string;
+    open?: string | null;
+    high?: string | null;
+    low?: string | null;
+    volume?: number | null;
+  }>;
   attributes: SecurityAttribute[];
   taxonomyAssignments: TaxonomyAssignment[];
 }

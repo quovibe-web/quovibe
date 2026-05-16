@@ -22,6 +22,7 @@ interface YahooQuote {
 export interface PreviewPrice {
   date: string;
   close: string;
+  open?: string;
   high?: string;
   low?: string;
   volume?: number;
@@ -81,6 +82,7 @@ interface YahooFinanceClient {
     quotes?: Array<{
       date: Date;
       close: number | null;
+      open: number | null;
       high: number | null;
       low: number | null;
       volume: number | null;
@@ -141,6 +143,7 @@ export async function fetchPreviewPrices(ticker: string, startDate?: string): Pr
       .map((r) => ({
         date: toYMD(r.date),
         close: safeDecimal(r.close).toString(),
+        ...(r.open != null ? { open: safeDecimal(r.open).toString() } : {}),
         ...(r.high != null ? { high: safeDecimal(r.high).toString() } : {}),
         ...(r.low != null ? { low: safeDecimal(r.low).toString() } : {}),
         ...(r.volume != null ? { volume: r.volume } : {}),

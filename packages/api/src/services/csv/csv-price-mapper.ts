@@ -5,9 +5,10 @@ export interface PriceInsert {
   securityId: string;
   date: string;
   close: number;      // × 10^8
-  high?: number;
-  low?: number;
-  volume?: number;
+  open?: number;      // × 10^8
+  high?: number;      // × 10^8
+  low?: number;       // × 10^8
+  volume?: number;    // raw integer (shares traded, no scaling)
 }
 
 export interface PriceMapResult {
@@ -41,6 +42,7 @@ export function mapPriceRows(rows: NormalizedPriceRow[], securityId: string): Pr
       close: toPriceDb(row.close),
     };
 
+    if (row.open != null) insert.open = toPriceDb(row.open);
     if (row.high != null) insert.high = toPriceDb(row.high);
     if (row.low != null) insert.low = toPriceDb(row.low);
     if (row.volume != null) insert.volume = row.volume;

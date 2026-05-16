@@ -291,9 +291,11 @@
     "unsavedDiscard": "Odrzuć",
     "unsavedKeepEditing": "Kontynuuj edycję",
     "save": "Zapisz zmiany",
-    "saving": "Zapisywanie..."
+    "saving": "Zapisywanie...",
+    "importPrices": "Importuj kursy"
   },
   "attributeType": {
+    "createTitle": "Utwórz typ atrybutu",
     "editTitle": "Zmień nazwę typu atrybutu",
     "fields": {
       "name": "Nazwa",

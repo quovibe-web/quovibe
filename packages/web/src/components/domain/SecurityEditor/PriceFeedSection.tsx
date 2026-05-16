@@ -9,7 +9,7 @@ import { usePortfolio } from '@/api/use-portfolio';
 import { useScopedApi } from '@/api/use-scoped-api';
 import { formatDate } from '@/lib/formatters';
 import { SectionHeader } from './SectionHeader';
-import { CsvPriceImportDialog } from '@/components/domain/csv-import/CsvPriceImportDialog';
+import { useNavigate } from 'react-router-dom';
 import type { TestFetchResponse } from '@/api/types';
 import type { CompletenessStatus } from '@/lib/security-completeness';
 
@@ -40,6 +40,7 @@ export function PriceFeedSection({ securityId, ticker, values, status, onChange 
   const [testError, setTestError] = useState<string | null>(null);
   const [fetchMode, setFetchMode] = useState<'merge' | 'replace'>('merge');
   const api = useScopedApi();
+  const navigate = useNavigate();
 
   const provider = (values.feed || '') as FeedProvider;
   const latestProvider = values.latestFeed as FeedProvider;
@@ -84,6 +85,13 @@ export function PriceFeedSection({ securityId, ticker, values, status, onChange 
       });
     }
     await fetchPrices.mutateAsync(fetchMode);
+  }
+
+  function handleImportPrices() {
+    if (!securityId) return;
+    navigate(
+      `/p/${api.portfolioId}/import/prices?securityId=${encodeURIComponent(securityId)}&securityName=${encodeURIComponent(ticker ?? '')}`,
+    );
   }
 
   const showUrlField = provider === 'GENERIC_HTML_TABLE' || provider === 'GENERIC-JSON';
@@ -181,7 +189,14 @@ export function PriceFeedSection({ securityId, ticker, values, status, onChange 
             >
               {testFetch.isPending ? t('securityEditor.updating') : t('securityEditor.updatePrices')}
             </Button>
-            <CsvPriceImportDialog securityId={securityId} securityName={ticker ?? ''} />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleImportPrices}
+            >
+              {t('securityEditor.importPrices')}
+            </Button>
           </div>
         )}
 

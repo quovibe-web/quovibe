@@ -142,6 +142,7 @@ export function AttributesSection({ attributes, onChange, ticker }: Props) {
 
   const [pickerValue, setPickerValue] = useState('');
   const [editingType, setEditingType] = useState<AttributeTypeItem | null>(null);
+  const [creatingType, setCreatingType] = useState(false);
 
   const logoAttr: SecurityAttribute = attributes.find(a => a.typeId === 'logo')
     ?? { typeId: 'logo', typeName: 'Logo', value: '' };
@@ -153,11 +154,15 @@ export function AttributesSection({ attributes, onChange, ticker }: Props) {
   );
   const typeById = new Map(types.map(tp => [tp.id, tp]));
 
+  function attachType(type: { id: string; name: string }) {
+    onChange([...attributes, { typeId: type.id, typeName: type.name, value: '' }]);
+  }
+
   function handlePickerChange(value: string) {
     setPickerValue(value);
     const type = typeById.get(value);
     if (!type) return;
-    onChange([...attributes, { typeId: type.id, typeName: type.name, value: '' }]);
+    attachType(type);
     setPickerValue('');
   }
 
@@ -180,6 +185,10 @@ export function AttributesSection({ attributes, onChange, ticker }: Props) {
         updateValue('logo', logoUrl);
       }
     : undefined;
+
+  function handleTypeCreated(created: AttributeTypeItem) {
+    attachType(created);
+  }
 
   return (
     <div>
@@ -250,13 +259,33 @@ export function AttributesSection({ attributes, onChange, ticker }: Props) {
             </Select>
           </div>
         )}
+
+        <div className="pt-2 border-t">
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+            onClick={() => setCreatingType(true)}
+          >
+            {t('attributeType.empty.cta')}
+          </button>
+        </div>
       </div>
 
       {editingType && (
         <AttributeTypeFormDialog
+          mode="edit"
           open
           onOpenChange={open => { if (!open) setEditingType(null); }}
           type={editingType}
+        />
+      )}
+
+      {creatingType && (
+        <AttributeTypeFormDialog
+          mode="create"
+          open
+          onOpenChange={open => { if (!open) setCreatingType(false); }}
+          onCreated={handleTypeCreated}
         />
       )}
     </div>

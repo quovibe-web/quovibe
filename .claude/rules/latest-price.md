@@ -28,14 +28,21 @@ and **must win** for live display and MVE, even when both share the same date.
 **must** use the most up-to-date available quote.
 
 ## ppxml2db price schema
-- `price` — daily historical (can be stale by days/weeks)
+- `price` — daily historical (can be stale by days/weeks). Carries
+  nullable Open + OHLCV columns (`open`, `high`, `low`, `volume`) added by
+  `apply-bootstrap.ts > VENDOR_COLUMN_PATCHES`. Populated ONLY by the
+  CSV price wizard's `executePriceImport`; the Yahoo refresh path
+  (`prices.service.ts`) and ppxml2db's `handle_price` both leave them
+  NULL. Securities without OHLC sources therefore have only `value` per
+  bar — line charts work, candlesticks require a CSV-backed history.
 - `latest_price` — last known quote (also has `tstamp` = quote date) plus
-  nullable OHLC columns `high`, `low`, `volume` (added by
-  `apply-bootstrap.ts > VENDOR_COLUMN_PATCHES`, populated by `ppxml2db.py`
-  from `<latest>` XML nodes). OHLC is for **chart display only** —
-  performance, MVE, Statement of Assets, and rebalancing calculations all
-  use `value` exclusively. Do not branch financial logic on
-  `high` / `low` / `volume`.
+  nullable Open + OHLCV columns (`open`, `high`, `low`, `volume`) added by
+  `apply-bootstrap.ts > VENDOR_COLUMN_PATCHES`. Populated by `ppxml2db.py >
+  handle_latest` from `<latest>` XML nodes AND by the CSV price wizard's
+  latest_price sync (max-date row of the imported batch). OHLC + Open are
+  for **chart display only** — performance, MVE, Statement of Assets, and
+  rebalancing calculations all use `value` exclusively. Do not branch
+  financial logic on `open` / `high` / `low` / `volume`.
 
 ## Injection Rule
 

@@ -383,6 +383,113 @@ These columns are wire-accepted (parse-and-discard in
 entries exist in `csv-autodetect.ts`. Re-importing a PP export that
 includes them no longer fails the column-required pre-check.
 
+## Price OHLC + Open (candlestick foundation)
+
+The CSV price wizard (`executePriceImport`) writes Open + OHLCV onto BOTH
+`price` (per-bar history) and `latest_price` (max-date snapshot) so a
+security without a live ticker — crowdlending, private equity — can drive
+a candlestick chart purely from user-imported data. Six columns are wired
+end to end:
+
+- `priceColumnFields` (shared): `['date', 'close', 'open', 'high', 'low', 'volume']`.
+- `requiredPriceColumns`: `['date', 'close']` (Open + OHLV stay optional).
+- `NormalizedPriceRow.{open,high,low,volume}` — parsed in
+  `executePriceImport`. `close`/`open`/`high`/`low` use the strict
+  `parseNumber`; only `volume` calls `parseNumberWithSuffix` (BUG-161
+  isolation, below).
+- `PriceInsert.{open,high,low,volume}` — `mapPriceRows` scales price-shaped
+  fields × 10^8 via `toPriceDb`; volume is stored as a raw integer (shares
+  count, no scaling).
+- INSERT SQL: `INSERT OR IGNORE INTO price (security, tstamp, value, open, high, low, volume) VALUES (?, ?, ?, ?, ?, ?, ?)`.
+- latest_price sync: SELECT/INSERT on `(value, open, high, low, volume)`
+  off the max-date row of the imported batch. `ON CONFLICT(security) DO
+  UPDATE` overwrites every OHLC column from `excluded.*`.
+
+### Schema posture
+
+`price.{open,high,low,volume}` and `latest_price.{open,high,low,volume}`
+are installed at runtime by `apply-bootstrap.ts > VENDOR_COLUMN_PATCHES`,
+NOT declared in `bootstrap.sql`. Drizzle `schema.ts` declares them so the
+service layer typechecks against the patched schema; the parity test
+(`bootstrap-parity.test.ts > DRIZZLE_MISSING_ALLOWLIST`) allowlists the
+divergence. See `.claude/rules/db-schema.md > Vendor column patches` for
+the rationale (Gate 1 keeps `bootstrap.sql §1+§2` byte-equal with
+ppxml2db; runtime ALTERs are the sanctioned extension surface).
+
+### The class fix the patch closed
+
+Before this work, `executePriceImport` wrote `price.{high,low,volume}` to
+the `price` table — but no patch ever added those columns. The
+prepared statement failed at prepare-time with
+`SqliteError: table price has no column named high` on EVERY price
+import, regardless of whether the user mapped OHLV columns or only Close.
+
+The bug was invisible to CI because `createTestDb` in
+`csv-import.service.test.ts` hand-rolls a parallel schema with OHLCV
+already present. **All future CSV-pipeline tests that probe the schema
+boundary MUST go through `applyBootstrap(sqlite)` on a fresh `:memory:`,
+not `createTestDb`.** The regression block
+`'executePriceImport — applyBootstrap parity'` in
+`csv-import.service.test.ts` is the canonical example: it imports the
+`applyBootstrap` helper and seeds the bare minimum security row directly,
+so any future schema divergence between `apply-bootstrap.ts` and the CSV
+writer surfaces immediately.
+
+### Engine isolation invariant
+
+Open + OHLCV are chart-display columns ONLY. Performance, MVE, Statement
+of Assets, and rebalancing services key off `price.value` /
+`latest_price.value` exclusively. Do NOT branch financial logic on
+`open` / `high` / `low` / `volume`. The latest-price injection rule
+(`.claude/rules/latest-price.md`) is unchanged — same-date intraday
+beats historical snapshot via the `value` column, not OHLC.
+
+### Read path — `GET /api/p/:pid/securities/:id`
+
+The route emits Open + OHLCV alongside `value` on every `prices[]` row
+so `PriceChart` can auto-switch to candlestick when the data carries
+OHLC. Source of truth for the conversion convention:
+`packages/api/src/services/unit-conversion.ts > convertPriceFromDb`
+(price-scaled fields `/1e8`, volume passed through as a raw integer).
+The handler at `packages/api/src/routes/securities.ts > getSecurity`
+maps each drizzle row through this helper and emits
+`{ date, value, open, high, low, volume }`, where price-shaped fields
+are stringified Decimals matching the existing `value` convention and
+volume is a JS number. Null on the wire = absent in the source row.
+
+Web side is already shaped for this — `PriceChart.tsx > PricePoint`
+declares the same six fields and `hasOhlc = prices.some(p => p.open != null)`
+flips the series-type default to candlestick. The series-type toggle
+(`ChartToolbar`) restricts itself to single-value options when
+`hasOhlc` is false, so close-only securities (Yahoo-fetched, legacy
+PP-XML) keep their line/area render.
+
+### Tests that lock the read path
+
+- `packages/api/src/__tests__/security-detail-ohlc.test.ts` —
+  end-to-end supertest pin: portfolio + security created via the real
+  API, OHLC seeded into the portfolio DB through `acquirePortfolioDb`,
+  `GET /api/p/:pid/securities/:id` returns the six expected fields
+  with correctly-scaled string values; close-only rows emit
+  `open/high/low/volume = null`.
+
+### Tests that lock the contract
+
+- `packages/api/src/services/csv/csv-import.service.test.ts >
+  executePriceImport — applyBootstrap parity` — proves the prod-schema
+  path accepts close-only AND Open + OHLCV imports; persists the values
+  on both `price` and `latest_price`.
+- `packages/api/src/services/csv/csv-import.service.test.ts >
+  executePriceImport > accepts volume column with M/B suffix (BUG-161)` —
+  unchanged; pins the volume suffix gate.
+- `packages/api/src/db/__tests__/bootstrap-parity.test.ts` — Gate 2:
+  Drizzle declares the patched columns, allowlist documents the runtime
+  install.
+
+Any regression that drops a `VENDOR_COLUMN_PATCHES` entry, removes
+columns from the INSERT/SELECT SQL, or stops the latest_price sync from
+carrying Open + OHLC must make one of these suites go red first.
+
 ## Volume-suffix parsing (BUG-161)
 
 Investing.com price-history CSVs use `K` / `M` / `B` shorthand suffixes in

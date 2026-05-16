@@ -39,7 +39,21 @@ export default defineConfig(({ command }) => ({
     host: '0.0.0.0',
     watch: { usePolling: true },
     proxy: {
-      '/api': 'http://localhost:3000',
+      '/api': {
+        target: 'http://localhost:3000',
+        configure: (proxy) => {
+          proxy.on('error', (err, _req, res) => {
+            if ((err as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
+              if (!res.headersSent) {
+                (res as import('http').ServerResponse).writeHead(503);
+                res.end();
+              }
+              return;
+            }
+            console.error('[vite proxy]', err.message);
+          });
+        },
+      },
     },
   },
 }));
