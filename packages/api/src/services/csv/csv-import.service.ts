@@ -1339,7 +1339,7 @@ export async function executeTradeImport(
 interface PriceExecuteInput {
   tempFileId: string;
   securityId: string;
-  columnMapping: { date: number; close: number; high?: number; low?: number; volume?: number };
+  columnMapping: { date: number; close: number; open?: number; high?: number; low?: number; volume?: number };
   delimiter?: CsvDelimiter;
   dateFormat: string;
   decimalSeparator: '.' | ',';
@@ -1391,6 +1391,10 @@ export async function executePriceImport(
 
       const row: NormalizedPriceRow = { rowNumber: rowNum, date, close };
 
+      if (input.columnMapping.open != null) {
+        const v = parseNumber(fields[input.columnMapping.open] ?? '', input.decimalSeparator, input.thousandSeparator);
+        if (v != null) row.open = v;
+      }
       if (input.columnMapping.high != null) {
         const v = parseNumber(fields[input.columnMapping.high] ?? '', input.decimalSeparator, input.thousandSeparator);
         if (v != null) row.high = v;
@@ -1421,12 +1425,12 @@ export async function executePriceImport(
     let skipped = 0; // native-ok
 
     const insertStmt = sqlite.prepare(
-      'INSERT OR IGNORE INTO price (security, tstamp, value, high, low, volume) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT OR IGNORE INTO price (security, tstamp, value, open, high, low, volume) VALUES (?, ?, ?, ?, ?, ?, ?)',
     );
 
     const insertBatch = sqlite.transaction((batch: PriceInsert[]) => {
       for (const p of batch) {
-        const result = insertStmt.run(p.securityId, p.date, p.close, p.high ?? null, p.low ?? null, p.volume ?? null);
+        const result = insertStmt.run(p.securityId, p.date, p.close, p.open ?? null, p.high ?? null, p.low ?? null, p.volume ?? null);
         if (result.changes > 0) { // native-ok
           inserted++; // native-ok
         } else {
@@ -1442,14 +1446,14 @@ export async function executePriceImport(
 
     // Sync latest_price from max date in price table
     const maxRow = sqlite.prepare(
-      'SELECT tstamp, value, high, low, volume FROM price WHERE security = ? ORDER BY tstamp DESC LIMIT 1',
-    ).get(input.securityId) as { tstamp: string; value: number; high: number | null; low: number | null; volume: number | null } | undefined;
+      'SELECT tstamp, value, open, high, low, volume FROM price WHERE security = ? ORDER BY tstamp DESC LIMIT 1',
+    ).get(input.securityId) as { tstamp: string; value: number; open: number | null; high: number | null; low: number | null; volume: number | null } | undefined;
 
     if (maxRow) {
       sqlite.prepare(
-        `INSERT INTO latest_price (security, tstamp, value, high, low, volume) VALUES (?, ?, ?, ?, ?, ?)
-         ON CONFLICT(security) DO UPDATE SET tstamp = excluded.tstamp, value = excluded.value, high = excluded.high, low = excluded.low, volume = excluded.volume`,
-      ).run(input.securityId, maxRow.tstamp, maxRow.value, maxRow.high, maxRow.low, maxRow.volume);
+        `INSERT INTO latest_price (security, tstamp, value, open, high, low, volume) VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(security) DO UPDATE SET tstamp = excluded.tstamp, value = excluded.value, open = excluded.open, high = excluded.high, low = excluded.low, volume = excluded.volume`,
+      ).run(input.securityId, maxRow.tstamp, maxRow.value, maxRow.open, maxRow.high, maxRow.low, maxRow.volume);
     }
 
     // Date range

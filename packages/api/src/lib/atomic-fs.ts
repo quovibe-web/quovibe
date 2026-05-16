@@ -59,7 +59,10 @@ export function sweepStaleTmp(dir: string, maxAgeMs: number): void {
     const p = path.join(dir, f);
     try {
       const st = fs.statSync(p);
-      if (st.mtimeMs < cutoff) fs.unlinkSync(p);
+      if (st.mtimeMs < cutoff) {
+        if (st.isDirectory()) fs.rmSync(p, { recursive: true, force: true });
+        else fs.unlinkSync(p);
+      }
     } catch (err) {
       console.warn('[quovibe] sweepStaleTmp skipped', { file: p, err: (err as Error).message });
     }

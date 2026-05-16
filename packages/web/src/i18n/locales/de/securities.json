@@ -289,9 +289,11 @@
     "unsavedDiscard": "Verwerfen",
     "unsavedKeepEditing": "Weiter bearbeiten",
     "save": "Änderungen speichern",
-    "saving": "Speichern..."
+    "saving": "Speichern...",
+    "importPrices": "Kurse importieren"
   },
   "attributeType": {
+    "createTitle": "Attributtyp erstellen",
     "editTitle": "Attributtyp umbenennen",
     "fields": {
       "name": "Name",

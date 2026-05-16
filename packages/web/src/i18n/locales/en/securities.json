@@ -289,9 +289,11 @@
     "unsavedDiscard": "Discard",
     "unsavedKeepEditing": "Keep editing",
     "save": "Save changes",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "importPrices": "Import prices"
   },
   "attributeType": {
+    "createTitle": "Create attribute type",
     "editTitle": "Rename attribute type",
     "fields": {
       "name": "Name",

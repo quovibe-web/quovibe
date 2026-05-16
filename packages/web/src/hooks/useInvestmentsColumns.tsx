@@ -364,7 +364,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.purchaseValue) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.purchaseValue)} className="qv-numeric text-sm" /></div>;
+          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.purchaseValue)} currency={perf.currency} className="qv-numeric text-sm" /></div>;
         },
         enableSorting: true,
       },
@@ -384,7 +384,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.mve) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.mve)} className="qv-numeric text-sm font-medium" /></div>;
+          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.mve)} currency={perf.currency} className="qv-numeric text-sm font-medium" /></div>;
         },
         enableSorting: true,
       },
@@ -404,7 +404,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.unrealizedGain) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.unrealizedGain)} colorize className="qv-numeric text-sm" /></div>;
+          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.unrealizedGain)} currency={perf.currency} colorize className="qv-numeric text-sm" /></div>;
         },
         enableSorting: true,
       },
@@ -424,7 +424,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.realizedGain) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.realizedGain)} colorize className="qv-numeric text-sm" /></div>;
+          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.realizedGain)} currency={perf.currency} colorize className="qv-numeric text-sm" /></div>;
         },
         enableSorting: true,
       },
@@ -444,7 +444,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.dividends) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.dividends)} className="qv-numeric text-sm" /></div>;
+          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.dividends)} currency={perf.currency} className="qv-numeric text-sm" /></div>;
         },
         enableSorting: true,
       },
@@ -464,7 +464,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.fees) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.fees)} className="qv-numeric text-sm" /></div>;
+          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.fees)} currency={perf.currency} className="qv-numeric text-sm" /></div>;
         },
         enableSorting: true,
       },
@@ -484,7 +484,7 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
           if (!perf?.taxes) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.taxes)} className="qv-numeric text-sm" /></div>;
+          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.taxes)} currency={perf.currency} className="qv-numeric text-sm" /></div>;
         },
         enableSorting: true,
       },

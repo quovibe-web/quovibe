@@ -38,9 +38,6 @@ const listSecurities: RequestHandler = async (req, res) => {
   const asOf = typeof asOfRaw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(asOfRaw)
     ? asOfRaw
     : null;
-  const page = Math.max(1, parseInt(req.query.page as string || '1', 10));
-  const limit = Math.min(100, parseInt(req.query.limit as string || '50', 10));
-
   const rows = await db
     .select({
       id: securities.id,
@@ -68,8 +65,7 @@ const listSecurities: RequestHandler = async (req, res) => {
         like(securityAttributes.value, 'data:image%'),
       ),
     )
-    .limit(limit)
-    .offset((page - 1) * limit);
+    .orderBy(asc(securities.name));
 
   // Batch-fetch net shares per security as of the period boundary (or
   // lifetime when no boundary supplied). The table footer + Holdings card
@@ -136,7 +132,7 @@ const listSecurities: RequestHandler = async (req, res) => {
     };
   });
 
-  res.json({ data, page, limit });
+  res.json({ data });
 };
 
 const getSecurity: RequestHandler = async (req, res) => {
@@ -181,10 +177,19 @@ const getSecurity: RequestHandler = async (req, res) => {
     .orderBy(asc(prices.date));
 
   const allPrices = priceRows.map(p => {
-    const converted = convertPriceFromDb({ close: p.close });
+    const converted = convertPriceFromDb({
+      close: p.close,
+      open: p.open,
+      high: p.high,
+      low: p.low,
+    });
     return {
       date: p.date,
       value: converted.close.toString(),
+      open: converted.open?.toString() ?? null,
+      high: converted.high?.toString() ?? null,
+      low: converted.low?.toString() ?? null,
+      volume: p.volume ?? null,
     };
   });
 
@@ -358,7 +363,7 @@ const updateAttributesHandler: RequestHandler = async (req, res) => {
 
   const getAttrType = sqlite.prepare("SELECT type FROM attribute_type WHERE id = ? LIMIT 1");
 
-  const deleteAll = sqlite.prepare('DELETE FROM security_attr WHERE security = ?'); // db-route-ok
+  const deleteAll = sqlite.prepare("DELETE FROM security_attr WHERE security = ? AND attr_uuid != 'logo'"); // db-route-ok
   const insert = sqlite.prepare( // db-route-ok
     'INSERT INTO security_attr (security, attr_uuid, type, value, seq) VALUES (?, ?, ?, ?, ?)',
   );

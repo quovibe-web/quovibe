@@ -289,9 +289,11 @@
     "unsavedDiscard": "Verwerpen",
     "unsavedKeepEditing": "Doorgaan met bewerken",
     "save": "Wijzigingen opslaan",
-    "saving": "Opslaan..."
+    "saving": "Opslaan...",
+    "importPrices": "Koersen importeren"
   },
   "attributeType": {
+    "createTitle": "Attribuuttype aanmaken",
     "editTitle": "Attribuuttype hernoemen",
     "fields": {
       "name": "Naam",

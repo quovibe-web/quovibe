@@ -289,9 +289,11 @@
     "unsavedDiscard": "Descartar",
     "unsavedKeepEditing": "Seguir editando",
     "save": "Guardar cambios",
-    "saving": "Guardando..."
+    "saving": "Guardando...",
+    "importPrices": "Importar precios"
   },
   "attributeType": {
+    "createTitle": "Crear tipo de atributo",
     "editTitle": "Renombrar tipo de atributo",
     "fields": {
       "name": "Nombre",

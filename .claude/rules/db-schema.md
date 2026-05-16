@@ -46,10 +46,19 @@ globs: packages/api/src/db/**
   contract + cleanup helper.
 - **Vendor column patches** (`apply-bootstrap.ts > VENDOR_COLUMN_PATCHES`):
   the only sanctioned route to add columns to a §1+§2 vendor table without
-  breaking Gate 1 parity. Today's patch set adds `high BIGINT`, `low BIGINT`,
-  `volume BIGINT` to `latest_price` (populated by `ppxml2db.py` from
-  `<latest>` XML nodes; nullable for older exports / non-equity tickers). Add
-  new patches only when the vendor SQL genuinely under-specifies a column the
+  breaking Gate 1 parity. Today's patch set adds `open BIGINT`,
+  `high BIGINT`, `low BIGINT`, `volume BIGINT` to BOTH `price` and
+  `latest_price`. `latest_price.{high,low,volume}` is populated by
+  `ppxml2db.py > handle_latest` from `<latest>` XML nodes. The full Open +
+  OHLCV set on `price` and `latest_price` is populated by the quovibe CSV
+  price wizard (`executePriceImport`) so candlestick charts have bar data
+  for securities without a live ticker (crowdlending, private equity).
+  `handle_price` does not populate OHLCV today — columns stay NULL on
+  PP-XML imports until the upstream parser is extended. Drizzle `schema.ts`
+  declares the patched columns; `bootstrap-parity.test.ts >
+  DRIZZLE_MISSING_ALLOWLIST` lets the Gate 2 parser ignore them because
+  they are installed at runtime, not in `bootstrap.sql`. Add new patches
+  only when the vendor SQL genuinely under-specifies a column the
   importer writes — never as a shortcut around Gate 1.
 - `attribute_type` PK is `_id` rowid; `id` is non-unique TEXT. Natural key is
   `(id, target)` — PP allows the same `id` for multiple targets (e.g. `logo`

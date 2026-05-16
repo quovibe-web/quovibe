@@ -86,7 +86,7 @@ export const requiredTradeColumns: readonly TradeColumnField[] = ['date', 'secur
 
 // ─── Price Column Mapping ─────────────────────────
 
-export const priceColumnFields = ['date', 'close', 'high', 'low', 'volume'] as const;
+export const priceColumnFields = ['date', 'close', 'open', 'high', 'low', 'volume'] as const;
 export type PriceColumnField = (typeof priceColumnFields)[number];
 
 export const requiredPriceColumns: readonly PriceColumnField[] = ['date', 'close'];
@@ -188,6 +188,7 @@ export interface NormalizedPriceRow {
   rowNumber: number;
   date: string;             // "YYYY-MM-DD"
   close: number;
+  open?: number;
   high?: number;
   low?: number;
   volume?: number;

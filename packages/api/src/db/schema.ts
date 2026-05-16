@@ -101,6 +101,16 @@ export const prices = sqliteTable('price', {
   securityId: text('security').references(() => securities.id).notNull(),
   date: text('tstamp').notNull(),
   close: integer('value').notNull(),
+  // Open + OHLCV are populated by the CSV price wizard for securities without
+  // a live ticker (crowdlending, private equity) so candlestick charts have
+  // bar data to render. Nullable — Yahoo-fetched rows and PP-XML historical
+  // imports leave them null today. Installed at runtime via
+  // `apply-bootstrap.ts > VENDOR_COLUMN_PATCHES`, so a fresh bootstrap.sql
+  // run alone does not declare them.
+  open: integer('open'),
+  high: integer('high'),
+  low: integer('low'),
+  volume: integer('volume'),
 }, (t) => ({ pk: primaryKey({ columns: [t.securityId, t.date] }) }));
 
 export const latestPrices = sqliteTable('latest_price', {
@@ -109,9 +119,12 @@ export const latestPrices = sqliteTable('latest_price', {
     .primaryKey(),
   date: text('tstamp').notNull(),
   value: integer('value').notNull(),
-  // OHLC columns populated by ppxml2db.py from the PP-XML `<latest>` elements.
-  // Nullable — older exports and non-equity tickers (ETFs, indices) commonly
-  // omit them.
+  // OHLC + Open: populated by `ppxml2db.py > handle_latest` from the PP-XML
+  // `<latest>` element (high/low/volume) AND by the CSV price wizard's
+  // latest_price sync (open/high/low/volume from the max-date row). Nullable
+  // — older exports and non-equity tickers (ETFs, indices) commonly omit
+  // them.
+  open: integer('open'),
   high: integer('high'),
   low: integer('low'),
   volume: integer('volume'),

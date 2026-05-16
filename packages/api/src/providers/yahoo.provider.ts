@@ -1,12 +1,47 @@
+import Decimal from 'decimal.js';
 import { addDays } from 'date-fns';
 import type { QuoteFeedProvider, FetchContext, ProviderResult, LatestQuote, FetchedPrice, SecurityRow } from './types';
 import { toYMD, safeDecimal } from './utils';
 import { getYahoo } from './yahoo-client';
 
+// ─── Minor-unit normalization ─────────────────────────────────────────────────
+// Some exchanges quote prices in minor currency units (pence, cents, agorot).
+// Yahoo Finance signals this via a currency code like 'GBp' instead of 'GBP'.
+// We normalise to the major unit on the way in so stored prices match the
+// security.currency value populated by PP-XML imports ('GBP', 'ZAR', 'ILS').
+
+const MINOR_TO_MAJOR: Record<string, { major: string; divisor: number }> = {
+  GBp: { major: 'GBP', divisor: 100 },
+  GBX: { major: 'GBP', divisor: 100 },
+  ZAc: { major: 'ZAR', divisor: 100 },
+  ILA: { major: 'ILS', divisor: 100 },
+};
+
+function applyMinorUnitScale(
+  value: Decimal,
+  yahooCurrency: string | undefined | null,
+  securityCurrency: string | undefined | null,
+): Decimal {
+  if (!yahooCurrency) return value;
+  const rule = MINOR_TO_MAJOR[yahooCurrency];
+  if (!rule) return value;
+  // Guard: only normalise when the security's stored currency is the major unit
+  // (e.g. GBP). If security.currency is something unexpected, skip and warn.
+  if (securityCurrency && securityCurrency !== rule.major) {
+    console.warn(
+      `[prices] Yahoo currency '${yahooCurrency}' (minor of ${rule.major}) ` +
+      `but security.currency='${securityCurrency}' — skipping scale normalisation`,
+    );
+    return value;
+  }
+  return value.div(rule.divisor);
+}
+
 // ─── Core Yahoo functions ────────────────────────────────────────────────────
 
 async function fetchPricesFromYahoo(
   ticker: string,
+  securityCurrency: string | undefined,
   startDate?: string,
   endDate?: string,
 ): Promise<FetchedPrice[]> {
@@ -19,7 +54,7 @@ async function fetchPricesFromYahoo(
     volume: number | null;
   }
   const yf = getYahoo() as {
-    chart: (t: string, opts: unknown) => Promise<{ quotes: YahooChartQuote[] }>;
+    chart: (t: string, opts: unknown) => Promise<{ meta?: { currency?: string }; quotes: YahooChartQuote[] }>;
   };
   let result;
   try {
@@ -37,19 +72,22 @@ async function fetchPricesFromYahoo(
     throw err;
   }
 
+  const yahooCurrency = result.meta?.currency;
+
   return result.quotes
     .filter((r): r is YahooChartQuote & { close: number } => r.close != null)
     .map((r) => ({
       date: toYMD(r.date),
-      close: safeDecimal(r.close),
-      open: r.open != null ? safeDecimal(r.open) : undefined,
-      high: r.high != null ? safeDecimal(r.high) : undefined,
-      low: r.low != null ? safeDecimal(r.low) : undefined,
+      close: applyMinorUnitScale(safeDecimal(r.close), yahooCurrency, securityCurrency),
+      open: r.open != null ? applyMinorUnitScale(safeDecimal(r.open), yahooCurrency, securityCurrency) : undefined,
+      high: r.high != null ? applyMinorUnitScale(safeDecimal(r.high), yahooCurrency, securityCurrency) : undefined,
+      low: r.low != null ? applyMinorUnitScale(safeDecimal(r.low), yahooCurrency, securityCurrency) : undefined,
       volume: r.volume ?? undefined,
     }));
 }
 
 interface YahooQuoteResponse {
+  currency?: string | null;
   regularMarketPrice?: number | null;
   regularMarketTime?: Date;
   regularMarketOpen?: number | null;
@@ -57,20 +95,22 @@ interface YahooQuoteResponse {
   regularMarketDayLow?: number | null;
 }
 
-async function fetchLatestQuote(ticker: string): Promise<LatestQuote | null> {
+async function fetchLatestQuote(ticker: string, securityCurrency: string | undefined): Promise<LatestQuote | null> {
   try {
     const yf = getYahoo() as { quote: (t: string) => Promise<YahooQuoteResponse | null> };
     const result = await yf.quote(ticker);
     if (result?.regularMarketPrice == null) return null;
-    const price = safeDecimal(result.regularMarketPrice);
+    const yahooCurrency = result.currency ?? undefined;
+    const scale = (v: Decimal) => applyMinorUnitScale(v, yahooCurrency, securityCurrency);
+    const price = scale(safeDecimal(result.regularMarketPrice));
     const rawTime = result.regularMarketTime;
     // regularMarketTime is a Date object from yahoo-finance2
     const date = rawTime instanceof Date ? toYMD(rawTime) : toYMD(new Date());
     return {
       price, date,
-      open: result.regularMarketOpen != null ? safeDecimal(result.regularMarketOpen) : undefined,
-      high: result.regularMarketDayHigh != null ? safeDecimal(result.regularMarketDayHigh) : undefined,
-      low: result.regularMarketDayLow != null ? safeDecimal(result.regularMarketDayLow) : undefined,
+      open: result.regularMarketOpen != null ? scale(safeDecimal(result.regularMarketOpen)) : undefined,
+      high: result.regularMarketDayHigh != null ? scale(safeDecimal(result.regularMarketDayHigh)) : undefined,
+      low: result.regularMarketDayLow != null ? scale(safeDecimal(result.regularMarketDayLow)) : undefined,
     };
   } catch {
     return null;
@@ -84,17 +124,18 @@ async function fetchPricesFromYahooWithFallback(
   endDate?: string,
 ): Promise<FetchedPrice[]> {
   const primary = row.feedTickerSymbol ?? row.tickerSymbol ?? row.name;
+  const secCurrency = row.currency ?? undefined;
   let prices: FetchedPrice[] = [];
   try {
-    prices = await fetchPricesFromYahoo(primary, startDate, endDate);
+    prices = await fetchPricesFromYahoo(primary, secCurrency, startDate, endDate);
   } catch (err) {
     if (!row.isin) throw err;
     console.warn(`[prices] Yahoo fetch threw for ticker "${primary}", retrying with ISIN "${row.isin}":`, (err as Error).message);
-    return await fetchPricesFromYahoo(row.isin, startDate, endDate);
+    return await fetchPricesFromYahoo(row.isin, secCurrency, startDate, endDate);
   }
   if (prices.length === 0 && row.isin) {
     console.warn(`[prices] Yahoo returned 0 prices for ticker "${primary}", retrying with ISIN "${row.isin}"`);
-    const isinPrices = await fetchPricesFromYahoo(row.isin, startDate, endDate).catch(() => [] as FetchedPrice[]);
+    const isinPrices = await fetchPricesFromYahoo(row.isin, secCurrency, startDate, endDate).catch(() => [] as FetchedPrice[]);
     if (isinPrices.length > 0) return isinPrices;
   }
   return prices;
@@ -102,10 +143,11 @@ async function fetchPricesFromYahooWithFallback(
 
 async function fetchLatestQuoteWithFallback(row: SecurityRow): Promise<LatestQuote | null> {
   const primary = row.feedTickerSymbol ?? row.tickerSymbol ?? row.name;
-  const quote = await fetchLatestQuote(primary);
+  const secCurrency = row.currency ?? undefined;
+  const quote = await fetchLatestQuote(primary, secCurrency);
   if (quote !== null || !row.isin) return quote;
   console.warn(`[prices] Latest quote returned null for ticker "${primary}", retrying with ISIN "${row.isin}"`);
-  return await fetchLatestQuote(row.isin);
+  return await fetchLatestQuote(row.isin, secCurrency);
 }
 
 // ─── Provider class ──────────────────────────────────────────────────────────

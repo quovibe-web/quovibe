@@ -289,9 +289,11 @@
     "unsavedDiscard": "Ignorer",
     "unsavedKeepEditing": "Continuer la modification",
     "save": "Enregistrer les modifications",
-    "saving": "Enregistrement..."
+    "saving": "Enregistrement...",
+    "importPrices": "Importer les cours"
   },
   "attributeType": {
+    "createTitle": "Créer un type d'attribut",
     "editTitle": "Renommer le type d'attribut",
     "fields": {
       "name": "Nom",

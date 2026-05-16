@@ -764,6 +764,7 @@ function computeSecurityPerfInternal(
 
 export interface SecurityPerfResult {
   securityId: string;
+  currency: string;
   ttwror: string;
   ttwrorPa: string;
   irr: string | null;
@@ -1877,6 +1878,7 @@ export function getSecurityPerformanceList(
 
   return secResults.map((sr) => ({
     securityId: sr.securityId,
+    currency: data.secCurrencyMap.get(sr.securityId) ?? 'EUR',
     ttwror: sr.ttwror.toString(),
     ttwrorPa: sr.ttwrorPa.toString(),
     irr: sr.irr?.toString() ?? null,
@@ -2273,10 +2275,14 @@ export function getStatementOfAssets(
     const mv = sh.times(price);
     const secCurrency = sec.currency ?? baseCurrency;
     let convertedMV = mv;
+    let displayCurrency = secCurrency;
     if (secCurrency !== baseCurrency) {
       const rateMap = soaRateMaps.get(secCurrency);
       const rate = rateMap ? getRateFromMap(rateMap, date) : null;
-      if (rate) convertedMV = convertToBase(mv, rate);
+      if (rate) {
+        convertedMV = convertToBase(mv, rate);
+        displayCurrency = baseCurrency;
+      }
     }
     totalSecValue = totalSecValue.plus(convertedMV);
     secEntries.push({
@@ -2285,7 +2291,7 @@ export function getStatementOfAssets(
       shares: sh.toString(),
       pricePerShare: price.toString(),
       marketValue: convertedMV.toString(),
-      currency: secCurrency,
+      currency: displayCurrency,
     });
   }
 
@@ -2307,17 +2313,21 @@ export function getStatementOfAssets(
       (nativeCashByCurrency.get(acctCurrency) ?? new Decimal(0)).plus(balance),
     );
     let convertedBalance = balance;
+    let displayAcctCurrency = acctCurrency;
     if (acctCurrency !== baseCurrency) {
       const rateMap = soaRateMaps.get(acctCurrency);
       const rate = rateMap ? getRateFromMap(rateMap, date) : null;
-      if (rate) convertedBalance = convertToBase(balance, rate);
+      if (rate) {
+        convertedBalance = convertToBase(balance, rate);
+        displayAcctCurrency = baseCurrency;
+      }
     }
     totalCashValue = totalCashValue.plus(convertedBalance);
     acctEntries.push({
       accountId: acct.uuid,
       name: acct.name,
       balance: convertedBalance.toString(),
-      currency: acctCurrency,
+      currency: displayAcctCurrency,
     });
   }
 

@@ -3,6 +3,7 @@ import {
   initialPriceWizardState,
   priceWizardReducer,
   canAdvance,
+  buildInitialPriceWizardState,
   type PriceWizardState,
 } from '../price-import-wizard.utils';
 import type { CsvParseResult } from '@quovibe/shared';
@@ -128,5 +129,32 @@ describe('canAdvance', () => {
 
   it('confirm: always true', () => {
     expect(canAdvance({ ...initialPriceWizardState, step: 'confirm' })).toBe(true);
+  });
+});
+
+describe('buildInitialPriceWizardState', () => {
+  it('without preselect returns security step with nulls', () => {
+    const state = buildInitialPriceWizardState();
+    expect(state.step).toBe('security');
+    expect(state.securityId).toBeNull();
+    expect(state.securityName).toBeNull();
+    expect(state.parseResult).toBeNull();
+  });
+
+  it('with preselect returns upload step with security populated', () => {
+    const state = buildInitialPriceWizardState({
+      securityId: 'SEC_A',
+      securityName: 'Apple Inc.',
+    });
+    expect(state.step).toBe('upload');
+    expect(state.securityId).toBe('SEC_A');
+    expect(state.securityName).toBe('Apple Inc.');
+    expect(state.parseResult).toBeNull();
+  });
+
+  it('preselect does not mutate initialPriceWizardState', () => {
+    buildInitialPriceWizardState({ securityId: 'X', securityName: 'Y' });
+    expect(initialPriceWizardState.step).toBe('security');
+    expect(initialPriceWizardState.securityId).toBeNull();
   });
 });

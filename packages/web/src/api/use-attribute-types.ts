@@ -21,6 +21,14 @@ export function useAttributeTypes() {
   });
 }
 
+export function useCreateAttributeType() {
+  const { create } = useEntityMutations<AttributeTypeItem, CreateAttributeTypeInput, UpdateAttributeTypeInput>({
+    entity: ENTITY,
+    create: {},
+  });
+  return create;
+}
+
 export function useUpdateAttributeType() {
   const { update } = useEntityMutations<AttributeTypeItem, CreateAttributeTypeInput, UpdateAttributeTypeInput>({
     entity: ENTITY,

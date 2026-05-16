@@ -268,6 +268,82 @@ function createTestDb(): Database.Database {
     });
   });
 
+  // The block above runs against `createTestDb`, a hand-rolled :memory: schema
+  // that already declares OHLC + Open on `price` and `latest_price`. Production
+  // boots through `applyBootstrap` (bootstrap.sql + VENDOR_COLUMN_PATCHES), so
+  // a divergence there is invisible to `createTestDb` tests. This block exists
+  // to keep the two paths honest: any column the price wizard writes must
+  // exist on the schema `applyBootstrap` produces.
+  describe.skipIf(!hasSqliteBindings)('executePriceImport — applyBootstrap parity', () => {
+    let sqlite: Database.Database;
+
+    beforeEach(() => {
+      sqlite = new Database(':memory:');
+      applyBootstrap(sqlite);
+      sqlite.prepare(
+        `INSERT INTO security (uuid, name, currency, updatedAt)
+         VALUES (?, ?, ?, ?)`,
+      ).run('sec-boot', 'No-Ticker Note', 'EUR', '2024-01-01');
+    });
+    afterEach(() => { sqlite.close(); });
+
+    it('imports close-only prices (the no-ticker user vector)', async () => {
+      const csv = 'Date,Close\n2024-01-15,150.50\n2024-01-16,151.25\n';
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'prod-prices.csv');
+
+      const result = await executePriceImport(sqlite, {
+        tempFileId,
+        securityId: 'sec-boot',
+        columnMapping: { date: 0, close: 1 },
+        dateFormat: 'yyyy-MM-dd',
+        decimalSeparator: '.',
+        thousandSeparator: '',
+        skipLines: 0,
+      });
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.inserted).toBe(2);
+    });
+
+    it('persists Close + Open + High + Low + Volume on price and latest_price', async () => {
+      const csv =
+        'Date,Close,High,Low,Open,Volume\n' +
+        '2024-01-15,150.50,151.00,149.00,149.50,1000000\n';
+      const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'prod-ohlc.csv');
+
+      const result = await executePriceImport(sqlite, {
+        tempFileId,
+        securityId: 'sec-boot',
+        columnMapping: { date: 0, close: 1, high: 2, low: 3, open: 4, volume: 5 },
+        dateFormat: 'yyyy-MM-dd',
+        decimalSeparator: '.',
+        thousandSeparator: '',
+        skipLines: 0,
+      });
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.inserted).toBe(1);
+
+      const row = sqlite.prepare(
+        'SELECT value, open, high, low, volume FROM price WHERE security = ?',
+      ).get('sec-boot') as Record<string, unknown>;
+      expect(row.value).toBe(15050000000);
+      expect(row.open).toBe(14950000000);
+      expect(row.high).toBe(15100000000);
+      expect(row.low).toBe(14900000000);
+      expect(row.volume).toBe(1000000);
+
+      const lp = sqlite.prepare(
+        'SELECT value, open, high, low, volume FROM latest_price WHERE security = ?',
+      ).get('sec-boot') as Record<string, unknown>;
+      expect(lp.value).toBe(15050000000);
+      expect(lp.open).toBe(14950000000);
+      expect(lp.high).toBe(15100000000);
+      expect(lp.low).toBe(14900000000);
+      expect(lp.volume).toBe(1000000);
+    });
+  });
+
   describe('executeTradeImport (BUG-101)', () => {
     let sqlite: Database.Database;
 
