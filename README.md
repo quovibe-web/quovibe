@@ -13,7 +13,7 @@
 
 [![Support Quovibe on Ko-fi](https://img.shields.io/badge/Support%20Quovibe%20on%20Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/quovibe)
 
-If Quovibe helps you, consider supporting development on [Ko-fi](https://ko-fi.com/quovibe).
+If quovibe helps you, consider supporting development on [Ko-fi](https://ko-fi.com/quovibe).
 
 ## Description
 
