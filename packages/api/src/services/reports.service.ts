@@ -25,7 +25,7 @@ interface HoldingsResult {
 
 export function getHoldingsFlat(sqlite: Database.Database, date: string): HoldingsResult {
   const statement = getStatementOfAssets(sqlite, date);
-  const totalMV = new Decimal(statement.totals.marketValue);
+  const totalMV = new Decimal(statement.totals.securityValue);
 
   const items = statement.securities.map((s) => ({
     securityId: s.securityId,
