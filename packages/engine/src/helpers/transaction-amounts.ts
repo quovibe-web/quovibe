@@ -62,3 +62,55 @@ export function getNetAmount(tx: TransactionWithUnits): Decimal {
     ? gross.plus(fees).plus(taxes)
     : gross.minus(fees).minus(taxes);
 }
+
+/**
+ * Returns the gross transaction amount in the security's native currency.
+ *
+ * Resolution priority (single source of truth — see
+ * docs/architecture/multi-currency.md):
+ *
+ *   1. Same-currency trade (tx.currencyCode === securityCurrency) →
+ *      returns getGrossAmount(tx) unchanged.
+ *   2. Any unit carrying fxCurrencyCode === securityCurrency and a
+ *      non-null fxAmount → returns fxAmount as a Decimal. Read-tolerant
+ *      across BOTH writers: ppxml2db emits PP's `type="GROSS_VALUE"`
+ *      verbatim from XML; transaction.service.ts emits `type="FOREX"`
+ *      for the same per-trade FX decoration. The shape (amount=deposit,
+ *      forex_amount=security, exchangeRate=deposit-per-security) is
+ *      identical — discriminate by payload, not label.
+ *   3. fallbackRate provided (deposit→security multiplicative) → returns
+ *      getGrossAmount(tx) × fallbackRate. Used by the service-layer
+ *      backfill path that consults vf_exchange_rate when no FX-unit
+ *      exists (older PP-XML imports pre-BUG-fix).
+ *   4. Unresolvable → null.
+ *
+ * Callers must treat null as "cannot compute per-security perf for this
+ * transaction" and surface the row to the user as needing a manual rate.
+ */
+export function getSecurityCurrencyGross(
+  tx: TransactionWithUnits,
+  securityCurrency: string,
+  fallbackRate?: Decimal | null,
+): Decimal | null {
+  if (tx.amount == null) return null;
+
+  if (tx.currencyCode === securityCurrency) {
+    return getGrossAmount(tx);
+  }
+
+  const fxUnit = tx.units.find(
+    (u) =>
+      (u.type === 'GROSS_VALUE' || u.type === 'FOREX') &&
+      u.fxCurrencyCode === securityCurrency &&
+      u.fxAmount != null,
+  );
+  if (fxUnit && fxUnit.fxAmount != null) {
+    return toDecimal(fxUnit.fxAmount);
+  }
+
+  if (fallbackRate && !fallbackRate.isZero()) {
+    return getGrossAmount(tx).times(fallbackRate);
+  }
+
+  return null;
+}

@@ -1,6 +1,7 @@
 import Decimal from 'decimal.js';
-import { CostTransaction, Lot } from './types';
+import { CostTransaction, Lot, ConsumedLotSlice } from './types';
 import { SplitEvent, applySplitAdjustment } from './split';
+import { getRateFromMap, type RateMap } from '../fx/rate-map';
 
 export interface FIFOResult {
   remainingLots: Lot[];
@@ -8,12 +9,28 @@ export interface FIFOResult {
   unrealizedGain: Decimal;
   averagePurchasePrice: Decimal;
   purchaseValue: Decimal;
+  /** Populated only when rateMap is supplied. Slices in chronological FIFO-consumption order. */
+  consumedSlices?: ConsumedLotSlice[];
+  /**
+   * Populated only when rateMap is supplied. BUY dates that had no rate entry in
+   * rateMap — their lots carry `acquisitionRate = undefined` and decomposition
+   * would silently substitute ONE. Callers MUST check this array is empty before
+   * feeding `consumedSlices` / `remainingLots` into `decomposeRealized` /
+   * `decomposeUnrealized`.
+   */
+  unresolvedBuyDates?: string[];
+}
+
+export interface FIFOOptions {
+  /** sec→base rate map (multiply convention). When supplied, lots gain acquisitionRate + costInBase. */
+  rateMap?: RateMap;
 }
 
 export function computeFIFO(
   transactions: CostTransaction[],
   currentPrice?: Decimal,
   splitEvents?: SplitEvent[],
+  opts?: FIFOOptions,
 ): FIFOResult {
   const sorted = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
   const pendingSplits = splitEvents
@@ -23,6 +40,9 @@ export function computeFIFO(
   const lots: Lot[] = [];
   let realizedGain = new Decimal(0);
   let appliedSplitIdx = 0;
+  const rateMap = opts?.rateMap;
+  const consumedSlices: ConsumedLotSlice[] | undefined = rateMap ? [] : undefined;
+  const unresolvedBuyDates: string[] | undefined = rateMap ? [] : undefined;
 
   for (const tx of sorted) {
     // Apply any split events that occur before or on this transaction's date
@@ -40,7 +60,20 @@ export function computeFIFO(
       }
       const totalCost = tx.grossAmount.plus(tx.fees);
       const pricePerShare = totalCost.div(tx.shares);
-      lots.push({ date: tx.date, shares: tx.shares, pricePerShare, totalCost });
+      const acquisitionRate = rateMap ? (getRateFromMap(rateMap, tx.date) ?? undefined) : undefined;
+      const costInBase = acquisitionRate ? totalCost.mul(acquisitionRate) : undefined;
+      if (rateMap && !acquisitionRate) {
+        // unresolvedBuyDates is non-null exactly when rateMap is supplied
+        unresolvedBuyDates!.push(tx.date);
+      }
+      lots.push({
+        date: tx.date,
+        shares: tx.shares,
+        pricePerShare,
+        totalCost,
+        ...(acquisitionRate ? { acquisitionRate } : {}),
+        ...(costInBase ? { costInBase } : {}),
+      });
     } else if (tx.type === 'SELL' || tx.type === 'DELIVERY_OUTBOUND') {
       if (tx.shares.lte(0)) {
         throw new Error(`${tx.type} transaction must have positive shares (got ${tx.shares})`);
@@ -54,8 +87,18 @@ export function computeFIFO(
         realizedGain = realizedGain.plus(
           consumed.mul(sellPricePerShare.minus(lot.pricePerShare)),
         );
+        if (consumedSlices) {
+          consumedSlices.push({
+            shares: consumed,
+            lotPricePerShare: lot.pricePerShare,
+            ...(lot.acquisitionRate ? { lotAcquisitionRate: lot.acquisitionRate } : {}),
+          });
+        }
         lot.shares = lot.shares.minus(consumed);
         lot.totalCost = lot.shares.mul(lot.pricePerShare);
+        if (lot.costInBase && lot.acquisitionRate) {
+          lot.costInBase = lot.shares.mul(lot.pricePerShare).mul(lot.acquisitionRate);
+        }
         sharesToSell = sharesToSell.minus(consumed);
         if (lot.shares.isZero()) {
           lots.shift();
@@ -81,5 +124,13 @@ export function computeFIFO(
       ? totalShares.mul(currentPrice).minus(purchaseValue)
       : new Decimal(0);
 
-  return { remainingLots: lots, realizedGain, unrealizedGain, averagePurchasePrice, purchaseValue };
+  return {
+    remainingLots: lots,
+    realizedGain,
+    unrealizedGain,
+    averagePurchasePrice,
+    purchaseValue,
+    ...(consumedSlices ? { consumedSlices } : {}),
+    ...(unresolvedBuyDates ? { unresolvedBuyDates } : {}),
+  };
 }

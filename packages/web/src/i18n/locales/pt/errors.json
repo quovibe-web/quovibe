@@ -88,6 +88,11 @@
     "Validation error": "Entrada inválida. Verifique os campos e tente novamente.",
     "SECURITY_HAS_TRANSACTIONS": "Não é possível eliminar — {{count}} transações estão associadas a este ativo. Elimine-as ou reatribua-as primeiro.",
     "ATTRIBUTE_TYPE_NOT_FOUND": "Tipo de atributo não encontrado.",
-    "BUILTIN_TYPE_PROTECTED": "Os tipos de atributo integrados não podem ser modificados ou eliminados."
+    "BUILTIN_TYPE_PROTECTED": "Os tipos de atributo integrados não podem ser modificados ou eliminados.",
+    "INVALID_CURRENCY_CODE": "O código de moeda deve ter 3 letras maiúsculas (ex. EUR).",
+    "SAME_CURRENCY": "As moedas de origem e destino devem ser diferentes.",
+    "INVALID_RATE": "A taxa de câmbio deve ser um número positivo.",
+    "DUPLICATE_RATE": "Já existe uma taxa para este par de moedas e esta data.",
+    "RATE_NOT_FOUND_OR_NOT_MANUAL": "Esta taxa não pode ser editada (não é uma entrada manual ou não existe)."
   }
 }

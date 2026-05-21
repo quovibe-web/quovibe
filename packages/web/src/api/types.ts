@@ -24,6 +24,25 @@ export interface SecurityPerfResponse {
   interest: string;
   shares: string;
   currency: string;
+  baseCurrency: string;
+  marketValueBase: string;
+  costBase: string;
+  unrealizedBase: string;
+  realizedBase: string;
+  dividendsBase: string;
+
+  // Phase 3 — capital / FX decomposition (base ccy). '0' on same-ccy / unresolved.
+  realizedCapitalBase: string;
+  realizedFxBase: string;
+  unrealizedCapitalBase: string;
+  unrealizedFxBase: string;
+  dividendFxBase: string;
+
+  // Phase 3 — dual TTWROR / IRR pass (base ccy). Same-ccy: equals the native fields.
+  ttwrorBase: string;
+  ttwrorPaBase: string;
+  irrBase: string | null;
+  irrBaseConverged: boolean;
 }
 
 export interface MoverEntry {
@@ -65,6 +84,8 @@ export interface StatementOfAssetsResponse {
     securityValue: string;
     cashValue: string;
     cashByCurrency: Array<{ currency: string; value: string }>;
+    unresolvedCount: number;
+    unresolvedSecurityIds: string[];
   };
 }
 

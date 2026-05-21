@@ -88,6 +88,11 @@
     "Validation error": "Ungültige Eingabe. Überprüfen Sie die Felder und versuchen Sie es erneut.",
     "SECURITY_HAS_TRANSACTIONS": "Löschen nicht möglich — {{count}} Transaktionen sind mit diesem Wertpapier verknüpft. Löschen oder ordnen Sie sie zuerst neu zu.",
     "ATTRIBUTE_TYPE_NOT_FOUND": "Attributtyp nicht gefunden.",
-    "BUILTIN_TYPE_PROTECTED": "Integrierte Attributtypen können nicht geändert oder gelöscht werden."
+    "BUILTIN_TYPE_PROTECTED": "Integrierte Attributtypen können nicht geändert oder gelöscht werden.",
+    "INVALID_CURRENCY_CODE": "Der Währungscode muss aus 3 Großbuchstaben bestehen (z.B. EUR).",
+    "SAME_CURRENCY": "Ausgangs- und Zielwährung müssen unterschiedlich sein.",
+    "INVALID_RATE": "Der Kurs muss eine positive Zahl sein.",
+    "DUPLICATE_RATE": "Für dieses Währungspaar und Datum existiert bereits ein Kurs.",
+    "RATE_NOT_FOUND_OR_NOT_MANUAL": "Dieser Kurs kann nicht bearbeitet werden (kein manueller Eintrag oder nicht vorhanden)."
   }
 }

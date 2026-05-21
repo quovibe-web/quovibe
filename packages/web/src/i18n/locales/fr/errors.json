@@ -88,6 +88,11 @@
     "Validation error": "Saisie invalide. Vérifiez les champs et réessayez.",
     "SECURITY_HAS_TRANSACTIONS": "Suppression impossible — {{count}} transactions sont liées à ce titre. Supprimez-les ou réaffectez-les d'abord.",
     "ATTRIBUTE_TYPE_NOT_FOUND": "Type d'attribut introuvable.",
-    "BUILTIN_TYPE_PROTECTED": "Les types d'attribut intégrés ne peuvent pas être modifiés ou supprimés."
+    "BUILTIN_TYPE_PROTECTED": "Les types d'attribut intégrés ne peuvent pas être modifiés ou supprimés.",
+    "INVALID_CURRENCY_CODE": "Le code devise doit comporter 3 lettres majuscules (ex. EUR).",
+    "SAME_CURRENCY": "La devise source et la devise cible doivent être différentes.",
+    "INVALID_RATE": "Le taux de change doit être un nombre positif.",
+    "DUPLICATE_RATE": "Un taux existe déjà pour cette paire de devises et cette date.",
+    "RATE_NOT_FOUND_OR_NOT_MANUAL": "Ce taux ne peut pas être modifié (pas une saisie manuelle ou introuvable)."
   }
 }

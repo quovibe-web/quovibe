@@ -175,6 +175,20 @@ const appSchema = z.object({
   autoFetchPricesOnFirstOpen: z.boolean().default(false),
 }).default({});
 
+// Phase 3 forex-view toggle per surface. 'base' = portfolio base ccy primary;
+// 'native' = security/source ccy primary. SecurityDetail defaults to 'native' per
+// Phase 1 invariant (security drilldown). All other surfaces default to 'base'.
+export const forexViewSchema = z.object({
+  dashboard: z.enum(['base', 'native']).default('base'),
+  investments: z.enum(['base', 'native']).default('base'),
+  securityDrawer: z.enum(['base', 'native']).default('base'),
+  securityDetail: z.enum(['base', 'native']).default('native'),
+  statement: z.enum(['base', 'native']).default('base'),
+}).default({});
+
+export type ForexView = z.infer<typeof forexViewSchema>;
+export type ForexSurface = keyof ForexView;
+
 export const preferencesSchema = z.object({
   language: z.string().default('en'),
   theme: z.enum(['light', 'dark', 'system']).default('system'),
@@ -186,6 +200,7 @@ export const preferencesSchema = z.object({
   activeReportingPeriodId: z.string().optional(),
   defaultDataSeriesTaxonomyId: z.string().optional(),
   chartStyle: z.object({}).passthrough().default({}),   // reserved; empty in v1
+  forexView: forexViewSchema,
 }).default({});
 
 /**

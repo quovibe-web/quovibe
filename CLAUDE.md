@@ -54,7 +54,7 @@ Per-package detail: `.claude/rules/{api,engine,frontend,shared,db-schema,double-
 | `pnpm test` | Vitest, all packages |
 | `pnpm lint` | ESLint (max 50 warnings) |
 | `pnpm lint:engine` | Zero-tolerance engine I/O lint |
-| `pnpm check:governance` | 14 governance checks (G1–G14) |
+| `pnpm check:governance` | 15 governance checks (G1–G15) |
 | `pnpm check:arch` | 9 architecture checks (A1–A9; A10 retired in ADR-015) |
 | `pnpm check:bootstrap` | Gate 1 — `bootstrap.sql` parity vs ppxml2db |
 | `pnpm regen-bootstrap` | Regenerate `bootstrap.sql` §1+§2 from `ppxml2db_init.py` |
@@ -73,5 +73,5 @@ Per-package detail: `.claude/rules/{api,engine,frontend,shared,db-schema,double-
 ## Governance
 
 - 15 glob-scoped rule files in `.claude/rules/` auto-load by context.
-- `scripts/check-governance.ts` (G1–G14) and `scripts/check-architecture.ts` (A1–A9) gate doc↔code drift, dependency boundaries, upstream-reference ban, service-layer rules, no direct DB writes in routes.
+- `scripts/check-governance.ts` (G1–G15) and `scripts/check-architecture.ts` (A1–A9) gate doc↔code drift, dependency boundaries, upstream-reference ban, service-layer rules, no direct DB writes in routes.
 - `pnpm preflight` before starting work, `pnpm postflight` before closing a session.

@@ -76,5 +76,8 @@
     "description": "Añade tu primer valor para empezar",
     "noMatches": "Sin valores en esta cuenta",
     "noMatchesHint": "Ajusta el filtro de cuenta para ver otras posiciones."
-  }
+  },
+  "unresolvedFx_one": "{{count}} valor excluido de los totales — falta el tipo de cambio. Haz clic para añadir un tipo.",
+  "unresolvedFx_other": "{{count}} valores excluidos de los totales — falta el tipo de cambio. Haz clic para añadir un tipo.",
+  "unresolvedFxOpenModal": "Abrir cuadro de diálogo de tipos de cambio no resueltos"
 }

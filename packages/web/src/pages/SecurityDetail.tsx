@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/shared/DataTable';
 import { dateColumnMeta, textColumnMeta, currencyColumnMeta, sharesColumnMeta } from '@/lib/column-factories';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
+import { CurrencyDisplayWithToggle } from '@/components/shared/CurrencyDisplayWithToggle';
+import { ForexViewChip } from '@/components/shared/ForexViewChip';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { useSecurityDetail, useFetchPrices } from '@/api/use-securities';
 import { SecurityEditor, type EditorSection } from '@/components/domain/SecurityEditor';
@@ -45,9 +47,13 @@ interface PerfMetricProps {
   isPrivate: boolean;
   converged?: boolean;
   notConvergedLabel?: string;
+  /** Base-currency value for toggle (currency type only). */
+  baseValue?: string | null;
+  /** Base currency code for toggle (currency type only). */
+  baseCurrency?: string;
 }
 
-function PerfMetric({ label, value, type, currency, isPrivate, converged, notConvergedLabel }: PerfMetricProps) {
+function PerfMetric({ label, value, type, currency, isPrivate, converged, notConvergedLabel, baseValue, baseCurrency }: PerfMetricProps) {
   if (isPrivate) {
     return (
       <div>
@@ -70,6 +76,21 @@ function PerfMetric({ label, value, type, currency, isPrivate, converged, notCon
       <div>
         <p className="qv-eyebrow mb-0.5">{label}</p>
         <SignedPercent value={num} className="text-base" />
+      </div>
+    );
+  }
+  if (baseValue != null && baseCurrency != null) {
+    return (
+      <div>
+        <p className="qv-eyebrow mb-0.5">{label}</p>
+        <CurrencyDisplayWithToggle
+          value={parseFloat(baseValue)}
+          currency={baseCurrency}
+          nativeValue={num}
+          nativeCurrency={currency}
+          forexSurface="securityDetail"
+          className="qv-numeric text-base font-medium"
+        />
       </div>
     );
   }
@@ -221,6 +242,13 @@ export default function SecurityDetail() {
           </div>
         </div>
         <div className="sm:ml-auto flex items-center gap-2 flex-wrap">
+          {perf && (
+            <ForexViewChip
+              surface="securityDetail"
+              baseCurrency={perf.baseCurrency}
+              nativeCurrencies={[perf.currency]}
+            />
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -242,7 +270,14 @@ export default function SecurityDetail() {
             <p className="qv-eyebrow mb-1">{t('detail.marketValue')}</p>
             {perf ? (
               <>
-                <CurrencyDisplay value={parseFloat(perf.mve)} currency={security.currency} className="qv-numeric text-2xl font-medium" />
+                <CurrencyDisplayWithToggle
+                  value={parseFloat(perf.marketValueBase)}
+                  currency={perf.baseCurrency}
+                  nativeValue={parseFloat(perf.mve)}
+                  nativeCurrency={perf.currency}
+                  forexSurface="securityDetail"
+                  className="qv-numeric text-2xl font-medium"
+                />
                 <p className="text-xs text-muted-foreground mt-1">
                   <SharesDisplay value={security.shares} className="qv-numeric" /> × <CurrencyDisplay value={security.latestPrice ? parseFloat(security.latestPrice) : 0} currency={security.currency} className="qv-numeric" />
                 </p>
@@ -257,7 +292,15 @@ export default function SecurityDetail() {
             <p className="qv-eyebrow mb-1">{t('detail.unrealizedPL')}</p>
             {perf ? (
               <>
-                <CurrencyDisplay value={parseFloat(perf.unrealizedGain)} currency={security.currency} colorize className="qv-numeric text-2xl font-medium" />
+                <CurrencyDisplayWithToggle
+                  value={parseFloat(perf.unrealizedBase)}
+                  currency={perf.baseCurrency}
+                  nativeValue={parseFloat(perf.unrealizedGain)}
+                  nativeCurrency={perf.currency}
+                  forexSurface="securityDetail"
+                  colorize
+                  className="qv-numeric text-2xl font-medium"
+                />
                 {parseFloat(perf.purchaseValue) > 0 && (
                   <p className="mt-1 flex items-center gap-1.5 text-xs">
                     <SignedPercent
@@ -292,12 +335,12 @@ export default function SecurityDetail() {
               <PerfMetric label={t('detail.perfMetrics.ttwror')} value={perf.ttwror} type="pct" isPrivate={isPrivate} />
               <PerfMetric label={t('detail.perfMetrics.ttwrorPa')} value={perf.ttwrorPa} type="pct" isPrivate={isPrivate} />
               <PerfMetric label={t('detail.perfMetrics.irr')} value={perf.irr} type="pct" isPrivate={isPrivate} converged={perf.irrConverged} notConvergedLabel={t('detail.perfMetrics.notConverged')} />
-              <PerfMetric label={t('detail.perfMetrics.realizedGain')} value={perf.realizedGain} type="currency" currency={security.currency} isPrivate={isPrivate} />
-              <PerfMetric label={t('detail.perfMetrics.dividends')} value={perf.dividends} type="currency" currency={security.currency} isPrivate={isPrivate} />
+              <PerfMetric label={t('detail.perfMetrics.realizedGain')} value={perf.realizedGain} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.realizedBase} baseCurrency={perf.baseCurrency} />
+              <PerfMetric label={t('detail.perfMetrics.dividends')} value={perf.dividends} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.dividendsBase} baseCurrency={perf.baseCurrency} />
               <PerfMetric label={t('detail.perfMetrics.fees')} value={perf.fees} type="currency" currency={security.currency} isPrivate={isPrivate} />
               <PerfMetric label={t('detail.perfMetrics.taxes')} value={perf.taxes} type="currency" currency={security.currency} isPrivate={isPrivate} />
-              <PerfMetric label={t('detail.perfMetrics.purchaseValue')} value={perf.purchaseValue} type="currency" currency={security.currency} isPrivate={isPrivate} />
-              <PerfMetric label={t('detail.perfMetrics.mve')} value={perf.mve} type="currency" currency={security.currency} isPrivate={isPrivate} />
+              <PerfMetric label={t('detail.perfMetrics.purchaseValue')} value={perf.purchaseValue} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.costBase} baseCurrency={perf.baseCurrency} />
+              <PerfMetric label={t('detail.perfMetrics.mve')} value={perf.mve} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.marketValueBase} baseCurrency={perf.baseCurrency} />
             </div>
           </CardContent>
         </Card>

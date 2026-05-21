@@ -19,6 +19,7 @@ import PerformanceChart from '@/pages/PerformanceChart';
 import AssetAllocation from '@/pages/AssetAllocation';
 import Payments from '@/pages/Payments';
 import UserSettings from '@/pages/UserSettings';
+import CurrencyConverter from '@/pages/CurrencyConverter';
 import PortfolioSettings from '@/pages/PortfolioSettings';
 import TaxonomySeries from '@/pages/TaxonomySeries';
 import CsvImportPage from '@/pages/CsvImportPage';
@@ -67,7 +68,10 @@ export const router = createBrowserRouter([
     path: '/settings',
     element: <UserSettingsLayout />,
     errorElement: <ErrorFallback />,
-    children: [{ index: true, element: <UserSettings /> }],
+    children: [
+      { index: true, element: <UserSettings /> },
+      { path: 'currencies', element: <CurrencyConverter /> },
+    ],
   },
   {
     path: '/p/:portfolioId',

@@ -88,6 +88,11 @@
     "Validation error": "Invalid input. Check the fields and try again.",
     "SECURITY_HAS_TRANSACTIONS": "Cannot delete — {{count}} transactions are linked to this security. Delete or reassign them first.",
     "ATTRIBUTE_TYPE_NOT_FOUND": "Attribute type not found.",
-    "BUILTIN_TYPE_PROTECTED": "Built-in attribute types cannot be modified or deleted."
+    "BUILTIN_TYPE_PROTECTED": "Built-in attribute types cannot be modified or deleted.",
+    "INVALID_CURRENCY_CODE": "Currency code must be 3 uppercase letters (e.g., EUR).",
+    "SAME_CURRENCY": "From and To currencies must differ.",
+    "INVALID_RATE": "Rate must be a positive number.",
+    "DUPLICATE_RATE": "A rate already exists for this currency pair and date.",
+    "RATE_NOT_FOUND_OR_NOT_MANUAL": "This rate cannot be edited (not user-entered or does not exist)."
   }
 }

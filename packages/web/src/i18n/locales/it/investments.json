@@ -76,5 +76,8 @@
     "description": "Aggiungi il tuo primo titolo per iniziare",
     "noMatches": "Nessun titolo in questo conto",
     "noMatchesHint": "Modifica il filtro conto per vedere altre posizioni."
-  }
+  },
+  "unresolvedFx_one": "{{count}} titolo escluso dai totali — manca il tasso di cambio. Clicca per aggiungere un tasso.",
+  "unresolvedFx_other": "{{count}} titoli esclusi dai totali — manca il tasso di cambio. Clicca per aggiungere un tasso.",
+  "unresolvedFxOpenModal": "Apri finestra dei tassi di cambio non risolti"
 }

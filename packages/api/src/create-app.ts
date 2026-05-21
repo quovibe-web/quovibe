@@ -29,6 +29,7 @@ import { importRouter } from './routes/import';
 import { portfoliosRouter } from './routes/portfolios';
 import { eventsRouter } from './routes/events';
 import { setupRouter } from './routes/setup';
+import { fxRatesRouter } from './routes/fx-rates';
 
 /**
  * Build the Express app. In ADR-015 the server carries no global DB handle —
@@ -79,6 +80,7 @@ export function createApp(): Express {
   app.use('/api/p/:portfolioId/chart-config', chartConfigRouter);
   app.use('/api/p/:portfolioId/csv-import', csvImportRouter);
   app.use('/api/p/:portfolioId/watchlists', watchlistsRouter);
+  app.use('/api/p/:portfolioId/fx-rates', fxRatesRouter);
   // setupRouter mounts at the portfolio root (no sub-prefix) because its paths
   // are the portfolio-level public contract: GET /securities-accounts and
   // (Phase 2.5) POST /setup. Keep new handlers in setup.ts scoped to these two

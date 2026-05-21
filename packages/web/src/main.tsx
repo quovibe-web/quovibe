@@ -10,6 +10,7 @@ import { PrivacyProvider } from '@/context/privacy-context';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { SidecarSync } from '@/components/shared/SidecarSync';
+import { ForexViewProvider } from '@/context/forex-view-context';
 import './globals.css';
 
 createRoot(document.getElementById('root')!).render(
@@ -18,9 +19,11 @@ createRoot(document.getElementById('root')!).render(
       <PrivacyProvider>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
-            <SidecarSync />
-            <RouterProvider router={router} />
-            <Toaster position="bottom-right" richColors />
+            <ForexViewProvider>
+              <SidecarSync />
+              <RouterProvider router={router} />
+              <Toaster position="bottom-right" richColors />
+            </ForexViewProvider>
           </TooltipProvider>
         </QueryClientProvider>
       </PrivacyProvider>

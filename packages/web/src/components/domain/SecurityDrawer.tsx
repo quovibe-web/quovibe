@@ -15,10 +15,12 @@ import { useFetchPrices } from '@/api/use-securities';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
+import { CurrencyDisplayWithToggle } from '@/components/shared/CurrencyDisplayWithToggle';
+import { ForexViewChip } from '@/components/shared/ForexViewChip';
 import { useSecurityDrawerData } from '@/hooks/useSecurityDrawerData';
 import { usePrivacy } from '@/context/privacy-context';
 import { usePortfolio } from '@/context/PortfolioContext';
-import { formatPercentage, formatDate } from '@/lib/formatters';
+import { formatPercentage, formatDate, formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { SecurityPerfResponse, StatementSecurityEntry } from '@/api/types';
 
@@ -104,19 +106,41 @@ export function SecurityDrawer({
 
               <Separator className="my-3" />
 
-              {/* Hero metrics */}
+              {/* Forex view toggle chip */}
+              {perf && (
+                <div className="pb-2">
+                  <ForexViewChip
+                    surface="securityDrawer"
+                    baseCurrency={perf.baseCurrency}
+                    nativeCurrencies={[perf.currency]}
+                  />
+                </div>
+              )}
+
+              {/* Hero metrics — toggleable base/native per ForexViewChip state */}
               <div className="grid grid-cols-2 gap-3 py-3">
                 <div className="space-y-1">
                   <span className="text-xs text-muted-foreground">{t('columns.marketValue')}</span>
-                  {statement ? (
+                  {perf ? (
                     <>
-                      <CurrencyDisplay
-                        value={parseFloat(statement.marketValue)}
+                      <CurrencyDisplayWithToggle
+                        value={parseFloat(perf.marketValueBase)}
+                        currency={perf.baseCurrency}
+                        nativeValue={parseFloat(perf.mve)}
+                        nativeCurrency={perf.currency}
+                        forexSurface="securityDrawer"
                         className="text-xl font-semibold tabular-nums block"
                       />
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        {isPrivate ? '••••' : `${statement.shares} × ${statement.pricePerShare}`}
-                      </span>
+                      {statement && (
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {isPrivate
+                            ? '••••'
+                            : `${statement.shares} × ${formatCurrency(
+                                parseFloat(statement.pricePerShare),
+                                statement.currency,
+                              )}`}
+                        </span>
+                      )}
                     </>
                   ) : (
                     <span className="text-xl font-semibold text-muted-foreground">—</span>
@@ -126,15 +150,19 @@ export function SecurityDrawer({
                   <span className="text-xs text-muted-foreground">{t('columns.unrealizedGain')}</span>
                   {perf ? (
                     <>
-                      <CurrencyDisplay
-                        value={parseFloat(perf.unrealizedGain)}
+                      <CurrencyDisplayWithToggle
+                        value={parseFloat(perf.unrealizedBase)}
+                        currency={perf.baseCurrency}
+                        nativeValue={parseFloat(perf.unrealizedGain)}
+                        nativeCurrency={perf.currency}
+                        forexSurface="securityDrawer"
                         colorize
                         className="text-xl font-semibold tabular-nums block"
                       />
                       {unrealizedGainPct !== null && (
                         <span className={cn(
                           'text-xs tabular-nums',
-                          parseFloat(perf.unrealizedGain) >= 0 ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]'
+                          parseFloat(perf.unrealizedBase) >= 0 ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]'
                         )}>
                           {isPrivate ? '••••' : formatPercentage(unrealizedGainPct)}
                         </span>
@@ -157,13 +185,35 @@ export function SecurityDrawer({
                     <MetricCell label={t('columns.ttwrorPa')} value={formatPercentage(parseFloat(perf.ttwrorPa))} />
                     <MetricCell label={t('columns.irr')} value={perf.irr !== null ? formatPercentage(parseFloat(perf.irr)) : '—'} />
                     <MetricCell label={t('columns.purchaseValue')}>
-                      <CurrencyDisplay value={parseFloat(perf.purchaseValue)} className="text-sm font-medium tabular-nums" />
+                      <CurrencyDisplayWithToggle
+                        value={parseFloat(perf.costBase)}
+                        currency={perf.baseCurrency}
+                        nativeValue={parseFloat(perf.purchaseValue)}
+                        nativeCurrency={perf.currency}
+                        forexSurface="securityDrawer"
+                        className="text-sm font-medium tabular-nums"
+                      />
                     </MetricCell>
                     <MetricCell label={t('columns.realizedGain')}>
-                      <CurrencyDisplay value={parseFloat(perf.realizedGain)} colorize className="text-sm font-medium tabular-nums" />
+                      <CurrencyDisplayWithToggle
+                        value={parseFloat(perf.realizedBase)}
+                        currency={perf.baseCurrency}
+                        nativeValue={parseFloat(perf.realizedGain)}
+                        nativeCurrency={perf.currency}
+                        forexSurface="securityDrawer"
+                        colorize
+                        className="text-sm font-medium tabular-nums"
+                      />
                     </MetricCell>
                     <MetricCell label={t('columns.dividends')}>
-                      <CurrencyDisplay value={parseFloat(perf.dividends)} className="text-sm font-medium tabular-nums" />
+                      <CurrencyDisplayWithToggle
+                        value={parseFloat(perf.dividendsBase)}
+                        currency={perf.baseCurrency}
+                        nativeValue={parseFloat(perf.dividends)}
+                        nativeCurrency={perf.currency}
+                        forexSurface="securityDrawer"
+                        className="text-sm font-medium tabular-nums"
+                      />
                     </MetricCell>
                   </div>
                 </div>
@@ -209,7 +259,14 @@ export function SecurityDrawer({
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">{t('columns.latestQuote')}</span>
                       <span className="tabular-nums flex items-center gap-1">
-                        {isPrivate ? '••••' : detail.latestPrice}
+                        {isPrivate
+                          ? '••••'
+                          : formatCurrency(
+                              typeof detail.latestPrice === 'number'
+                                ? detail.latestPrice
+                                : parseFloat(String(detail.latestPrice)),
+                              detail.currency,
+                            )}
                         {detail.latestDate && (
                           <span className="text-muted-foreground ml-1 text-xs">
                             {formatDate(detail.latestDate)}

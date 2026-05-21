@@ -1,8 +1,9 @@
 // Reference: Moving average cost basis — weighted average recalculated on each buy
-import { describe, test, expect } from 'vitest';
+import { describe, it, test, expect } from 'vitest';
 import Decimal from 'decimal.js';
 import { computeMovingAverage } from '../moving-average';
 import type { CostTransaction } from '../types';
+import type { RateMap } from '../../fx/rate-map';
 
 // Moving Average edge cases: requires positive shares for BUY.
 // SELL must not exceed available shares.
@@ -83,5 +84,108 @@ describe('computeMovingAverage — cost methodology Example 1 regression', () =>
     // realizedGain = 16500 − 15250 = 1250
     expect(result.realizedGain.toDecimalPlaces(2).toNumber()).toBeCloseTo(1250, 0);
     expect(result.totalShares.toNumber()).toBe(150);
+  });
+});
+
+describe('computeMovingAverage with rateMap (Phase 3)', () => {
+  it('emits weightedAvgRate + costInBase when rateMap supplied', () => {
+    const rateMap: RateMap = new Map([
+      ['2026-05-01', new Decimal('0.86')],
+      ['2026-05-08', new Decimal('0.85')],
+    ]);
+    const txs: CostTransaction[] = [
+      { type: 'BUY', date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
+      { type: 'BUY', date: '2026-05-08', shares: new Decimal(5),  grossAmount: new Decimal(525),  fees: new Decimal(0) },
+    ];
+    const result = computeMovingAverage(txs, undefined, undefined, { rateMap });
+    // weightedAvgRate = (10*0.86 + 5*0.85) / 15 = 12.85 / 15 ≈ 0.85666...
+    expect(result.weightedAvgRate?.toFixed(6)).toBe('0.856667');
+    // costInBase = totalCost × weightedAvgRate = 1525 × 0.85666... ≈ 1306.4166...
+    expect(result.costInBase?.toFixed(4)).toBe('1306.4167');
+  });
+
+  it('SELL preserves weightedAvgRate (lot reduction does not change rate)', () => {
+    const rateMap: RateMap = new Map([
+      ['2026-05-01', new Decimal('0.86')],
+      ['2026-05-15', new Decimal('0.90')],
+    ]);
+    const txs: CostTransaction[] = [
+      { type: 'BUY',  date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
+      { type: 'SELL', date: '2026-05-15', shares: new Decimal(4),  grossAmount: new Decimal(440),  fees: new Decimal(0) },
+    ];
+    const result = computeMovingAverage(txs, undefined, undefined, { rateMap });
+    expect(result.weightedAvgRate?.toString()).toBe('0.86');
+    expect(result.totalShares.toString()).toBe('6');
+  });
+
+  it('no rateMap → no base fields (regression)', () => {
+    const txs: CostTransaction[] = [
+      { type: 'BUY', date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
+    ];
+    const result = computeMovingAverage(txs);
+    expect(result.weightedAvgRate).toBeUndefined();
+    expect(result.costInBase).toBeUndefined();
+  });
+
+  it('MA emits unresolvedBuyDates when rateMap missing BUY date', () => {
+    const rateMap: RateMap = new Map([['2026-05-01', new Decimal('0.86')]]);
+    const txs: CostTransaction[] = [
+      { type: 'BUY', date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
+      { type: 'BUY', date: '2026-05-15', shares: new Decimal(5),  grossAmount: new Decimal(550),  fees: new Decimal(0) },
+    ];
+    const result = computeMovingAverage(txs, undefined, undefined, { rateMap });
+    expect(result.unresolvedBuyDates).toEqual(['2026-05-15']);
+    expect(result.costInBase).toBeUndefined(); // suppressed when coverage incomplete
+    expect(result.weightedAvgRate).toBeDefined(); // informational; still emitted
+  });
+
+  it('MA unresolvedBuyDates undefined when no rateMap (legacy)', () => {
+    const txs: CostTransaction[] = [
+      { type: 'BUY', date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
+    ];
+    const result = computeMovingAverage(txs);
+    expect(result.unresolvedBuyDates).toBeUndefined();
+    expect(result.unresolvedSellDates).toBeUndefined();
+    expect(result.realizedSellSlices).toBeUndefined();
+  });
+
+  it('MA unresolvedBuyDates empty array when rateMap covers all BUYs', () => {
+    const rateMap: RateMap = new Map([['2026-05-01', new Decimal('0.86')]]);
+    const txs: CostTransaction[] = [
+      { type: 'BUY', date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
+    ];
+    const result = computeMovingAverage(txs, undefined, undefined, { rateMap });
+    expect(result.unresolvedBuyDates).toEqual([]);
+    expect(result.costInBase).toBeDefined(); // coverage complete → costInBase emitted
+  });
+
+  it('MA emits realizedSellSlices when rateMap covers BUY + SELL dates', () => {
+    const rateMap: RateMap = new Map([
+      ['2026-05-01', new Decimal('0.86')],
+      ['2026-05-15', new Decimal('0.90')],
+    ]);
+    const txs: CostTransaction[] = [
+      { type: 'BUY',  date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
+      { type: 'SELL', date: '2026-05-15', shares: new Decimal(4),  grossAmount: new Decimal(440),  fees: new Decimal(0) },
+    ];
+    const result = computeMovingAverage(txs, undefined, undefined, { rateMap });
+    expect(result.realizedSellSlices).toHaveLength(1);
+    const slice = result.realizedSellSlices![0];
+    expect(slice.shares.toString()).toBe('4');
+    expect(slice.avgPriceAtSell.toString()).toBe('100'); // 1000/10
+    expect(slice.lotRate?.toString()).toBe('0.86');
+    expect(slice.sellPrice.toString()).toBe('110');
+    expect(slice.sellRate?.toString()).toBe('0.9');
+  });
+
+  it('MA SELL with missing sell-date rate goes to unresolvedSellDates', () => {
+    const rateMap: RateMap = new Map([['2026-05-01', new Decimal('0.86')]]);
+    const txs: CostTransaction[] = [
+      { type: 'BUY',  date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
+      { type: 'SELL', date: '2026-05-15', shares: new Decimal(4),  grossAmount: new Decimal(440),  fees: new Decimal(0) },
+    ];
+    const result = computeMovingAverage(txs, undefined, undefined, { rateMap });
+    expect(result.unresolvedSellDates).toEqual(['2026-05-15']);
+    expect(result.realizedSellSlices).toEqual([]); // SELL skipped, not partial
   });
 });

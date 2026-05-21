@@ -95,7 +95,10 @@ describe('AlphaVantageProvider', () => {
     it('uses compact outputsize when startDate is recent', async () => {
       mockGet.mockResolvedValueOnce({ data: HISTORICAL_CSV });
       const ctx = makeCtx();
-      ctx.startDate = '2026-03-01'; // ~12 days ago, < 80
+      // 30 days ago — within the 80-day compact threshold regardless of when this test runs.
+      const recent = new Date();
+      recent.setDate(recent.getDate() - 30);
+      ctx.startDate = recent.toISOString().slice(0, 10);
       await provider.fetchHistorical(ctx);
       expect(mockGet).toHaveBeenCalledWith(
         expect.stringContaining('outputsize=compact'),

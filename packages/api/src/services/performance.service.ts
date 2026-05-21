@@ -16,7 +16,7 @@ import type {
   FeesBreakdown, TaxesBreakdown, CashCurrencyGainsBreakdown, PntBreakdown,
   OpenPositionPnLBreakdown,
 } from '@quovibe/shared';
-import type { CostTransaction } from '@quovibe/engine';
+import type { CostTransaction, FIFOResult } from '@quovibe/engine';
 import {
   resolvePortfolioCashflows,
   resolveSecurityCashflows,
@@ -29,6 +29,7 @@ import {
   getGrossAmount,
   getFees,
   getTaxes,
+  getSecurityCurrencyGross,
   aggregateMonthlyReturns,
 
   computeAbsolutePerformance,
@@ -37,25 +38,18 @@ import {
   computeSharpeRatio,
   computeFIFO,
   computeMovingAverage,
+  decomposeRealized,
+  decomposeUnrealized,
 } from '@quovibe/engine';
 import { safeDecimal, convertAmountFromDb } from './unit-conversion';
-import { buildRateMap } from './fx.service';
-import { getRateFromMap, convertToBase, computeCashCurrencyGain, type RateMap } from '@quovibe/engine';
-
-// ─── Base currency resolution ─────────────────────────────────────────────────
-
-function getBaseCurrency(sqlite: BetterSqlite3.Database): string {
-  const row = sqlite.prepare(
-    `SELECT value FROM property WHERE name = 'portfolio.currency'`
-  ).get() as { value: string } | undefined;
-  if (row?.value) return row.value;
-
-  // Fallback: first deposit account's currency
-  const acct = sqlite.prepare(
-    `SELECT currency FROM account WHERE type = 'account' AND currency IS NOT NULL LIMIT 1`
-  ).get() as { currency: string } | undefined;
-  return acct?.currency ?? 'EUR';
-}
+import { buildRateMap, getRate } from './fx.service';
+import {
+  getRateFromMap,
+  convertToBase,
+  computeCashCurrencyGain,
+  type RateMap,
+} from '@quovibe/engine';
+import { getPortfolioBaseCurrency } from './portfolio-base.service';
 
 // ─── ppxml2db type normalization ──────────────────────────────────────────────
 // ppxml2db uses different type strings than quovibe's TransactionType enum
@@ -97,20 +91,33 @@ export interface PerfTransaction extends TransactionWithUnits {
 }
 
 function parseRawRow(row: RawXactRow): PerfTransaction {
+  // units_raw layout (per fetchAllTransactions SQL):
+  //   "type:amount_hecto:currency:forex_amount_hecto:forex_currency:exchangeRate"
+  // Empty positional fields are encoded as empty string; GROUP_CONCAT preserves
+  // them because there's an explicit ':' between every position. Round-tripping
+  // fxAmount/fxCurrencyCode/fxRate is load-bearing for per-security-native cost
+  // basis (see docs/architecture/multi-currency.md).
   const units: TransactionUnit[] = row.units_raw
     ? row.units_raw.split('|').map((part) => {
-        const colonIdx = part.indexOf(':');
-        const type = part.slice(0, colonIdx) as TransactionUnit['type'];
-        const amount = parseFloat(part.slice(colonIdx + 1)) / 100; // hecto-units → EUR
+        const fields = part.split(':');
+        const type = fields[0] as TransactionUnit['type'];
+        const amount = parseFloat(fields[1] ?? '0') / 100; // hecto-units → currency
+        const currencyCode = fields[2] && fields[2] !== '' ? fields[2] : null;
+        const fxAmountRaw = fields[3];
+        const fxAmount =
+          fxAmountRaw && fxAmountRaw !== '' ? parseFloat(fxAmountRaw) / 100 : null;
+        const fxCurrencyCode = fields[4] && fields[4] !== '' ? fields[4] : null;
+        const fxRateRaw = fields[5];
+        const fxRate = fxRateRaw && fxRateRaw !== '' ? parseFloat(fxRateRaw) : null;
         return {
           id: '',
           transactionId: row.uuid,
           type,
           amount,
-          currencyCode: null,
-          fxAmount: null,
-          fxCurrencyCode: null,
-          fxRate: null,
+          currencyCode,
+          fxAmount,
+          fxCurrencyCode,
+          fxRate,
         };
       })
     : [];
@@ -153,13 +160,215 @@ function parseRawRow(row: RawXactRow): PerfTransaction {
   };
 }
 
+// ─── Per-security currency projection (multi-currency.md) ───────────────────
+
+/**
+ * Returns a copy of `secTxs` where every transaction's `amount` and every
+ * FEE/TAX `units[].amount` is denominated in `securityCurrency`. Used to
+ * keep per-security FIFO/MA, TTWROR cashflows, and earnings/fees sums in a
+ * single currency.
+ *
+ * Per docs/architecture/multi-currency.md, the resolution priority is:
+ *
+ *   1. Same-currency transaction (tx.currencyCode === securityCurrency) →
+ *      pass through unchanged.
+ *   2. Any FX-decorated unit (`GROSS_VALUE` or `FOREX`) with
+ *      fxCurrencyCode === securityCurrency and non-null fxAmount → use
+ *      fxAmount as the security-currency gross; convert FEE/TAX units
+ *      via their own fxAmount when present, else via the parent rate.
+ *      Read-tolerant across both writers: ppxml2db emits PP's
+ *      `GROSS_VALUE` from XML; transaction.service.ts emits `FOREX`.
+ *      Same payload shape.
+ *   3. Otherwise → fall back to vf_exchange_rate at the trade date for
+ *      the (depositCurrency, securityCurrency) pair.
+ *   4. Unresolved → pass through unchanged. The caller logs a warning;
+ *      the resulting per-security perf will mix currencies until the
+ *      user supplies a rate (manual rate-entry surface is a follow-up).
+ *
+ * Currency-blind transaction types (BUY/SELL cash-side with shares=0,
+ * standalone FEES/TAXES, INTEREST, REMOVAL, etc.) are passed through
+ * unchanged — they are already accounted on the deposit-currency side
+ * and are NOT consumed by per-security FIFO/cashflow paths.
+ */
+function projectTransactionsToSecurityCurrency(
+  sqlite: BetterSqlite3.Database,
+  secTxs: PerfTransaction[],
+  securityCurrency: string,
+): PerfTransaction[] {
+  return secTxs.map((tx) => {
+    if (tx.currencyCode === securityCurrency || tx.amount == null) {
+      return tx;
+    }
+
+    const fxUnit = tx.units.find(
+      (u) =>
+        (u.type === 'GROSS_VALUE' || u.type === 'FOREX') &&
+        u.fxCurrencyCode === securityCurrency &&
+        u.fxAmount != null,
+    );
+
+    let secGross: Decimal | null = null;
+    let resolvedRate: Decimal | null = null;
+
+    if (fxUnit && fxUnit.fxAmount != null) {
+      secGross = new Decimal(fxUnit.fxAmount);
+      resolvedRate =
+        fxUnit.fxRate != null ? new Decimal(fxUnit.fxRate) : null;
+    } else if (tx.currencyCode != null) {
+      const rate = getRate(sqlite, tx.currencyCode, securityCurrency, tx.date);
+      if (rate) {
+        const depGross = getGrossAmount(tx);
+        secGross = depGross.times(rate);
+        resolvedRate = rate;
+      }
+    }
+
+    if (secGross == null) {
+      return tx;
+    }
+
+    // Convert FEE/TAX unit amounts: prefer the unit's own fxAmount when it
+    // targets securityCurrency, else multiply by the resolved parent rate.
+    let secFees = new Decimal(0);
+    let secTaxes = new Decimal(0);
+    const projectedUnits: TransactionUnit[] = tx.units.map((u) => {
+      if (u.type !== 'FEE' && u.type !== 'TAX') return u;
+      let secAmt: number;
+      if (u.fxCurrencyCode === securityCurrency && u.fxAmount != null) {
+        secAmt = u.fxAmount;
+      } else if (resolvedRate) {
+        secAmt = new Decimal(u.amount).times(resolvedRate).toNumber();
+      } else {
+        secAmt = u.amount; // unresolvable; keep deposit-ccy as least-bad
+      }
+      if (u.type === 'FEE') secFees = secFees.plus(secAmt);
+      else secTaxes = secTaxes.plus(secAmt);
+      return { ...u, amount: secAmt };
+    });
+
+    // Re-pack tx.amount using ppxml2db's amount = gross ± fees ± taxes
+    // convention. OUTFLOW types: amount = gross + fees + taxes. Others:
+    // amount = gross − fees − taxes.
+    const isOutflow =
+      tx.type === TransactionType.BUY ||
+      tx.type === TransactionType.DELIVERY_INBOUND ||
+      tx.type === TransactionType.INTEREST_CHARGE ||
+      tx.type === TransactionType.FEES ||
+      tx.type === TransactionType.TAXES;
+    const newAmount = isOutflow
+      ? secGross.plus(secFees).plus(secTaxes)
+      : secGross.minus(secFees).minus(secTaxes);
+
+    return {
+      ...tx,
+      currencyCode: securityCurrency,
+      amount: newAmount.toNumber(),
+      units: projectedUnits,
+    };
+  });
+}
+
+// ─── Portfolio-base currency projection (multi-currency Phase 2) ────────────
+
+/**
+ * Projects every transaction in `txs` into `baseCurrency`, returning
+ * a new array of `PerfTransaction` with `currencyCode` and `amount`
+ * rewritten to the portfolio base currency where needed.
+ *
+ * Resolution priority per transaction:
+ *   1. Same-currency (tx.currencyCode === baseCurrency) → pass through.
+ *   2. GROSS_VALUE unit with fxCurrencyCode === baseCurrency and non-null
+ *      fxAmount → use fxAmount (trade-date embedded rate; most accurate).
+ *   3. Pre-built RateMap keyed by tx.currencyCode → multiply by trade-date
+ *      rate (upstream-aligned trade-date FX, no period collapsing).
+ *   4. Security tx with no rate → drop from projectedTxs + tag securityId
+ *      in unresolvedSecurityIds (caller decides how to surface the gap).
+ *   5. Cash-only tx (securityId === null) with no rate → keep unchanged
+ *      (multi-currency deposit accounts; emit a warn, never drop).
+ *
+ * The caller is responsible for pre-building rateMaps via
+ * `buildRateMap(db, fromCurrency, baseCurrency, start, end)` — this
+ * helper performs no I/O.
+ */
+export function projectTransactionsToBaseCurrency(
+  txs: PerfTransaction[],
+  baseCurrency: string,
+  rateMaps: Map<string, RateMap>,
+): { projectedTxs: PerfTransaction[]; unresolvedSecurityIds: Set<string> } {
+  const projectedTxs: PerfTransaction[] = [];
+  const unresolvedSecurityIds = new Set<string>();
+  const unresolvedCashCcys = new Set<string>();
+
+  for (const tx of txs) {
+    if (tx.currencyCode === baseCurrency || tx.currencyCode == null) {
+      projectedTxs.push(tx);
+      continue;
+    }
+
+    // Priority 2: GROSS_VALUE FOREX leg with fxCurrencyCode === baseCurrency
+    const fxUnit = tx.units.find(
+      (u) =>
+        u.type === 'GROSS_VALUE' &&
+        u.fxCurrencyCode === baseCurrency &&
+        u.fxAmount != null,
+    );
+    if (fxUnit?.fxAmount != null) {
+      projectedTxs.push({ ...tx, amount: fxUnit.fxAmount, currencyCode: baseCurrency });
+      continue;
+    }
+
+    // Priority 3: vf_exchange_rate via pre-built RateMap
+    const rateMap = rateMaps.get(tx.currencyCode);
+    const rate = rateMap ? getRateFromMap(rateMap, tx.date) : null;
+    if (rate) {
+      const converted = new Decimal(tx.amount ?? 0).times(rate).toNumber(); // native-ok: Decimal → JS number for PerfTransaction.amount
+      projectedTxs.push({ ...tx, amount: converted, currencyCode: baseCurrency });
+      continue;
+    }
+
+    // Priority 4/5: no rate available
+    if (tx.securityId) {
+      // Security tx: drop and tag for caller
+      unresolvedSecurityIds.add(tx.securityId);
+    } else {
+      // Cash-only tx: keep unchanged, emit a warning
+      unresolvedCashCcys.add(tx.currencyCode);
+      projectedTxs.push(tx);
+    }
+  }
+
+  if (unresolvedCashCcys.size > 0) {
+    console.warn(
+      `[multi-currency] cash txs with unresolvable FX: currencies=${[...unresolvedCashCcys].join(',')}`,
+    );
+  }
+  if (unresolvedSecurityIds.size > 0) {
+    console.warn(
+      `[multi-currency] dropping ${unresolvedSecurityIds.size} securities from rollup due to missing FX rates`,
+    );
+  }
+
+  return { projectedTxs, unresolvedSecurityIds };
+}
+
 // ─── Batch DB fetches (anti-N+1) ─────────────────────────────────────────────
 
 export function fetchAllTransactions(sqlite: BetterSqlite3.Database): PerfTransaction[] {
+  // units_raw encoding (see parseRawRow): colon-separated 6 fields per unit:
+  //   <type>:<amount>:<currency>:<forex_amount>:<forex_currency>:<exchangeRate>
+  // NULLs become '' to preserve positional alignment. '|' separates units.
   const rows = sqlite
     .prepare(
       `SELECT x.*,
-              GROUP_CONCAT(u.type || ':' || u.amount, '|') as units_raw,
+              GROUP_CONCAT(
+                u.type
+                || ':' || u.amount
+                || ':' || COALESCE(u.currency, '')
+                || ':' || COALESCE(u.forex_amount, '')
+                || ':' || COALESCE(u.forex_currency, '')
+                || ':' || COALESCE(u.exchangeRate, ''),
+                '|'
+              ) as units_raw,
               (SELECT ce.type FROM xact_cross_entry ce
                WHERE ce.from_xact = x.uuid OR ce.to_xact = x.uuid
                ORDER BY ce.type DESC NULLS LAST
@@ -780,10 +989,81 @@ export interface SecurityPerfResult {
   dividends: string;
   interest: string;
   shares: string;
+  baseCurrency: string;
+  marketValueBase: string;
+  /** Surviving-lot cost basis in base ccy via per-lot FIFO + trade-date FX. */
+  costBase: string;
+  /**
+   * `sr.unrealizedGain` × period-end FX rate. **Period-end-uniform projection** —
+   * NOT the same number as `unrealizedCapitalBase + unrealizedFxBase`, which
+   * uses per-lot acquisition rates. Kept for backward compatibility with the
+   * Investments table and SecurityDrawer (`packages/web/src/...`). Future
+   * contributors: do not attempt to "fix" the identity by replacing this with
+   * the decomposition sum — that would silently change UI numbers users
+   * already see.
+   */
+  unrealizedBase: string;
+  /**
+   * `sr.realizedGain` × period-end FX rate. Same period-end-uniform caveat as
+   * `unrealizedBase`. Does NOT equal `realizedCapitalBase + realizedFxBase`.
+   */
+  realizedBase: string;
+  /** `sr.dividends` × period-end FX rate. Does NOT include `dividendFxBase`. */
+  dividendsBase: string;
+
+  // ─── Phase 3 — capital / FX decomposition (all in base ccy) ────────────────
+  /**
+   * Realized capital component (base ccy) on consumed SELL slices:
+   *   sum(shares × (sellPrice − lotPrice) × sellRate)
+   * Pure market move at the SELL date's FX rate. '0' on coverage gap or same-ccy.
+   */
+  realizedCapitalBase: string;
+  /**
+   * Realized FX component (base ccy) on consumed SELL slices:
+   *   sum(shares × lotPrice × (sellRate − lotRate))
+   * FX move on cost basis between the BUY's acquisition rate and the SELL rate.
+   * Together with `realizedCapitalBase`: sum = sellValueInBase − costInBase
+   * (algebraic identity). '0' on coverage gap or same-ccy.
+   */
+  realizedFxBase: string;
+
+  /**
+   * Unrealized capital component (base ccy) on surviving lots:
+   *   sum(shares × (currentPrice − lotPrice) × currentRate)
+   */
+  unrealizedCapitalBase: string;
+  /**
+   * Unrealized FX component (base ccy) on surviving lots:
+   *   sum(shares × lotPrice × (currentRate − lotRate))
+   * Together with `unrealizedCapitalBase`: sum = mvBase − costBase
+   * (algebraic identity). '0' on coverage gap or same-ccy.
+   */
+  unrealizedFxBase: string;
+
+  // Cumulative FX gain/loss on received dividends between receipt date and
+  // period.end, in base ccy:
+  //   sum over DIVIDEND txs: tx.amount × (endRate − receiptRate)
+  // where the rate is for the dividend's own deposit currency. Zero when the
+  // dividend lands in base ccy. Defaults to '0' on coverage gap.
+  dividendFxBase: string;
+
+  // ─── Phase 3 — dual TTWROR / IRR pass in base ccy ──────────────────────────
+  // Same TTWROR/IRR shape as `ttwror`/`ttwrorPa`/`irr`, but computed from a
+  // second pass where every cashflow + daily MV is projected to base ccy.
+  // For a USD security in a EUR-base portfolio, `ttwror` is the USD-native
+  // return; `ttwrorBase` is the return as a EUR investor experiences it
+  // (capital + FX combined). Short-circuits to the native fields when
+  // secCcy === baseCcy. Defaults to the native value on coverage gap.
+  ttwrorBase: string;
+  ttwrorPaBase: string;
+  irrBase: string | null;
+  irrBaseConverged: boolean;
 }
 
 export interface PortfolioCalcResult {
   baseCurrency: string;
+  unresolvedCount: number;
+  unresolvedSecurityIds: string[];
   initialValue: string;
   capitalGains: CapitalGainsBreakdown;
   realizedGains: RealizedGainsBreakdown;
@@ -812,6 +1092,25 @@ export interface PortfolioCalcResult {
   semivariance: string | null;
   sharpeRatio: string | null;
   openPositionPnL: OpenPositionPnLBreakdown;
+
+  // ─── Phase 3 — capital / FX decomposition rollups (all in base ccy) ────────
+  // Portfolio-level sums of the per-security decomposition fields emitted on
+  // SecurityPerfResult (Task 7). These use per-tx trade-date FX (strict PP
+  // convention via per-lot acquisition rates), NOT the period-end-uniform
+  // rate the legacy `capitalGains.realized` / `capitalGains.unrealized`
+  // aggregates use. The two intentionally do NOT sum to the same number —
+  // see the SecurityPerfResult.unrealizedBase / realizedBase comments for
+  // the rationale (preserves visible UI numbers).
+  //
+  // Defaults to '0' when no per-security decomposition is computable (every
+  // security same-ccy as base, or coverage gap on every FX rate).
+  // Unresolved-FX securities are skipped via the same `continue` that
+  // excludes them from totalMVB/totalMVE.
+  realizedCapitalBase: string;
+  realizedFxBase: string;
+  unrealizedCapitalBase: string;
+  unrealizedFxBase: string;
+  dividendFxBase: string;
 }
 
 export interface ChartPoint {
@@ -901,6 +1200,36 @@ export function fetchBatchData(
 }
 
 /**
+ * Build a per-call FX context: portfolio base currency + a RateMap for every
+ * foreign currency referenced by securities or deposit accounts. Pre-building
+ * the maps once amortises the cost across all per-day FX lookups inside the
+ * aggregation loop and the cashflow projection pass.
+ *
+ * Consolidates three previously-duplicated blocks in getPortfolioCalc,
+ * getChartData, and getReturnsHeatmap. Wire-emission paths (Task 9) reuse
+ * the same helper.
+ */
+function buildFxContext(
+  sqlite: BetterSqlite3.Database,
+  data: BatchData,
+  period: { start: string; end: string },
+): { baseCurrency: string; rateMaps: Map<string, RateMap> } {
+  const baseCurrency = getPortfolioBaseCurrency(sqlite);
+  const foreignCurrencies = new Set<string>();
+  for (const [, cur] of data.secCurrencyMap) {
+    if (cur !== baseCurrency) foreignCurrencies.add(cur);
+  }
+  for (const [, cur] of data.depositAccCurrencyMap) {
+    if (cur !== baseCurrency) foreignCurrencies.add(cur);
+  }
+  const rateMaps = new Map<string, RateMap>();
+  for (const cur of foreignCurrencies) {
+    rateMaps.set(cur, buildRateMap(sqlite, cur, baseCurrency, period.start, period.end));
+  }
+  return { baseCurrency, rateMaps };
+}
+
+/**
  * When an account scope is active, TRANSFER_BETWEEN_ACCOUNTS entries must be
  * appended to the cashflow list so that TTWROR neutralises them.
  * At full-portfolio level these transfers are internal (cancel out between accounts),
@@ -983,6 +1312,7 @@ function buildSecurityOnlyCashflows(
 }
 
 export function computeAllSecurities(
+  sqlite: BetterSqlite3.Database,
   data: BatchData,
   period: { start: string; end: string },
   costMethod: CostMethod,
@@ -1000,9 +1330,20 @@ export function computeAllSecurities(
     const latestPriceEntry = data.latestPrices.get(securityId);
     const latestPrice = latestPriceEntry?.price ?? new Decimal(0);
     const latestPriceDate = latestPriceEntry?.date ?? null;
+    // Project to security currency BEFORE per-security math (see
+    // docs/architecture/multi-currency.md). priceMap, priceAtStart, and
+    // latestPrice are already in security currency (price.value is stored
+    // in security.currency); projecting the transactions makes the cost
+    // basis, cashflows, fees, and earnings unit-consistent with the MV.
+    const securityCurrency = data.secCurrencyMap.get(securityId) ?? 'EUR';
+    const projectedTxs = projectTransactionsToSecurityCurrency(
+      sqlite,
+      filteredTxs as PerfTransaction[],
+      securityCurrency,
+    );
     results.push(
       computeSecurityPerfInternal(
-        filteredTxs,
+        projectedTxs,
         securityId,
         priceMap,
         priceAtStart,
@@ -1345,6 +1686,280 @@ export function buildCalcScope(
   return undefined; // No filter — full portfolio
 }
 
+// ─── Aggregation helpers ──────────────────────────────────────────────────────
+
+/**
+ * Converts a security-currency amount to base currency via period-end FX.
+ * Returns null when the rate is unavailable — the caller filters unresolved.
+ * Uses multiply convention: nativeAmount × rate = baseAmount.
+ */
+function toBaseAtDate(
+  nativeAmount: Decimal,
+  secCurrency: string,
+  baseCurrency: string,
+  rateMaps: Map<string, RateMap>,
+  date: string,
+): Decimal | null {
+  if (secCurrency === baseCurrency) return nativeAmount;
+  const rateMap = rateMaps.get(secCurrency);
+  const rate = rateMap ? getRateFromMap(rateMap, date) : null;
+  if (!rate) return null;
+  return convertToBase(nativeAmount, rate);
+}
+
+/**
+ * Per-security cost basis in base currency via per-lot FIFO consumption.
+ *
+ * Runs the engine's `computeFIFO` over the security's BUY/SELL/DELIVERY rows
+ * (securities-side, `shares > 0`) and sums the surviving lots' `costInBase`.
+ * Partial sells correctly drop their consumed-lot cost from the total — the
+ * previous implementation summed ALL cash-side BUY rows and overstated cost
+ * by the consumed portion (BUG: closed by Phase 3).
+ *
+ * Architecture: this replaces the old "sum every BUY cash-side row" helper
+ * uniformly (same-ccy and cross-ccy alike). For same-ccy securities, FIFO
+ * is run WITHOUT a `rateMap`; surviving lots' `totalCost` is already in
+ * base ccy. For cross-ccy securities, FIFO is run WITH `rateMap`
+ * (sec→base, multiply convention) and lots carry `costInBase = totalCost
+ * × acquisitionRate`.
+ *
+ * Per-transaction gross in security currency is resolved via
+ * `getSecurityCurrencyGross` (engine helper, single source of truth):
+ *   1. tx.currencyCode === secCurrency → use tx amount directly.
+ *   2. FOREX/GROSS_VALUE unit with fxCurrencyCode === secCurrency →
+ *      use unit.fxAmount.
+ *   3. Otherwise → unresolvable (return null).
+ *
+ * Returns null when:
+ *   - Cross-ccy and `rateMaps` has no entry for `secCurrency`, OR
+ *   - Engine's FIFO reports any BUY date with no rate
+ *     (`unresolvedBuyDates` non-empty), OR
+ *   - Any BUY tx has no resolvable gross in `secCurrency`
+ *     (e.g. deposit-ccy BUY with no FOREX unit and no fallback rate).
+ *
+ * Caller treats null as "unresolved" and leaves the *Base fields as '0'.
+ */
+/**
+ * Result of the per-lot FIFO pass over a single security's BUY/SELL/DELIVERY rows.
+ *
+ *   - `costBase` — surviving-lot cost in base ccy (caller's `costBase` field).
+ *   - `fifoResult` — raw engine output, kept so callers can feed `consumedSlices`
+ *     + `remainingLots` into `decomposeRealized` / `decomposeUnrealized` without
+ *     re-running FIFO.
+ *   - `costTxs` — the engine-shaped tx list FIFO consumed, in chronological
+ *     order. Callers walking SELL slices need this to know which sell-date
+ *     a particular slice was consumed by (consumedSlices carry no date).
+ *
+ * Returns null on any coverage gap (cross-ccy without rateMap, unresolvable
+ * BUY date, BUY whose gross cannot be expressed in secCurrency).
+ */
+interface SecurityFifoInBase {
+  costBase: Decimal;
+  fifoResult: FIFOResult;
+  costTxs: CostTransaction[];
+}
+
+function computeSecurityFifoInBase(
+  txs: PerfTransaction[],
+  securityId: string,
+  secCurrency: string,
+  baseCurrency: string,
+  rateMaps: Map<string, RateMap>,
+): SecurityFifoInBase | null {
+  // For cross-ccy securities, run FIFO with the sec→base rateMap so lots
+  // gain `costInBase`. For same-ccy securities, skip the rateMap so lots
+  // carry `totalCost` directly (already in base ccy).
+  const isCrossCcy = secCurrency !== baseCurrency;
+  const rateMap = isCrossCcy ? rateMaps.get(secCurrency) : undefined;
+  if (isCrossCcy && !rateMap) return null;
+
+  // Build CostTransactions for FIFO. Only the securities-side rows feed FIFO
+  // (BUY/SELL with shares > 0, plus DELIVERY_*). Cash-side BUY/SELL rows are
+  // bookkeeping shadows in the same xact set and would double-count.
+  const costTxs: CostTransaction[] = [];
+  for (const t of txs) {
+    if (t.securityId !== securityId) continue;
+    const isBuy = t.type === TransactionType.BUY && (t.shares ?? 0) > 0;
+    const isSell = t.type === TransactionType.SELL && (t.shares ?? 0) > 0;
+    const isDeliveryIn = t.type === TransactionType.DELIVERY_INBOUND;
+    const isDeliveryOut = t.type === TransactionType.DELIVERY_OUTBOUND;
+    if (!isBuy && !isSell && !isDeliveryIn && !isDeliveryOut) continue;
+
+    // Resolve gross in security currency. For SELL/DELIVERY_OUTBOUND with no
+    // FX info we still need a numeric gross — the engine uses it only for
+    // realized-gain math, not for surviving-lot cost (which is the BUY side).
+    // Fall back to deposit-ccy gross when no FOREX unit exists.
+    const grossSecCcy =
+      getSecurityCurrencyGross(t, secCurrency) ??
+      (isSell || isDeliveryOut ? getGrossAmount(t) : null);
+    if (grossSecCcy == null) {
+      // A BUY whose gross cannot be expressed in secCurrency cannot feed FIFO.
+      return null;
+    }
+
+    costTxs.push({
+      type: t.type as CostTransaction['type'],
+      date: t.date,
+      shares: new Decimal((t.shares ?? 0) / 1e8),
+      grossAmount: grossSecCcy,
+      fees: getFees(t),
+    });
+  }
+
+  const result = computeFIFO(costTxs, undefined, undefined, rateMap ? { rateMap } : undefined);
+
+  // Coverage check (cross-ccy only — same-ccy skips rateMap and never populates this).
+  if (result.unresolvedBuyDates && result.unresolvedBuyDates.length > 0) return null;
+
+  // Surviving lots' cost in base ccy:
+  //   - Cross-ccy: lot.costInBase = lot.totalCost × acquisitionRate.
+  //   - Same-ccy: lot.costInBase is undefined; lot.totalCost is in base ccy.
+  let totalCostBase = new Decimal(0);
+  for (const lot of result.remainingLots) {
+    const lotBase = lot.costInBase ?? lot.totalCost;
+    totalCostBase = totalCostBase.plus(lotBase);
+  }
+  return { costBase: totalCostBase, fifoResult: result, costTxs };
+}
+
+// ─── Phase 3 Task 8 — shared decomposition helper ────────────────────────────
+
+/**
+ * Per-security realized/unrealized capital/FX decomposition + dividend FX gain,
+ * all in base ccy. Pure shared computation between `getSecurityPerformanceList`
+ * (wire emission per security) and `getPortfolioCalc` (rollup accumulators).
+ *
+ * Returns `null` when no decomposition is computable for this security:
+ *   - same-ccy (secCurrency === baseCurrency) — no FX component exists
+ *   - cross-ccy with unresolved FIFO coverage (missing BUY-date rate in the
+ *     wider cost-rate window)
+ * Both cases mean the caller substitutes 0 for the 5 decomposition fields.
+ *
+ * The math itself is the lifted body of `getSecurityPerformanceList` lines
+ * (formerly) 2585-2688: walks consumed slices per SELL, calls
+ * `decomposeRealized` per SELL; calls `decomposeUnrealized` once on the
+ * surviving lots at period.end; sums dividend × (endRate − receiptRate) per
+ * in-period DIVIDEND tx in foreign currency.
+ */
+interface SecurityDecomposition {
+  realizedCapitalBase: Decimal;
+  realizedFxBase: Decimal;
+  unrealizedCapitalBase: Decimal;
+  unrealizedFxBase: Decimal;
+  dividendFxBase: Decimal;
+  /** FIFO result reused by caller (avoids re-running FIFO for costBase). */
+  fifo: SecurityFifoInBase;
+}
+
+function computeSecurityDecomposition(
+  sr: SecurityPerfInternal,
+  nativeCurrency: string,
+  baseCurrency: string,
+  data: BatchData,
+  rateMaps: Map<string, RateMap>,
+  effectiveCostRateMaps: Map<string, RateMap>,
+  period: { start: string; end: string },
+): SecurityDecomposition | null {
+  // Same-ccy short-circuit: no FX component exists anywhere.
+  if (nativeCurrency === baseCurrency) return null;
+
+  const fifo = computeSecurityFifoInBase(
+    data.allTxs, sr.securityId, nativeCurrency, baseCurrency, effectiveCostRateMaps,
+  );
+  if (fifo === null) return null;
+
+  let realizedCapitalBase = new Decimal(0);
+  let realizedFxBase = new Decimal(0);
+  let unrealizedCapitalBase = new Decimal(0);
+  let unrealizedFxBase = new Decimal(0);
+  let dividendFxBase = new Decimal(0);
+
+  const slices = fifo.fifoResult.consumedSlices ?? [];
+  const rateMap = effectiveCostRateMaps.get(nativeCurrency);
+  // rateMap is guaranteed non-null here: fifo !== null implies the cross-ccy
+  // branch resolved a rateMap. Keep the optional check to satisfy TS narrowing.
+  if (rateMap) {
+    // ─── Realized decomposition ──────────────────────────────────────────────
+    let sliceIdx = 0;
+    for (const ctx of fifo.costTxs) {
+      const isSell = ctx.type === 'SELL' || ctx.type === 'DELIVERY_OUTBOUND';
+      if (!isSell) continue;
+      const sellRate = getRateFromMap(rateMap, ctx.date);
+      // No sellRate → cannot decompose this SELL. Skip while still advancing
+      // sliceIdx so subsequent SELLs read the correct slice range.
+      if (!sellRate) {
+        let unsettled = ctx.shares;
+        while (unsettled.gt(0) && sliceIdx < slices.length) {
+          const s = slices[sliceIdx];
+          const consumed = Decimal.min(unsettled, s.shares);
+          unsettled = unsettled.minus(consumed);
+          if (consumed.eq(s.shares)) sliceIdx++;
+          else slices[sliceIdx] = { ...s, shares: s.shares.minus(consumed) };
+        }
+        continue;
+      }
+      const sellPrice = ctx.shares.isZero()
+        ? new Decimal(0)
+        : ctx.grossAmount.div(ctx.shares);
+      const sellSlices: typeof slices = [];
+      let unsettled = ctx.shares;
+      while (unsettled.gt(0) && sliceIdx < slices.length) {
+        const s = slices[sliceIdx];
+        const consumed = Decimal.min(unsettled, s.shares);
+        sellSlices.push({ ...s, shares: consumed });
+        unsettled = unsettled.minus(consumed);
+        if (consumed.eq(s.shares)) sliceIdx++;
+        else slices[sliceIdx] = { ...s, shares: s.shares.minus(consumed) };
+      }
+      const { capitalBase, forexBase } = decomposeRealized(sellSlices, sellPrice, sellRate);
+      realizedCapitalBase = realizedCapitalBase.plus(capitalBase);
+      realizedFxBase = realizedFxBase.plus(forexBase);
+    }
+
+    // ─── Unrealized decomposition ────────────────────────────────────────────
+    const sharesEnd = sr.sharesEnd;
+    if (sharesEnd.gt(0)) {
+      const currentPrice = sr.mve.div(sharesEnd);
+      const currentRate = getRateFromMap(rateMap, period.end);
+      if (currentRate) {
+        const { capitalBase: uCap, forexBase: uFx } = decomposeUnrealized(
+          fifo.fifoResult.remainingLots, currentPrice, currentRate,
+        );
+        unrealizedCapitalBase = uCap;
+        unrealizedFxBase = uFx;
+      }
+    }
+  }
+
+  // ─── Dividend FX gain ──────────────────────────────────────────────────────
+  // For each in-period DIVIDEND tx of this security in foreign currency,
+  // sum tx.amount × (endRate(depositCcy) − receiptRate(depositCcy)).
+  for (const tx of data.allTxs) {
+    if (tx.securityId !== sr.securityId) continue;
+    if (tx.type !== TransactionType.DIVIDEND) continue;
+    if (tx.date < period.start || tx.date > period.end) continue;
+    if (tx.currencyCode == null || tx.currencyCode === baseCurrency) continue;
+    if (tx.amount == null) continue;
+    const divRateMap = rateMaps.get(tx.currencyCode);
+    if (!divRateMap) continue;
+    const receiptRate = getRateFromMap(divRateMap, tx.date);
+    const endRate = getRateFromMap(divRateMap, period.end);
+    if (!receiptRate || !endRate) continue;
+    const fxDelta = new Decimal(tx.amount).mul(endRate.minus(receiptRate));
+    dividendFxBase = dividendFxBase.plus(fxDelta);
+  }
+
+  return {
+    realizedCapitalBase,
+    realizedFxBase,
+    unrealizedCapitalBase,
+    unrealizedFxBase,
+    dividendFxBase,
+    fifo,
+  };
+}
+
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export function getPortfolioCalc(
@@ -1365,24 +1980,35 @@ export function getPortfolioCalc(
   const taxItems: TaxItem[] = [];
   const cashCurrencyGainItems: CashCurrencyGainItem[] = [];
 
-  // ── Multi-currency: build RateMaps ──
-  const baseCurrency = getBaseCurrency(sqlite);
-  const foreignCurrencies = new Set<string>();
-  for (const [, cur] of data.secCurrencyMap) {
-    if (cur !== baseCurrency) foreignCurrencies.add(cur);
+  const { baseCurrency, rateMaps } = buildFxContext(sqlite, data, period);
+
+  // Phase 3 Task 8 — dedicated wider rateMaps for per-lot FIFO cost-basis,
+  // mirroring getSecurityPerformanceList lines 2519-2538. Lots originate at
+  // BUY dates which may predate period.start by years; the shared `rateMaps`
+  // above is keyed on period.start (with a 30-day prefix only) and would
+  // drop pre-period BUYs into `unresolvedBuyDates`. The widening is
+  // forward-fill monotonic, so it only ADDS coverage. Kept local (not in
+  // buildFxContext) because chart/heatmap/SoA paths intentionally want the
+  // narrower window.
+  const earliestTxDateForCost = data.allTxs.reduce<string | null>(
+    (min, t) => (min == null || t.date < min ? t.date : min),
+    null,
+  );
+  const costRateStart = earliestTxDateForCost && earliestTxDateForCost < period.start
+    ? earliestTxDateForCost
+    : period.start;
+  const costRateMaps = new Map<string, RateMap>();
+  if (costRateStart !== period.start) {
+    for (const [ccy] of rateMaps) {
+      costRateMaps.set(ccy, buildRateMap(sqlite, ccy, baseCurrency, costRateStart, period.end));
+    }
   }
-  for (const [, cur] of data.depositAccCurrencyMap) {
-    if (cur !== baseCurrency) foreignCurrencies.add(cur);
-  }
-  const rateMaps = new Map<string, RateMap>();
-  for (const cur of foreignCurrencies) {
-    rateMaps.set(cur, buildRateMap(sqlite, cur, baseCurrency, period.start, period.end));
-  }
+  const effectiveCostRateMaps = costRateMaps.size > 0 ? costRateMaps : rateMaps;
 
   // Compute per-security performance (skip non-scoped securities early for efficiency)
   // When account-scoped, also filter transactions within each security to only the scoped account,
   // so that MVB/MVE/daily-MV are consistent with the scoped cashflows.
-  const secResults = computeAllSecurities(data, period, costMethod, preTax, scope?.securityIds, scope?.txFilter);
+  const secResults = computeAllSecurities(sqlite, data, period, costMethod, preTax, scope?.securityIds, scope?.txFilter);
 
   // Scoped transaction list (for cashflows, PNT, standalone fees/taxes, daily cash)
   const scopedTxs: PerfTransaction[] = scope
@@ -1412,21 +2038,87 @@ export function getPortfolioCalc(
   let totalOpenPositionCostFifo = new Decimal(0);
   let totalOpenPositionPnLFifo  = new Decimal(0);
 
+  // Phase 3 Task 8 — decomposition rollups: sum per-security trade-date-FX
+  // decomposition fields (Task 7) into portfolio totals. These are ADDITIVE
+  // to the existing totalRealized / totalUnrealized / totalDividends, which
+  // intentionally use period-end-uniform FX and preserve existing UI numbers.
+  let totalRealizedCapital   = new Decimal(0);
+  let totalRealizedFx        = new Decimal(0);
+  let totalUnrealizedCapital = new Decimal(0);
+  let totalUnrealizedFx      = new Decimal(0);
+  let totalDividendFx        = new Decimal(0);
+
+  // Unresolved securities: those for which no FX rate is available at the
+  // aggregation date. Excluded from rollup totals. Emitted on the wire shape
+  // (`unresolvedCount` + `unresolvedSecurityIds`) for the UI's unresolved-FX badge.
+  const unresolvedSecurityIds = new Set<string>();
+
   for (const sr of secResults) {
     const sw = scope?.securityWeights?.get(sr.securityId) ?? new Decimal(1);
-    totalMVB = totalMVB.plus(sr.mvb.times(sw));
-    totalMVE = totalMVE.plus(sr.mve.times(sw));
-    totalUnrealized = totalUnrealized.plus(sr.unrealizedGain.times(sw));
-    totalRealized = totalRealized.plus(sr.realizedGain.times(sw));
-    totalFxGains = totalFxGains.plus(sr.foreignCurrencyGains.times(sw));
-    totalFees = totalFees.plus(sr.fees.times(sw));
-    totalTaxes = totalTaxes.plus(sr.taxes.times(sw));
-    totalDividends = totalDividends.plus(sr.dividends);
-    totalOpenPositionCost     = totalOpenPositionCost.plus(sr.openPositionCost.times(sw));
-    totalOpenPositionValue    = totalOpenPositionValue.plus(sr.openPositionValue.times(sw));
-    totalOpenPositionPnL      = totalOpenPositionPnL.plus(sr.openPositionPnL.times(sw));
-    totalOpenPositionCostFifo = totalOpenPositionCostFifo.plus(sr.openPositionCostFifo.times(sw));
-    totalOpenPositionPnLFifo  = totalOpenPositionPnLFifo.plus(sr.openPositionPnLFifo.times(sw));
+    const secCcy = data.secCurrencyMap.get(sr.securityId) ?? baseCurrency;
+
+    // Convert MVB/MVE to base currency at the respective period boundary.
+    // When the rate is unavailable, skip this security from the entire rollup
+    // rather than produce a mixed-unit sum (e.g. USD added as EUR).
+    const mvbBase = toBaseAtDate(sr.mvb, secCcy, baseCurrency, rateMaps, period.start);
+    const mveBase = toBaseAtDate(sr.mve, secCcy, baseCurrency, rateMaps, period.end);
+    if (mvbBase === null || mveBase === null) {
+      unresolvedSecurityIds.add(sr.securityId);
+      continue;
+    }
+
+    // Convert remaining per-security totals to base at period-end.
+    // Null-coalesce to Decimal(0) — these are secondary metrics, not NAV,
+    // so a missing mid-period rate is a degraded-display case, not an exclusion.
+    const unrealizedBase = toBaseAtDate(sr.unrealizedGain, secCcy, baseCurrency, rateMaps, period.end) ?? new Decimal(0);
+    const realizedBase   = toBaseAtDate(sr.realizedGain,   secCcy, baseCurrency, rateMaps, period.end) ?? new Decimal(0);
+    const dividendsBase  = toBaseAtDate(sr.dividends,      secCcy, baseCurrency, rateMaps, period.end) ?? new Decimal(0);
+    const feesBase       = toBaseAtDate(sr.fees,           secCcy, baseCurrency, rateMaps, period.end) ?? new Decimal(0);
+    const taxesBase      = toBaseAtDate(sr.taxes,          secCcy, baseCurrency, rateMaps, period.end) ?? new Decimal(0);
+    const openCostBase   = toBaseAtDate(sr.openPositionCost,     secCcy, baseCurrency, rateMaps, period.end) ?? new Decimal(0);
+    const openValueBase  = toBaseAtDate(sr.openPositionValue,    secCcy, baseCurrency, rateMaps, period.end) ?? new Decimal(0);
+    const openPnLBase    = toBaseAtDate(sr.openPositionPnL,      secCcy, baseCurrency, rateMaps, period.end) ?? new Decimal(0);
+    const openCostFifo   = toBaseAtDate(sr.openPositionCostFifo, secCcy, baseCurrency, rateMaps, period.end) ?? new Decimal(0);
+    const openPnLFifo    = toBaseAtDate(sr.openPositionPnLFifo,  secCcy, baseCurrency, rateMaps, period.end) ?? new Decimal(0);
+
+    totalMVB = totalMVB.plus(mvbBase.times(sw));
+    totalMVE = totalMVE.plus(mveBase.times(sw));
+    totalUnrealized = totalUnrealized.plus(unrealizedBase.times(sw));
+    totalRealized   = totalRealized.plus(realizedBase.times(sw));
+    // foreignCurrencyGains is already in base currency: it is computed as
+    // nativeCost × (currentRate − purchaseRate) inside computeCurrencyGains,
+    // which uses the multiply-convention rate (native→base). No further
+    // conversion needed — adding it directly is correct.
+    totalFxGains    = totalFxGains.plus(sr.foreignCurrencyGains.times(sw));
+    totalFees       = totalFees.plus(feesBase.times(sw));
+    totalTaxes      = totalTaxes.plus(taxesBase.times(sw));
+    totalDividends  = totalDividends.plus(dividendsBase);
+    totalOpenPositionCost     = totalOpenPositionCost.plus(openCostBase.times(sw));
+    totalOpenPositionValue    = totalOpenPositionValue.plus(openValueBase.times(sw));
+    totalOpenPositionPnL      = totalOpenPositionPnL.plus(openPnLBase.times(sw));
+    totalOpenPositionCostFifo = totalOpenPositionCostFifo.plus(openCostFifo.times(sw));
+    totalOpenPositionPnLFifo  = totalOpenPositionPnLFifo.plus(openPnLFifo.times(sw));
+
+    // Phase 3 Task 8 — decomposition accumulators (per-tx trade-date FX).
+    // The decomposition lives on SecurityPerfResult (wire shape), not on
+    // SecurityPerfInternal. computeSecurityDecomposition is the shared helper
+    // that both this rollup and getSecurityPerformanceList consume. Skips
+    // gracefully (returns null) for same-ccy securities and coverage gaps;
+    // we treat those as zero contribution.
+    const decomp = computeSecurityDecomposition(
+      sr, secCcy, baseCurrency, data, rateMaps, effectiveCostRateMaps, period,
+    );
+    if (decomp !== null) {
+      // Weight applied symmetrically with the legacy aggregates, EXCEPT
+      // dividendFxBase which mirrors totalDividends' weight-less posture
+      // (line `totalDividends.plus(dividendsBase)` above) for consistency on
+      // scoped queries.
+      totalRealizedCapital   = totalRealizedCapital.plus(decomp.realizedCapitalBase.times(sw));
+      totalRealizedFx        = totalRealizedFx.plus(decomp.realizedFxBase.times(sw));
+      totalUnrealizedCapital = totalUnrealizedCapital.plus(decomp.unrealizedCapitalBase.times(sw));
+      totalUnrealizedFx      = totalUnrealizedFx.plus(decomp.unrealizedFxBase.times(sw));
+      totalDividendFx        = totalDividendFx.plus(decomp.dividendFxBase);
+    }
 
     if (includeItems) {
       const secInfo = data.securityInfoMap.get(sr.securityId);
@@ -1575,22 +2267,45 @@ export function getPortfolioCalc(
   );
 
   // Use direct SQL balance queries (correctly handles TRANSFER_IN/OUT unlike buildDailyCashMap).
-  // For taxonomy scopes, apply per-account weights.
+  // Convert each deposit account's balance to base currency before summing.
+  // For taxonomy scopes, apply per-account weights after conversion.
   if (scope?.accountWeights && scope.accountWeights.size > 0) {
     for (const accId of scopedDepositAccIds) {
       const aw = scope.accountWeights.get(accId) ?? new Decimal(1);
-      const bal = fetchDepositCashBalance(sqlite, new Set([accId]), period.start).times(aw);
-      const balEnd = fetchDepositCashBalance(sqlite, new Set([accId]), period.end).times(aw);
-      totalMVB = totalMVB.plus(bal);
-      totalMVE = totalMVE.plus(balEnd);
+      const accCurrency = data.depositAccCurrencyMap.get(accId) ?? baseCurrency;
+      let balStart = fetchDepositCashBalance(sqlite, new Set([accId]), period.start);
+      let balEnd = fetchDepositCashBalance(sqlite, new Set([accId]), period.end);
+      if (accCurrency !== baseCurrency) {
+        const rateMap = rateMaps.get(accCurrency);
+        const rStart = rateMap ? getRateFromMap(rateMap, period.start) : null;
+        const rEnd = rateMap ? getRateFromMap(rateMap, period.end) : null;
+        if (rStart) balStart = convertToBase(balStart, rStart);
+        if (rEnd) balEnd = convertToBase(balEnd, rEnd);
+        if (!rStart || !rEnd) {
+          console.warn(`[multi-currency] deposit ${accId} (${accCurrency}) → ${baseCurrency} missing rate at period boundary; balance left in native ccy`);
+        }
+      }
+      totalMVB = totalMVB.plus(balStart.times(aw));
+      totalMVE = totalMVE.plus(balEnd.times(aw));
     }
   } else {
-    const cashAtStart = scopedDepositAccIds.size > 0
-      ? fetchDepositCashBalance(sqlite, scopedDepositAccIds, period.start) : new Decimal(0);
-    const cashAtEnd = scopedDepositAccIds.size > 0
-      ? fetchDepositCashBalance(sqlite, scopedDepositAccIds, period.end) : new Decimal(0);
-    totalMVB = totalMVB.plus(cashAtStart);
-    totalMVE = totalMVE.plus(cashAtEnd);
+    for (const accId of scopedDepositAccIds) {
+      const accCurrency = data.depositAccCurrencyMap.get(accId) ?? baseCurrency;
+      let balStart = fetchDepositCashBalance(sqlite, new Set([accId]), period.start);
+      let balEnd = fetchDepositCashBalance(sqlite, new Set([accId]), period.end);
+      if (accCurrency !== baseCurrency) {
+        const rateMap = rateMaps.get(accCurrency);
+        const rStart = rateMap ? getRateFromMap(rateMap, period.start) : null;
+        const rEnd = rateMap ? getRateFromMap(rateMap, period.end) : null;
+        if (rStart) balStart = convertToBase(balStart, rStart);
+        if (rEnd) balEnd = convertToBase(balEnd, rEnd);
+        if (!rStart || !rEnd) {
+          console.warn(`[multi-currency] deposit ${accId} (${accCurrency}) → ${baseCurrency} missing rate at period boundary; balance left in native ccy`);
+        }
+      }
+      totalMVB = totalMVB.plus(balStart);
+      totalMVE = totalMVE.plus(balEnd);
+    }
   }
 
   // Cash FX gains — compute for each foreign deposit account in scope
@@ -1632,7 +2347,7 @@ export function getPortfolioCalc(
   let portfolioCashflows: Cashflow[];
   if (isSecurityOnlyScope) {
     portfolioCashflows = buildSecurityOnlyCashflows(
-      scopedTxs as PerfTransaction[], data.allTxs as PerfTransaction[], scope, period,
+      scopedTxs, data.allTxs, scope, period,
     );
   } else if (isTaxonomyScopeWithDeposits) {
     // Taxonomy scope with deposit accounts: combine security-level + deposit-level cashflows.
@@ -1709,11 +2424,16 @@ export function getPortfolioCalc(
       }
     }
   } else {
-    // Full portfolio or account scope: portfolio-level cashflows (DEPOSIT/REMOVAL/DELIVERY)
-    portfolioCashflows = resolvePortfolioCashflows(scopedTxs);
+    // Full portfolio or account scope: project scoped txs to base ccy before
+    // cashflow resolution so DEPOSIT/REMOVAL amounts are unit-consistent with
+    // the base-ccy MVB/MVE produced by the aggregation loop above.
+    const { projectedTxs: projectedScopedTxs, unresolvedSecurityIds: unresolvedFromCashflows } =
+      projectTransactionsToBaseCurrency(scopedTxs, baseCurrency, rateMaps);
+    for (const id of unresolvedFromCashflows) unresolvedSecurityIds.add(id);
+    portfolioCashflows = resolvePortfolioCashflows(projectedScopedTxs);
 
     if (scope && !scope.isTaxonomyScope) {
-      appendTransferCashflows(portfolioCashflows, scopedTxs as PerfTransaction[], period);
+      appendTransferCashflows(portfolioCashflows, projectedScopedTxs, period);
     }
   }
 
@@ -1787,6 +2507,8 @@ export function getPortfolioCalc(
 
   return {
     baseCurrency,
+    unresolvedCount: unresolvedSecurityIds.size,
+    unresolvedSecurityIds: [...unresolvedSecurityIds],
     initialValue: totalMVB.toString(),
     capitalGains: {
       unrealized: totalUnrealized.toString(),
@@ -1864,6 +2586,93 @@ export function getPortfolioCalc(
         },
       };
     })(),
+    // Phase 3 Task 8 — decomposition rollups (per-tx trade-date FX, base ccy).
+    realizedCapitalBase:   totalRealizedCapital.toString(),
+    realizedFxBase:        totalRealizedFx.toString(),
+    unrealizedCapitalBase: totalUnrealizedCapital.toString(),
+    unrealizedFxBase:      totalUnrealizedFx.toString(),
+    dividendFxBase:        totalDividendFx.toString(),
+  };
+}
+
+/**
+ * Second TTWROR/IRR pass for a single security, projected to base currency.
+ *
+ * The "native" pass in `computeSecurityPerfInternal` answers "what did this
+ * security do as a holder of its native currency?". The base pass answers
+ * "what did this security do as an investor in the portfolio's base
+ * currency?" — capital and FX moves combined.
+ *
+ *   dailyMV_base[date]    = dailyMV_native[date] × rate(date)
+ *   cashflows_base        = resolveSecurityCashflows(baseProjectedSecTxs, …)
+ *
+ * Same-ccy short-circuit lives in the caller (no FX → both passes coincide).
+ *
+ * Returns `null` on coverage gap (no rateMap for nativeCurrency, OR every day
+ * lacks a rate so projected MV is empty). Caller substitutes the native pass.
+ */
+interface BasePerfResult {
+  ttwror: Decimal;
+  ttwrorPa: Decimal;
+  irr: Decimal | null;
+}
+
+function computeSecurityPerfInBase(
+  sr: SecurityPerfInternal,
+  nativeCurrency: string,
+  baseCurrency: string,
+  rawSecTxs: PerfTransaction[],
+  rateMaps: Map<string, RateMap>,
+  period: { start: string; end: string },
+): BasePerfResult | null {
+  const rateMap = rateMaps.get(nativeCurrency);
+  if (!rateMap) return null;
+
+  // Project daily MV from sec ccy → base. Days without a rate are dropped;
+  // `buildDailySnapshotsWithCarry` then fills via carry-forward of the last
+  // known base-ccy MV (semantically: assume the rate held when no fresh quote).
+  const dailyMVBase = new Map<string, Decimal>();
+  for (const [date, mv] of sr.dailyMV) {
+    const rate = getRateFromMap(rateMap, date);
+    if (rate) dailyMVBase.set(date, convertToBase(mv, rate));
+  }
+  if (dailyMVBase.size === 0) return null;
+
+  // Cashflows: project raw deposit-ccy txs to base, then resolve security
+  // cashflows. The raw tx set deliberately predates per-security-currency
+  // projection (which is what feeds the native pass) — we want base ccy,
+  // not security ccy. Use `false` for includeTaxes to mirror the native pass.
+  const { projectedTxs: baseTxs } = projectTransactionsToBaseCurrency(
+    rawSecTxs,
+    baseCurrency,
+    rateMaps,
+  );
+  const cashflows = resolveSecurityCashflows(baseTxs, sr.securityId, false);
+
+  const snapshots = buildDailySnapshotsWithCarry(cashflows, dailyMVBase, period);
+  const periodDays = differenceInCalendarDays(parseISO(period.end), parseISO(period.start));
+  const ttwrorResult = computeTTWROR(snapshots, periodDays);
+
+  // IRR: MVB/MVE in base from the snapshot edges; in-period cashflows only
+  // (mirror the native pass — see computeSecurityPerfInternal lines 883-892).
+  const filledBase = carryForwardPrices(dailyMVBase, period.start, period.end);
+  const mvbBase = filledBase.get(period.start) ?? new Decimal(0);
+  const mveBase = filledBase.get(period.end) ?? new Decimal(0);
+  const inPeriodCFs = cashflows.filter(
+    (cf) => cf.date > period.start && cf.date <= period.end,
+  );
+  const irrBase = computeIRR({
+    mvb: mvbBase,
+    mve: mveBase,
+    cashflows: inPeriodCFs,
+    periodStart: period.start,
+    periodEnd: period.end,
+  });
+
+  return {
+    ttwror: ttwrorResult.cumulative,
+    ttwrorPa: ttwrorResult.annualized,
+    irr: irrBase,
   };
 }
 
@@ -1874,27 +2683,138 @@ export function getSecurityPerformanceList(
   preTax = true,
 ): SecurityPerfResult[] {
   const data = fetchBatchData(sqlite, period);
-  const secResults = computeAllSecurities(data, period, costMethod, preTax);
+  const secResults = computeAllSecurities(sqlite, data, period, costMethod, preTax);
+  const { baseCurrency, rateMaps } = buildFxContext(sqlite, data, period);
 
-  return secResults.map((sr) => ({
-    securityId: sr.securityId,
-    currency: data.secCurrencyMap.get(sr.securityId) ?? 'EUR',
-    ttwror: sr.ttwror.toString(),
-    ttwrorPa: sr.ttwrorPa.toString(),
-    irr: sr.irr?.toString() ?? null,
-    irrConverged: sr.irr !== null,
-    mvb: sr.mvb.toString(),
-    mve: sr.mve.toString(),
-    purchaseValue: sr.purchaseValue.toString(),
-    realizedGain: sr.realizedGain.toString(),
-    unrealizedGain: sr.unrealizedGain.toString(),
-    foreignCurrencyGains: sr.foreignCurrencyGains.toString(),
-    fees: sr.fees.toString(),
-    taxes: sr.taxes.toString(),
-    dividends: sr.dividends.toString(),
-    interest: sr.interest.toString(),
-    shares: sr.sharesEnd.toString(),
-  }));
+  // Dedicated wider rateMaps for per-lot FIFO cost-basis: lots originate at
+  // BUY dates which may predate period.start by years. The shared `rateMaps`
+  // above is keyed on `period.start` (with a 30-day prefix only); using it for
+  // FIFO drops every pre-period BUY into `unresolvedBuyDates`. We rebuild
+  // here from min(period.start, earliestTxDate) → period.end. The forward-fill
+  // is monotonic so widening only ADDS coverage, never alters previously-
+  // resolved rates. Kept local (not in buildFxContext) so chart/heatmap/SoA
+  // consumers retain their period-anchored windows.
+  const earliestTxDate = data.allTxs.reduce<string | null>(
+    (min, t) => (min == null || t.date < min ? t.date : min),
+    null,
+  );
+  const costRateStart = earliestTxDate && earliestTxDate < period.start ? earliestTxDate : period.start;
+  const costRateMaps = new Map<string, RateMap>();
+  if (costRateStart !== period.start) {
+    for (const [ccy] of rateMaps) {
+      costRateMaps.set(ccy, buildRateMap(sqlite, ccy, baseCurrency, costRateStart, period.end));
+    }
+  }
+  const effectiveCostRateMaps = costRateMaps.size > 0 ? costRateMaps : rateMaps;
+
+  return secResults.map((sr) => {
+    const nativeCurrency = data.secCurrencyMap.get(sr.securityId) ?? baseCurrency;
+
+    // *Base fields: same-currency → native value; cross-currency → FX projection.
+    // costBase uses per-tx trade-date FX (strict upstream); other *Base fields use
+    // period-end FX (statement-date snapshot), matching getPortfolioCalc lines 1703-1712.
+    let marketValueBase: string;
+    let costBase: string;
+    let unrealizedBase: string;
+    let realizedBase: string;
+    let dividendsBase: string;
+
+    // Decomposition (5 fields) + dual-perf (4 fields). Both default to '0' /
+    // native short-circuit; populated only when the FIFO+FX coverage holds.
+    let realizedCapitalBase = '0';
+    let realizedFxBase = '0';
+    let unrealizedCapitalBase = '0';
+    let unrealizedFxBase = '0';
+    let dividendFxBase = '0';
+    let ttwrorBase = sr.ttwror.toString();
+    let ttwrorPaBase = sr.ttwrorPa.toString();
+    let irrBase: string | null = sr.irr?.toString() ?? null;
+    let irrBaseConverged = sr.irr !== null;
+
+    if (nativeCurrency === baseCurrency) {
+      // Same-ccy short-circuit. No FX component anywhere — decomposition fields
+      // stay '0' and dual-perf fields keep the native pass values set above.
+      marketValueBase = sr.mve.toString();
+      costBase = sr.purchaseValue.toString();
+      unrealizedBase = sr.unrealizedGain.toString();
+      realizedBase = sr.realizedGain.toString();
+      dividendsBase = sr.dividends.toString();
+    } else {
+      // Cross-ccy: delegate to the shared helper. It runs FIFO once + computes
+      // all 5 decomposition fields. Returns null on coverage gap; the caller
+      // also needs `fifo.costBase` to set the legacy `costBase` field.
+      const decomp = computeSecurityDecomposition(
+        sr, nativeCurrency, baseCurrency, data, rateMaps, effectiveCostRateMaps, period,
+      );
+      const mveBase = toBaseAtDate(sr.mve, nativeCurrency, baseCurrency, rateMaps, period.end);
+      if (decomp !== null && mveBase !== null) {
+        marketValueBase = mveBase.toString();
+        costBase = decomp.fifo.costBase.toString();
+        unrealizedBase = (toBaseAtDate(sr.unrealizedGain, nativeCurrency, baseCurrency, rateMaps, period.end) ?? new Decimal(0)).toString();
+        realizedBase = (toBaseAtDate(sr.realizedGain, nativeCurrency, baseCurrency, rateMaps, period.end) ?? new Decimal(0)).toString();
+        dividendsBase = (toBaseAtDate(sr.dividends, nativeCurrency, baseCurrency, rateMaps, period.end) ?? new Decimal(0)).toString();
+        realizedCapitalBase   = decomp.realizedCapitalBase.toString();
+        realizedFxBase        = decomp.realizedFxBase.toString();
+        unrealizedCapitalBase = decomp.unrealizedCapitalBase.toString();
+        unrealizedFxBase      = decomp.unrealizedFxBase.toString();
+        dividendFxBase        = decomp.dividendFxBase.toString();
+
+        // ─── Dual TTWROR / IRR (base pass) ────────────────────────────────
+        const rawSecTxs = (data.txsBySecurity.get(sr.securityId) ?? []) as PerfTransaction[];
+        const basePerf = computeSecurityPerfInBase(
+          sr, nativeCurrency, baseCurrency, rawSecTxs, rateMaps, period,
+        );
+        if (basePerf !== null) {
+          ttwrorBase = basePerf.ttwror.toString();
+          ttwrorPaBase = basePerf.ttwrorPa.toString();
+          irrBase = basePerf.irr?.toString() ?? null;
+          irrBaseConverged = basePerf.irr !== null;
+        }
+      } else {
+        // Rate unresolved — leave placeholders; security excluded from portfolio rollup (Task 5).
+        marketValueBase = '0';
+        costBase = '0';
+        unrealizedBase = '0';
+        realizedBase = '0';
+        dividendsBase = '0';
+      }
+    }
+
+    return {
+      securityId: sr.securityId,
+      currency: nativeCurrency,
+      ttwror: sr.ttwror.toString(),
+      ttwrorPa: sr.ttwrorPa.toString(),
+      irr: sr.irr?.toString() ?? null,
+      irrConverged: sr.irr !== null,
+      mvb: sr.mvb.toString(),
+      mve: sr.mve.toString(),
+      purchaseValue: sr.purchaseValue.toString(),
+      realizedGain: sr.realizedGain.toString(),
+      unrealizedGain: sr.unrealizedGain.toString(),
+      foreignCurrencyGains: sr.foreignCurrencyGains.toString(),
+      fees: sr.fees.toString(),
+      taxes: sr.taxes.toString(),
+      dividends: sr.dividends.toString(),
+      interest: sr.interest.toString(),
+      shares: sr.sharesEnd.toString(),
+      baseCurrency,
+      marketValueBase,
+      costBase,
+      unrealizedBase,
+      realizedBase,
+      dividendsBase,
+      realizedCapitalBase,
+      realizedFxBase,
+      unrealizedCapitalBase,
+      unrealizedFxBase,
+      dividendFxBase,
+      ttwrorBase,
+      ttwrorPaBase,
+      irrBase,
+      irrBaseConverged,
+    };
+  });
 }
 
 export type ChartInterval = 'daily' | 'weekly' | 'monthly';
@@ -1921,27 +2841,44 @@ export function getChartData(
   scope?: CalcScope,
 ): ChartPoint[] {
   const data = fetchBatchData(sqlite, period);
+
+  const { baseCurrency, rateMaps } = buildFxContext(sqlite, data, period);
+
   const scopedTxs = scope ? data.allTxs.filter(scope.txFilter) : data.allTxs;
-  const secResults = computeAllSecurities(data, period, CostMethod.FIFO, true, scope?.securityIds, scope?.txFilter);
+  const secResults = computeAllSecurities(sqlite, data, period, CostMethod.FIFO, true, scope?.securityIds, scope?.txFilter);
 
   // Scoped transaction list and deposit account IDs (mirrors getPortfolioCalc)
   const scopedDepositAccIds = scope ? scope.depositAccIds : data.depositAccIds;
 
   // Use scoped securities + accounts for both MV line and TTWROR,
   // keeping the chart MV line consistent with the TTWROR computation universe.
-  const portfolioTotalDailyMV = buildPortfolioTotalDailyMV(secResults, scopedTxs, period, scopedDepositAccIds);
+  // Pass fxContext so the daily MV series is in base ccy (mirrors getPortfolioCalc).
+  const portfolioTotalDailyMV = buildPortfolioTotalDailyMV(
+    secResults, scopedTxs, period, scopedDepositAccIds,
+    { rateMaps, secCurrencyMap: data.secCurrencyMap, baseCurrency },
+  );
 
   const periodDays = differenceInCalendarDays(parseISO(period.end), parseISO(period.start));
 
   // For security-only scopes (taxonomy, individual security), use security-level cashflows
   // (BUY/SELL/DIVIDEND/DELIVERY) instead of portfolio-level (DEPOSIT/REMOVAL/DELIVERY).
   // Without this, TTWROR treats BUY-day MV jumps as returns instead of cashflows.
+  // Security-only path is left unchanged — per-security-native txs are already projected
+  // by Phase 1's projectTransactionsToSecurityCurrency. Do not double-project.
   const isSecurityOnlyScope = scope && scope.depositAccIds.size === 0 && scope.securityIds.size > 0;
-  const portfolioCashflows: Cashflow[] = isSecurityOnlyScope
-    ? buildSecurityOnlyCashflows(scopedTxs as PerfTransaction[], data.allTxs as PerfTransaction[], scope, period)
-    : resolvePortfolioCashflows(scopedTxs);
-  if (scope && !scope.isTaxonomyScope && !isSecurityOnlyScope) {
-    appendTransferCashflows(portfolioCashflows, scopedTxs as PerfTransaction[], period);
+  let portfolioCashflows: Cashflow[];
+  if (isSecurityOnlyScope) {
+    portfolioCashflows = buildSecurityOnlyCashflows(scopedTxs, data.allTxs, scope, period);
+  } else {
+    // Project scoped txs to base ccy so cashflow amounts are unit-consistent
+    // with the base-ccy MVB/MVE from the aggregation loop.
+    // TODO(Task 9): surface unresolvedSecurityIds on the wire shape.
+    const { projectedTxs: projectedScopedTxs } =
+      projectTransactionsToBaseCurrency(scopedTxs, baseCurrency, rateMaps);
+    portfolioCashflows = resolvePortfolioCashflows(projectedScopedTxs);
+    if (scope && !scope.isTaxonomyScope) {
+      appendTransferCashflows(portfolioCashflows, projectedScopedTxs, period);
+    }
   }
   const snapshots = buildDailySnapshotsWithCarry(portfolioCashflows, portfolioTotalDailyMV, period);
   const ttwrorResult = computeTTWROR(snapshots, periodDays);
@@ -2078,7 +3015,7 @@ export function getSecurityTtwrorSeries(
   }
 
   const filter = new Set([securityId]);
-  const results = computeAllSecurities(data, period, costMethod, preTax, filter);
+  const results = computeAllSecurities(sqlite, data, period, costMethod, preTax, filter);
   if (results.length === 0) return null;
 
   const sr = results[0];
@@ -2196,6 +3133,8 @@ export interface StatementOfAssetsResult {
     securityValue: string;
     cashValue: string;
     cashByCurrency: Array<{ currency: string; value: string }>;
+    unresolvedCount: number;
+    unresolvedSecurityIds: string[];
   };
 }
 
@@ -2203,7 +3142,7 @@ export function getStatementOfAssets(
   sqlite: BetterSqlite3.Database,
   date: string,
 ): StatementOfAssetsResult {
-  const baseCurrency = getBaseCurrency(sqlite);
+  const baseCurrency = getPortfolioBaseCurrency(sqlite);
 
   // Securities: get price and compute shares held at date
   const securities = sqlite
@@ -2267,6 +3206,7 @@ export function getStatementOfAssets(
 
   const secEntries: StatementSecurityEntry[] = [];
   let totalSecValue = new Decimal(0);
+  const unresolvedSecurityIds: string[] = [];
 
   for (const sec of securities) {
     const sh = netSharesMap.get(sec.uuid) ?? new Decimal(0);
@@ -2282,6 +3222,19 @@ export function getStatementOfAssets(
       if (rate) {
         convertedMV = convertToBase(mv, rate);
         displayCurrency = baseCurrency;
+      } else {
+        // FX unresolvable — emit the row in native currency for visibility
+        // but exclude from the base-currency total.
+        unresolvedSecurityIds.push(sec.uuid);
+        secEntries.push({
+          securityId: sec.uuid,
+          name: sec.name,
+          shares: sh.toString(),
+          pricePerShare: price.toString(),
+          marketValue: mv.toString(),
+          currency: secCurrency,
+        });
+        continue;
       }
     }
     totalSecValue = totalSecValue.plus(convertedMV);
@@ -2352,6 +3305,8 @@ export function getStatementOfAssets(
       securityValue: totalSecValue.toString(),
       cashValue: totalCashValue.toString(),
       cashByCurrency: cashByCurrencyArr,
+      unresolvedCount: unresolvedSecurityIds.length,
+      unresolvedSecurityIds,
     },
   };
 }
@@ -2375,23 +3330,39 @@ export function getReturnsHeatmap(sqlite: BetterSqlite3.Database, scope?: CalcSc
   const period = periodParam ?? { start: minDate, end: today };
 
   const data = fetchBatchData(sqlite, period);
+
+  const { baseCurrency, rateMaps } = buildFxContext(sqlite, data, period);
+
   const scopedTxs = scope ? data.allTxs.filter(scope.txFilter) : data.allTxs;
-  const secResults = computeAllSecurities(data, period, CostMethod.FIFO, true, scope?.securityIds, scope?.txFilter);
+  const secResults = computeAllSecurities(sqlite, data, period, CostMethod.FIFO, true, scope?.securityIds, scope?.txFilter);
 
   const scopedDepositAccIds = scope ? scope.depositAccIds : data.depositAccIds;
 
-  const portfolioTotalDailyMV = buildPortfolioTotalDailyMV(secResults, scopedTxs, period, scopedDepositAccIds);
+  const portfolioTotalDailyMV = buildPortfolioTotalDailyMV(
+    secResults, scopedTxs, period, scopedDepositAccIds,
+    { rateMaps, secCurrencyMap: data.secCurrencyMap, baseCurrency },
+  );
 
   const periodDays = differenceInCalendarDays(parseISO(period.end), parseISO(period.start));
   // For security-only scopes (taxonomy, individual security), use security-level cashflows
   // (BUY/SELL/DIVIDEND/DELIVERY) instead of portfolio-level (DEPOSIT/REMOVAL/DELIVERY).
   // Without this, TTWROR treats BUY-day MV jumps as returns instead of cashflows.
+  // Security-only path is left unchanged — per-security-native txs are already projected
+  // by Phase 1's projectTransactionsToSecurityCurrency. Do not double-project.
   const isSecurityOnlyScope = scope && scope.depositAccIds.size === 0 && scope.securityIds.size > 0;
-  const portfolioCashflows: Cashflow[] = isSecurityOnlyScope
-    ? buildSecurityOnlyCashflows(scopedTxs as PerfTransaction[], data.allTxs as PerfTransaction[], scope, period)
-    : resolvePortfolioCashflows(scopedTxs);
-  if (scope && !scope.isTaxonomyScope && !isSecurityOnlyScope) {
-    appendTransferCashflows(portfolioCashflows, scopedTxs as PerfTransaction[], period);
+  let portfolioCashflows: Cashflow[];
+  if (isSecurityOnlyScope) {
+    portfolioCashflows = buildSecurityOnlyCashflows(scopedTxs, data.allTxs, scope, period);
+  } else {
+    // Project scoped txs to base ccy so cashflow amounts are unit-consistent
+    // with the base-ccy MVB/MVE from the aggregation loop.
+    // TODO(Task 9): surface unresolvedSecurityIds on the wire shape.
+    const { projectedTxs: projectedScopedTxs } =
+      projectTransactionsToBaseCurrency(scopedTxs, baseCurrency, rateMaps);
+    portfolioCashflows = resolvePortfolioCashflows(projectedScopedTxs);
+    if (scope && !scope.isTaxonomyScope) {
+      appendTransferCashflows(portfolioCashflows, projectedScopedTxs, period);
+    }
   }
   const snapshots = buildDailySnapshotsWithCarry(portfolioCashflows, portfolioTotalDailyMV, period);
   // Prepend a dummy "day before inception" snapshot (MVE=0) so computeTTWROR captures

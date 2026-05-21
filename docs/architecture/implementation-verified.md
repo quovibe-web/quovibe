@@ -142,3 +142,14 @@ dependent `security_attr` rows in a single SQLite transaction.
 | `createAttributeType` | attribute_type | Verified (BUG-167) |
 | `updateAttributeType` | attribute_type | Verified (BUG-167) — name + columnLabel only; type/converterClass/target immutable per PP rule |
 | `deleteAttributeType` | security_attr, attribute_type | Verified (BUG-167) — cascade in single transaction |
+
+## fx-rates.service.ts
+
+User-driven CRUD for `vf_exchange_rate` rows tagged `source='MANUAL'`. ECB-scheduler writes (`source='ECB'`) and ECB CSV bulk imports (`source='IMPORT'`) flow through separate paths and never collide with MANUAL rows.
+
+| Method | Tables written | Audit status |
+|--------|---------------|--------------|
+| `createFxRate` | vf_exchange_rate | Verified (Phase 3) — INSERT with source='MANUAL', throws DUPLICATE_RATE on PK collision |
+| `updateFxRate` | vf_exchange_rate | Verified (Phase 3) — UPDATE guarded by `WHERE source='MANUAL'`; throws RATE_NOT_FOUND_OR_NOT_MANUAL when 0 rows affected |
+| `deleteFxRate` | vf_exchange_rate | Verified (Phase 3) — DELETE guarded by `WHERE source='MANUAL'` |
+| `importEcbRates` | vf_exchange_rate | Verified (Phase 3) — INSERT OR IGNORE with source='IMPORT', preserves MANUAL rows on PK conflict |
