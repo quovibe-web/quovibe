@@ -1,6 +1,6 @@
 {
   "import": {
-    "fileTooBig": "Die Datei überschreitet 50 MB. Überprüfen Sie, ob Sie die richtige Datei aus Ihrer Portfolio-App exportiert haben.",
+    "fileTooBig": "Die Datei überschreitet die Upload-Größe. Überprüfen Sie, ob Sie die richtige Datei aus Ihrer Portfolio-App exportiert haben.",
     "invalidXml": "Die Datei ist kein gültiges XML.",
     "invalidFormat": "Stellen Sie sicher, dass Sie aus Ihrer Portfolio-App im XML-Format mit ID-Attributen exportieren (nicht verschlüsselt).",
     "encrypted": "Die Datei scheint verschlüsselt zu sein. Exportieren Sie erneut aus Ihrer Portfolio-App und wählen Sie das XML-Format mit ID-Attributen.",

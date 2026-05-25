@@ -1,6 +1,6 @@
 {
   "import": {
-    "fileTooBig": "Het bestand is groter dan 50 MB. Controleer of u het juiste bestand vanuit uw portfolio-app heeft geëxporteerd.",
+    "fileTooBig": "Het bestand overschrijdt de maximale uploadgrootte. Controleer of u het juiste bestand vanuit uw portfolio-app heeft geëxporteerd.",
     "invalidXml": "Het bestand is geen geldig XML.",
     "invalidFormat": "Zorg ervoor dat u vanuit uw portfolio-app exporteert in XML-formaat met ID-attributen (niet versleuteld).",
     "encrypted": "Het bestand lijkt versleuteld te zijn. Exporteer opnieuw vanuit uw portfolio-app en kies XML-formaat met ID-attributen.",

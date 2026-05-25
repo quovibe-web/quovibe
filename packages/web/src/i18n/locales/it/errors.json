@@ -1,6 +1,6 @@
 {
   "import": {
-    "fileTooBig": "Il file supera i 50 MB. Verifica di aver esportato il file corretto dalla tua app di portafoglio.",
+    "fileTooBig": "Il file supera il limite di dimensione. Verifica di aver esportato il file corretto dalla tua app di portafoglio.",
     "invalidXml": "Il file non è un XML valido.",
     "invalidFormat": "Assicurati di esportare dalla tua app di portafoglio in formato XML con attributi ID (non criptato).",
     "encrypted": "Il file sembra essere criptato. Riesporta dalla tua app di portafoglio scegliendo il formato XML con attributi ID.",

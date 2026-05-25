@@ -81,7 +81,7 @@
       "fileRequired": "Selecciona primero un archivo.",
       "importFailed": "Falló la importación: {{msg}}",
       "invalidFile": "Exportación XML no válida. Se esperaba un archivo .xml de Portfolio Performance.",
-      "tooLarge": "El archivo supera el tamaño máximo permitido.",
+      "tooLarge": "El archivo supera el límite de {{maxMb}} MB. Establece IMPORT_MAX_MB para aumentarlo.",
       "binary": "El archivo parece binario o está dañado. Se esperaba una exportación XML en texto plano.",
       "invalidXml": "El archivo no es un XML válido. Reexporta desde Portfolio Performance e inténtalo de nuevo.",
       "invalidFormat": "El XML no es una exportación de Portfolio Performance (falta el elemento raíz <client> o los atributos ID). Reexporta con los IDs activados.",

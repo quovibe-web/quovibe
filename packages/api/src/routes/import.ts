@@ -176,6 +176,10 @@ function handleError(res: Parameters<RequestHandler>[1], err: unknown): void {
     const status = err.code === 'IMPORT_IN_PROGRESS' ? 409
       : err.code === 'CONVERSION_FAILED' ? 500
       : 400;
+    if (err.code === 'FILE_TOO_LARGE') {
+      res.status(status).json({ error: 'FILE_TOO_LARGE', maxMb: IMPORT_MAX_MB });
+      return;
+    }
     const body: { error: string; details?: string } = { error: err.code };
     if (err.code !== 'CONVERSION_FAILED') {
       if (err.details) body.details = err.details;

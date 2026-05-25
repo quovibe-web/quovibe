@@ -1,6 +1,6 @@
 {
   "import": {
-    "fileTooBig": "Plik przekracza 50 MB. Sprawdź, czy wyeksportowałeś właściwy plik z aplikacji portfela.",
+    "fileTooBig": "Plik przekracza dozwolony rozmiar. Sprawdź, czy wyeksportowałeś właściwy plik z aplikacji portfela.",
     "invalidXml": "Plik nie jest prawidłowym XML.",
     "invalidFormat": "Upewnij się, że eksportujesz z aplikacji portfela w formacie XML z atrybutami ID (niezaszyfrowany).",
     "encrypted": "Plik wydaje się być zaszyfrowany. Ponownie wyeksportuj z aplikacji portfela, wybierając format XML z atrybutami ID.",

@@ -81,7 +81,7 @@ Key decisions, each verifiable in the shipped code:
 - **CI gates:** `packages/api/scripts/check-bootstrap-fresh.sh` + `packages/api/scripts/regen-bootstrap.sh` + `packages/api/scripts/normalize-bootstrap.mjs` (Gate 1); `packages/api/src/db/__tests__/bootstrap-parity.test.ts` (Gate 2); `packages/api/src/db/__tests__/bootstrap-idempotent.test.ts` (Gate 3); `packages/api/src/__tests__/roundtrip.test.ts` (Gate 4).
 - **Deletions:** `packages/api/src/db/extensions.ts`, `packages/api/src/db/client.ts`, `packages/api/src/workers/price-scheduler.ts`, `packages/api/src/workers/price-worker.ts`, `packages/api/src/workers/` (directory), `data/schema.db`.
 - **Retired env vars:** `SCHEMA_PATH`, `PRICE_CRON_SCHEDULE`, `DB_PATH` (module-level constant).
-- **New env vars:** `QUOVIBE_DATA_DIR` (default `data/`), `QUOVIBE_DEMO_SOURCE` (default `/app/assets/demo.db`), `PORTFOLIO_POOL_MAX` (default 5), `IMPORT_MAX_MB` (default 50).
+- **New env vars:** `QUOVIBE_DATA_DIR` (default `data/`), `QUOVIBE_DEMO_SOURCE` (default `/app/assets/demo.db`), `PORTFOLIO_POOL_MAX` (default 5), `IMPORT_MAX_MB` (default 500).
 
 ## Accepted deviations from the original plan
 

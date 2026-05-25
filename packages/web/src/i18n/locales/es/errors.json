@@ -1,6 +1,6 @@
 {
   "import": {
-    "fileTooBig": "El archivo supera los 50 MB. Verifique que exportó el archivo correcto desde su aplicación de portafolio.",
+    "fileTooBig": "El archivo supera el límite de tamaño. Verifique que exportó el archivo correcto desde su aplicación de portafolio.",
     "invalidXml": "El archivo no es un XML válido.",
     "invalidFormat": "Asegúrese de exportar desde su aplicación de portafolio en formato XML con atributos ID (sin cifrar).",
     "encrypted": "El archivo parece estar cifrado. Reexporte desde su aplicación de portafolio eligiendo el formato XML con atributos ID.",

@@ -246,7 +246,7 @@ Any reverse proxy works: **nginx**, **Caddy**, **Traefik**, or your router's bui
 | `QUOVIBE_DEMO_SOURCE` | `./data/demo.db` | Bootstrap source for the "Try demo" flow      |
 | `DB_BACKUP_MAX`       | `3`          | Rotated backups retained per portfolio             |
 | `PORTFOLIO_POOL_MAX`  | `5`          | Max simultaneously open per-portfolio DB handles   |
-| `IMPORT_MAX_MB`       | `50`         | Max upload size (MB) accepted by import endpoints  |
+| `IMPORT_MAX_MB`       | `500`        | Max upload size (MB) accepted by import endpoints  |
 | `PORT`                | `3000`       | API server port                                    |
 | `NODE_ENV`            | `development`| Node environment                                   |
 | `LOG_LEVEL`           | `info`       | Logging verbosity                                  |
