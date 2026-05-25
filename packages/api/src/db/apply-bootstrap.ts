@@ -310,26 +310,55 @@ function backfillCrossCurrencyGrossUnits(db: BetterSqlite3.Database): void {
  *
  * This ensures every portfolio has a baseCurrency in meta immediately
  * after bootstrap, so the runtime get-path always finds a stored value
- * rather than recomputing from scratch. A user-set override (e.g. via
- * the future settings endpoint, Task 9) is never overwritten because
- * the existence check (step 1) exits early.
+ * rather than recomputing from scratch.
+ *
+ * Priority for the canonical value:
+ *   1. property.baseCurrency  — written by ppxml2db for PP-XML imports; most
+ *      authoritative source for imported portfolios.
+ *   2. First deposit account currency (lowest _order).
+ *   3. First security currency (lowest _id).
+ *   4. Literal 'EUR' fallback.
+ *
+ * If a valid meta row already exists AND property either agrees or is absent,
+ * we return early (idempotent). If property.baseCurrency disagrees with the
+ * existing meta value, we overwrite meta — this migrates portfolios that were
+ * seeded from account.currency before this priority was introduced.
  */
 function seedPortfolioBaseCurrency(db: BetterSqlite3.Database): void {
+  // Step 0 — read PP-declared baseCurrency from the property table (ppxml2db writes this).
+  const prop = db
+    .prepare(`SELECT value FROM property WHERE name='baseCurrency'`)
+    .get() as { value: string } | undefined;
+  const propCurrency = prop?.value && isValidIso4217(prop.value) ? prop.value : undefined;
+
+  // Step 1 — check existing meta row.
   const existing = db
     .prepare(`SELECT value FROM vf_portfolio_meta WHERE key='baseCurrency'`)
     .get() as { value: string } | undefined;
-  if (existing?.value) return;
 
-  const acct = db
-    .prepare(
-      `SELECT currency FROM account
-       WHERE type='account' AND currency IS NOT NULL
-       ORDER BY _order ASC, _id ASC LIMIT 1`,
-    )
-    .get() as { currency: string } | undefined;
+  if (existing !== undefined && isValidIso4217(existing.value ?? '')) {
+    // Valid meta already present. If property agrees (or doesn't exist), done.
+    if (!propCurrency || propCurrency === existing.value) return;
+    // property.baseCurrency differs — overwrite meta with the authoritative PP value.
+    db.prepare(`UPDATE vf_portfolio_meta SET value = ? WHERE key = 'baseCurrency'`).run(propCurrency);
+    console.log(`[multi-currency] corrected baseCurrency=${propCurrency} (was ${existing.value})`);
+    return;
+  }
 
-  let baseCurrency: string | undefined =
-    acct?.currency && isValidIso4217(acct.currency) ? acct.currency : undefined;
+  // Step 2-4 — no valid meta row; seed from best available source.
+  let baseCurrency: string | undefined = propCurrency;
+
+  if (!baseCurrency) {
+    const acct = db
+      .prepare(
+        `SELECT currency FROM account
+         WHERE type='account' AND currency IS NOT NULL
+         ORDER BY _order ASC, _id ASC LIMIT 1`,
+      )
+      .get() as { currency: string } | undefined;
+    baseCurrency = acct?.currency && isValidIso4217(acct.currency) ? acct.currency : undefined;
+  }
+
   if (!baseCurrency) {
     const sec = db
       .prepare(
@@ -338,15 +367,16 @@ function seedPortfolioBaseCurrency(db: BetterSqlite3.Database): void {
          ORDER BY _id ASC LIMIT 1`,
       )
       .get() as { currency: string } | undefined;
-    baseCurrency =
-      sec?.currency && isValidIso4217(sec.currency) ? sec.currency : undefined;
+    baseCurrency = sec?.currency && isValidIso4217(sec.currency) ? sec.currency : undefined;
   }
+
   if (!baseCurrency) baseCurrency = 'EUR';
 
+  // INSERT OR IGNORE: defense-in-depth against a concurrent open or a row with
+  // an invalid value that slipped past the guard above.
   db.prepare(
-    `INSERT INTO vf_portfolio_meta (key, value) VALUES ('baseCurrency', ?)`,
+    `INSERT OR IGNORE INTO vf_portfolio_meta (key, value) VALUES ('baseCurrency', ?)`,
   ).run(baseCurrency);
-  // eslint-disable-next-line no-console
   console.log(`[multi-currency] seeded baseCurrency=${baseCurrency}`);
 }
 
@@ -363,10 +393,14 @@ function seedPortfolioBaseCurrency(db: BetterSqlite3.Database): void {
  *   5. cleanupCsvConfigsCrossAccount — drops legacy CSV-config key
  *   6. backfillCrossCurrencyGrossUnits — synthesises GROSS_VALUE FOREX
  *      units for pre-existing cross-currency trades that lack them
- *   7. seedPortfolioBaseCurrency — writes vf_portfolio_meta.baseCurrency
- *      if not already present (idempotent; never clobbers a user-set value)
+ *   7. seedPortfolioBaseCurrency — writes/corrects vf_portfolio_meta.baseCurrency.
+ *      Priority: property.baseCurrency (PP-declared) > account > security > EUR.
+ *      Migrates portfolios whose meta was seeded from account.currency before
+ *      property.baseCurrency was consulted. Uses INSERT OR IGNORE + UPDATE so
+ *      it is safe on any DB state.
  *
- * Steps 3–7 are all no-ops on a fresh DB after first run.
+ * Steps 3–7 are all no-ops on a fresh DB after first run (property, meta, and
+ * account agree, so the currency step returns early).
  */
 export function applyBootstrap(db: BetterSqlite3.Database): void {
   db.exec(BOOTSTRAP_SQL);

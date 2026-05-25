@@ -23,7 +23,7 @@ describe('seedPortfolioBaseCurrency (via applyBootstrap)', () => {
     expect(row).toEqual({ value: 'GBP' });
   });
 
-  it('is idempotent — does not overwrite existing baseCurrency', () => {
+  it('does not overwrite existing baseCurrency when property.baseCurrency is absent', () => {
     applyBootstrap(db);
     db.prepare(`INSERT OR REPLACE INTO vf_portfolio_meta (key, value) VALUES ('baseCurrency','JPY')`).run();
     db.prepare(
@@ -33,6 +33,45 @@ describe('seedPortfolioBaseCurrency (via applyBootstrap)', () => {
     applyBootstrap(db);
     const row = db.prepare(`SELECT value FROM vf_portfolio_meta WHERE key='baseCurrency'`).get();
     expect(row).toEqual({ value: 'JPY' });
+  });
+
+  it('prefers property.baseCurrency over deposit account currency on first seed', () => {
+    applyBootstrap(db);
+    db.prepare(`DELETE FROM vf_portfolio_meta WHERE key='baseCurrency'`).run();
+    // PP-XML-style: property table has the declared base currency.
+    db.prepare(`INSERT INTO property (name, special, value) VALUES ('baseCurrency', 1, 'CHF')`).run();
+    // Deposit account is in a different currency.
+    db.prepare(
+      `INSERT INTO account (uuid, name, type, currency, isRetired, updatedAt, _xmlid, _order)
+       VALUES ('a1','Cash EUR','account','EUR',0,'2025-01-01T00:00',1,0)`,
+    ).run();
+    applyBootstrap(db);
+    const row = db.prepare(`SELECT value FROM vf_portfolio_meta WHERE key='baseCurrency'`).get();
+    expect(row).toEqual({ value: 'CHF' });
+  });
+
+  it('corrects existing meta when property.baseCurrency disagrees (migration path)', () => {
+    applyBootstrap(db);
+    // Simulate a DB that was previously seeded with the wrong currency (from account)
+    // before property.baseCurrency was consulted.
+    db.prepare(`INSERT OR REPLACE INTO vf_portfolio_meta (key, value) VALUES ('baseCurrency','EUR')`).run();
+    db.prepare(`INSERT INTO property (name, special, value) VALUES ('baseCurrency', 1, 'CHF')`).run();
+    db.prepare(
+      `INSERT INTO account (uuid, name, type, currency, isRetired, updatedAt, _xmlid, _order)
+       VALUES ('a1','Cash EUR','account','EUR',0,'2025-01-01T00:00',1,0)`,
+    ).run();
+    applyBootstrap(db); // should correct meta from EUR → CHF
+    const row = db.prepare(`SELECT value FROM vf_portfolio_meta WHERE key='baseCurrency'`).get();
+    expect(row).toEqual({ value: 'CHF' });
+  });
+
+  it('does NOT overwrite existing meta when property.baseCurrency agrees', () => {
+    applyBootstrap(db);
+    db.prepare(`INSERT OR REPLACE INTO vf_portfolio_meta (key, value) VALUES ('baseCurrency','USD')`).run();
+    db.prepare(`INSERT INTO property (name, special, value) VALUES ('baseCurrency', 1, 'USD')`).run();
+    applyBootstrap(db);
+    const row = db.prepare(`SELECT value FROM vf_portfolio_meta WHERE key='baseCurrency'`).get();
+    expect(row).toEqual({ value: 'USD' });
   });
 
   it('falls back to security ccy when no deposits exist', () => {

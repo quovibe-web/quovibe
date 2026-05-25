@@ -33,6 +33,7 @@ import {
 import { PageHeader } from '@/components/shared/PageHeader';
 import { CURRENCIES } from '@/lib/currencies';
 import { formatDate } from '@/lib/formatters';
+import { resolveBaseCurrency } from '@/lib/resolve-base-currency';
 import { CostMethod, getAllCalendarInfos, type UpdateSettingsInput } from '@quovibe/shared';
 
 function SettingRow({
@@ -110,7 +111,7 @@ export default function PortfolioSettings() {
     if (!portfolioData || !portfolioId || seededForPid.current === portfolioId) return;
     const cfg = portfolioData.config;
     setCostMethod(cfg['portfolio.costMethod'] ?? CostMethod.MOVING_AVERAGE);
-    setCurrency(cfg['portfolio.currency'] ?? cfg['baseCurrency'] ?? 'EUR');
+    setCurrency(resolveBaseCurrency(cfg));
     setCalendar(cfg['portfolio.calendar'] ?? '');
     setAvRate(cfg['provider.alphavantage.rateLimit'] ?? '');
     seededForPid.current = portfolioId;
