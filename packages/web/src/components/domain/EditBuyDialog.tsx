@@ -44,8 +44,12 @@ export function EditBuyDialog({ open, onOpenChange, transaction }: Props) {
   // Reset dirty when transaction changes (sheet reopened with different row).
   useEffect(() => { setIsDirty(false); }, [transaction?.uuid]);
 
-  // BUY ppxml2db convention: amount = gross + fees + taxes → gross = amount - fees - taxes.
   // Derive price = gross / shares for the form's shares + price decomposition.
+  // BUY ppxml2db convention: xact.amount = gross + fees + taxes (deposit ccy).
+  // For cross-currency BUYs the FOREX unit carries the security-ccy gross
+  // (forexAmount, decimal). When present, use that — the form's contract
+  // requires price in security currency. Fall back to deposit-ccy path for
+  // same-currency rows that have no FOREX unit.
   const initialValues = useMemo<Partial<TransactionFormValues> | undefined>(() => {
     if (!transaction || !txDetail) return undefined;
     const fx = extractFxFromUnits(txDetail.units);
@@ -54,9 +58,17 @@ export function EditBuyDialog({ open, onOpenChange, transaction }: Props) {
     const feeAmount = feeUnit?.amount != null ? Math.abs(parseFloat(String(feeUnit.amount))) : 0;
     const taxAmount = taxUnit?.amount != null ? Math.abs(parseFloat(String(taxUnit.amount))) : 0;
     const sharesNum = transaction.shares != null ? parseFloat(String(transaction.shares)) : 0;
-    const amountNum = transaction.amount != null ? parseFloat(String(transaction.amount)) : 0;
-    const gross = amountNum - feeAmount - taxAmount;
-    const priceStr = sharesNum > 0 ? String(gross / sharesNum) : '';
+    let priceStr: string;
+    if (fx.grossSecurity != null && sharesNum > 0) {
+      // Cross-currency: FOREX unit forexAmount = security-ccy gross (decimal).
+      // price = grossSecurity / shares gives security-ccy per share.
+      priceStr = String(fx.grossSecurity / sharesNum);
+    } else {
+      // Same-currency: derive from deposit-ccy amount.
+      const amountNum = transaction.amount != null ? parseFloat(String(transaction.amount)) : 0;
+      const gross = amountNum - feeAmount - taxAmount;
+      priceStr = sharesNum > 0 ? String(gross / sharesNum) : '';
+    }
 
     const portfolio = accounts.find((a) => a.id === (transaction.account ?? ''));
     const crossAccountId = transaction.crossAccountId ?? portfolio?.referenceAccountId ?? '';

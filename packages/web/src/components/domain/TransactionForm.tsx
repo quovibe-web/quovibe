@@ -611,7 +611,7 @@ export function TransactionForm({
         {/* Shares + Price */}
         <PairOrSolo
           a={cfg.shares && <NumericField form={form} name="shares" label={t('columns.shares')} fieldId={fieldId('shares')} />}
-          b={cfg.price && <NumericField form={form} name="price" label={t('form.pricePerShare')} fieldId={fieldId('price')} />}
+          b={cfg.price && <NumericField form={form} name="price" label={isCrossCurrency ? t('form.pricePerShareInCcy', { ccy: dstCurrency }) : t('form.pricePerShare')} fieldId={fieldId('price')} />}
         />
 
         {/* Amount */}

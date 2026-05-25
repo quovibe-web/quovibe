@@ -44,6 +44,7 @@
     "quantity": "Quantité",
     "price": "Cours",
     "pricePerShare": "Cours par part",
+    "pricePerShareInCcy": "Cours par part ({{ccy}})",
     "pricePerShareOptional": "Cours par part (facultatif)",
     "amount": "Montant",
     "fees": "Frais",

@@ -44,6 +44,7 @@
     "quantity": "Ilość",
     "price": "Cena",
     "pricePerShare": "Cena za udział",
+    "pricePerShareInCcy": "Cena za udział ({{ccy}})",
     "pricePerShareOptional": "Cena za udział (opcjonalnie)",
     "amount": "Kwota",
     "fees": "Opłaty",

@@ -44,6 +44,7 @@
     "quantity": "Quantity",
     "price": "Price",
     "pricePerShare": "Price per Share",
+    "pricePerShareInCcy": "Price per Share ({{ccy}})",
     "pricePerShareOptional": "Price per Share (optional)",
     "amount": "Amount",
     "fees": "Fees",
