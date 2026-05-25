@@ -18,7 +18,7 @@ import { useAccounts } from '@/api/use-accounts';
 import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
 import { UnsavedChangesAlert } from '@/components/shared/UnsavedChangesAlert';
-import { extractFxFromUnits } from '@/lib/fx-utils';
+import { extractFxFromUnits, deriveInitialPrice } from '@/lib/fx-utils';
 import { TransactionType } from '@/lib/enums';
 import { preparePayload } from '@/lib/transaction-payload';
 import type { TransactionListItem } from '@/api/types';
@@ -44,12 +44,6 @@ export function EditBuyDialog({ open, onOpenChange, transaction }: Props) {
   // Reset dirty when transaction changes (sheet reopened with different row).
   useEffect(() => { setIsDirty(false); }, [transaction?.uuid]);
 
-  // Derive price = gross / shares for the form's shares + price decomposition.
-  // BUY ppxml2db convention: xact.amount = gross + fees + taxes (deposit ccy).
-  // For cross-currency BUYs the FOREX unit carries the security-ccy gross
-  // (forexAmount, decimal). When present, use that — the form's contract
-  // requires price in security currency. Fall back to deposit-ccy path for
-  // same-currency rows that have no FOREX unit.
   const initialValues = useMemo<Partial<TransactionFormValues> | undefined>(() => {
     if (!transaction || !txDetail) return undefined;
     const fx = extractFxFromUnits(txDetail.units);
@@ -58,17 +52,9 @@ export function EditBuyDialog({ open, onOpenChange, transaction }: Props) {
     const feeAmount = feeUnit?.amount != null ? Math.abs(parseFloat(String(feeUnit.amount))) : 0;
     const taxAmount = taxUnit?.amount != null ? Math.abs(parseFloat(String(taxUnit.amount))) : 0;
     const sharesNum = transaction.shares != null ? parseFloat(String(transaction.shares)) : 0;
-    let priceStr: string;
-    if (fx.grossSecurity != null && sharesNum > 0) {
-      // Cross-currency: FOREX unit forexAmount = security-ccy gross (decimal).
-      // price = grossSecurity / shares gives security-ccy per share.
-      priceStr = String(fx.grossSecurity / sharesNum);
-    } else {
-      // Same-currency: derive from deposit-ccy amount.
-      const amountNum = transaction.amount != null ? parseFloat(String(transaction.amount)) : 0;
-      const gross = amountNum - feeAmount - taxAmount;
-      priceStr = sharesNum > 0 ? String(gross / sharesNum) : '';
-    }
+    const amountNum = transaction.amount != null ? parseFloat(String(transaction.amount)) : 0;
+    // BUY: xact.amount = gross + fees + taxes (deposit ccy) → feeSign -1
+    const priceStr = deriveInitialPrice(fx.grossSecurity, sharesNum, amountNum, feeAmount, taxAmount, -1);
 
     const portfolio = accounts.find((a) => a.id === (transaction.account ?? ''));
     const crossAccountId = transaction.crossAccountId ?? portfolio?.referenceAccountId ?? '';

@@ -31,10 +31,8 @@ export function computeFxAmounts(params: {
  * Extract FX restoration data (exchange rate, security-ccy gross + fees/taxes)
  * from a transaction's unit array.
  *
- * `grossSecurity` — FOREX unit's forexAmount, the security-ccy gross in
- * decimal form (e.g. 495.04 for $495.04). Present only for cross-currency
- * transactions. Use this to reconstruct the price field in EditBuyDialog /
- * EditSellDialog instead of dividing the deposit-ccy amount by shares.
+ * `grossSecurity` — FOREX unit's forexAmount: security-ccy gross in decimal
+ * form (e.g. 495.04 for $495.04). Undefined for same-currency transactions.
  */
 export function extractFxFromUnits(units: TransactionUnit[] | undefined) {
   const forexUnit = units?.find((u) => u.type === 'FOREX');
@@ -46,4 +44,26 @@ export function extractFxFromUnits(units: TransactionUnit[] | undefined) {
     feesFx: feeUnit?.forexAmount && feeUnit.forexAmount > 0 ? String(feeUnit.forexAmount) : '',
     taxesFx: taxUnit?.forexAmount && taxUnit.forexAmount > 0 ? String(taxUnit.forexAmount) : '',
   };
+}
+
+/**
+ * Derives the initial price-per-share string for edit dialogs.
+ *
+ * Cross-currency rows: use security-ccy gross from the FOREX unit so the
+ * form field is in the correct currency. Same-currency rows: back-compute
+ * from the deposit-ccy amount. `feeSign` is -1 for BUY (amount includes
+ * fees+taxes) and +1 for SELL (amount excludes fees+taxes).
+ */
+export function deriveInitialPrice(
+  grossSecurity: number | undefined,
+  sharesNum: number,
+  depositAmount: number,
+  feeAmount: number,
+  taxAmount: number,
+  feeSign: -1 | 1,
+): string {
+  if (sharesNum <= 0) return '';
+  if (grossSecurity != null) return String(grossSecurity / sharesNum);
+  const gross = depositAmount + feeSign * (feeAmount + taxAmount);
+  return String(gross / sharesNum);
 }

@@ -690,11 +690,22 @@ function sumGrossEarningsByType(
     }, new Decimal(0));
 }
 
-/**
- * Sums deposit-currency transaction amounts to base using per-transaction
- * frozen FX rates (the rate on the transaction date, not period-end).
- * Used for dividends — the cash leg is always in deposit currency.
- */
+// Converts a deposit-currency amount to base at the given trade date.
+// Returns null when the rate is unavailable (caller skips the tx).
+function txAmountToBase(
+  amount: Decimal,
+  ccy: string,
+  baseCurrency: string,
+  rateMaps: Map<string, RateMap>,
+  date: string,
+): Decimal | null {
+  if (ccy === baseCurrency) return amount;
+  const rateMap = rateMaps.get(ccy);
+  const rate = rateMap ? getRateFromMap(rateMap, date) : null;
+  return rate ? convertToBase(amount, rate) : null;
+}
+
+// Sums deposit-ccy tx.amount → base using per-transaction frozen FX rates.
 function sumAmountInBaseByType(
   txs: TransactionWithUnits[],
   type: TransactionType,
@@ -706,20 +717,12 @@ function sumAmountInBaseByType(
     .filter((tx) => tx.date >= period.start && tx.date <= period.end && tx.type === type)
     .reduce((sum, tx) => {
       if (tx.amount == null) return sum;
-      const ccy = tx.currencyCode ?? baseCurrency;
-      if (ccy === baseCurrency) return sum.plus(new Decimal(tx.amount));
-      const rateMap = rateMaps.get(ccy);
-      const rate = rateMap ? getRateFromMap(rateMap, tx.date) : null;
-      if (!rate) return sum;
-      return sum.plus(convertToBase(new Decimal(tx.amount), rate));
+      const converted = txAmountToBase(new Decimal(tx.amount), tx.currencyCode ?? baseCurrency, baseCurrency, rateMaps, tx.date);
+      return converted != null ? sum.plus(converted) : sum;
     }, new Decimal(0));
 }
 
-/**
- * Sums deposit-currency FEE or TAX xact_unit amounts to base using
- * per-transaction frozen FX rates. Units carry the same deposit currency
- * as their parent transaction.
- */
+// Sums deposit-ccy FEE or TAX xact_unit amounts → base using per-transaction frozen FX rates.
 function sumUnitAmountInBase(
   txs: TransactionWithUnits[],
   unitType: 'FEE' | 'TAX',
@@ -732,14 +735,9 @@ function sumUnitAmountInBase(
     .reduce((sum, tx) => {
       const matched = tx.units.filter((u) => u.type === unitType);
       if (matched.length === 0) return sum;
-      const ccy = tx.currencyCode ?? baseCurrency;
-      if (ccy === baseCurrency) {
-        return sum.plus(matched.reduce((s, u) => s.plus(new Decimal(u.amount)), new Decimal(0)));
-      }
-      const rateMap = rateMaps.get(ccy);
-      const rate = rateMap ? getRateFromMap(rateMap, tx.date) : null;
-      if (!rate) return sum;
-      return sum.plus(matched.reduce((s, u) => s.plus(convertToBase(new Decimal(u.amount), rate)), new Decimal(0)));
+      const unitTotal = matched.reduce((s, u) => s.plus(new Decimal(u.amount)), new Decimal(0));
+      const converted = txAmountToBase(unitTotal, tx.currencyCode ?? baseCurrency, baseCurrency, rateMaps, tx.date);
+      return converted != null ? sum.plus(converted) : sum;
     }, new Decimal(0));
 }
 
@@ -2120,8 +2118,6 @@ export function getPortfolioCalc(
       continue;
     }
 
-    // Raw transactions for this security (deposit-ccy amounts, needed for
-    // frozen-FX aggregation of dividends/fees/taxes and for item-level detail).
     const secTxs = data.txsBySecurity.get(sr.securityId) ?? [];
 
     // Convert remaining per-security totals to base at period-end.
@@ -2185,8 +2181,6 @@ export function getPortfolioCalc(
       const secInfo = data.securityInfoMap.get(sr.securityId);
       const secName = secInfo?.name ?? sr.securityId;
       const secIsin = secInfo?.isin;
-      // secTxs hoisted above for frozen-FX dividend/fee/tax aggregation
-
       // Capital gain item (unrealized gains per security).
       // Exclude fully-sold securities (mve=0 and no unrealized gain) — they belong
       // only in realizedGains.items.
