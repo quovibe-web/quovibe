@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon, Eye, EyeOff, Plus, MoreHorizontal, Settings, Menu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
@@ -22,6 +22,7 @@ import { useUpdatePreferences } from '@/api/use-preferences';
 import { usePortfolio as usePortfolioContext } from '@/context/PortfolioContext';
 import { usePrivacy } from '@/context/privacy-context';
 import { NewPeriodDialog } from '@/components/domain/NewPeriodDialog';
+import { ManagePeriodsDialog } from '@/components/domain/ManagePeriodsDialog';
 import { DEFAULT_PERIODS, formatPeriodShortLabel, formatPeriodLabel, getPeriodId, ALL_PERIOD_ID } from '@/lib/period-utils';
 import { resolveReportingPeriod } from '@quovibe/shared';
 import type { ReportingPeriodDef } from '@quovibe/shared';
@@ -78,7 +79,6 @@ const PERIOD_PILL_ACTIVE =
 function PeriodSelector() {
   const { t } = useTranslation('navigation');
   const { t: tRaw } = useTranslation();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { periodStart, periodEnd, setPeriod } = useReportingPeriod();
   const { data: firstDateData } = useFirstTransactionDate();
@@ -90,6 +90,7 @@ function PeriodSelector() {
 
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [periodDialogOpen, setPeriodDialogOpen] = useState(false);
+  const [managePeriodsOpen, setManagePeriodsOpen] = useState(false);
 
   const todayStr = fmt(today());
 
@@ -335,7 +336,7 @@ function PeriodSelector() {
               {/* Manage periods */}
               <button
                 className="w-full text-left px-2.5 py-1.5 rounded-md text-sm hover:bg-muted flex items-center gap-1.5"
-                onClick={() => { navigate(`/p/${currentPortfolio.id}/settings/data?tab=periods`); setOverflowOpen(false); }}
+                onClick={() => { setManagePeriodsOpen(true); setOverflowOpen(false); }}
               >
                 <Settings className="h-3.5 w-3.5" />
                 {t('managePeriods')}
@@ -434,6 +435,7 @@ function PeriodSelector() {
       </Sheet>
 
       <NewPeriodDialog open={periodDialogOpen} onOpenChange={setPeriodDialogOpen} />
+      <ManagePeriodsDialog open={managePeriodsOpen} onOpenChange={setManagePeriodsOpen} />
     </>
   );
 }
