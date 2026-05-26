@@ -10,6 +10,7 @@ interface WithTransferDirection {
 interface InternalLot {
   shares: Decimal;
   pricePerShare: Decimal;
+  date: string; // original acquisition date — preserves FIFO order across transfers
 }
 
 /**
@@ -69,7 +70,7 @@ export function inheritTransferCostBasis(
     while (remaining.gt(0) && lots.length > 0) {
       const lot = lots[0];
       const take = Decimal.min(remaining, lot.shares);
-      consumed.push({ shares: take, pricePerShare: lot.pricePerShare });
+      consumed.push({ shares: take, pricePerShare: lot.pricePerShare, date: lot.date });
       lot.shares = lot.shares.minus(take);
       if (lot.shares.isZero()) lots.shift();
       remaining = remaining.minus(take);
@@ -112,7 +113,7 @@ export function inheritTransferCostBasis(
         if (shares.gt(0)) {
           const gross = getGrossAmount(tx);
           const pricePerShare = shares.isZero() ? new Decimal(0) : gross.div(shares);
-          pushLot(accountId, { shares, pricePerShare });
+          pushLot(accountId, { shares, pricePerShare, date: tx.date });
         }
         result.push(tx);
         break;
@@ -152,6 +153,7 @@ export function inheritTransferCostBasis(
               result.push({
                 ...tx,
                 type: TransactionType.SECURITY_TRANSFER_INBOUND,
+                date: lot.date, // original acquisition date — preserves FIFO lot order in engine
                 shares: lotSharesRaw,
                 amount: lotCost,
               });

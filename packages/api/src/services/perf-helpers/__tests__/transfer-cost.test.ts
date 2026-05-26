@@ -160,6 +160,39 @@ describe('inheritTransferCostBasis — no matching outbound (destination-only vi
   });
 });
 
+describe('inheritTransferCostBasis — lot date preservation (FIFO parity)', () => {
+  it('INBOUND rows carry original BUY date, not transfer date', () => {
+    // BUY on Jan 10 in A; transfer on Mar 1 to B.
+    // INBOUND row must have date='2024-01-10' so computeFIFO orders it
+    // correctly relative to BUYs in B that happened between Jan and Mar.
+    const txs = [
+      makeTx({ type: TransactionType.BUY,               date: '2024-01-10', accountId: 'A', shares: S(100), amount: 1000 }),
+      makeTx({ type: TransactionType.SECURITY_TRANSFER, date: '2024-03-01', accountId: 'A', shares: S(100), transferDirection: 'OUT' }),
+      makeTx({ type: TransactionType.SECURITY_TRANSFER, date: '2024-03-01', accountId: 'B', shares: S(100), transferDirection: 'IN'  }),
+    ] as TransactionWithUnits[];
+
+    const result = inheritTransferCostBasis(txs);
+    const inbound = result.filter((t) => t.type === TransactionType.SECURITY_TRANSFER_INBOUND);
+    expect(inbound).toHaveLength(1);
+    expect(inbound[0].date).toBe('2024-01-10'); // original BUY date, not '2024-03-01'
+  });
+
+  it('multi-lot transfer: each INBOUND row carries its own BUY date', () => {
+    const txs = [
+      makeTx({ type: TransactionType.BUY,               date: '2024-01-10', accountId: 'A', shares: S(30), amount: 300 }),
+      makeTx({ type: TransactionType.BUY,               date: '2024-02-01', accountId: 'A', shares: S(20), amount: 250 }),
+      makeTx({ type: TransactionType.SECURITY_TRANSFER, date: '2024-03-01', accountId: 'A', shares: S(50), transferDirection: 'OUT' }),
+      makeTx({ type: TransactionType.SECURITY_TRANSFER, date: '2024-03-01', accountId: 'B', shares: S(50), transferDirection: 'IN'  }),
+    ] as TransactionWithUnits[];
+
+    const result = inheritTransferCostBasis(txs);
+    const inbound = result.filter((t) => t.type === TransactionType.SECURITY_TRANSFER_INBOUND);
+    expect(inbound).toHaveLength(2);
+    expect(inbound[0].date).toBe('2024-01-10');
+    expect(inbound[1].date).toBe('2024-02-01');
+  });
+});
+
 describe('inheritTransferCostBasis — idempotence', () => {
   it('running twice produces the same output (already-typed rows pass through)', () => {
     const txs = [
