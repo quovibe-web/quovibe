@@ -18,7 +18,13 @@ export interface ConsumedLotSlice {
 }
 
 export interface CostTransaction {
-  type: 'BUY' | 'SELL' | 'DELIVERY_INBOUND' | 'DELIVERY_OUTBOUND';
+  type:
+    | 'BUY'
+    | 'SELL'
+    | 'DELIVERY_INBOUND'
+    | 'DELIVERY_OUTBOUND'
+    | 'SECURITY_TRANSFER_INBOUND'
+    | 'SECURITY_TRANSFER_OUTBOUND';
   date: string;
   shares: Decimal;
   grossAmount: Decimal;

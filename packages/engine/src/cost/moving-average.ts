@@ -103,7 +103,7 @@ export function computeMovingAverage(
       appliedSplitIdx++;
     }
 
-    if (tx.type === 'BUY' || tx.type === 'DELIVERY_INBOUND') {
+    if (tx.type === 'BUY' || tx.type === 'DELIVERY_INBOUND' || tx.type === 'SECURITY_TRANSFER_INBOUND') {
       if (tx.shares.lte(0)) {
         throw new Error(`${tx.type} transaction must have positive shares (got ${tx.shares})`);
       }
@@ -118,7 +118,7 @@ export function computeMovingAverage(
           unresolvedBuyDates!.push(tx.date);
         }
       }
-    } else if (tx.type === 'SELL' || tx.type === 'DELIVERY_OUTBOUND') {
+    } else if (tx.type === 'SELL' || tx.type === 'DELIVERY_OUTBOUND' || tx.type === 'SECURITY_TRANSFER_OUTBOUND') {
       const avgPrice = totalShares.isZero() ? new Decimal(0) : totalCost.div(totalShares);
       const costBasis = tx.shares.mul(avgPrice);
       realizedGain = realizedGain.plus(tx.grossAmount.minus(costBasis));

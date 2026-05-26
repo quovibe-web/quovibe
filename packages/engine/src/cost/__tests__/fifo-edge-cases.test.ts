@@ -201,3 +201,49 @@ describe('computeFIFO with rateMap (Phase 3)', () => {
     expect(result.unresolvedBuyDates).toEqual([]);
   });
 });
+
+// SECURITY_TRANSFER: inbound creates a new lot preserving original purchase price;
+// outbound consumes lots FIFO with zero realized gain (basis travels with the shares).
+
+describe('computeFIFO — SECURITY_TRANSFER_INBOUND / OUTBOUND', () => {
+  it('inbound creates a lot at the inherited price; SELL against it realizes gain correctly', () => {
+    // Source account lot: 100 shares @€10 cost.
+    // Transfer: OUTBOUND 100 @€1000 (inherited basis), INBOUND 100 @€1000.
+    // Sell 100 @€12 → realized gain = 100 × (12 − 10) = €200
+    const txs: CostTransaction[] = [
+      { type: 'BUY',                        date: '2024-01-05', shares: new Decimal('100'), grossAmount: new Decimal('1000'), fees: new Decimal('0') },
+      { type: 'SECURITY_TRANSFER_OUTBOUND', date: '2024-03-01', shares: new Decimal('100'), grossAmount: new Decimal('1000'), fees: new Decimal('0') },
+      { type: 'SECURITY_TRANSFER_INBOUND',  date: '2024-03-01', shares: new Decimal('100'), grossAmount: new Decimal('1000'), fees: new Decimal('0') },
+      { type: 'SELL',                       date: '2024-06-01', shares: new Decimal('100'), grossAmount: new Decimal('1200'), fees: new Decimal('0') },
+    ];
+    const result = computeFIFO(txs);
+    expect(result.remainingLots).toHaveLength(0);
+    expect(result.realizedGain.toString()).toBe('200');
+  });
+
+  it('multiple inherited lots produce correct FIFO lot stack', () => {
+    // Two BUYs on source side → two INBOUND rows → FIFO order preserved
+    const txs: CostTransaction[] = [
+      { type: 'SECURITY_TRANSFER_INBOUND', date: '2024-01-10', shares: new Decimal('30'), grossAmount: new Decimal('300'), fees: new Decimal('0') },
+      { type: 'SECURITY_TRANSFER_INBOUND', date: '2024-02-10', shares: new Decimal('20'), grossAmount: new Decimal('250'), fees: new Decimal('0') },
+      { type: 'SELL',                      date: '2024-06-01', shares: new Decimal('30'), grossAmount: new Decimal('420'), fees: new Decimal('0') },
+    ];
+    const result = computeFIFO(txs);
+    // First lot: 30 shares @10/share. Sell 30 @14: gain = 30 × (14 − 10) = 120
+    expect(result.realizedGain.toString()).toBe('120');
+    expect(result.remainingLots).toHaveLength(1);
+    expect(result.remainingLots[0].shares.toString()).toBe('20');
+  });
+
+  it('outbound with no prior shares throws (over-transfer)', () => {
+    const txs: CostTransaction[] = [
+      { type: 'SECURITY_TRANSFER_OUTBOUND', date: '2024-03-01', shares: new Decimal('10'), grossAmount: new Decimal('100'), fees: new Decimal('0') },
+    ];
+    // FIFO SELL-path: sharesToSell = 10, lots = [] → loop exhausted, no throw.
+    // No "sold more than held" guard in FIFO (FIFO silently under-delivers).
+    // Document expected behavior: remaining lots empty, realized gain 0.
+    const result = computeFIFO(txs);
+    expect(result.remainingLots).toHaveLength(0);
+    expect(result.realizedGain.toString()).toBe('0');
+  });
+});

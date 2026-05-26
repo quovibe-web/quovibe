@@ -1236,3 +1236,213 @@ describe('Portfolio rollup decomposition accumulators (Phase 3 Task 8)', () => {
     });
   });
 });
+
+// ─── SECURITY_TRANSFER cost-basis inheritance ─────────────────────────────────
+
+describe('getSecurityPerformanceList — SECURITY_TRANSFER cost-basis inheritance', () => {
+  // Scenario: BUY 200 @€10 in sec-a; TRANSFER 100 sec-a→sec-b; SELL 100 from sec-b @€15.
+  // Expected: purchaseValue=1000 (100 shares @€10 remaining), realizedGain=500, sharesEnd=100.
+  // Without the fix this either crashes or produces wrong numbers because
+  // toCostTransactions dropped SECURITY_TRANSFER rows entirely.
+  beforeEach(() => {
+    db = new Database(':memory:');
+    applyBootstrap(db);
+
+    db.prepare(`INSERT OR IGNORE INTO vf_portfolio_meta (key, value) VALUES ('baseCurrency', 'EUR')`).run();
+
+    db.prepare(
+      `INSERT INTO account (uuid, name, type, currency, isRetired, updatedAt, _xmlid, _order)
+       VALUES ('dep-a','Cash EUR','account','EUR',0,'2024-01-01',1,0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO account (uuid, name, type, currency, isRetired, referenceAccount, updatedAt, _xmlid, _order)
+       VALUES ('sec-a','Broker A','portfolio',NULL,0,'dep-a','2024-01-01',2,1)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO account (uuid, name, type, currency, isRetired, referenceAccount, updatedAt, _xmlid, _order)
+       VALUES ('sec-b','Broker B','portfolio',NULL,0,'dep-a','2024-01-01',3,2)`,
+    ).run();
+
+    db.prepare(
+      `INSERT INTO security (uuid, name, currency, isRetired, updatedAt)
+       VALUES ('nvda','NVIDIA Corp','EUR',0,'2024-01-01')`,
+    ).run();
+
+    // BUY 200 shares @€10 in sec-a on 2024-01-10
+    // amount = 200 × 10 × 100 hecto = 200000; shares = 200 × 1e8
+    db.prepare(
+      `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, updatedAt, _xmlid, _order)
+       VALUES ('b1','BUY','2024-01-10','EUR',200000,20000000000,'nvda','sec-a','portfolio','2024-01-10',1,1)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, updatedAt, _xmlid, _order)
+       VALUES ('b1c','BUY','2024-01-10','EUR',200000,0,'nvda','dep-a','account','2024-01-10',2,2)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO xact_cross_entry (from_xact, from_acc, to_xact, to_acc, type)
+       VALUES ('b1','sec-a','b1c','dep-a','buysell')`,
+    ).run();
+
+    // SECURITY_TRANSFER 100 shares sec-a → sec-b on 2024-03-01
+    // amount = 0 per schema; shares = 100 × 1e8
+    db.prepare(
+      `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, updatedAt, _xmlid, _order)
+       VALUES ('tout','TRANSFER_OUT','2024-03-01','EUR',0,10000000000,'nvda','sec-a','portfolio','2024-03-01',3,3)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, updatedAt, _xmlid, _order)
+       VALUES ('tin','TRANSFER_IN','2024-03-01','EUR',0,10000000000,'nvda','sec-b','portfolio','2024-03-01',4,4)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO xact_cross_entry (from_xact, from_acc, to_xact, to_acc, type)
+       VALUES ('tout','sec-a','tin','sec-b','portfolio-transfer')`,
+    ).run();
+
+    // SELL 100 shares from sec-b @€15 on 2024-06-01
+    // amount = 100 × 15 × 100 hecto = 150000; shares = 100 × 1e8
+    db.prepare(
+      `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, updatedAt, _xmlid, _order)
+       VALUES ('s1','SELL','2024-06-01','EUR',150000,10000000000,'nvda','sec-b','portfolio','2024-06-01',5,5)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, updatedAt, _xmlid, _order)
+       VALUES ('s1c','SELL','2024-06-01','EUR',150000,0,'nvda','dep-a','account','2024-06-01',6,6)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO xact_cross_entry (from_xact, from_acc, to_xact, to_acc, type)
+       VALUES ('s1','sec-b','s1c','dep-a','buysell')`,
+    ).run();
+
+    // Latest price: €12 per share on 2024-12-31
+    db.prepare(
+      `INSERT INTO latest_price (security, value, tstamp) VALUES ('nvda',1200000000,'2024-12-31')`,
+    ).run();
+  });
+
+  it('does not throw (original crash: Sold more shares than available)', () => {
+    expect(() =>
+      getSecurityPerformanceList(
+        db,
+        { start: '2024-01-01', end: '2024-12-31' },
+        CostMethod.MOVING_AVERAGE,
+        true,
+      ),
+    ).not.toThrow();
+  });
+
+  it('purchaseValue = €1000 (100 remaining shares × €10 inherited cost)', () => {
+    const results = getSecurityPerformanceList(
+      db,
+      { start: '2024-01-01', end: '2024-12-31' },
+      CostMethod.MOVING_AVERAGE,
+      true,
+    );
+    const nvda = results.find((r) => r.securityId === 'nvda');
+    expect(nvda).toBeDefined();
+    expect(new Decimal(nvda!.purchaseValue).toNumber()).toBeCloseTo(1000, 4);
+  });
+
+  it('realizedGain = €500 (100 sold × (€15 − €10))', () => {
+    const results = getSecurityPerformanceList(
+      db,
+      { start: '2024-01-01', end: '2024-12-31' },
+      CostMethod.MOVING_AVERAGE,
+      true,
+    );
+    const nvda = results.find((r) => r.securityId === 'nvda');
+    expect(nvda).toBeDefined();
+    expect(new Decimal(nvda!.realizedGain).toNumber()).toBeCloseTo(500, 4);
+  });
+
+  it('sharesEnd = 100 (200 bought − 100 outbound + 100 inbound − 100 sold)', () => {
+    const results = getSecurityPerformanceList(
+      db,
+      { start: '2024-01-01', end: '2024-12-31' },
+      CostMethod.MOVING_AVERAGE,
+      true,
+    );
+    const nvda = results.find((r) => r.securityId === 'nvda');
+    expect(nvda).toBeDefined();
+    expect(new Decimal(nvda!.shares).toNumber()).toBeCloseTo(100, 6);
+  });
+});
+
+describe('getSecurityPerformanceList — orphan TRANSFER_IN (no matching outbound, crash scenario)', () => {
+  // Simulates the exact crash from the bug report: shares arrived via an inbound
+  // SECURITY_TRANSFER that has no matching TRANSFER_OUT in this portfolio DB
+  // (e.g. an external/cross-portfolio import). Old code dropped the TRANSFER_IN →
+  // engine saw SELL but no matching BUY → "Sold more shares than available".
+  beforeEach(() => {
+    db = new Database(':memory:');
+    applyBootstrap(db);
+
+    db.prepare(`INSERT OR IGNORE INTO vf_portfolio_meta (key, value) VALUES ('baseCurrency', 'EUR')`).run();
+
+    db.prepare(
+      `INSERT INTO account (uuid, name, type, currency, isRetired, updatedAt, _xmlid, _order)
+       VALUES ('dep-x','Cash','account','EUR',0,'2024-01-01',1,0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO account (uuid, name, type, currency, isRetired, referenceAccount, updatedAt, _xmlid, _order)
+       VALUES ('sec-x','Broker','portfolio',NULL,0,'dep-x','2024-01-01',2,1)`,
+    ).run();
+
+    db.prepare(
+      `INSERT INTO security (uuid, name, currency, isRetired, updatedAt)
+       VALUES ('aapl','Apple Inc','EUR',0,'2024-01-01')`,
+    ).run();
+
+    // TRANSFER_IN 200 shares with no matching TRANSFER_OUT in this DB.
+    // from_xact = NULL (nullable FK) so ceType='portfolio-transfer' is set on
+    // this row via ce.to_xact match only; preprocessor emits zero-cost INBOUND.
+    db.prepare(
+      `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, updatedAt, _xmlid, _order)
+       VALUES ('orphan-in','TRANSFER_IN','2024-02-01','EUR',0,20000000000,'aapl','sec-x','portfolio','2024-02-01',1,1)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO xact_cross_entry (from_xact, from_acc, to_xact, to_acc, type)
+       VALUES (NULL, NULL, 'orphan-in','sec-x','portfolio-transfer')`,
+    ).run();
+
+    // SELL 200 shares from sec-x @€10 on 2024-06-01
+    db.prepare(
+      `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, updatedAt, _xmlid, _order)
+       VALUES ('sell-x','SELL','2024-06-01','EUR',200000,20000000000,'aapl','sec-x','portfolio','2024-06-01',2,2)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, updatedAt, _xmlid, _order)
+       VALUES ('sell-xc','SELL','2024-06-01','EUR',200000,0,'aapl','dep-x','account','2024-06-01',3,3)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO xact_cross_entry (from_xact, from_acc, to_xact, to_acc, type)
+       VALUES ('sell-x','sec-x','sell-xc','dep-x','buysell')`,
+    ).run();
+
+    db.prepare(
+      `INSERT INTO latest_price (security, value, tstamp) VALUES ('aapl',1000000000,'2024-12-31')`,
+    ).run();
+  });
+
+  it('does not throw (original bug: orphan TRANSFER_IN + SELL crashes computeMovingAverage)', () => {
+    expect(() =>
+      getSecurityPerformanceList(
+        db,
+        { start: '2024-01-01', end: '2024-12-31' },
+        CostMethod.MOVING_AVERAGE,
+        true,
+      ),
+    ).not.toThrow();
+  });
+
+  it('sharesEnd = 0 after consuming all orphan-transferred shares via SELL', () => {
+    const results = getSecurityPerformanceList(
+      db,
+      { start: '2024-01-01', end: '2024-12-31' },
+      CostMethod.MOVING_AVERAGE,
+      true,
+    );
+    const aapl = results.find((r) => r.securityId === 'aapl');
+    expect(aapl).toBeDefined();
+    expect(new Decimal(aapl!.shares).toNumber()).toBeCloseTo(0, 6);
+  });
+});

@@ -42,6 +42,7 @@ import {
   decomposeUnrealized,
 } from '@quovibe/engine';
 import { safeDecimal, convertAmountFromDb } from './unit-conversion';
+import { inheritTransferCostBasis } from './perf-helpers/transfer-cost';
 import { buildRateMap, getRate } from './fx.service';
 import {
   getRateFromMap,
@@ -88,6 +89,8 @@ export interface PerfTransaction extends TransactionWithUnits {
   accountId: string;
   /** For TRANSFER_BETWEEN_ACCOUNTS only: true if this is the outbound (source) side. */
   isTransferOut?: boolean;
+  /** For SECURITY_TRANSFER only: direction from the DB type (TRANSFER_OUT → 'OUT', TRANSFER_IN → 'IN'). */
+  transferDirection?: 'IN' | 'OUT';
 }
 
 function parseRawRow(row: RawXactRow): PerfTransaction {
@@ -130,11 +133,14 @@ function parseRawRow(row: RawXactRow): PerfTransaction {
   // - Account transfers: shares = 0/null.
   let normalizedType = normalizeXactType(row.type);
   let isTransferOut: boolean | undefined;
+  let transferDirection: 'IN' | 'OUT' | undefined;
 
   if (row.ceType === 'portfolio-transfer') {
     // Security transfer: shares move between security accounts within the portfolio.
     // NOT a portfolio-level cashflow — must NOT be mapped to DELIVERY_*.
     normalizedType = TransactionType.SECURITY_TRANSFER;
+    // Raw DB type preserves direction: TRANSFER_OUT = source leg, TRANSFER_IN = dest leg.
+    transferDirection = row.type === 'TRANSFER_OUT' ? 'OUT' : 'IN';
   } else if (normalizedType === TransactionType.DELIVERY_OUTBOUND && (row.shares == null || row.shares === 0)) {
     isTransferOut = true;
     normalizedType = TransactionType.TRANSFER_BETWEEN_ACCOUNTS;
@@ -157,6 +163,7 @@ function parseRawRow(row: RawXactRow): PerfTransaction {
     units,
     accountId: row.account,
     isTransferOut,
+    transferDirection,
   };
 }
 
@@ -534,9 +541,9 @@ function computeDailyMarketValues(
     if (tx.date >= period.start) break;
     if (tx.shares == null) continue;
     const txShares = safeDecimal(tx.shares).div(1e8);
-    if (tx.type === TransactionType.BUY || tx.type === TransactionType.DELIVERY_INBOUND) {
+    if (tx.type === TransactionType.BUY || tx.type === TransactionType.DELIVERY_INBOUND || tx.type === TransactionType.SECURITY_TRANSFER_INBOUND) {
       shares = shares.plus(txShares);
-    } else if (tx.type === TransactionType.SELL || tx.type === TransactionType.DELIVERY_OUTBOUND) {
+    } else if (tx.type === TransactionType.SELL || tx.type === TransactionType.DELIVERY_OUTBOUND || tx.type === TransactionType.SECURITY_TRANSFER_OUTBOUND) {
       shares = shares.minus(txShares);
     }
   }
@@ -556,11 +563,12 @@ function computeDailyMarketValues(
       const tx = inPeriodTxs[txIndex];
       if (tx.shares != null) {
         const txShares = safeDecimal(tx.shares).div(1e8);
-        if (tx.type === TransactionType.BUY || tx.type === TransactionType.DELIVERY_INBOUND) {
+        if (tx.type === TransactionType.BUY || tx.type === TransactionType.DELIVERY_INBOUND || tx.type === TransactionType.SECURITY_TRANSFER_INBOUND) {
           shares = shares.plus(txShares);
         } else if (
           tx.type === TransactionType.SELL ||
-          tx.type === TransactionType.DELIVERY_OUTBOUND
+          tx.type === TransactionType.DELIVERY_OUTBOUND ||
+          tx.type === TransactionType.SECURITY_TRANSFER_OUTBOUND
         ) {
           shares = shares.minus(txShares);
         }
@@ -586,9 +594,9 @@ function sharesAt(txs: TransactionWithUnits[], beforeDate: string, inclusive = f
     if (inclusive ? tx.date > beforeDate : tx.date >= beforeDate) break;
     if (tx.shares == null) continue;
     const txShares = safeDecimal(tx.shares).div(1e8);
-    if (tx.type === TransactionType.BUY || tx.type === TransactionType.DELIVERY_INBOUND) {
+    if (tx.type === TransactionType.BUY || tx.type === TransactionType.DELIVERY_INBOUND || tx.type === TransactionType.SECURITY_TRANSFER_INBOUND) {
       shares = shares.plus(txShares);
-    } else if (tx.type === TransactionType.SELL || tx.type === TransactionType.DELIVERY_OUTBOUND) {
+    } else if (tx.type === TransactionType.SELL || tx.type === TransactionType.DELIVERY_OUTBOUND || tx.type === TransactionType.SECURITY_TRANSFER_OUTBOUND) {
       shares = shares.minus(txShares);
     }
   }
@@ -747,6 +755,8 @@ function toCostTransactions(txs: TransactionWithUnits[]): CostTransaction[] {
     TransactionType.SELL,
     TransactionType.DELIVERY_INBOUND,
     TransactionType.DELIVERY_OUTBOUND,
+    TransactionType.SECURITY_TRANSFER_INBOUND,
+    TransactionType.SECURITY_TRANSFER_OUTBOUND,
   ]);
   return txs
     .filter((tx) =>
@@ -920,6 +930,7 @@ function computeSecurityPerfInternal(
   ) {
     mergedPriceMap.set(latestPriceDate, latestPrice);
   }
+  secTxs = inheritTransferCostBasis(secTxs);
   const dailyMV = computeDailyMarketValues(secTxs, mergedPriceMap, period);
 
   // Security-level TTWROR/IRR never include taxes (fees are intrinsic,

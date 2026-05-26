@@ -54,7 +54,7 @@ export function computeFIFO(
       appliedSplitIdx++;
     }
 
-    if (tx.type === 'BUY' || tx.type === 'DELIVERY_INBOUND') {
+    if (tx.type === 'BUY' || tx.type === 'DELIVERY_INBOUND' || tx.type === 'SECURITY_TRANSFER_INBOUND') {
       if (tx.shares.lte(0)) {
         throw new Error(`${tx.type} transaction must have positive shares (got ${tx.shares})`);
       }
@@ -74,7 +74,7 @@ export function computeFIFO(
         ...(acquisitionRate ? { acquisitionRate } : {}),
         ...(costInBase ? { costInBase } : {}),
       });
-    } else if (tx.type === 'SELL' || tx.type === 'DELIVERY_OUTBOUND') {
+    } else if (tx.type === 'SELL' || tx.type === 'DELIVERY_OUTBOUND' || tx.type === 'SECURITY_TRANSFER_OUTBOUND') {
       if (tx.shares.lte(0)) {
         throw new Error(`${tx.type} transaction must have positive shares (got ${tx.shares})`);
       }

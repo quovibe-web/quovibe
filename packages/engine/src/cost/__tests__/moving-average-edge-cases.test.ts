@@ -189,3 +189,47 @@ describe('computeMovingAverage with rateMap (Phase 3)', () => {
     expect(result.realizedSellSlices).toEqual([]); // SELL skipped, not partial
   });
 });
+
+// SECURITY_TRANSFER: inbound adds shares with inherited cost basis (PP-parity);
+// outbound removes shares with zero realized gain (cost travels with the shares).
+
+describe('computeMovingAverage — SECURITY_TRANSFER_INBOUND / OUTBOUND', () => {
+  it('inbound transfer adds shares at inherited cost, outbound removes with zero realized gain', () => {
+    // BUY 100 shares @€10 in source account → avg cost = €10
+    // SECURITY_TRANSFER_OUTBOUND 100 shares @€1000 (inherited basis) → zero realized gain
+    // SECURITY_TRANSFER_INBOUND 100 shares @€1000 (same basis) → avg cost on dest still €10
+    // SELL 100 shares @€12 → realized gain = 100 × (12 − 10) = €200
+    const txs: CostTransaction[] = [
+      { type: 'BUY',                        date: '2024-01-05', shares: new Decimal('100'), grossAmount: new Decimal('1000'), fees: new Decimal('0') },
+      { type: 'SECURITY_TRANSFER_OUTBOUND', date: '2024-03-01', shares: new Decimal('100'), grossAmount: new Decimal('1000'), fees: new Decimal('0') },
+      { type: 'SECURITY_TRANSFER_INBOUND',  date: '2024-03-01', shares: new Decimal('100'), grossAmount: new Decimal('1000'), fees: new Decimal('0') },
+      { type: 'SELL',                       date: '2024-06-01', shares: new Decimal('100'), grossAmount: new Decimal('1200'), fees: new Decimal('0') },
+    ];
+    const result = computeMovingAverage(txs);
+    expect(result.totalShares.toString()).toBe('0');
+    // Outbound: realized gain = 1000 − (100 × avgCost=10) = 0.
+    // Inbound: adds 100 shares @1000 cost.
+    // Sell: realized gain = 1200 − 1000 = 200.
+    expect(result.realizedGain.toString()).toBe('200');
+    expect(result.purchaseValue.toString()).toBe('0');
+  });
+
+  it('inbound transfer without prior context starts at the transferred-in cost', () => {
+    // Destination-only view: receive 50 shares with inherited cost €500, then sell @€11
+    const txs: CostTransaction[] = [
+      { type: 'SECURITY_TRANSFER_INBOUND', date: '2024-03-01', shares: new Decimal('50'),  grossAmount: new Decimal('500'),  fees: new Decimal('0') },
+      { type: 'SELL',                      date: '2024-06-01', shares: new Decimal('50'),  grossAmount: new Decimal('550'),  fees: new Decimal('0') },
+    ];
+    const result = computeMovingAverage(txs);
+    // avg cost = 500/50 = 10; realized = 550 − 500 = 50
+    expect(result.realizedGain.toString()).toBe('50');
+    expect(result.totalShares.toString()).toBe('0');
+  });
+
+  it('outbound transfer with no prior shares throws (over-transfer)', () => {
+    const txs: CostTransaction[] = [
+      { type: 'SECURITY_TRANSFER_OUTBOUND', date: '2024-03-01', shares: new Decimal('10'), grossAmount: new Decimal('100'), fees: new Decimal('0') },
+    ];
+    expect(() => computeMovingAverage(txs)).toThrow(/Sold more shares than available/);
+  });
+});
