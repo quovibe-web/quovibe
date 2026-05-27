@@ -69,6 +69,35 @@ describe('buildWaterfallData', () => {
     expect(bars[3].base).toBe(116050);
   });
 
+  it('ALL-period MVB=0: initial bar is zero, all 5 bars produced, non-zero middle bars intact', () => {
+    const bars = buildWaterfallData(makeFixture({
+      initialValue: '0',
+      capitalGains: { unrealized: '10591.93', realized: '0', foreignCurrencyGains: '0', total: '10591.93', items: [] },
+      earnings: { dividends: '0', interest: '0', total: '0', dividendItems: [] },
+      fees: { total: '1117.88', items: [] },
+      taxes: { total: '0', items: [] },
+      cashCurrencyGains: { total: '0', items: [] },
+      performanceNeutralTransfers: { deposits: '144223.09', removals: '0', deliveryInbound: '0', deliveryOutbound: '0', taxes: '0', total: '144223.09', items: [] },
+      finalValue: '153697.14',
+    }));
+    expect(bars).toHaveLength(5);
+    // MVB anchor: base=0, value=0, magnitude=0
+    expect(bars[0].base).toBe(0);
+    expect(bars[0].value).toBe(0);
+    expect(bars[0].magnitude).toBe(0);
+    expect(bars[0].isAnchor).toBe(true);
+    // Drivers float from MVB=0
+    expect(bars[1].base).toBe(0);
+    expect(bars[1].value).toBeCloseTo(10591.93);
+    expect(bars[1].magnitude).toBeCloseTo(10591.93);
+    // Flows non-zero and positive
+    expect(bars[3].magnitude).toBeCloseTo(144223.09);
+    expect(bars[3].value).toBeGreaterThan(0);
+    // MVE anchor: base=0, value=final
+    expect(bars[4].base).toBe(0);
+    expect(bars[4].value).toBeCloseTo(153697.14);
+  });
+
   it('zero-activity period: all middle bars are zero, MVB === MVE', () => {
     const bars = buildWaterfallData(makeFixture({
       initialValue: '100000', finalValue: '100000',

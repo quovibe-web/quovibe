@@ -4,6 +4,7 @@ import {
   BarChart,
   Bar,
   Cell,
+  LabelList,
   CartesianGrid,
   XAxis,
   YAxis,
@@ -38,12 +39,74 @@ const COLOR_VAR: Record<WaterfallBarColor, string> = {
   display: 'var(--qv-text-display)',
 };
 
+interface ShapeProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  fill?: string;
+  payload?: WaterfallBar;
+  background?: { y?: number; height?: number };
+  yAxis?: { scale?: (v: number) => number };
+}
+
+function WaterfallShape(props: ShapeProps) {
+  const { x = 0, width = 0, payload, background, yAxis } = props;
+  if (!payload || payload.magnitude === 0) return null;
+
+  const scale = yAxis?.scale;
+  const plotBottom = (background?.y ?? 0) + (background?.height ?? 0);
+
+  let topY: number;
+  let bottomY: number;
+
+  if (scale) {
+    const hi = Math.max(payload.base, payload.base + payload.value);
+    const lo = Math.min(payload.base, payload.base + payload.value);
+    topY = scale(hi);
+    bottomY = payload.base === 0 && payload.value > 0 ? plotBottom : scale(lo);
+  } else {
+    // Fallback: use Recharts-computed y/height from the stacked context
+    topY = props.y ?? 0;
+    bottomY = (props.y ?? 0) + Math.abs(props.height ?? 0);
+  }
+
+  const rectHeight = Math.max(1, bottomY - topY);
+  return (
+    <rect
+      x={x + 2}
+      y={topY}
+      width={Math.max(0, width - 4)}
+      height={rectHeight}
+      fill={props.fill}
+      rx={2}
+    />
+  );
+}
+
+interface LabelProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  index?: number;
+  value?: number;
+}
+
 export function CalculationWaterfallChart({ data, onBarClick }: CalculationWaterfallChartProps) {
   const { t } = useTranslation('performance');
   const { isPrivate } = usePrivacy();
   const bars = useMemo(() => buildWaterfallData(data), [data]);
   const showScaleToggle = useMemo(() => shouldShowMagnitudeScaleToggle(bars), [bars]);
   const [scale, setScale] = useState<'linear' | 'log'>('linear');
+
+  const yDomain = useMemo<[number, number]>(() => {
+    const allVals = bars.flatMap((b) => [b.base, b.base + b.value]);
+    const lo = Math.min(0, ...allVals);
+    const hi = Math.max(...allVals);
+    const pad = (hi - lo) * 0.12;
+    return [lo - pad, hi + pad];
+  }, [bars]);
 
   const allMiddleZero =
     bars[1].magnitude === 0 && bars[2].magnitude === 0 && bars[3].magnitude === 0;
@@ -96,46 +159,45 @@ export function CalculationWaterfallChart({ data, onBarClick }: CalculationWater
                     t(`calculation.waterfall.${name.toLowerCase()}`, { defaultValue: name })
                   }
                 />
-                <YAxis hide scale={scale === 'log' ? 'log' : 'linear'} domain={['auto', 'auto']} allowDataOverflow />
-                {/* Invisible base bar creates the floating offset */}
-                <Bar dataKey="base" stackId="wf" fill="transparent" isAnimationActive={false} />
+                <YAxis
+                  hide
+                  scale={scale === 'log' ? 'log' : 'linear'}
+                  domain={yDomain}
+                  allowDataOverflow
+                />
                 <Bar
                   dataKey="value"
-                  stackId="wf"
                   isAnimationActive={false}
-                  label={(props: {
-                    x?: number; y?: number; width?: number; value?: number; index?: number;
-                  }) => {
-                    if (props.value == null || props.index == null) return null;
-                    const bar = bars[props.index];
-                    if (!bar || bar.magnitude === 0) return null;
-                    const isAnchorBar = bar.isAnchor;
-                    const numeric = formatCurrency(bar.magnitude, data.baseCurrency);
-                    const sign = isAnchorBar ? '' : bar.value > 0 ? '+' : '−';
-                    const colorVar = COLOR_VAR[bar.color];
-                    const x = (props.x ?? 0) + (props.width ?? 0) / 2;
-                    const y = (props.y ?? 0) - 8;
-                    return (
-                      <text
-                        x={x}
-                        y={y}
-                        textAnchor="middle"
-                        fontSize={11}
-                        fontFamily="'IBM Plex Mono', monospace"
-                        fill={colorVar}
-                      >
-                        {sign}{numeric}
-                      </text>
-                    );
-                  }}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  shape={WaterfallShape as any}
                 >
                   {bars.map((bar, i) => (
-                    <Cell
-                      key={i}
-                      fill={COLOR_VAR[bar.color]}
-                      cursor="pointer"
-                    />
+                    <Cell key={i} fill={COLOR_VAR[bar.color]} cursor="pointer" />
                   ))}
+                  <LabelList
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    content={((labelProps: LabelProps) => {
+                      const { index, x = 0, width = 0, y = 0 } = labelProps;
+                      if (index == null) return null;
+                      const bar = bars[index];
+                      if (!bar || bar.magnitude === 0) return null;
+                      const numeric = formatCurrency(bar.magnitude, data.baseCurrency);
+                      const sign = bar.isAnchor ? '' : bar.value > 0 ? '+' : '−';
+                      return (
+                        <text
+                          key={index}
+                          x={x + width / 2}
+                          y={y - 8}
+                          textAnchor="middle"
+                          fontSize={11}
+                          fontFamily="'IBM Plex Mono', monospace"
+                          fill={COLOR_VAR[bar.color]}
+                        >
+                          {sign}{numeric}
+                        </text>
+                      );
+                    }) as any}
+                  />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
