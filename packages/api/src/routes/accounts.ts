@@ -23,6 +23,11 @@ const listAccounts: RequestHandler = async (req, res) => {
   const sqlite = getSqlite(req);
   const includeRetired = req.query.includeRetired === 'true';
 
+  // Fetch all rows unfiltered so the currency map includes retired deposits.
+  // A securities account whose reference deposit is retired still inherits
+  // that deposit's currency (matches getAccount, which queries by id without
+  // an isRetired filter). Building the map from a pre-filtered set would
+  // surface a null currency on the list endpoint — GitHub issue #24.
   const rows = await db
     .select({
       id: accounts.id,
@@ -41,19 +46,11 @@ const listAccounts: RequestHandler = async (req, res) => {
         eq(accountAttributes.accountId, accounts.id),
         eq(accountAttributes.typeId, 'logo'),
       ),
-    )
-    .where(includeRetired ? undefined : eq(accounts.isRetired, false));
+    );
 
-  // For portfolios, resolve currency from the referenceAccount (portfolios have no own currency).
-  // The lookup must include retired rows: a securities account whose reference deposit is retired
-  // still inherits that deposit's currency (matches getAccount, which queries by id without an
-  // isRetired filter). Building this map from `rows` alone would drop retired references and
-  // surface a null currency on the list endpoint — GitHub issue #24.
-  const allCurrencyRows = await db
-    .select({ id: accounts.id, currency: accounts.currency })
-    .from(accounts);
-  const currencyById = new Map(allCurrencyRows.map(r => [r.id, r.currency]));
-  res.json(rows.map(a => {
+  const currencyById = new Map(rows.map(r => [r.id, r.currency]));
+  const visible = includeRetired ? rows : rows.filter(r => !r.isRetired);
+  res.json(visible.map(a => {
     const resolvedCurrency =
       a.type === 'portfolio' && a.referenceAccountId
         ? (currencyById.get(a.referenceAccountId) ?? null)
