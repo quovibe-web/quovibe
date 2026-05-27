@@ -39,64 +39,23 @@ const COLOR_VAR: Record<WaterfallBarColor, string> = {
   display: 'var(--qv-text-display)',
 };
 
-interface ShapeProps {
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  fill?: string;
-  payload?: WaterfallBar;
-  background?: { y?: number; height?: number };
-  yAxis?: { scale?: (v: number) => number };
-}
-
-function WaterfallShape(props: ShapeProps) {
-  const { x = 0, width = 0, payload, background, yAxis } = props;
-  if (!payload || payload.magnitude === 0) return null;
-
-  const scale = yAxis?.scale;
-  const plotBottom = (background?.y ?? 0) + (background?.height ?? 0);
-
-  let topY: number;
-  let bottomY: number;
-
-  if (scale) {
-    const hi = Math.max(payload.base, payload.base + payload.value);
-    const lo = Math.min(payload.base, payload.base + payload.value);
-    topY = scale(hi);
-    bottomY = payload.base === 0 && payload.value > 0 ? plotBottom : scale(lo);
-  } else {
-    // Fallback: use Recharts-computed y/height from the stacked context
-    topY = props.y ?? 0;
-    bottomY = (props.y ?? 0) + Math.abs(props.height ?? 0);
-  }
-
-  const rectHeight = Math.max(1, bottomY - topY);
-  return (
-    <rect
-      x={x + 2}
-      y={topY}
-      width={Math.max(0, width - 4)}
-      height={rectHeight}
-      fill={props.fill}
-      rx={2}
-    />
-  );
-}
-
 interface LabelProps {
   x?: number;
   y?: number;
   width?: number;
   height?: number;
   index?: number;
-  value?: number;
 }
 
 export function CalculationWaterfallChart({ data, onBarClick }: CalculationWaterfallChartProps) {
   const { t } = useTranslation('performance');
   const { isPrivate } = usePrivacy();
   const bars = useMemo(() => buildWaterfallData(data), [data]);
+  // Exclude zero-magnitude bars from the chart data so the LabelList
+  // iteration index stays aligned with the rect array Recharts produces.
+  // (Recharts filters height===0 rects before passing to LabelList, so
+  // a bars[index] lookup would be off-by-one whenever MVB is zero.)
+  const visibleBars = useMemo(() => bars.filter((b) => b.magnitude > 0), [bars]);
   const showScaleToggle = useMemo(() => shouldShowMagnitudeScaleToggle(bars), [bars]);
   const [scale, setScale] = useState<'linear' | 'log'>('linear');
 
@@ -140,7 +99,7 @@ export function CalculationWaterfallChart({ data, onBarClick }: CalculationWater
           >
             <ResponsiveContainer width="100%" height={320}>
               <BarChart
-                data={bars}
+                data={visibleBars}
                 margin={{ top: 30, right: 16, left: 16, bottom: 30 }}
                 onClick={(state) => {
                   // Recharts passes payload via activePayload[0].payload
@@ -166,21 +125,19 @@ export function CalculationWaterfallChart({ data, onBarClick }: CalculationWater
                   allowDataOverflow
                 />
                 <Bar
-                  dataKey="value"
+                  dataKey="range"
                   isAnimationActive={false}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  shape={WaterfallShape as any}
+                  radius={[2, 2, 2, 2]}
                 >
-                  {bars.map((bar, i) => (
+                  {visibleBars.map((bar, i) => (
                     <Cell key={i} fill={COLOR_VAR[bar.color]} cursor="pointer" />
                   ))}
                   <LabelList
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     content={((labelProps: LabelProps) => {
                       const { index, x = 0, width = 0, y = 0 } = labelProps;
                       if (index == null) return null;
-                      const bar = bars[index];
-                      if (!bar || bar.magnitude === 0) return null;
+                      const bar = visibleBars[index];
+                      if (!bar) return null;
                       const numeric = formatCurrency(bar.magnitude, data.baseCurrency);
                       const sign = bar.isAnchor ? '' : bar.value > 0 ? '+' : '−';
                       return (
@@ -196,6 +153,7 @@ export function CalculationWaterfallChart({ data, onBarClick }: CalculationWater
                           {sign}{numeric}
                         </text>
                       );
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     }) as any}
                   />
                 </Bar>
