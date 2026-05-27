@@ -44,8 +44,15 @@ const listAccounts: RequestHandler = async (req, res) => {
     )
     .where(includeRetired ? undefined : eq(accounts.isRetired, false));
 
-  // For portfolios, resolve currency from the referenceAccount (portfolios have no own currency)
-  const currencyById = new Map(rows.map(r => [r.id, r.currency]));
+  // For portfolios, resolve currency from the referenceAccount (portfolios have no own currency).
+  // The lookup must include retired rows: a securities account whose reference deposit is retired
+  // still inherits that deposit's currency (matches getAccount, which queries by id without an
+  // isRetired filter). Building this map from `rows` alone would drop retired references and
+  // surface a null currency on the list endpoint — GitHub issue #24.
+  const allCurrencyRows = await db
+    .select({ id: accounts.id, currency: accounts.currency })
+    .from(accounts);
+  const currencyById = new Map(allCurrencyRows.map(r => [r.id, r.currency]));
   res.json(rows.map(a => {
     const resolvedCurrency =
       a.type === 'portfolio' && a.referenceAccountId

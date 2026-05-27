@@ -14,6 +14,7 @@ import {
 } from '@/api/use-accounts';
 import { useResolveLogo } from '@/api/use-logo';
 import { usePortfolio } from '@/context/PortfolioContext';
+import { useBaseCurrency } from '@/hooks/use-base-currency';
 import { resizeToPng } from '@/lib/image-utils';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,7 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const portfolio = usePortfolio();
+  const baseCurrency = useBaseCurrency();
   const [renameOpen, setRenameOpen] = useState(false);
   const [showDomainPrompt, setShowDomainPrompt] = useState(false);
   const [domainInput, setDomainInput] = useState('');
@@ -61,7 +63,7 @@ export function StandaloneDepositCard({ account }: StandaloneDepositCardProps) {
   const resolveLogoMutation = useResolveLogo();
 
   const balance = parseFloat(account.balance);
-  const currency = account.currency ?? 'EUR';
+  const currency = account.currency ?? baseCurrency;
 
   function handleDelete(e: Event) {
     e.stopPropagation();

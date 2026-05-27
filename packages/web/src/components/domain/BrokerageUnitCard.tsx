@@ -75,7 +75,7 @@ export function BrokerageUnitCard({ unit, onExpand, isExpanded, perf }: Brokerag
   const secPct = totalValue > 0 ? secValue / totalValue : 0.5;
 
   const holdingsCount = holdings?.holdings.length ?? 0;
-  const currency = portfolio.currency ?? deposit?.currency ?? 'EUR';
+  const currency = portfolio.currency ?? deposit?.currency ?? baseCurrency;
 
   function handleDelete(e: Event) {
     e.stopPropagation();
