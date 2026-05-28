@@ -8,7 +8,9 @@ export {
   parseNumberWithSuffix,
   normalizeTransactionType,
   detectDelimiter,
+  combineDateAndTime,
 } from './csv-normalizer';
+export type { ParseDateOpts } from './csv-normalizer';
 export { sniffLikelyTradeCsv } from './csv-sniff';
 export type { SniffResult, SniffReason, SniffOptions } from './csv-sniff';
 export { ppRateToQvRate, verifyGrossRateValue } from './csv-fx';

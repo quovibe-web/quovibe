@@ -6,6 +6,7 @@ import {
   parseNumberWithSuffix,
   normalizeTransactionType,
   detectDelimiter,
+  combineDateAndTime,
 } from './csv-normalizer';
 import { TransactionType } from '../enums';
 
@@ -63,6 +64,61 @@ describe('parseDate', () => {
   it('strips time tail on dd/MM/yyyy and dd.MM.yyyy', () => {
     expect(parseDate('15/01/2024T10:00', 'dd/MM/yyyy')).toBe('2024-01-15');
     expect(parseDate('15.01.2024T10:00', 'dd.MM.yyyy')).toBe('2024-01-15');
+  });
+
+  // keepTime option
+  it('keepTime=false (default): strips time tail, unchanged behavior', () => {
+    expect(parseDate('2025-03-14T15:48:00', 'yyyy-MM-dd')).toBe('2025-03-14');
+  });
+
+  it('keepTime=true: preserves T-separated time tail with seconds', () => {
+    expect(parseDate('2025-03-14T15:48:00', 'yyyy-MM-dd', { keepTime: true })).toBe('2025-03-14T15:48:00');
+  });
+
+  it('keepTime=true: space-separated time tail, seconds default to :00', () => {
+    expect(parseDate('2025-03-14 15:48', 'yyyy-MM-dd', { keepTime: true })).toBe('2025-03-14T15:48:00');
+  });
+
+  it('keepTime=true: zero-pads single-digit hour and minute', () => {
+    expect(parseDate('2025-03-14T9:5', 'yyyy-MM-dd', { keepTime: true })).toBe('2025-03-14T09:05:00');
+  });
+
+  it('keepTime=true: malformed time tail falls back to day-only (not null)', () => {
+    expect(parseDate('2025-03-14Tgarbage', 'yyyy-MM-dd', { keepTime: true })).toBe('2025-03-14');
+  });
+
+  it('keepTime=true: out-of-range time falls back to day-only', () => {
+    expect(parseDate('2025-03-14T25:99', 'yyyy-MM-dd', { keepTime: true })).toBe('2025-03-14');
+  });
+
+  it('keepTime=true: invalid date still returns null', () => {
+    expect(parseDate('2025-13-99T10:00', 'yyyy-MM-dd', { keepTime: true })).toBeNull();
+  });
+});
+
+describe('combineDateAndTime', () => {
+  it('combines day ISO with HH:mm:ss', () => {
+    expect(combineDateAndTime('2025-03-14', '15:48:00')).toBe('2025-03-14T15:48:00');
+  });
+
+  it('combines day ISO with HH:mm (seconds default to :00)', () => {
+    expect(combineDateAndTime('2025-03-14', '15:48')).toBe('2025-03-14T15:48:00');
+  });
+
+  it('empty time returns bare date', () => {
+    expect(combineDateAndTime('2025-03-14', '')).toBe('2025-03-14');
+  });
+
+  it('whitespace-only time returns bare date', () => {
+    expect(combineDateAndTime('2025-03-14', '   ')).toBe('2025-03-14');
+  });
+
+  it('unparseable time returns bare date', () => {
+    expect(combineDateAndTime('2025-03-14', 'morning')).toBe('2025-03-14');
+  });
+
+  it('non-colon-format time returns bare date', () => {
+    expect(combineDateAndTime('2025-03-14', '15h48')).toBe('2025-03-14');
   });
 });
 
