@@ -1805,4 +1805,51 @@ function createTestDb(): Database.Database {
       expect(cashRows.map((r) => r.account)).toEqual(['dep-a', 'dep-b']);
     });
   });
+
+  describe('executeTradeImport — Time column ISO timestamp (BUG-182)', () => {
+    // Pins the requirement: when the user maps the optional `time` column,
+    // xact.date must store the full ISO timestamp YYYY-MM-DDTHH:mm:ss,
+    // not the day-only string.
+    it('persists ISO timestamp on xact.date when the time column is mapped', async () => {
+      const db = createTestDb();
+      try {
+        const csv = [
+          'date,time,type,security,shares,amount',
+          '2025-03-14,15:48:00,BUY,Apple Inc,10,1500.00',
+          '2025-03-14,15:53:00,SELL,Apple Inc,3,480.00',
+        ].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'time-col.csv');
+
+        const result = await executeTradeImport(db, {
+          tempFileId,
+          config: {
+            delimiter: ',',
+            columnMapping: { date: 0, time: 1, type: 2, security: 3, shares: 4, amount: 5 },
+            dateFormat: 'yyyy-MM-dd',
+            decimalSeparator: '.',
+            thousandSeparator: '',
+          },
+          targetSecuritiesAccountId: 'port-1',
+          securityMapping: { 'Apple Inc': 'sec-1' },
+          newSecurities: [],
+          excludedRows: [],
+        });
+
+        expect(result.errors).toHaveLength(0);
+        expect(result.imported).toBe(2);
+
+        // The securities-side rows (shares > 0) ordered by _id — insertion order
+        // matches CSV row order.
+        const rows = db.prepare(
+          "SELECT date FROM xact WHERE shares > 0 ORDER BY _id",
+        ).all() as Array<{ date: string }>;
+
+        expect(rows).toHaveLength(2);
+        expect(rows[0].date).toBe('2025-03-14T15:48:00');
+        expect(rows[1].date).toBe('2025-03-14T15:53:00');
+      } finally {
+        db.close();
+      }
+    });
+  });
 });
