@@ -77,10 +77,16 @@ function addMissingColumns(db: BetterSqlite3.Database): void {
  * unaffected.
  */
 function ensureCsvDedupeIndex(db: BetterSqlite3.Database): void {
+  // Pre-fix deployments installed the index on `date` directly. The
+  // post-fix expression is `substr(date,1,10)` so day-only and timestamped
+  // CSV rows fingerprint identically. DROP-then-CREATE on every bootstrap
+  // pass: cheap on a partial index, guarantees the upgrade path works
+  // even when the pre-existing index uses the old expression.
   try {
+    db.exec(`DROP INDEX IF EXISTS idx_xact_csv_natural_key;`);
     db.exec(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_xact_csv_natural_key
-        ON xact (date, type, security, account, shares, amount)
+        ON xact (substr(date, 1, 10), type, security, account, shares, amount)
         WHERE source = 'CSV_IMPORT';
     `);
   } catch (err) {
