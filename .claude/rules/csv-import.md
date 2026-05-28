@@ -385,68 +385,7 @@ includes them no longer fails the column-required pre-check.
 Note: `Time` (`Ora`, `Uhrzeit`, …) is **persisted** to `xact.date` as an
 ISO timestamp tail. See "Same-day intraday ordering (BUG-182)" below.
 
-## Same-day intraday ordering (BUG-182)
-
-CSV trade imports persist the optional `time` column onto `xact.date` as
-an ISO timestamp tail (`2025-03-14T15:48:00`). The schema column is
-`VARCHAR(32)`; PP-XML imports already write this shape. Three load-bearing
-invariants:
-
-1. **Parse priority** (`csv-import.service.ts > parseTradeRow`):
-   - If `date` column carries a `T`-tail or space-separated time,
-     `parseDate({ keepTime: true })` preserves it.
-   - Else if a separate `time` column is mapped, `combineDateAndTime`
-     concatenates it with the day-granular date.
-   - Else the bare `YYYY-MM-DD` is stored — same as pre-fix.
-   - When BOTH a T-tail on the date column AND a separate `time` cell
-     are present, the date-column tail wins. PP exports use the T-tail;
-     the separate `time` column is for broker exports that split the
-     two fields. Mixing both is rare and the tail-wins precedence keeps
-     the more authoritative source.
-2. **SQL ORDER tiebreaker**: every `ORDER BY x.date` read site adds
-   `_order ASC, _id ASC` (or DESC equivalents) so same-day rows feed
-   the engine in stable insertion order even when the time tail is
-   absent. Five sites today: `performance.service.ts:386,1529`,
-   `reports.service.ts:321`, `routes/accounts.ts:140`,
-   `routes/transactions.ts:410`. Adding a sixth read site for xact
-   requires the same tiebreaker.
-3. **Dedupe fingerprint**: `idx_xact_csv_natural_key` and
-   `cleanupCsvDuplicates` both key on `substr(date,1,10)` so pre-fix
-   day-only rows and post-fix timestamped rows produce identical
-   fingerprints. Intraday-distinct duplicates within the same day +
-   same shape are NOT deduped — acceptable; same-day same-amount
-   same-shares same-security duplicates from a single broker are
-   already vanishingly rare.
-
-### Engine isolation
-
-`computeAllSecurities` wraps each `computeSecurityPerfInternal` call in
-a try/catch and emits `emptySecurityPerf(securityId)` on throw. One bad
-security must not blank the whole securities-performance table; the
-throw is logged server-side via `console.error`. Future writes to
-`computeAllSecurities` must preserve this isolation — extracting the
-per-security loop into a separate function is fine, removing the catch
-is a regression vector. DB-level errors from
-`projectTransactionsToSecurityCurrency` are deliberately OUTSIDE the
-try; those are systemic infrastructure failures that must propagate.
-
-### Tests that lock the contract
-
-- `packages/api/src/services/__tests__/performance-same-day-ordering.test.ts`
-  — same-day BUY+SELL ordering + per-security throw isolation.
-- `packages/shared/src/csv/csv-normalizer.test.ts` — `parseDate`
-  `keepTime` matrix + `combineDateAndTime` edge cases.
-- `packages/api/src/services/csv/csv-import.service.test.ts` — ISO
-  timestamp persistence on `xact.date` when `time` column is mapped.
-- `packages/api/src/db/__tests__/bootstrap-csv-dedupe.test.ts` —
-  upgrade-path dedupe (day-only existing + timestamped incoming).
-
-Any regression that strips the time tail at the CSV boundary, removes
-the SQL tiebreaker from any read site, reverts the dedupe expression to
-raw `date`, or removes the per-security try/catch in
-`computeAllSecurities` must make one of these suites go red first.
-
-## Per-row account routing (BUG-126)
+## Price OHLC + Open (candlestick foundation)
 
 The CSV price wizard (`executePriceImport`) writes Open + OHLCV onto BOTH
 `price` (per-bar history) and `latest_price` (max-date snapshot) so a
@@ -619,6 +558,67 @@ Tests that lock the contract:
 Any regression that reverts the column-mapping check, hardcodes a
 default that ignores `(amount, hasSecurity)`, or re-adds `type` to
 `requiredTradeColumns` must make those suites go red first.
+
+## Same-day intraday ordering (BUG-182)
+
+CSV trade imports persist the optional `time` column onto `xact.date` as
+an ISO timestamp tail (`2025-03-14T15:48:00`). The schema column is
+`VARCHAR(32)`; PP-XML imports already write this shape. Three load-bearing
+invariants:
+
+1. **Parse priority** (`csv-import.service.ts > parseTradeRow`):
+   - If `date` column carries a `T`-tail or space-separated time,
+     `parseDate({ keepTime: true })` preserves it.
+   - Else if a separate `time` column is mapped, `combineDateAndTime`
+     concatenates it with the day-granular date.
+   - Else the bare `YYYY-MM-DD` is stored — same as pre-fix.
+   - When BOTH a T-tail on the date column AND a separate `time` cell
+     are present, the date-column tail wins. PP exports use the T-tail;
+     the separate `time` column is for broker exports that split the
+     two fields. Mixing both is rare and the tail-wins precedence keeps
+     the more authoritative source.
+2. **SQL ORDER tiebreaker**: every `ORDER BY x.date` read site adds
+   `_order ASC, _id ASC` (or DESC equivalents) so same-day rows feed
+   the engine in stable insertion order even when the time tail is
+   absent. Five sites today: `performance.service.ts:386,1529`,
+   `reports.service.ts:321`, `routes/accounts.ts:140`,
+   `routes/transactions.ts:410`. Adding a sixth read site for xact
+   requires the same tiebreaker.
+3. **Dedupe fingerprint**: `idx_xact_csv_natural_key` and
+   `cleanupCsvDuplicates` both key on `substr(date,1,10)` so pre-fix
+   day-only rows and post-fix timestamped rows produce identical
+   fingerprints. Intraday-distinct duplicates within the same day +
+   same shape are NOT deduped — acceptable; same-day same-amount
+   same-shares same-security duplicates from a single broker are
+   already vanishingly rare.
+
+### Engine isolation
+
+`computeAllSecurities` wraps each `computeSecurityPerfInternal` call in
+a try/catch and emits `emptySecurityPerf(securityId)` on throw. One bad
+security must not blank the whole securities-performance table; the
+throw is logged server-side via `console.error`. Future writes to
+`computeAllSecurities` must preserve this isolation — extracting the
+per-security loop into a separate function is fine, removing the catch
+is a regression vector. DB-level errors from
+`projectTransactionsToSecurityCurrency` are deliberately OUTSIDE the
+try; those are systemic infrastructure failures that must propagate.
+
+### Tests that lock the contract
+
+- `packages/api/src/services/__tests__/performance-same-day-ordering.test.ts`
+  — same-day BUY+SELL ordering + per-security throw isolation.
+- `packages/shared/src/csv/csv-normalizer.test.ts` — `parseDate`
+  `keepTime` matrix + `combineDateAndTime` edge cases.
+- `packages/api/src/services/csv/csv-import.service.test.ts` — ISO
+  timestamp persistence on `xact.date` when `time` column is mapped.
+- `packages/api/src/db/__tests__/bootstrap-csv-dedupe.test.ts` —
+  upgrade-path dedupe (day-only existing + timestamped incoming).
+
+Any regression that strips the time tail at the CSV boundary, removes
+the SQL tiebreaker from any read site, reverts the dedupe expression to
+raw `date`, or removes the per-security try/catch in
+`computeAllSecurities` must make one of these suites go red first.
 
 ## Per-row account routing (BUG-126)
 
