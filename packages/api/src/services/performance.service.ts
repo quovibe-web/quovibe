@@ -1433,6 +1433,9 @@ export function computeAllSecurities(
     // in security.currency); projecting the transactions makes the cost
     // basis, cashflows, fees, and earnings unit-consistent with the MV.
     const securityCurrency = data.secCurrencyMap.get(securityId) ?? 'EUR';
+    // DB-level errors here are systemic (corrupt/locked sqlite) — let them
+    // propagate; the per-security catch below only handles engine-level
+    // data errors.
     const projectedTxs = projectTransactionsToSecurityCurrency(
       sqlite,
       filteredTxs as PerfTransaction[],
@@ -1456,9 +1459,10 @@ export function computeAllSecurities(
       // One bad security must not blank the entire portfolio table.
       // Log server-side, emit a zero-shaped row so the frontend still
       // renders the security with `—` metrics.
+      const msg = err instanceof Error ? err.message : String(err);
       // eslint-disable-next-line no-console
       console.error(
-        `[performance] computeSecurityPerfInternal failed for ${securityId}: ${(err as Error).message}`,
+        `[performance] computeSecurityPerfInternal failed for ${securityId}: ${msg}`,
       );
       results.push(emptySecurityPerf(securityId));
     }
