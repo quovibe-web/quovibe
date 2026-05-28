@@ -1373,6 +1373,41 @@ function buildSecurityOnlyCashflows(
   return cashflows;
 }
 
+/**
+ * Zero-shaped `SecurityPerfInternal` used as the fallback when
+ * `computeSecurityPerfInternal` throws. Keeps the security row visible
+ * in the response so the frontend renders `—` for the failing metrics
+ * instead of dropping the entire portfolio table on the first
+ * per-security exception.
+ */
+function emptySecurityPerf(securityId: string): SecurityPerfInternal {
+  const zero = new Decimal(0);
+  return {
+    securityId,
+    ttwror: zero,
+    ttwrorPa: zero,
+    irr: null,
+    mvb: zero,
+    mve: zero,
+    purchaseValue: zero,
+    realizedGain: zero,
+    unrealizedGain: zero,
+    foreignCurrencyGains: zero,
+    fees: zero,
+    taxes: zero,
+    dividends: zero,
+    interest: zero,
+    sharesEnd: zero,
+    dailyMV: new Map(),
+    dailyReturns: [],
+    openPositionCost: zero,
+    openPositionValue: zero,
+    openPositionPnL: zero,
+    openPositionCostFifo: zero,
+    openPositionPnLFifo: zero,
+  };
+}
+
 export function computeAllSecurities(
   sqlite: BetterSqlite3.Database,
   data: BatchData,
@@ -1403,19 +1438,30 @@ export function computeAllSecurities(
       filteredTxs as PerfTransaction[],
       securityCurrency,
     );
-    results.push(
-      computeSecurityPerfInternal(
-        projectedTxs,
-        securityId,
-        priceMap,
-        priceAtStart,
-        latestPrice,
-        latestPriceDate,
-        period,
-        costMethod,
-        preTax,
-      ),
-    );
+    try {
+      results.push(
+        computeSecurityPerfInternal(
+          projectedTxs,
+          securityId,
+          priceMap,
+          priceAtStart,
+          latestPrice,
+          latestPriceDate,
+          period,
+          costMethod,
+          preTax,
+        ),
+      );
+    } catch (err) {
+      // One bad security must not blank the entire portfolio table.
+      // Log server-side, emit a zero-shaped row so the frontend still
+      // renders the security with `—` metrics.
+      // eslint-disable-next-line no-console
+      console.error(
+        `[performance] computeSecurityPerfInternal failed for ${securityId}: ${(err as Error).message}`,
+      );
+      results.push(emptySecurityPerf(securityId));
+    }
   }
   return results;
 }
