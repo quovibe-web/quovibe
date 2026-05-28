@@ -377,7 +377,7 @@ does not store:
 - `Date of Quote` — alternate spelling of `date` for price-import flow;
   ignored on trade flow when the canonical `date` is mapped.
 
-These columns are wire-accepted (parse-and-discard in
+These two columns are wire-accepted (parse-and-discard in
 `csv-import.service.ts > parseTradeRow`) and 8-language `HEADER_ALIASES`
 entries exist in `csv-autodetect.ts`. Re-importing a PP export that
 includes them no longer fails the column-required pre-check.

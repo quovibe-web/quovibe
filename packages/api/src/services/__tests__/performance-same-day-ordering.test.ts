@@ -48,7 +48,7 @@ describe('BUG-182 — same-day BUY+SELL ordering', () => {
     expect(bad.irr).toBeNull();
   });
 
-  it('engine does not throw when SELL physically precedes BUY in the DB but both share the same date', () => {
+  it('engine delivers non-zero purchase value when SELL physically precedes BUY in the DB but _order ensures BUY runs first', () => {
     const sellUuid = '11111111-1111-1111-1111-111111111111';
     const buyUuid = '22222222-2222-2222-2222-222222222222';
     db.exec(`
@@ -59,8 +59,13 @@ describe('BUG-182 — same-day BUY+SELL ordering', () => {
     `);
 
     const data = fetchBatchData(db, { start: '2025-01-01', end: '2025-12-31' });
-    expect(() =>
-      computeAllSecurities(db, data, { start: '2025-01-01', end: '2025-12-31' }, CostMethod.FIFO, true),
-    ).not.toThrow();
+    const results = computeAllSecurities(db, data, { start: '2025-01-01', end: '2025-12-31' }, CostMethod.FIFO, true);
+    const result = results.find((r) => r.securityId === SECURITY);
+    expect(result).toBeDefined();
+    // BUY (_order=1) feeds the engine before SELL (_order=2). FIFO: buy 11
+    // shares at 1000 EUR then sell at 1100 EUR → realizedGain > 0.
+    // If the _order tiebreaker regresses, the engine throws, emptySecurityPerf
+    // is returned with realizedGain = 0, and this assertion catches the bug.
+    expect(result!.realizedGain.toNumber()).toBeGreaterThan(0);
   });
 });

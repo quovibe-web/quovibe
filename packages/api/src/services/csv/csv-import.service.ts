@@ -1071,13 +1071,17 @@ export async function previewTradeImport(
     account: string; shares: number; amount: number;
   }>;
   for (const r of existingRows) {
+    // Mirror the partial-index expression: substr(date,1,10). Pre-fix rows
+    // stored day-only strings ('2025-03-14'); post-fix rows store ISO
+    // timestamps ('2025-03-14T15:48:00'). Slicing to 10 chars normalises both
+    // so an upgrade-path re-import is detected as a duplicate, not a new row.
     existingFingerprints.add(
-      `${r.date}|${r.type}|${r.security ?? ''}|${r.account}|${r.shares}|${r.amount}`,
+      `${r.date.slice(0, 10)}|${r.type}|${r.security ?? ''}|${r.account}|${r.shares}|${r.amount}`,
     );
   }
   let duplicates = 0; // native-ok
   for (const tx of mapped.transactions) {
-    const fp = `${tx.date}|${tx.type}|${tx.securityId ?? ''}|${tx.accountId}|${tx.shares}|${tx.amount}`;
+    const fp = `${tx.date.slice(0, 10)}|${tx.type}|${tx.securityId ?? ''}|${tx.accountId}|${tx.shares}|${tx.amount}`;
     if (existingFingerprints.has(fp)) duplicates++; // native-ok
   }
 

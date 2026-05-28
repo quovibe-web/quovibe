@@ -634,6 +634,30 @@ function createTestDb(): Database.Database {
 
         expect(result.summary.duplicates).toBe(0);
       });
+
+      it('upgrade-path: day-only DB row is detected as duplicate when re-importing a timestamped row', async () => {
+        // Pre-fix rows stored day-only dates ('2024-01-15'). Post-fix rows store
+        // ISO timestamps ('2024-01-15T10:30:00'). The JS fingerprint must use
+        // .slice(0,10) on both sides to mirror the partial index expression
+        // substr(date,1,10) so the preview chip correctly reports "1 duplicate"
+        // instead of "1 new".
+        sqlite.prepare(
+          `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, source, updatedAt, _xmlid, _order)
+           VALUES ('old-row', 'BUY', '2024-01-15', 'EUR', 50000, 500000000, 'sec-1', 'port-1', 'portfolio', 'CSV_IMPORT', '2024-01-01', 1, 1)`,
+        ).run();
+        const csvWithTime = [
+          'date,time,type,security,shares,amount',
+          '2024-01-15,10:30:00,BUY,Apple Inc,5,500.00',
+        ].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csvWithTime, 'utf-8'), 'upgrade-reimport.csv');
+
+        const result = await previewTradeImport(sqlite, {
+          ...reimportInput(tempFileId),
+          columnMapping: { date: 0, time: 1, type: 2, security: 3, shares: 4, amount: 5 },
+        });
+
+        expect(result.summary.duplicates).toBe(1);
+      });
     });
 
     describe('csvCurrencies enrichment (BUG-146)', () => {
