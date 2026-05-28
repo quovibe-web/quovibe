@@ -318,7 +318,7 @@ export function getPayments(
        LEFT JOIN account a ON a.uuid = x.account
        WHERE x.type IN ('DIVIDEND', 'DIVIDENDS', 'INTEREST', 'INTEREST_CHARGE')
          AND SUBSTR(x.date, 1, 10) BETWEEN ? AND ?
-       ORDER BY x.date ASC`,
+       ORDER BY x.date ASC, x._order ASC, x._id ASC`,
     )
     .all(periodStart, periodEnd) as PaymentRow[];
 

@@ -137,7 +137,7 @@ const getAccountTransactions: RequestHandler = (req, res) => {
                LIMIT 1) as isFromXact
        FROM xact x
        WHERE x.account = ?
-       ORDER BY x.date DESC
+       ORDER BY x.date DESC, x._order DESC, x._id DESC
        LIMIT ? OFFSET ?`,
     )
     .all(id, limit, offset) as Record<string, unknown>[];

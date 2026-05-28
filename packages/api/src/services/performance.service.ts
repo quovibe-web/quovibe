@@ -383,7 +383,7 @@ export function fetchAllTransactions(sqlite: BetterSqlite3.Database): PerfTransa
        FROM xact x
        LEFT JOIN xact_unit u ON u.xact = x.uuid
        GROUP BY x.uuid
-       ORDER BY x.date ASC`,
+       ORDER BY x.date ASC, x._order ASC, x._id ASC`,
     )
     .all() as RawXactRow[];
   return rows.map(parseRawRow);
@@ -1526,7 +1526,7 @@ function fetchPntItems(
            ))
      )
        AND SUBSTR(x.date, 1, 10) >= ? AND SUBSTR(x.date, 1, 10) <= ?
-     ORDER BY x.date ASC`,
+     ORDER BY x.date ASC, x._order ASC, x._id ASC`,
   ).all(period.start, period.end) as Array<{
     uuid: string; type: string; date: string; amount: number | null; account: string;
   }>;
