@@ -1823,11 +1823,11 @@ function createTestDb(): Database.Database {
         const result = await executeTradeImport(db, {
           tempFileId,
           config: {
-            delimiter: ',',
+            delimiter: ',' as const,
             columnMapping: { date: 0, time: 1, type: 2, security: 3, shares: 4, amount: 5 },
             dateFormat: 'yyyy-MM-dd',
-            decimalSeparator: '.',
-            thousandSeparator: '',
+            decimalSeparator: '.' as const,
+            thousandSeparator: '' as const,
           },
           targetSecuritiesAccountId: 'port-1',
           securityMapping: { 'Apple Inc': 'sec-1' },
@@ -1845,8 +1845,10 @@ function createTestDb(): Database.Database {
         ).all() as Array<{ date: string }>;
 
         expect(rows).toHaveLength(2);
-        expect(rows[0].date).toBe('2025-03-14T15:48:00');
-        expect(rows[1].date).toBe('2025-03-14T15:53:00');
+        expect(rows.map(r => r.date)).toEqual([
+          '2025-03-14T15:48:00',
+          '2025-03-14T15:53:00',
+        ]);
       } finally {
         db.close();
       }
