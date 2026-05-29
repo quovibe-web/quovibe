@@ -189,6 +189,17 @@ export const forexViewSchema = z.object({
 export type ForexView = z.infer<typeof forexViewSchema>;
 export type ForexSurface = keyof ForexView;
 
+// Fiscal-year reporting boundary. When enabled (and start ≠ Jan 1), the
+// resolver shifts currentYTD / year / previousYear to fiscal boundaries.
+export const fiscalYearSchema = z.object({
+  enabled: z.boolean().default(false),
+  startMonth: z.number().int().min(1).max(12).default(1),   // 1 = January
+  startDay: z.number().int().min(1).max(31).default(1),
+  numbering: z.enum(['startYear', 'endYear']).default('endYear'),
+}).default({});
+
+export type FiscalYearConfig = z.infer<typeof fiscalYearSchema>;
+
 export const preferencesSchema = z.object({
   language: z.string().default('en'),
   theme: z.enum(['light', 'dark', 'system']).default('system'),
@@ -201,6 +212,7 @@ export const preferencesSchema = z.object({
   defaultDataSeriesTaxonomyId: z.string().optional(),
   chartStyle: z.object({}).passthrough().default({}),   // reserved; empty in v1
   forexView: forexViewSchema,
+  fiscalYear: fiscalYearSchema,
 }).default({});
 
 /**

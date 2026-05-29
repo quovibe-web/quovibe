@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculationViewSchema, forexViewSchema, quovibeSettingsSchema, DEFAULT_SETTINGS } from './settings.schema';
+import { calculationViewSchema, forexViewSchema, quovibeSettingsSchema, DEFAULT_SETTINGS, fiscalYearSchema, preferencesSchema } from './settings.schema';
 
 describe('calculationViewSchema', () => {
   it('defaults to premium layout and comfortable density', () => {
@@ -60,5 +60,34 @@ describe('forexViewSchema (Phase 3 Task 19)', () => {
   it('is wired into preferencesSchema (via DEFAULT_SETTINGS)', () => {
     expect(DEFAULT_SETTINGS.preferences.forexView.securityDetail).toBe('native');
     expect(DEFAULT_SETTINGS.preferences.forexView.dashboard).toBe('base');
+  });
+});
+
+describe('fiscalYearSchema', () => {
+  it('defaults to disabled Jan-1 endYear', () => {
+    expect(fiscalYearSchema.parse(undefined)).toEqual({
+      enabled: false,
+      startMonth: 1,
+      startDay: 1,
+      numbering: 'endYear',
+    });
+  });
+
+  it('preferences without fiscalYear parse to the default block', () => {
+    const prefs = preferencesSchema.parse({ language: 'en' });
+    expect(prefs.fiscalYear).toEqual({
+      enabled: false,
+      startMonth: 1,
+      startDay: 1,
+      numbering: 'endYear',
+    });
+  });
+
+  it('DEFAULT_SETTINGS carries the fiscalYear default', () => {
+    expect(DEFAULT_SETTINGS.preferences.fiscalYear.enabled).toBe(false);
+  });
+
+  it('rejects out-of-range month', () => {
+    expect(() => fiscalYearSchema.parse({ startMonth: 13 })).toThrow();
   });
 });
