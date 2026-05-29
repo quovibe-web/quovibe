@@ -18,6 +18,7 @@ import { useDashboard, useUpdateDashboard, type DashboardItem } from '@/api/use-
 import { useReportingPeriods } from '@/api/use-reporting-periods';
 import { useFirstTransactionDate } from '@/api/use-transactions';
 import { useReportingPeriod } from '@/api/use-performance';
+import { usePreferences } from '@/api/use-preferences';
 import { DEFAULT_PERIODS, formatPeriodShortLabel, formatPeriodRange, getPeriodId, ALL_PERIOD_ID } from '@/lib/period-utils';
 import { resolveReportingPeriod } from '@quovibe/shared';
 import type { ReportingPeriodDef } from '@quovibe/shared';
@@ -44,6 +45,8 @@ export function PeriodOverrideDialog({
   const updateDashboard = useUpdateDashboard();
   const { data: periodsData } = useReportingPeriods();
   const { data: firstDateData } = useFirstTransactionDate();
+  const { data: prefs } = usePreferences();
+  const fiscalYear = prefs?.fiscalYear;
 
   const [followGlobal, setFollowGlobal] = useState(true);
   const [selectedDef, setSelectedDef] = useState<ReportingPeriodDef | null>(null);
@@ -68,7 +71,7 @@ export function PeriodOverrideDialog({
     const items: Array<{ def: ReportingPeriodDef; label: string; id: string }> = [];
 
     for (const def of DEFAULT_PERIODS) {
-      items.push({ def, label: formatPeriodShortLabel(def, tSettings), id: getPeriodId(def) });
+      items.push({ def, label: formatPeriodShortLabel(def, tSettings, fiscalYear), id: getPeriodId(def) });
     }
 
     if (periodsData?.periods) {
@@ -76,7 +79,7 @@ export function PeriodOverrideDialog({
         const id = getPeriodId(p.definition);
         // Skip duplicates with default periods
         if (!items.some((it) => it.id === id)) {
-          items.push({ def: p.definition, label: formatPeriodShortLabel(p.definition, tSettings), id });
+          items.push({ def: p.definition, label: formatPeriodShortLabel(p.definition, tSettings, fiscalYear), id });
         }
       }
     }
@@ -90,14 +93,14 @@ export function PeriodOverrideDialog({
     }
 
     return items;
-  }, [periodsData, firstDateData, tSettings, t]);
+  }, [periodsData, firstDateData, tSettings, t, fiscalYear]);
 
   // Resolve preview
   const resolvedPreview = useMemo(() => {
     if (followGlobal) return { periodStart: globalStart, periodEnd: globalEnd };
     if (!selectedDef) return null;
-    return resolveReportingPeriod(selectedDef);
-  }, [followGlobal, selectedDef, globalStart, globalEnd]);
+    return resolveReportingPeriod(selectedDef, undefined, undefined, fiscalYear);
+  }, [followGlobal, selectedDef, globalStart, globalEnd, fiscalYear]);
 
   const selectedId = selectedDef ? getPeriodId(selectedDef) : null;
 
@@ -112,7 +115,7 @@ export function PeriodOverrideDialog({
       persistOverride(null);
     } else if (selectedDef) {
       setPeriodOverride(selectedDef);
-      const resolved = resolveReportingPeriod(selectedDef);
+      const resolved = resolveReportingPeriod(selectedDef, undefined, undefined, fiscalYear);
       persistOverride({ definition: selectedDef, ...resolved });
     }
     onClose();

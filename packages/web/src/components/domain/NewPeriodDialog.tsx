@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { useCreateReportingPeriod } from '@/api/use-reporting-periods';
 import { useReportingPeriod } from '@/api/use-performance';
+import { usePreferences } from '@/api/use-preferences';
 import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { resolveReportingPeriod, getAllCalendarInfos } from '@quovibe/shared';
 import type { ReportingPeriodDef } from '@quovibe/shared';
@@ -41,6 +42,8 @@ export function NewPeriodDialog({ open, onOpenChange }: Props) {
   const { t } = useTranslation('settings');
   const { mutateAsync: createPeriod, isPending } = useCreateReportingPeriod();
   const { setPeriod } = useReportingPeriod();
+  const { data: prefs } = usePreferences();
+  const fiscalYear = prefs?.fiscalYear;
 
   // Selection state
   const [category, setCategory] = useState<PeriodCategory>('main');
@@ -102,11 +105,11 @@ export function NewPeriodDialog({ open, onOpenChange }: Props) {
   const resolved = useMemo(() => {
     if (!periodDef) return null;
     try {
-      return resolveReportingPeriod(periodDef);
+      return resolveReportingPeriod(periodDef, undefined, undefined, fiscalYear);
     } catch {
       return null;
     }
-  }, [periodDef]);
+  }, [periodDef, fiscalYear]);
 
   // Save-button re-entry guard: see frontend.md "Save-button re-entry guard".
   const { run: handleCreate, inFlight } = useGuardedSubmit(async () => {

@@ -18,7 +18,7 @@ import { useReportingPeriod } from '@/api/use-performance';
 import { useFirstTransactionDate } from '@/api/use-transactions';
 import { useReportingPeriods } from '@/api/use-reporting-periods';
 import { usePortfolio } from '@/api/use-portfolio';
-import { useUpdatePreferences } from '@/api/use-preferences';
+import { usePreferences, useUpdatePreferences } from '@/api/use-preferences';
 import { usePortfolio as usePortfolioContext } from '@/context/PortfolioContext';
 import { usePrivacy } from '@/context/privacy-context';
 import { NewPeriodDialog } from '@/components/domain/NewPeriodDialog';
@@ -86,7 +86,8 @@ function PeriodSelector() {
   const { data: portfolioData } = usePortfolio();
   const currentPortfolio = usePortfolioContext();
   const { mutate: updatePreferences } = useUpdatePreferences();
-
+  const { data: prefs } = usePreferences();
+  const fiscalYear = prefs?.fiscalYear;
 
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [periodDialogOpen, setPeriodDialogOpen] = useState(false);
@@ -98,11 +99,11 @@ function PeriodSelector() {
   const resolvedDefaults = useMemo(
     () => DEFAULT_PERIODS.map((def) => ({
       definition: def,
-      resolved: resolveReportingPeriod(def, todayStr),
-      label: formatPeriodShortLabel(def, tRaw),
+      resolved: resolveReportingPeriod(def, todayStr, undefined, fiscalYear),
+      label: formatPeriodShortLabel(def, tRaw, fiscalYear),
       id: getPeriodId(def),
     })),
-    [todayStr, tRaw],
+    [todayStr, tRaw, fiscalYear],
   );
 
   // Custom periods from sidecar (stabilize reference to avoid useEffect churn)
@@ -126,7 +127,7 @@ function PeriodSelector() {
       // Try to match stored ID against default periods
       for (const def of DEFAULT_PERIODS) {
         if (getPeriodId(def) === storedId) {
-          resolved = resolveReportingPeriod(def, todayStr);
+          resolved = resolveReportingPeriod(def, todayStr, undefined, fiscalYear);
           break;
         }
       }
@@ -134,7 +135,7 @@ function PeriodSelector() {
       if (!resolved) {
         for (const cp of customPeriods) {
           if (getPeriodId(cp.definition) === storedId) {
-            resolved = resolveReportingPeriod(cp.definition, todayStr);
+            resolved = resolveReportingPeriod(cp.definition, todayStr, undefined, fiscalYear);
             break;
           }
         }
@@ -147,7 +148,7 @@ function PeriodSelector() {
 
     // Fallback to first default period (1Y)
     if (!resolved) {
-      resolved = resolveReportingPeriod(DEFAULT_PERIODS[0], todayStr);
+      resolved = resolveReportingPeriod(DEFAULT_PERIODS[0], todayStr, undefined, fiscalYear);
     }
 
     setSearchParams((prev) => {
@@ -156,7 +157,7 @@ function PeriodSelector() {
       next.set('periodEnd', resolved.periodEnd);
       return next;
     }, { replace: true });
-  }, [portfolioData, searchParams, setSearchParams, todayStr, customPeriods, firstDateData]);
+  }, [portfolioData, searchParams, setSearchParams, todayStr, customPeriods, firstDateData, fiscalYear]);
 
   // Check if a period matches current URL params
   function isPeriodActive(resolved: { periodStart: string; periodEnd: string }): boolean {
@@ -169,7 +170,7 @@ function PeriodSelector() {
 
   // Step 7: Persist selection to sidecar on click
   function selectPeriod(def: ReportingPeriodDef) {
-    const resolved = resolveReportingPeriod(def, todayStr);
+    const resolved = resolveReportingPeriod(def, todayStr, undefined, fiscalYear);
     setPeriod(resolved.periodStart, resolved.periodEnd);
     updatePreferences({ activeReportingPeriodId: getPeriodId(def) });
   }
@@ -234,9 +235,9 @@ function PeriodSelector() {
               isPeriodActive(p.resolved) && PERIOD_PILL_ACTIVE,
             )}
             onClick={() => selectPeriod(p.definition)}
-            title={formatPeriodShortLabel(p.definition, tRaw)}
+            title={formatPeriodShortLabel(p.definition, tRaw, fiscalYear)}
           >
-            {formatPeriodShortLabel(p.definition, tRaw)}
+            {formatPeriodShortLabel(p.definition, tRaw, fiscalYear)}
           </Button>
         ))}
 
@@ -277,7 +278,7 @@ function PeriodSelector() {
                   )}
                   onClick={() => { selectPeriod(d.definition); setOverflowOpen(false); }}
                 >
-                  <span>{formatPeriodLabel(d.definition, tRaw)}</span>
+                  <span>{formatPeriodLabel(d.definition, tRaw, fiscalYear)}</span>
                   <span className="block text-[10px] text-muted-foreground font-mono tabular-nums">
                     {formatDate(d.resolved.periodStart)} — {formatDate(d.resolved.periodEnd)}
                   </span>
@@ -315,7 +316,7 @@ function PeriodSelector() {
                   )}
                   onClick={() => { selectPeriod(p.definition); setOverflowOpen(false); }}
                 >
-                  <span>{formatPeriodLabel(p.definition, tRaw)}</span>
+                  <span>{formatPeriodLabel(p.definition, tRaw, fiscalYear)}</span>
                   <span className="block text-[10px] text-muted-foreground font-mono tabular-nums">
                     {formatDate(p.resolved.periodStart)} — {formatDate(p.resolved.periodEnd)}
                   </span>
@@ -412,7 +413,7 @@ function PeriodSelector() {
                   )}
                   onClick={() => selectPeriod(p.definition)}
                 >
-                  {formatPeriodShortLabel(p.definition, tRaw)}
+                  {formatPeriodShortLabel(p.definition, tRaw, fiscalYear)}
                 </Button>
               ))}
 
