@@ -23,7 +23,7 @@ import { useCreateReportingPeriod } from '@/api/use-reporting-periods';
 import { useReportingPeriod } from '@/api/use-performance';
 import { usePreferences } from '@/api/use-preferences';
 import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
-import { resolveReportingPeriod, getAllCalendarInfos } from '@quovibe/shared';
+import { resolveReportingPeriod, getAllCalendarInfos, fiscalActive } from '@quovibe/shared';
 import type { ReportingPeriodDef } from '@quovibe/shared';
 import { formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
@@ -129,11 +129,12 @@ export function NewPeriodDialog({ open, onOpenChange }: Props) {
     setCategory(cat);
   }
 
+  const fyOn = fiscalActive(fiscalYear);
   const currentChips: { type: CurrentType; labelKey: string }[] = [
     { type: 'currentWeek', labelKey: 'periods.dialog.week' },
     { type: 'currentMonth', labelKey: 'periods.dialog.month' },
     { type: 'currentQuarter', labelKey: 'periods.dialog.quarter' },
-    { type: 'currentYTD', labelKey: 'periods.dialog.yearToDate' },
+    { type: 'currentYTD', labelKey: fyOn ? 'periods.labels.fiscalYTD' : 'periods.dialog.yearToDate' },
   ];
 
   const previousChips: { type: PreviousType; labelKey: string }[] = [
@@ -142,12 +143,12 @@ export function NewPeriodDialog({ open, onOpenChange }: Props) {
     { type: 'previousWeek', labelKey: 'periods.dialog.week' },
     { type: 'previousMonth', labelKey: 'periods.dialog.month' },
     { type: 'previousQuarter', labelKey: 'periods.dialog.quarter' },
-    { type: 'previousYear', labelKey: 'periods.dialog.year' },
+    { type: 'previousYear', labelKey: fyOn ? 'periods.labels.previousFiscalYear' : 'periods.dialog.year' },
   ];
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) resetForm(); }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t('periods.dialog.title')}</DialogTitle>
           <DialogDescription className="sr-only">
