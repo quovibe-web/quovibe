@@ -186,6 +186,15 @@ describe('resolveReportingPeriod — fiscal year (July start, endYear)', () => {
   it('currentFiscalYearLabel = 2026', () => {
     expect(currentFiscalYearLabel(FY_JULY_END, TODAY)).toBe(2026);
   });
+  it('today exactly on fiscal start → FY just started, excluded boundary = day before', () => {
+    const r = resolveReportingPeriod({ type: 'currentYTD' }, '2026-07-01', undefined, FY_JULY_END);
+    expect(r).toEqual({ periodStart: '2026-06-30', periodEnd: '2026-07-01' });
+  });
+  it('previousYear date span is identical across numbering modes', () => {
+    const end = resolveReportingPeriod({ type: 'previousYear' }, TODAY, undefined, FY_JULY_END);
+    const start = resolveReportingPeriod({ type: 'previousYear' }, TODAY, undefined, FY_JULY_START);
+    expect(start).toEqual(end);
+  });
 });
 
 describe('resolveReportingPeriod — fiscal year (July start, startYear numbering)', () => {

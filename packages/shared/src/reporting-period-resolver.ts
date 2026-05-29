@@ -82,6 +82,7 @@ export function currentFiscalYearLabel(fy: FiscalYearConfig, today?: string): nu
  * @param period - Semantic period definition (from settings or URL params).
  * @param today - Override for today's date (`yyyy-MM-dd`). Defaults to system date.
  * @param calendarId - Calendar to use for trading-day calculations. Defaults to `'default'`.
+ * @param fiscalYear - Optional fiscal-year config; when active, shifts currentYTD/year/previousYear to fiscal boundaries.
  * @returns `{ periodStart, periodEnd }` — both in `yyyy-MM-dd` format.
  */
 export function resolveReportingPeriod(
