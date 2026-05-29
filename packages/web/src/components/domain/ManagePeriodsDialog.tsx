@@ -19,6 +19,7 @@ import {
 import { NewPeriodDialog } from '@/components/domain/NewPeriodDialog';
 import { formatPeriodLabel } from '@/lib/period-utils';
 import { formatDate } from '@/lib/formatters';
+import { usePreferences } from '@/api/use-preferences';
 
 interface Props {
   open: boolean;
@@ -29,6 +30,8 @@ export function ManagePeriodsDialog({ open, onOpenChange }: Props) {
   const { t } = useTranslation('settings');
   const { t: tRaw } = useTranslation();
   const { data } = useReportingPeriods();
+  const { data: prefs } = usePreferences();
+  const fiscalYear = prefs?.fiscalYear;
   const { mutate: deletePeriod, isPending: isDeleting } = useDeleteReportingPeriod();
   const { mutate: reorderPeriods, isPending: isReordering } = useReorderReportingPeriods();
   const [newPeriodOpen, setNewPeriodOpen] = useState(false);
@@ -81,7 +84,7 @@ export function ManagePeriodsDialog({ open, onOpenChange }: Props) {
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
-                        {formatPeriodLabel(p.definition, tRaw)}
+                        {formatPeriodLabel(p.definition, tRaw, fiscalYear)}
                       </p>
                       <p className="text-[10px] text-muted-foreground font-mono tabular-nums">
                         {formatDate(p.resolved.periodStart)} — {formatDate(p.resolved.periodEnd)}

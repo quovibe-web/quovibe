@@ -37,6 +37,7 @@ import { useResolveSeriesLabel } from '@/api/use-performance';
 import { useWidgetKpiMeta } from '@/hooks/use-widget-kpi-meta';
 import { useDashboard, useUpdateDashboard, type DashboardItem } from '@/api/use-dashboards';
 import { formatPeriodShortLabel } from '@/lib/period-utils';
+import { usePreferences } from '@/api/use-preferences';
 
 /* ── Toolbar portal context ──────────────────────────────────────── */
 
@@ -126,6 +127,8 @@ export function WidgetShell({
 
   // Resolve data series label for LINE 2
   const { dataSeries, periodOverride, setPeriodOverride, options, setOptions } = useWidgetConfig();
+  const { data: prefs } = usePreferences();
+  const fiscalYear = prefs?.fiscalYear;
   const { data: resolvedSeries } = useResolveSeriesLabel(dataSeries);
   const dataSeriesLabel = dataSeries === null
     ? t('dataSeries.entirePortfolio')
@@ -232,7 +235,7 @@ export function WidgetShell({
                     onClick={() => setPeriodDialogOpen(true)}
                   >
                     <Clock className="h-3 w-3" />
-                    <span className="tabular-nums">{formatPeriodShortLabel(periodOverride.definition, tSettings)}</span>
+                    <span className="tabular-nums">{formatPeriodShortLabel(periodOverride.definition, tSettings, fiscalYear)}</span>
                     <button
                       className="opacity-50 hover:opacity-100 hover:text-destructive ml-0.5"
                       aria-label={t('periodOverride.clear')}
