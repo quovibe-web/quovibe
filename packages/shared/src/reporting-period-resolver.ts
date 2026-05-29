@@ -21,11 +21,12 @@ import {
   endOfQuarter,
   endOfYear,
   endOfWeek,
+  getDaysInMonth,
   format,
   parseISO,
 } from 'date-fns';
 import { isTradingDay } from './calendars/calendar-utils';
-import type { ReportingPeriodDef } from './schemas/settings.schema';
+import type { ReportingPeriodDef, FiscalYearConfig } from './schemas/settings.schema';
 
 function fmt(d: Date): string {
   return format(d, 'yyyy-MM-dd');
@@ -48,6 +49,30 @@ function getPreviousTradingDay(calendarId: string, dateStr: string): string {
   return current;
 }
 
+/** True when fiscal mode is on AND the start is not the calendar Jan 1 (which is a no-op). */
+export function fiscalActive(fy?: FiscalYearConfig): fy is FiscalYearConfig {
+  return !!fy && fy.enabled && !(fy.startMonth === 1 && fy.startDay === 1);
+}
+
+/** First included day of the fiscal year that BEGINS in `beginYear`. startDay is clamped to month length. */
+function fiscalStart(beginYear: number, fy: FiscalYearConfig): Date {
+  const probe = new Date(beginYear, fy.startMonth - 1, 1); // native-ok: Date constructor
+  const day = Math.min(fy.startDay, getDaysInMonth(probe)); // native-ok: clamp
+  return new Date(beginYear, fy.startMonth - 1, day);
+}
+
+/** The fiscal year (its begin calendar year) that CONTAINS date `d`. */
+function beginYearContaining(d: Date, fy: FiscalYearConfig): number {
+  return d >= fiscalStart(d.getFullYear(), fy) ? d.getFullYear() : d.getFullYear() - 1; // native-ok
+}
+
+/** User-facing label of the fiscal year containing `today`. */
+export function currentFiscalYearLabel(fy: FiscalYearConfig, today?: string): number {
+  const d = today ? parseISO(today) : new Date();
+  const beginYear = beginYearContaining(d, fy);
+  return fy.numbering === 'endYear' ? beginYear + 1 : beginYear; // native-ok
+}
+
 /**
  * Resolves a semantic reporting period definition into concrete date strings.
  *
@@ -63,6 +88,7 @@ export function resolveReportingPeriod(
   period: ReportingPeriodDef,
   today?: string,
   calendarId?: string,
+  fiscalYear?: FiscalYearConfig,
 ): { periodStart: string; periodEnd: string } {
   const todayDate = today ? parseISO(today) : new Date();
   const todayStr = today ?? fmt(todayDate);
@@ -101,12 +127,21 @@ export function resolveReportingPeriod(
     case 'since':
       return { periodStart: period.date, periodEnd: todayStr };
 
-    case 'year':
+    case 'year': {
+      if (fiscalActive(fiscalYear)) {
+        const beginYear =
+          fiscalYear.numbering === 'endYear' ? period.year - 1 : period.year;
+        return {
+          periodStart: fmt(dayBefore(fiscalStart(beginYear, fiscalYear))),
+          periodEnd: fmt(dayBefore(fiscalStart(beginYear + 1, fiscalYear))),
+        };
+      }
       // "Year 2025" → excluded boundary Dec 31 2024 → Dec 31 2025
       return {
         periodStart: `${period.year - 1}-12-31`,
         periodEnd: `${period.year}-12-31`,
       };
+    }
 
     case 'currentWeek': {
       // ISO 8601: week starts on Monday (weekStartsOn: 1)
@@ -126,6 +161,10 @@ export function resolveReportingPeriod(
     }
 
     case 'currentYTD': {
+      if (fiscalActive(fiscalYear)) {
+        const beginYear = beginYearContaining(todayDate, fiscalYear);
+        return { periodStart: fmt(dayBefore(fiscalStart(beginYear, fiscalYear))), periodEnd: todayStr };
+      }
       const yearStart = startOfYear(todayDate);
       return { periodStart: fmt(dayBefore(yearStart)), periodEnd: todayStr };
     }
@@ -163,6 +202,13 @@ export function resolveReportingPeriod(
     }
 
     case 'previousYear': {
+      if (fiscalActive(fiscalYear)) {
+        const curBegin = beginYearContaining(todayDate, fiscalYear);
+        return {
+          periodStart: fmt(dayBefore(fiscalStart(curBegin - 1, fiscalYear))),
+          periodEnd: fmt(dayBefore(fiscalStart(curBegin, fiscalYear))),
+        };
+      }
       const prevYearStart = startOfYear(subYears(todayDate, 1));
       const prevYearEnd = endOfYear(prevYearStart);
       return { periodStart: fmt(dayBefore(prevYearStart)), periodEnd: fmt(prevYearEnd) };

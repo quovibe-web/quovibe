@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { resolveReportingPeriod } from '../reporting-period-resolver';
+import { resolveReportingPeriod, fiscalActive, currentFiscalYearLabel } from '../reporting-period-resolver';
+import type { FiscalYearConfig } from '../schemas/settings.schema';
 
 // Reporting period — date range for performance calculations
 // Uses an exclusive lower boundary (periodStart is excluded, engine uses '>').
@@ -159,5 +160,77 @@ describe('resolveReportingPeriod — edge cases', () => {
   it('currentMonth on Feb 29 2024 (leap year) → 2024-01-31 to 2024-02-29', () => {
     const result = resolveReportingPeriod({ type: 'currentMonth' }, '2024-02-29');
     expect(result).toEqual({ periodStart: '2024-01-31', periodEnd: '2024-02-29' });
+  });
+});
+
+const FY_JULY_END: FiscalYearConfig = { enabled: true, startMonth: 7, startDay: 1, numbering: 'endYear' };
+const FY_JULY_START: FiscalYearConfig = { enabled: true, startMonth: 7, startDay: 1, numbering: 'startYear' };
+const FY_UK_END: FiscalYearConfig = { enabled: true, startMonth: 4, startDay: 6, numbering: 'endYear' };
+const FY_FEB29_END: FiscalYearConfig = { enabled: true, startMonth: 2, startDay: 29, numbering: 'endYear' };
+const FY_JAN_ON: FiscalYearConfig = { enabled: true, startMonth: 1, startDay: 1, numbering: 'endYear' };
+const FY_DISABLED: FiscalYearConfig = { enabled: false, startMonth: 7, startDay: 1, numbering: 'endYear' };
+
+describe('resolveReportingPeriod — fiscal year (July start, endYear)', () => {
+  it('currentYTD → fiscal-year-start to today', () => {
+    const r = resolveReportingPeriod({ type: 'currentYTD' }, TODAY, undefined, FY_JULY_END);
+    expect(r).toEqual({ periodStart: '2025-06-30', periodEnd: '2026-03-19' });
+  });
+  it('year 2026 → 2025-06-30 to 2026-06-30', () => {
+    const r = resolveReportingPeriod({ type: 'year', year: 2026 }, TODAY, undefined, FY_JULY_END);
+    expect(r).toEqual({ periodStart: '2025-06-30', periodEnd: '2026-06-30' });
+  });
+  it('previousYear → 2024-06-30 to 2025-06-30', () => {
+    const r = resolveReportingPeriod({ type: 'previousYear' }, TODAY, undefined, FY_JULY_END);
+    expect(r).toEqual({ periodStart: '2024-06-30', periodEnd: '2025-06-30' });
+  });
+  it('currentFiscalYearLabel = 2026', () => {
+    expect(currentFiscalYearLabel(FY_JULY_END, TODAY)).toBe(2026);
+  });
+});
+
+describe('resolveReportingPeriod — fiscal year (July start, startYear numbering)', () => {
+  it('year 2025 resolves to the same span as endYear-2026 (label shift only)', () => {
+    const r = resolveReportingPeriod({ type: 'year', year: 2025 }, TODAY, undefined, FY_JULY_START);
+    expect(r).toEqual({ periodStart: '2025-06-30', periodEnd: '2026-06-30' });
+  });
+  it('currentFiscalYearLabel = 2025', () => {
+    expect(currentFiscalYearLabel(FY_JULY_START, TODAY)).toBe(2025);
+  });
+});
+
+describe('resolveReportingPeriod — fiscal year (UK April 6, endYear)', () => {
+  it('currentYTD → 2025-04-05 to today', () => {
+    const r = resolveReportingPeriod({ type: 'currentYTD' }, TODAY, undefined, FY_UK_END);
+    expect(r).toEqual({ periodStart: '2025-04-05', periodEnd: '2026-03-19' });
+  });
+  it('year 2026 → 2025-04-05 to 2026-04-05', () => {
+    const r = resolveReportingPeriod({ type: 'year', year: 2026 }, TODAY, undefined, FY_UK_END);
+    expect(r).toEqual({ periodStart: '2025-04-05', periodEnd: '2026-04-05' });
+  });
+});
+
+describe('resolveReportingPeriod — fiscal year Feb-29 clamp', () => {
+  it('year 2025 clamps Feb 29 to 28 in the non-leap end year', () => {
+    // beginYear 2024 (leap, Feb 29) → periodStart day before 2024-02-29 = 2024-02-28
+    // nextStart fiscalStart(2025): Feb 2025 has 28 days → 2025-02-28; day before = 2025-02-27
+    const r = resolveReportingPeriod({ type: 'year', year: 2025 }, TODAY, undefined, FY_FEB29_END);
+    expect(r).toEqual({ periodStart: '2024-02-28', periodEnd: '2025-02-27' });
+  });
+});
+
+describe('resolveReportingPeriod — fiscal no-op guards', () => {
+  it('enabled Jan-1 start == calendar', () => {
+    const r = resolveReportingPeriod({ type: 'year', year: 2025 }, TODAY, undefined, FY_JAN_ON);
+    expect(r).toEqual({ periodStart: '2024-12-31', periodEnd: '2025-12-31' });
+  });
+  it('disabled == calendar even with July start', () => {
+    const r = resolveReportingPeriod({ type: 'currentYTD' }, TODAY, undefined, FY_DISABLED);
+    expect(r).toEqual({ periodStart: '2025-12-31', periodEnd: '2026-03-19' });
+  });
+  it('fiscalActive predicate', () => {
+    expect(fiscalActive(FY_JULY_END)).toBe(true);
+    expect(fiscalActive(FY_JAN_ON)).toBe(false);
+    expect(fiscalActive(FY_DISABLED)).toBe(false);
+    expect(fiscalActive(undefined)).toBe(false);
   });
 });
