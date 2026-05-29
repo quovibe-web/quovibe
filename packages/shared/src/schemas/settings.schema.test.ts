@@ -90,4 +90,13 @@ describe('fiscalYearSchema', () => {
   it('rejects out-of-range month', () => {
     expect(() => fiscalYearSchema.parse({ startMonth: 13 })).toThrow();
   });
+
+  it('rejects out-of-range day', () => {
+    expect(() => fiscalYearSchema.parse({ startDay: 0 })).toThrow();
+    expect(() => fiscalYearSchema.parse({ startDay: 32 })).toThrow();
+  });
+
+  it('rejects invalid numbering value', () => {
+    expect(() => fiscalYearSchema.parse({ numbering: 'calendarYear' })).toThrow();
+  });
 });
