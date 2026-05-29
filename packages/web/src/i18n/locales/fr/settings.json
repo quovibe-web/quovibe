@@ -121,7 +121,10 @@
       "previousWeek": "Semaine précédente",
       "previousMonth": "Mois précédent",
       "previousQuarter": "Trimestre précédent",
-      "previousYear": "Année précédente"
+      "previousYear": "Année précédente",
+      "fiscalYear": "EF{{year}}",
+      "fiscalYTD": "EF cumul",
+      "previousFiscalYear": "EF précédent"
     }
   },
   "export": {
@@ -195,5 +198,17 @@
     "fetchSuccess": "{{count}} taux de change mis à jour en {{duration}}ms",
     "fetchError": "Erreur lors de la mise à jour des taux de change",
     "noForeignCurrencies": "Aucune devise étrangère détectée dans le portefeuille"
+  },
+  "fiscalYear": {
+    "title": "Exercice fiscal",
+    "description": "Redéfinir l'année pour les périodes de reporting (cumul, Année, Année précédente).",
+    "enable": "Utiliser un exercice fiscal personnalisé",
+    "startMonth": "Mois de début",
+    "startDay": "Jour de début",
+    "numbering": "Libellé de l'année",
+    "numberingStartYear": "Par année de début",
+    "numberingEndYear": "Par année de fin",
+    "numberingHint": "Modifie le libellé uniquement si le début n'est pas le 1er janvier.",
+    "preview": "Exercice fiscal en cours"
   }
 }
