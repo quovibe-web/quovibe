@@ -1070,7 +1070,14 @@ export interface SecurityPerfResult {
    * `unrealizedBase`. Does NOT equal `realizedCapitalBase + realizedFxBase`.
    */
   realizedBase: string;
-  /** `sr.dividends` × period-end FX rate. Does NOT include `dividendFxBase`. */
+  /**
+   * Dividends in base ccy: the booked deposit-currency cash converted at each
+   * dividend's RECEIPT-date FX rate (`sumAmountInBaseByType`), i.e. the cash
+   * actually received — NOT `sr.dividends` (security-ccy gross) re-projected at
+   * period-end FX. The re-projection drifted with the reporting-window end and
+   * never tied back to the transaction list. Mirrors the portfolio-level
+   * `getPortfolioCalc` dividend path. Does NOT include `dividendFxBase`.
+   */
   dividendsBase: string;
 
   // ─── Phase 3 — capital / FX decomposition (all in base ccy) ────────────────
@@ -2283,7 +2290,9 @@ export function getPortfolioCalc(
           securityId: sr.securityId,
           name: secName,
           isin: secIsin,
-          dividends: sr.dividends.toString(),
+          // Base ccy (booked deposit amount) — the breakdown card renders this
+          // with currency={baseCurrency}, and it must sum to earnings.dividends.
+          dividends: dividendsBase.toString(),
         });
       }
 
@@ -2825,15 +2834,26 @@ export function getSecurityPerformanceList(
 
   return secResults.map((sr) => {
     const nativeCurrency = data.secCurrencyMap.get(sr.securityId) ?? baseCurrency;
+    const secTxs = data.txsBySecurity.get(sr.securityId) ?? [];
+
+    // Dividends are received in the DEPOSIT (cash-leg) currency, not the
+    // security currency. Sum the booked deposit amounts converted at each
+    // dividend's receipt-date FX rate — the cash actually received — rather
+    // than re-projecting the security-currency gross at period-end FX. The
+    // re-projection drifts with the reporting-window end and never matches
+    // the transaction list. Mirrors the portfolio-level path in
+    // getPortfolioCalc (`sumAmountInBaseByType` for dividendsBase).
+    const dividendsBase = sumAmountInBaseByType(
+      secTxs, TransactionType.DIVIDEND, period, rateMaps, baseCurrency,
+    ).toString();
 
     // *Base fields: same-currency → native value; cross-currency → FX projection.
     // costBase uses per-tx trade-date FX (strict upstream); other *Base fields use
-    // period-end FX (statement-date snapshot), matching getPortfolioCalc lines 1703-1712.
+    // period-end FX (statement-date snapshot), matching the getPortfolioCalc rollup.
     let marketValueBase: string;
     let costBase: string;
     let unrealizedBase: string;
     let realizedBase: string;
-    let dividendsBase: string;
 
     // Decomposition (5 fields) + dual-perf (4 fields). Both default to '0' /
     // native short-circuit; populated only when the FIFO+FX coverage holds.
@@ -2854,7 +2874,6 @@ export function getSecurityPerformanceList(
       costBase = sr.purchaseValue.toString();
       unrealizedBase = sr.unrealizedGain.toString();
       realizedBase = sr.realizedGain.toString();
-      dividendsBase = sr.dividends.toString();
     } else {
       // Cross-ccy: delegate to the shared helper. It runs FIFO once + computes
       // all 5 decomposition fields. Returns null on coverage gap; the caller
@@ -2868,7 +2887,6 @@ export function getSecurityPerformanceList(
         costBase = decomp.fifo.costBase.toString();
         unrealizedBase = (toBaseAtDate(sr.unrealizedGain, nativeCurrency, baseCurrency, rateMaps, period.end) ?? new Decimal(0)).toString();
         realizedBase = (toBaseAtDate(sr.realizedGain, nativeCurrency, baseCurrency, rateMaps, period.end) ?? new Decimal(0)).toString();
-        dividendsBase = (toBaseAtDate(sr.dividends, nativeCurrency, baseCurrency, rateMaps, period.end) ?? new Decimal(0)).toString();
         realizedCapitalBase   = decomp.realizedCapitalBase.toString();
         realizedFxBase        = decomp.realizedFxBase.toString();
         unrealizedCapitalBase = decomp.unrealizedCapitalBase.toString();
@@ -2876,9 +2894,8 @@ export function getSecurityPerformanceList(
         dividendFxBase        = decomp.dividendFxBase.toString();
 
         // ─── Dual TTWROR / IRR (base pass) ────────────────────────────────
-        const rawSecTxs = (data.txsBySecurity.get(sr.securityId) ?? []) as PerfTransaction[];
         const basePerf = computeSecurityPerfInBase(
-          sr, nativeCurrency, baseCurrency, rawSecTxs, rateMaps, period,
+          sr, nativeCurrency, baseCurrency, secTxs as PerfTransaction[], rateMaps, period,
         );
         if (basePerf !== null) {
           ttwrorBase = basePerf.ttwror.toString();
@@ -2892,7 +2909,6 @@ export function getSecurityPerformanceList(
         costBase = '0';
         unrealizedBase = '0';
         realizedBase = '0';
-        dividendsBase = '0';
       }
     }
 
