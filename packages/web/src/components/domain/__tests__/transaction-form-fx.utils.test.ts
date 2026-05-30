@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TransactionType } from '@quovibe/shared';
+import { CROSS_CURRENCY_FX_TYPES, TransactionType } from '@quovibe/shared';
 import { deriveFxCurrencies } from '../transaction-form-fx.utils';
 
 describe('deriveFxCurrencies', () => {
@@ -61,6 +61,52 @@ describe('deriveFxCurrencies', () => {
       security: null,
     });
     expect(r.isCrossCurrency).toBe(false);
+  });
+
+  it('DIVIDEND cross-currency: src=deposit (sourceAccount), dst=security', () => {
+    const r = deriveFxCurrencies({
+      type: TransactionType.DIVIDEND,
+      sourceAccount: { currency: 'EUR' },
+      crossAccount: null,
+      security: { currency: 'GBP' },
+    });
+    expect(r).toEqual({ srcCurrency: 'EUR', dstCurrency: 'GBP', isCrossCurrency: true });
+  });
+
+  it('DIVIDEND same-currency: not cross', () => {
+    const r = deriveFxCurrencies({
+      type: TransactionType.DIVIDEND,
+      sourceAccount: { currency: 'EUR' },
+      crossAccount: null,
+      security: { currency: 'EUR' },
+    });
+    expect(r.isCrossCurrency).toBe(false);
+  });
+
+  it('DIVIDEND with missing security: not cross', () => {
+    const r = deriveFxCurrencies({
+      type: TransactionType.DIVIDEND,
+      sourceAccount: { currency: 'EUR' },
+      crossAccount: null,
+      security: null,
+    });
+    expect(r.isCrossCurrency).toBe(false);
+  });
+
+  // Drift guard: every type the shared route-gate treats as cross-currency
+  // MUST have a derivation rule here, or the FX field never renders and the
+  // server's FX_RATE_REQUIRED becomes unfixable from the UI. Replaces the
+  // prose "keep in sync" comment that failed to stop DIVIDEND drifting.
+  it('every CROSS_CURRENCY_FX_TYPES member resolves cross when currencies differ', () => {
+    for (const type of CROSS_CURRENCY_FX_TYPES) {
+      const r = deriveFxCurrencies({
+        type,
+        sourceAccount: { currency: 'EUR' },
+        crossAccount: { currency: 'USD' },
+        security: { currency: 'GBP' },
+      });
+      expect(r.isCrossCurrency, `${type} needs a derivation rule in deriveFxCurrencies`).toBe(true);
+    }
   });
 
   it('DEPOSIT: returns null currencies', () => {
