@@ -4,6 +4,7 @@ import { MoreHorizontal, Pencil, RefreshCw, Trash2 } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SecurityListItem, StatementSecurityEntry, SecurityPerfResponse } from '@/api/types';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
+import { CurrencyDisplayWithToggle } from '@/components/shared/CurrencyDisplayWithToggle';
 import { SharesDisplay } from '@/components/shared/SharesDisplay';
 import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
 import { SignedPercent } from '@/components/shared/SignedPercent';
@@ -192,12 +193,12 @@ export function useInvestmentsColumns({
         },
       },
 
-      // ── Market Value (from statement) ──
+      // ── Market Value (base ccy, from perf wire) ──
       {
         id: 'marketValue',
         accessorFn: (row) => {
-          const entry = statementMap.get(row.id);
-          return entry ? parseFloat(entry.marketValue) : null;
+          const perf = perfMap.get(row.id);
+          return perf ? parseFloat(perf.marketValueBase) : null;
         },
         ...currencyColumnMeta({ priority: 'high' }),
         header: t('columns.marketValue'),
@@ -206,24 +207,30 @@ export function useInvestmentsColumns({
         maxSize: 180,
         enableSorting: true,
         cell: ({ row }) => {
-          const entry = statementMap.get(row.original.id);
-          if (!entry) return <div className="text-right">—</div>;
+          const perf = perfMap.get(row.original.id);
+          if (!perf) return <div className="text-right">—</div>;
           return (
             <div className="text-right">
-              <CurrencyDisplay value={parseFloat(entry.marketValue)} currency={entry.currency} className="qv-numeric text-sm font-medium" />
+              <CurrencyDisplayWithToggle
+                value={parseFloat(perf.marketValueBase)}
+                currency={perf.baseCurrency}
+                nativeValue={parseFloat(perf.mve)}
+                nativeCurrency={perf.currency}
+                forexSurface="investments"
+                className="qv-numeric text-sm font-medium"
+              />
             </div>
           );
         },
       },
 
       // ── Percentage of Portfolio ──
-      // FIX: previously sorted by marketValue — now sorts by actual percentage
       {
         id: 'percentage',
         accessorFn: (row) => {
-          const entry = statementMap.get(row.id);
-          if (!entry || totalSecurityValue <= 0) return null;
-          return parseFloat(entry.marketValue) / totalSecurityValue;
+          const perf = perfMap.get(row.id);
+          if (!perf || totalSecurityValue <= 0) return null;
+          return parseFloat(perf.marketValueBase) / totalSecurityValue;
         },
         ...percentColumnMeta({ priority: 'medium' }),
         header: t('columns.percentage'),
@@ -232,9 +239,9 @@ export function useInvestmentsColumns({
         maxSize: 140,
         enableSorting: true,
         cell: ({ row }) => {
-          const entry = statementMap.get(row.original.id);
-          if (!entry || totalSecurityValue <= 0) return <div className="text-right">—</div>;
-          const pct = (parseFloat(entry.marketValue) / totalSecurityValue) * 100;
+          const perf = perfMap.get(row.original.id);
+          if (!perf || totalSecurityValue <= 0) return <div className="text-right">—</div>;
+          const pct = (parseFloat(perf.marketValueBase) / totalSecurityValue) * 100;
           return (
             <div className="text-right">
               <span className="qv-numeric text-sm text-muted-foreground">
@@ -349,11 +356,11 @@ export function useInvestmentsColumns({
         enableSorting: true,
       },
 
-      // ── Purchase Value ──
+      // ── Purchase Value (base ccy, per-tx trade-date FX) ──
       {
         id: 'purchaseValue',
         accessorFn: (row) => {
-          const val = perfMap.get(row.id)?.purchaseValue;
+          const val = perfMap.get(row.id)?.costBase;
           return val != null ? parseFloat(val) : null;
         },
         ...currencyColumnMeta({ priority: 'low' }),
@@ -363,17 +370,28 @@ export function useInvestmentsColumns({
         header: t('columns.purchaseValue'),
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
-          if (!perf?.purchaseValue) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.purchaseValue)} currency={perf.currency} className="qv-numeric text-sm" /></div>;
+          if (!perf?.costBase) return <div className="text-right text-muted-foreground">—</div>;
+          return (
+            <div className="text-right">
+              <CurrencyDisplayWithToggle
+                value={parseFloat(perf.costBase)}
+                currency={perf.baseCurrency}
+                nativeValue={parseFloat(perf.purchaseValue)}
+                nativeCurrency={perf.currency}
+                forexSurface="investments"
+                className="qv-numeric text-sm"
+              />
+            </div>
+          );
         },
         enableSorting: true,
       },
 
-      // ── MVE (Market Value End) ──
+      // ── MVE (Market Value End, base ccy) ──
       {
         id: 'mve',
         accessorFn: (row) => {
-          const val = perfMap.get(row.id)?.mve;
+          const val = perfMap.get(row.id)?.marketValueBase;
           return val != null ? parseFloat(val) : null;
         },
         ...currencyColumnMeta({ priority: 'low' }),
@@ -383,17 +401,28 @@ export function useInvestmentsColumns({
         header: t('columns.mve'),
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
-          if (!perf?.mve) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.mve)} currency={perf.currency} className="qv-numeric text-sm font-medium" /></div>;
+          if (!perf?.marketValueBase) return <div className="text-right text-muted-foreground">—</div>;
+          return (
+            <div className="text-right">
+              <CurrencyDisplayWithToggle
+                value={parseFloat(perf.marketValueBase)}
+                currency={perf.baseCurrency}
+                nativeValue={parseFloat(perf.mve)}
+                nativeCurrency={perf.currency}
+                forexSurface="investments"
+                className="qv-numeric text-sm font-medium"
+              />
+            </div>
+          );
         },
         enableSorting: true,
       },
 
-      // ── Unrealized Gain (colorized) ──
+      // ── Unrealized Gain (base ccy, colorized) ──
       {
         id: 'unrealizedGain',
         accessorFn: (row) => {
-          const val = perfMap.get(row.id)?.unrealizedGain;
+          const val = perfMap.get(row.id)?.unrealizedBase;
           return val != null ? parseFloat(val) : null;
         },
         ...currencyColumnMeta({ priority: 'medium' }),
@@ -403,17 +432,29 @@ export function useInvestmentsColumns({
         header: t('columns.unrealizedGain'),
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
-          if (!perf?.unrealizedGain) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.unrealizedGain)} currency={perf.currency} colorize className="qv-numeric text-sm" /></div>;
+          if (!perf?.unrealizedBase) return <div className="text-right text-muted-foreground">—</div>;
+          return (
+            <div className="text-right">
+              <CurrencyDisplayWithToggle
+                value={parseFloat(perf.unrealizedBase)}
+                currency={perf.baseCurrency}
+                nativeValue={parseFloat(perf.unrealizedGain)}
+                nativeCurrency={perf.currency}
+                forexSurface="investments"
+                colorize
+                className="qv-numeric text-sm"
+              />
+            </div>
+          );
         },
         enableSorting: true,
       },
 
-      // ── Realized Gain (colorized) ──
+      // ── Realized Gain (base ccy, colorized) ──
       {
         id: 'realizedGain',
         accessorFn: (row) => {
-          const val = perfMap.get(row.id)?.realizedGain;
+          const val = perfMap.get(row.id)?.realizedBase;
           return val != null ? parseFloat(val) : null;
         },
         ...currencyColumnMeta({ priority: 'low' }),
@@ -423,17 +464,29 @@ export function useInvestmentsColumns({
         header: t('columns.realizedGain'),
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
-          if (!perf?.realizedGain) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.realizedGain)} currency={perf.currency} colorize className="qv-numeric text-sm" /></div>;
+          if (!perf?.realizedBase) return <div className="text-right text-muted-foreground">—</div>;
+          return (
+            <div className="text-right">
+              <CurrencyDisplayWithToggle
+                value={parseFloat(perf.realizedBase)}
+                currency={perf.baseCurrency}
+                nativeValue={parseFloat(perf.realizedGain)}
+                nativeCurrency={perf.currency}
+                forexSurface="investments"
+                colorize
+                className="qv-numeric text-sm"
+              />
+            </div>
+          );
         },
         enableSorting: true,
       },
 
-      // ── Dividends ──
+      // ── Dividends (base ccy) ──
       {
         id: 'dividends',
         accessorFn: (row) => {
-          const val = perfMap.get(row.id)?.dividends;
+          const val = perfMap.get(row.id)?.dividendsBase;
           return val != null ? parseFloat(val) : null;
         },
         ...currencyColumnMeta({ priority: 'low' }),
@@ -443,8 +496,19 @@ export function useInvestmentsColumns({
         header: t('columns.dividends'),
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
-          if (!perf?.dividends) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.dividends)} currency={perf.currency} className="qv-numeric text-sm" /></div>;
+          if (!perf?.dividendsBase) return <div className="text-right text-muted-foreground">—</div>;
+          return (
+            <div className="text-right">
+              <CurrencyDisplayWithToggle
+                value={parseFloat(perf.dividendsBase)}
+                currency={perf.baseCurrency}
+                nativeValue={parseFloat(perf.dividends)}
+                nativeCurrency={perf.currency}
+                forexSurface="investments"
+                className="qv-numeric text-sm"
+              />
+            </div>
+          );
         },
         enableSorting: true,
       },

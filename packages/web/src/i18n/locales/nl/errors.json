@@ -1,6 +1,6 @@
 {
   "import": {
-    "fileTooBig": "Het bestand is groter dan 50 MB. Controleer of u het juiste bestand vanuit uw portfolio-app heeft geëxporteerd.",
+    "fileTooBig": "Het bestand overschrijdt de maximale uploadgrootte. Controleer of u het juiste bestand vanuit uw portfolio-app heeft geëxporteerd.",
     "invalidXml": "Het bestand is geen geldig XML.",
     "invalidFormat": "Zorg ervoor dat u vanuit uw portfolio-app exporteert in XML-formaat met ID-attributen (niet versleuteld).",
     "encrypted": "Het bestand lijkt versleuteld te zijn. Exporteer opnieuw vanuit uw portfolio-app en kies XML-formaat met ID-attributen.",
@@ -88,6 +88,11 @@
     "Validation error": "Ongeldige invoer. Controleer de velden en probeer het opnieuw.",
     "SECURITY_HAS_TRANSACTIONS": "Verwijderen niet mogelijk — {{count}} transacties zijn gekoppeld aan dit effect. Verwijder of herwijs ze eerst toe.",
     "ATTRIBUTE_TYPE_NOT_FOUND": "Attribuuttype niet gevonden.",
-    "BUILTIN_TYPE_PROTECTED": "Ingebouwde attribuuttypen kunnen niet worden gewijzigd of verwijderd."
+    "BUILTIN_TYPE_PROTECTED": "Ingebouwde attribuuttypen kunnen niet worden gewijzigd of verwijderd.",
+    "INVALID_CURRENCY_CODE": "Valutacode moet uit 3 hoofdletters bestaan (bijv. EUR).",
+    "SAME_CURRENCY": "De bron- en doelvaluta moeten van elkaar verschillen.",
+    "INVALID_RATE": "De wisselkoers moet een positief getal zijn.",
+    "DUPLICATE_RATE": "Er bestaat al een koers voor dit valutapaar en deze datum.",
+    "RATE_NOT_FOUND_OR_NOT_MANUAL": "Deze koers kan niet worden bewerkt (geen handmatige invoer of niet gevonden)."
   }
 }

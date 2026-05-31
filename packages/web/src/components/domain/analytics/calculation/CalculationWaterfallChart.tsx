@@ -4,6 +4,7 @@ import {
   BarChart,
   Bar,
   Cell,
+  LabelList,
   CartesianGrid,
   XAxis,
   YAxis,
@@ -38,12 +39,33 @@ const COLOR_VAR: Record<WaterfallBarColor, string> = {
   display: 'var(--qv-text-display)',
 };
 
+interface LabelProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  index?: number;
+}
+
 export function CalculationWaterfallChart({ data, onBarClick }: CalculationWaterfallChartProps) {
   const { t } = useTranslation('performance');
   const { isPrivate } = usePrivacy();
   const bars = useMemo(() => buildWaterfallData(data), [data]);
+  // Exclude zero-magnitude bars from the chart data so the LabelList
+  // iteration index stays aligned with the rect array Recharts produces.
+  // (Recharts filters height===0 rects before passing to LabelList, so
+  // a bars[index] lookup would be off-by-one whenever MVB is zero.)
+  const visibleBars = useMemo(() => bars.filter((b) => b.magnitude > 0), [bars]);
   const showScaleToggle = useMemo(() => shouldShowMagnitudeScaleToggle(bars), [bars]);
   const [scale, setScale] = useState<'linear' | 'log'>('linear');
+
+  const yDomain = useMemo<[number, number]>(() => {
+    const allVals = bars.flatMap((b) => [b.base, b.base + b.value]);
+    const lo = Math.min(0, ...allVals);
+    const hi = Math.max(...allVals);
+    const pad = (hi - lo) * 0.12;
+    return [lo - pad, hi + pad];
+  }, [bars]);
 
   const allMiddleZero =
     bars[1].magnitude === 0 && bars[2].magnitude === 0 && bars[3].magnitude === 0;
@@ -77,7 +99,7 @@ export function CalculationWaterfallChart({ data, onBarClick }: CalculationWater
           >
             <ResponsiveContainer width="100%" height={320}>
               <BarChart
-                data={bars}
+                data={visibleBars}
                 margin={{ top: 30, right: 16, left: 16, bottom: 30 }}
                 onClick={(state) => {
                   // Recharts passes payload via activePayload[0].payload
@@ -96,46 +118,44 @@ export function CalculationWaterfallChart({ data, onBarClick }: CalculationWater
                     t(`calculation.waterfall.${name.toLowerCase()}`, { defaultValue: name })
                   }
                 />
-                <YAxis hide scale={scale === 'log' ? 'log' : 'linear'} domain={['auto', 'auto']} allowDataOverflow />
-                {/* Invisible base bar creates the floating offset */}
-                <Bar dataKey="base" stackId="wf" fill="transparent" isAnimationActive={false} />
+                <YAxis
+                  hide
+                  scale={scale === 'log' ? 'log' : 'linear'}
+                  domain={yDomain}
+                  allowDataOverflow
+                />
                 <Bar
-                  dataKey="value"
-                  stackId="wf"
+                  dataKey="range"
                   isAnimationActive={false}
-                  label={(props: {
-                    x?: number; y?: number; width?: number; value?: number; index?: number;
-                  }) => {
-                    if (props.value == null || props.index == null) return null;
-                    const bar = bars[props.index];
-                    if (!bar || bar.magnitude === 0) return null;
-                    const isAnchorBar = bar.isAnchor;
-                    const numeric = formatCurrency(bar.magnitude, data.baseCurrency);
-                    const sign = isAnchorBar ? '' : bar.value > 0 ? '+' : '−';
-                    const colorVar = COLOR_VAR[bar.color];
-                    const x = (props.x ?? 0) + (props.width ?? 0) / 2;
-                    const y = (props.y ?? 0) - 8;
-                    return (
-                      <text
-                        x={x}
-                        y={y}
-                        textAnchor="middle"
-                        fontSize={11}
-                        fontFamily="'IBM Plex Mono', monospace"
-                        fill={colorVar}
-                      >
-                        {sign}{numeric}
-                      </text>
-                    );
-                  }}
+                  radius={[2, 2, 2, 2]}
                 >
-                  {bars.map((bar, i) => (
-                    <Cell
-                      key={i}
-                      fill={COLOR_VAR[bar.color]}
-                      cursor="pointer"
-                    />
+                  {visibleBars.map((bar, i) => (
+                    <Cell key={i} fill={COLOR_VAR[bar.color]} cursor="pointer" />
                   ))}
+                  <LabelList
+                    content={((labelProps: LabelProps) => {
+                      const { index, x = 0, width = 0, y = 0 } = labelProps;
+                      if (index == null) return null;
+                      const bar = visibleBars[index];
+                      if (!bar) return null;
+                      const numeric = formatCurrency(bar.magnitude, data.baseCurrency);
+                      const sign = bar.isAnchor ? '' : bar.value > 0 ? '+' : '−';
+                      return (
+                        <text
+                          key={index}
+                          x={x + width / 2}
+                          y={y - 8}
+                          textAnchor="middle"
+                          fontSize={11}
+                          fontFamily="'IBM Plex Mono', monospace"
+                          fill={COLOR_VAR[bar.color]}
+                        >
+                          {sign}{numeric}
+                        </text>
+                      );
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    }) as any}
+                  />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

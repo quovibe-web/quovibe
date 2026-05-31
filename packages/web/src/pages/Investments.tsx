@@ -53,8 +53,13 @@ import {
 } from '@/hooks/useColumnVisibility';
 import { formatPercentage } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { computeUnresolvedBadge } from '@/lib/investments-base-rollup';
+import { UnresolvedFxModal, type AffectedSecurity } from '@/components/domain/UnresolvedFxModal';
+import { useBaseCurrency } from '@/hooks/use-base-currency';
 import type { StatementSecurityEntry, SecurityPerfResponse, HoldingsItem } from '@/api/types';
 import { useNavTitle } from '@/hooks/useNavTitle';
+import { ForexViewChip } from '@/components/shared/ForexViewChip';
 
 interface FetchStatusProps {
   totalFetched: number;
@@ -272,6 +277,8 @@ export default function Investments() {
   const deleteSecurity = useDeleteSecurity();
   const { palette } = useChartColors();
   const { isPrivate } = usePrivacy();
+  const baseCurrency = useBaseCurrency();
+  const [unresolvedModalOpen, setUnresolvedModalOpen] = useState(false);
 
   // Filter securities by account when filter is active
   const accountFiltered = useMemo(() => {
@@ -353,6 +360,17 @@ export default function Investments() {
     );
   }, [accountFilterId, mappedFilterHoldings]);
 
+  // Securities with unresolved FX rates — derived from statement totals + security list.
+  // Computed inline so it re-derives automatically whenever the statement refreshes
+  // (i.e. after a successful rate add broadcasts via broad-invalidate in useCreateFxRate).
+  const unresolvedAffected = useMemo<AffectedSecurity[]>(() => {
+    const ids = new Set(statement?.totals.unresolvedSecurityIds ?? []);
+    if (ids.size === 0) return [];
+    return securities
+      .filter((s) => ids.has(s.id))
+      .map((s) => ({ id: s.id, name: s.name, currency: s.currency }));
+  }, [securities, statement]);
+
   // Columns
   const columns = useInvestmentsColumns({
     statementMap,
@@ -415,6 +433,11 @@ export default function Investments() {
             segments={chartModes}
             value={chartMode}
             onChange={setChartMode}
+          />
+          <ForexViewChip
+            surface="investments"
+            baseCurrency={baseCurrency}
+            nativeCurrencies={perfData?.map((p) => p.currency) ?? []}
           />
           <Separator orientation="vertical" className="h-6" />
           <Button variant="outline" onClick={handleFetchAll} disabled={fetchAll.isPending}>
@@ -497,6 +520,28 @@ export default function Investments() {
           ]}
         />
       )}
+
+      {/* Unresolved-FX badge — securities excluded from base-ccy rollup */}
+      {!isEmptyPortfolio && statement && (() => {
+        const badge = computeUnresolvedBadge(
+          statement.totals.unresolvedCount ?? 0,
+          statement.totals.unresolvedSecurityIds ?? [],
+        );
+        return badge ? (
+          <button
+            type="button"
+            className="block w-full text-left"
+            aria-label={t('unresolvedFxOpenModal')}
+            onClick={() => setUnresolvedModalOpen(true)}
+          >
+            <Alert variant="default" className="border-[var(--qv-warning)] cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors">
+              <AlertDescription>
+                {t('unresolvedFx', { count: badge.count })}
+              </AlertDescription>
+            </Alert>
+          </button>
+        ) : null;
+      })()}
 
       {/* Allocation chart — global or per-account */}
       {!isEmptyPortfolio && chartMode !== 'off' && chartItems.length > 0 && (!accountFilterId ? !summaryLoading : !!filterHoldings) && (
@@ -598,19 +643,35 @@ export default function Investments() {
                       />
                     </span>
                   )}
-                  {perfMap.size > 0 && (
-                    <span className="flex items-center gap-2">
-                      <span className="qv-eyebrow text-[var(--qv-text-secondary)]">{t('columns.unrealizedGain')}</span>
-                      <CurrencyDisplay
-                        value={filteredSecurities.reduce((sum, s) => {
-                          const entry = perfMap.get(s.id);
-                          return sum + (entry ? parseFloat(entry.unrealizedGain) : 0);
-                        }, 0)}
-                        colorize
-                        className="qv-numeric font-medium"
-                      />
-                    </span>
-                  )}
+                  {perfMap.size > 0 && (() => {
+                    // Unrealized gain values are in each security's native
+                    // currency. Summing across mixed-currency securities is
+                    // meaningless (€ + US$ + £ ≠ a thing). Show the total
+                    // only when every visible security shares one currency;
+                    // otherwise hide it — per-row column is still rendered
+                    // by useInvestmentsColumns and stays correct.
+                    const currencies = new Set<string>();
+                    let totalUnrealized = 0;
+                    for (const s of filteredSecurities) {
+                      const entry = perfMap.get(s.id);
+                      if (!entry) continue;
+                      currencies.add(entry.currency);
+                      totalUnrealized += parseFloat(entry.unrealizedGain);
+                    }
+                    if (currencies.size !== 1) return null;
+                    const [uniqueCurrency] = [...currencies];
+                    return (
+                      <span className="flex items-center gap-2">
+                        <span className="qv-eyebrow text-[var(--qv-text-secondary)]">{t('columns.unrealizedGain')}</span>
+                        <CurrencyDisplay
+                          value={totalUnrealized}
+                          currency={uniqueCurrency}
+                          colorize
+                          className="qv-numeric font-medium"
+                        />
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
             )}
@@ -657,6 +718,15 @@ export default function Investments() {
         statementMap={statementMap}
         logoMap={logoMap}
         periodSearch={periodSearch}
+      />
+
+      {/* Unresolved-FX quick-fix modal */}
+      <UnresolvedFxModal
+        open={unresolvedModalOpen}
+        onOpenChange={setUnresolvedModalOpen}
+        baseCurrency={baseCurrency}
+        affected={unresolvedAffected}
+        periodEnd={periodEnd}
       />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>

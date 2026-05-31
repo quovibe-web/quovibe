@@ -8,9 +8,13 @@ export {
   parseNumberWithSuffix,
   normalizeTransactionType,
   detectDelimiter,
+  combineDateAndTime,
 } from './csv-normalizer';
+export type { ParseDateOpts } from './csv-normalizer';
 export { sniffLikelyTradeCsv } from './csv-sniff';
 export type { SniffResult, SniffReason, SniffOptions } from './csv-sniff';
 export { ppRateToQvRate, verifyGrossRateValue } from './csv-fx';
 export { autodetectCsvFormat } from './csv-autodetect';
 export type { AutodetectResult } from './csv-autodetect';
+export { parseEcbCsv, EcbCsvError } from './ecb-csv';
+export type { EcbRateRow } from './ecb-csv';

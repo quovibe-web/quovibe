@@ -634,6 +634,30 @@ function createTestDb(): Database.Database {
 
         expect(result.summary.duplicates).toBe(0);
       });
+
+      it('upgrade-path: day-only DB row is detected as duplicate when re-importing a timestamped row', async () => {
+        // Pre-fix rows stored day-only dates ('2024-01-15'). Post-fix rows store
+        // ISO timestamps ('2024-01-15T10:30:00'). The JS fingerprint must use
+        // .slice(0,10) on both sides to mirror the partial index expression
+        // substr(date,1,10) so the preview chip correctly reports "1 duplicate"
+        // instead of "1 new".
+        sqlite.prepare(
+          `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, source, updatedAt, _xmlid, _order)
+           VALUES ('old-row', 'BUY', '2024-01-15', 'EUR', 50000, 500000000, 'sec-1', 'port-1', 'portfolio', 'CSV_IMPORT', '2024-01-01', 1, 1)`,
+        ).run();
+        const csvWithTime = [
+          'date,time,type,security,shares,amount',
+          '2024-01-15,10:30:00,BUY,Apple Inc,5,500.00',
+        ].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csvWithTime, 'utf-8'), 'upgrade-reimport.csv');
+
+        const result = await previewTradeImport(sqlite, {
+          ...reimportInput(tempFileId),
+          columnMapping: { date: 0, time: 1, type: 2, security: 3, shares: 4, amount: 5 },
+        });
+
+        expect(result.summary.duplicates).toBe(1);
+      });
     });
 
     describe('csvCurrencies enrichment (BUG-146)', () => {
@@ -1803,6 +1827,55 @@ function createTestDb(): Database.Database {
       ).all() as Array<{ account: string }>;
       expect(portRows.map((r) => r.account)).toEqual(['port-a', 'port-b']);
       expect(cashRows.map((r) => r.account)).toEqual(['dep-a', 'dep-b']);
+    });
+  });
+
+  describe('executeTradeImport — Time column ISO timestamp (BUG-182)', () => {
+    // Pins the requirement: when the user maps the optional `time` column,
+    // xact.date must store the full ISO timestamp YYYY-MM-DDTHH:mm:ss,
+    // not the day-only string.
+    it('persists ISO timestamp on xact.date when the time column is mapped', async () => {
+      const db = createTestDb();
+      try {
+        const csv = [
+          'date,time,type,security,shares,amount',
+          '2025-03-14,15:48:00,BUY,Apple Inc,10,1500.00',
+          '2025-03-14,15:53:00,SELL,Apple Inc,3,480.00',
+        ].join('\n');
+        const tempFileId = saveTempFile(Buffer.from(csv, 'utf-8'), 'time-col.csv');
+
+        const result = await executeTradeImport(db, {
+          tempFileId,
+          config: {
+            delimiter: ',' as const,
+            columnMapping: { date: 0, time: 1, type: 2, security: 3, shares: 4, amount: 5 },
+            dateFormat: 'yyyy-MM-dd',
+            decimalSeparator: '.' as const,
+            thousandSeparator: '' as const,
+          },
+          targetSecuritiesAccountId: 'port-1',
+          securityMapping: { 'Apple Inc': 'sec-1' },
+          newSecurities: [],
+          excludedRows: [],
+        });
+
+        expect(result.errors).toHaveLength(0);
+        expect(result.imported).toBe(2);
+
+        // The securities-side rows (shares > 0) ordered by _id — insertion order
+        // matches CSV row order.
+        const rows = db.prepare(
+          "SELECT date FROM xact WHERE shares > 0 ORDER BY _id",
+        ).all() as Array<{ date: string }>;
+
+        expect(rows).toHaveLength(2);
+        expect(rows.map(r => r.date)).toEqual([
+          '2025-03-14T15:48:00',
+          '2025-03-14T15:53:00',
+        ]);
+      } finally {
+        db.close();
+      }
     });
   });
 });

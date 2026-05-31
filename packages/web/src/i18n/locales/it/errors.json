@@ -1,6 +1,6 @@
 {
   "import": {
-    "fileTooBig": "Il file supera i 50 MB. Verifica di aver esportato il file corretto dalla tua app di portafoglio.",
+    "fileTooBig": "Il file supera il limite di dimensione. Verifica di aver esportato il file corretto dalla tua app di portafoglio.",
     "invalidXml": "Il file non è un XML valido.",
     "invalidFormat": "Assicurati di esportare dalla tua app di portafoglio in formato XML con attributi ID (non criptato).",
     "encrypted": "Il file sembra essere criptato. Riesporta dalla tua app di portafoglio scegliendo il formato XML con attributi ID.",
@@ -88,6 +88,11 @@
     "Validation error": "Dati non validi. Verifica i campi e riprova.",
     "SECURITY_HAS_TRANSACTIONS": "Impossibile eliminare — {{count}} transazioni sono collegate a questo titolo. Eliminale o riassegnale prima.",
     "ATTRIBUTE_TYPE_NOT_FOUND": "Tipo di attributo non trovato.",
-    "BUILTIN_TYPE_PROTECTED": "I tipi di attributo predefiniti non possono essere modificati o eliminati."
+    "BUILTIN_TYPE_PROTECTED": "I tipi di attributo predefiniti non possono essere modificati o eliminati.",
+    "INVALID_CURRENCY_CODE": "Il codice valuta deve essere composto da 3 lettere maiuscole (es. EUR).",
+    "SAME_CURRENCY": "La valuta di origine e quella di destinazione devono essere diverse.",
+    "INVALID_RATE": "Il tasso di cambio deve essere un numero positivo.",
+    "DUPLICATE_RATE": "Esiste già un tasso per questa coppia di valute e questa data.",
+    "RATE_NOT_FOUND_OR_NOT_MANUAL": "Questo tasso non può essere modificato (non è un inserimento manuale o non esiste)."
   }
 }

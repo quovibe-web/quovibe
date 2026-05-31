@@ -121,7 +121,10 @@
       "previousWeek": "Vorige week",
       "previousMonth": "Vorige maand",
       "previousQuarter": "Vorig kwartaal",
-      "previousYear": "Vorig jaar"
+      "previousYear": "Vorig jaar",
+      "fiscalYear": "BJ{{year}}",
+      "fiscalYTD": "BJ YTD",
+      "previousFiscalYear": "Vorig BJ"
     }
   },
   "export": {
@@ -195,5 +198,17 @@
     "fetchSuccess": "{{count}} wisselkoersen bijgewerkt in {{duration}}ms",
     "fetchError": "Fout bij het bijwerken van wisselkoersen",
     "noForeignCurrencies": "Geen vreemde valuta gevonden in portefeuille"
+  },
+  "fiscalYear": {
+    "title": "Boekjaar",
+    "description": "Herdefinieer 'jaar' voor rapportageperioden (YTD, Jaar, Vorig jaar).",
+    "enable": "Een aangepast boekjaar gebruiken",
+    "startMonth": "Startmaand",
+    "startDay": "Startdag",
+    "numbering": "Jaaraanduiding",
+    "numberingStartYear": "Op startjaar",
+    "numberingEndYear": "Op eindjaar",
+    "numberingHint": "Wijzigt de aanduiding alleen als de start niet 1 januari is.",
+    "preview": "Huidig boekjaar"
   }
 }

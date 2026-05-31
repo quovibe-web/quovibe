@@ -26,7 +26,7 @@ export const DATA_DIR = dataRoot;
 export const SIDECAR_PATH = path.join(DATA_DIR, 'quovibe.settings.json');
 export const DB_BACKUP_MAX = parseInt(process.env.DB_BACKUP_MAX ?? '3', 10);
 export const PORTFOLIO_POOL_MAX = parseInt(process.env.PORTFOLIO_POOL_MAX ?? '5', 10);
-export const IMPORT_MAX_MB = parseInt(process.env.IMPORT_MAX_MB ?? '50', 10);
+export const IMPORT_MAX_MB = parseInt(process.env.IMPORT_MAX_MB ?? '500', 10);
 
 // Dev fallback: scripts/seed-demo.ts writes to data/demo.db by default.
 // Docker: set QUOVIBE_DEMO_SOURCE=/app/assets/demo.db via Dockerfile (ADR-015 §3.17).

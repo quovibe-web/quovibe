@@ -23,6 +23,11 @@ const listAccounts: RequestHandler = async (req, res) => {
   const sqlite = getSqlite(req);
   const includeRetired = req.query.includeRetired === 'true';
 
+  // Fetch all rows unfiltered so the currency map includes retired deposits.
+  // A securities account whose reference deposit is retired still inherits
+  // that deposit's currency (matches getAccount, which queries by id without
+  // an isRetired filter). Building the map from a pre-filtered set would
+  // surface a null currency on the list endpoint — GitHub issue #24.
   const rows = await db
     .select({
       id: accounts.id,
@@ -41,12 +46,11 @@ const listAccounts: RequestHandler = async (req, res) => {
         eq(accountAttributes.accountId, accounts.id),
         eq(accountAttributes.typeId, 'logo'),
       ),
-    )
-    .where(includeRetired ? undefined : eq(accounts.isRetired, false));
+    );
 
-  // For portfolios, resolve currency from the referenceAccount (portfolios have no own currency)
   const currencyById = new Map(rows.map(r => [r.id, r.currency]));
-  res.json(rows.map(a => {
+  const visible = includeRetired ? rows : rows.filter(r => !r.isRetired);
+  res.json(visible.map(a => {
     const resolvedCurrency =
       a.type === 'portfolio' && a.referenceAccountId
         ? (currencyById.get(a.referenceAccountId) ?? null)
@@ -133,7 +137,7 @@ const getAccountTransactions: RequestHandler = (req, res) => {
                LIMIT 1) as isFromXact
        FROM xact x
        WHERE x.account = ?
-       ORDER BY x.date DESC
+       ORDER BY x.date DESC, x._order DESC, x._id DESC
        LIMIT ? OFFSET ?`,
     )
     .all(id, limit, offset) as Record<string, unknown>[];

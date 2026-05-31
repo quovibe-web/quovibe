@@ -44,6 +44,7 @@
     "quantity": "Quantidade",
     "price": "Preço",
     "pricePerShare": "Preço por unidade",
+    "pricePerShareInCcy": "Preço por unidade ({{ccy}})",
     "pricePerShareOptional": "Preço por unidade (opcional)",
     "amount": "Montante",
     "fees": "Comissões",

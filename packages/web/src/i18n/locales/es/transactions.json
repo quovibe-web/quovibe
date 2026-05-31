@@ -44,6 +44,7 @@
     "quantity": "Cantidad",
     "price": "Precio",
     "pricePerShare": "Precio por participación",
+    "pricePerShareInCcy": "Precio por participación ({{ccy}})",
     "pricePerShareOptional": "Precio por participación (opcional)",
     "amount": "Importe",
     "fees": "Comisiones",

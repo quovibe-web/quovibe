@@ -35,7 +35,7 @@ export type PpUploadError =
   | 'duplicateName'
   | null;
 
-export type DbUploadError = 'duplicateName' | null;
+export type DbUploadError = 'duplicateName' | 'tooLarge' | null;
 
 async function validateXmlClientSide(file: File): Promise<PpUploadError> {
   if (!file.name.toLowerCase().endsWith('.xml')) return 'invalidFile';
@@ -89,10 +89,12 @@ export default function ImportHub() {
   const [ppFile, setPpFile] = useState<File | null>(null);
   const [ppName, setPpName] = useState('');
   const [ppUploadError, setPpUploadError] = useState<PpUploadError>(null);
+  const [ppUploadMaxMb, setPpUploadMaxMb] = useState<number | undefined>(undefined);
   const [ppDuplicateName, setPpDuplicateName] = useState<string>('');
   const [dbFile, setDbFile] = useState<File | null>(null);
   const [dbName, setDbName] = useState('');
   const [dbUploadError, setDbUploadError] = useState<DbUploadError>(null);
+  const [dbUploadMaxMb, setDbUploadMaxMb] = useState<number | undefined>(undefined);
   const [dbDuplicateName, setDbDuplicateName] = useState<string>('');
   const [success, setSuccess] = useState<{
     entry: PortfolioRegistryEntry;
@@ -103,6 +105,7 @@ export default function ImportHub() {
 
   const handlePpFile = async (f: File): Promise<void> => {
     setPpUploadError(null);
+    setPpUploadMaxMb(undefined);
     setPpDuplicateName('');
     const rejected = await validateXmlClientSide(f);
     if (rejected) {
@@ -115,6 +118,7 @@ export default function ImportHub() {
 
   const handleDbFile = (f: File): void => {
     setDbUploadError(null);
+    setDbUploadMaxMb(undefined);
     setDbDuplicateName('');
     setDbFile(f);
   };
@@ -163,6 +167,9 @@ export default function ImportHub() {
           if (err instanceof ApiError) {
             const mapped = mapServerError(err.code);
             if (mapped) {
+              if (err.code === 'FILE_TOO_LARGE' && typeof err.details?.['maxMb'] === 'number') {
+                setPpUploadMaxMb(err.details['maxMb'] as number);
+              }
               setPpUploadError(mapped);
               return;
             }
@@ -201,6 +208,13 @@ export default function ImportHub() {
           if (err instanceof ApiError && err.code === 'DUPLICATE_NAME') {
             setDbDuplicateName(resolveDuplicateName(err, attemptedName));
             setDbUploadError('duplicateName');
+            return;
+          }
+          if (err instanceof ApiError && err.code === 'FILE_TOO_LARGE') {
+            if (typeof err.details?.['maxMb'] === 'number') {
+              setDbUploadMaxMb(err.details['maxMb'] as number);
+            }
+            setDbUploadError('tooLarge');
             return;
           }
           toast.error(t('hub.errors.importFailed', { msg: resolveErrorMessage(err) }));
@@ -247,7 +261,7 @@ export default function ImportHub() {
                 <AlertDescription>
                   {ppUploadError === 'duplicateName'
                     ? tErrors('portfolio.duplicateName', { name: ppDuplicateName })
-                    : t(`hub.errors.${ppUploadError}`)}
+                    : t(`hub.errors.${ppUploadError}`, { maxMb: ppUploadMaxMb })}
                 </AlertDescription>
               </Alert>
             )}
@@ -296,10 +310,12 @@ export default function ImportHub() {
               file={dbFile}
               onFile={handleDbFile}
             />
-            {dbUploadError === 'duplicateName' && (
+            {dbUploadError && (
               <Alert variant="destructive" role="alert">
                 <AlertDescription>
-                  {tErrors('portfolio.duplicateName', { name: dbDuplicateName })}
+                  {dbUploadError === 'duplicateName'
+                    ? tErrors('portfolio.duplicateName', { name: dbDuplicateName })
+                    : t(`hub.errors.${dbUploadError}`, { maxMb: dbUploadMaxMb })}
                 </AlertDescription>
               </Alert>
             )}

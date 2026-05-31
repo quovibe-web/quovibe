@@ -19,6 +19,7 @@ import { evictPortfolioDb, acquirePortfolioDb, releasePortfolioDb } from './port
 import { broadcast } from '../routes/events';
 import { getSettings, updateSettings } from './settings.service';
 import { createAccount, listSecuritiesAccounts } from './accounts.service';
+import { setPortfolioBaseCurrency } from './portfolio-base.service';
 import type { PortfolioEntry, ImportSummary } from '@quovibe/shared';
 
 export type CreatePortfolioSource = 'fresh' | 'demo' | 'import-pp-xml' | 'import-quovibe-db';
@@ -172,6 +173,10 @@ function createFreshImpl(input: FreshPortfolioInput): CreatePortfolioResult {
     seedMeta(db, { name: input.name, createdAt: entry.createdAt, source: 'fresh' });
     seedDefaultDashboard(db);
     seedFreshAccounts(db, input);
+    // applyBootstrap seeds baseCurrency before accounts exist (empty DB → falls
+    // back to EUR). Override with the user-supplied baseCurrency now that the
+    // primary deposit row is in place.
+    setPortfolioBaseCurrency(db, input.baseCurrency);
   } finally {
     db.close();
   }
@@ -268,6 +273,7 @@ export function setupPortfolio(
     // the seeding helper — accounts only — so passing the registry name is
     // strictly type-satisfaction.
     seedFreshAccounts(sqlite, { name: entry.name, ...input });
+    setPortfolioBaseCurrency(sqlite, input.baseCurrency);
   } finally {
     releasePortfolioDb(id);
   }

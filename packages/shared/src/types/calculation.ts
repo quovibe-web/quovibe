@@ -137,6 +137,8 @@ export interface OpenPositionPnLBreakdown {
 // The only frontend consumer (useCalculation / Calculation.tsx) is updated simultaneously.
 export interface CalculationBreakdownResponse {
   baseCurrency: string;
+  unresolvedCount: number;
+  unresolvedSecurityIds: string[];
   initialValue: string;
   capitalGains: CapitalGainsBreakdown;
   realizedGains: RealizedGainsBreakdown;
@@ -171,4 +173,17 @@ export interface CalculationBreakdownResponse {
   lastDayDelta: string;
   lastDayAbsolutePerformance: string;
   openPositionPnL: OpenPositionPnLBreakdown;
+
+  // ─── Phase 3 — capital / FX decomposition rollups (all in base ccy) ────────
+  // Portfolio-level sums of the per-security decomposition fields. Use
+  // per-tx trade-date FX (strict PP convention), NOT the period-end-uniform
+  // rate the legacy capitalGains aggregates use. The two intentionally do
+  // NOT sum to the same number — see SecurityPerfResult in performance.service.ts
+  // for the rationale. Defaults to '0' when no decomposition is computable
+  // (all securities same-ccy as base, or coverage gap on every FX rate).
+  realizedCapitalBase: string;
+  realizedFxBase: string;
+  unrealizedCapitalBase: string;
+  unrealizedFxBase: string;
+  dividendFxBase: string;
 }

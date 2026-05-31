@@ -10,6 +10,7 @@ import {
 import type { ChartInterval } from './performance.service';
 import { buildRateMap } from './fx.service';
 import { safeDecimal } from './unit-conversion';
+import { getPortfolioBaseCurrency } from './portfolio-base.service';
 
 // ─── DB row types ─────────────────────────────────────────────────────────────
 
@@ -24,20 +25,6 @@ interface SecurityRow {
 interface PriceRow {
   tstamp: string;
   value: number;
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getBaseCurrency(sqlite: BetterSqlite3.Database): string {
-  const row = sqlite.prepare(
-    `SELECT value FROM property WHERE name = 'portfolio.currency'`
-  ).get() as { value: string } | undefined;
-  if (row?.value) return row.value;
-
-  const acct = sqlite.prepare(
-    `SELECT currency FROM account WHERE type = 'account' AND currency IS NOT NULL LIMIT 1`
-  ).get() as { currency: string } | undefined;
-  return acct?.currency ?? 'EUR';
 }
 
 function resolveSecurityName(row: SecurityRow): string {
@@ -111,7 +98,7 @@ export function getBenchmarkSeries(
   interval: ChartInterval,
   calendarId?: string,
 ): BenchmarkSeriesItem[] {
-  const baseCurrency = getBaseCurrency(sqlite);
+  const baseCurrency = getPortfolioBaseCurrency(sqlite);
 
   // 90-day lookback before period start for forward-fill seeding
   const lookbackDate = new Date(parseISO(period.start).getTime() - 90 * 24 * 60 * 60 * 1000); // native-ok

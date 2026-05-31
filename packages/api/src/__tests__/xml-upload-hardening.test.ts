@@ -75,6 +75,7 @@ describe('POST /api/import/xml boundary hardening (BUG-09)', () => {
 
     expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).toBe(400);
     expect(res.body.error).toBe('FILE_TOO_LARGE');
+    expect(res.body.maxMb).toBe(1);
   });
 
   it('missing file field returns 400 NO_FILE (regression guard)', async () => {

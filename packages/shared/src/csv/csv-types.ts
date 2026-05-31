@@ -59,7 +59,8 @@ export const tradeColumnFields = [
   'fxRate', 'grossAmount', 'currencyGrossAmount',
   // PP-parity accept-and-ignore columns. WKN: German-broker security
   // identifier, logged but not stored (no security.wkn column today).
-  // Time: HH:MM intraday timestamp; the canonical `date` column wins.
+  // Time: HH:MM intraday timestamp; persisted to xact.date as ISO tail
+  // (see .claude/rules/csv-import.md > Same-day intraday ordering).
   // Date of Quote: alternate spelling of `date` for price-import flow;
   // ignored on trade flow when the canonical `date` is mapped.
   'wkn', 'time', 'dateOfQuote',
@@ -131,7 +132,7 @@ export interface RowError {
 
 export interface NormalizedTradeRow {
   rowNumber: number;
-  date: string;             // "YYYY-MM-DD"
+  date: string;             // "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss" when the CSV provides a time component
   type: string;             // TransactionType enum value
   securityName: string;
   isin?: string;

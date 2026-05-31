@@ -5,7 +5,7 @@ import { DATA_DIR } from '../../config';
 import type BetterSqlite3 from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  parseDate, parseNumber, parseNumberWithSuffix, normalizeTransactionType,
+  parseDate, combineDateAndTime, parseNumber, parseNumberWithSuffix, normalizeTransactionType,
   inferTransactionType,
   ppRateToQvRate, verifyGrossRateValue,
   autodetectCsvFormat,
@@ -240,10 +240,20 @@ export function parseTradeRow(
   const idx = (k: string): number | undefined => columnMapping[k];
 
   const rawDate = idx('date') != null ? fields[idx('date')!] ?? '' : '';
-  const date = parseDate(rawDate, opts.dateFormat);
-  if (!date) {
+  // Preserve time tail when present: enables stable same-day ordering for
+  // BUY+SELL on the same security. xact.date is VARCHAR(32) — already holds
+  // PP-XML timestamps; this just stops the CSV path from truncating them.
+  const dateIsoOrDay = parseDate(rawDate, opts.dateFormat, { keepTime: true });
+  if (!dateIsoOrDay) {
     return { row: rowNum, column: 'date', value: rawDate, code: 'INVALID_DATE', message: 'csvImport.errors.invalidDate' };
   }
+  // When the date column carries no time tail BUT the user mapped a separate
+  // `time` column, combine them. Date-column T-tail wins over a separately-mapped
+  // time because PP's own exports use the T-tail on the date column directly.
+  const rawTime = idx('time') != null ? (fields[idx('time')!] ?? '').trim() : '';
+  const date = rawTime && dateIsoOrDay.length === 10
+    ? combineDateAndTime(dateIsoOrDay, rawTime)
+    : dateIsoOrDay;
 
   const rawAmount = idx('amount') != null ? fields[idx('amount')!] ?? '' : '';
   const amount = parseNumber(rawAmount, opts.decimalSeparator, opts.thousandSeparator);
@@ -1061,13 +1071,17 @@ export async function previewTradeImport(
     account: string; shares: number; amount: number;
   }>;
   for (const r of existingRows) {
+    // Mirror the partial-index expression: substr(date,1,10). Pre-fix rows
+    // stored day-only strings ('2025-03-14'); post-fix rows store ISO
+    // timestamps ('2025-03-14T15:48:00'). Slicing to 10 chars normalises both
+    // so an upgrade-path re-import is detected as a duplicate, not a new row.
     existingFingerprints.add(
-      `${r.date}|${r.type}|${r.security ?? ''}|${r.account}|${r.shares}|${r.amount}`,
+      `${r.date.slice(0, 10)}|${r.type}|${r.security ?? ''}|${r.account}|${r.shares}|${r.amount}`,
     );
   }
   let duplicates = 0; // native-ok
   for (const tx of mapped.transactions) {
-    const fp = `${tx.date}|${tx.type}|${tx.securityId ?? ''}|${tx.accountId}|${tx.shares}|${tx.amount}`;
+    const fp = `${tx.date.slice(0, 10)}|${tx.type}|${tx.securityId ?? ''}|${tx.accountId}|${tx.shares}|${tx.amount}`;
     if (existingFingerprints.has(fp)) duplicates++; // native-ok
   }
 

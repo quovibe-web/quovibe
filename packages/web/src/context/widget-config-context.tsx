@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { DataSeriesValue, ReportingPeriodOverride, ReportingPeriodDef } from '@quovibe/shared';
 import { resolveReportingPeriod } from '@quovibe/shared';
+import { usePreferences } from '@/api/use-preferences';
 
 export interface WidgetConfigValue {
   dataSeries: DataSeriesValue | null;
@@ -19,6 +20,9 @@ interface WidgetConfigProviderProps {
 }
 
 export function WidgetConfigProvider({ initialConfig, children }: WidgetConfigProviderProps) {
+  const { data: prefs } = usePreferences();
+  const fiscalYear = prefs?.fiscalYear;
+
   const [dataSeries, setDataSeries] = useState<DataSeriesValue | null>(
     (initialConfig.dataSeries as DataSeriesValue) ?? null,
   );
@@ -27,10 +31,10 @@ export function WidgetConfigProvider({ initialConfig, children }: WidgetConfigPr
     if (!raw) return null;
     if (!raw.definition) {
       const def: ReportingPeriodDef = { type: 'fromTo', from: raw.periodStart, to: raw.periodEnd };
-      const resolved = resolveReportingPeriod(def);
+      const resolved = resolveReportingPeriod(def, undefined, undefined, fiscalYear);
       return { definition: def, ...resolved };
     }
-    const resolved = resolveReportingPeriod(raw.definition);
+    const resolved = resolveReportingPeriod(raw.definition, undefined, undefined, fiscalYear);
     return { definition: raw.definition, ...resolved };
   });
   // Sync periodOverride when external config changes (e.g., "Reset all widget periods")
@@ -42,13 +46,13 @@ export function WidgetConfigProvider({ initialConfig, children }: WidgetConfigPr
     }
     if (!raw.definition) {
       const def: ReportingPeriodDef = { type: 'fromTo', from: raw.periodStart, to: raw.periodEnd };
-      const resolved = resolveReportingPeriod(def);
+      const resolved = resolveReportingPeriod(def, undefined, undefined, fiscalYear);
       setInternalPeriodOverride({ definition: def, ...resolved });
       return;
     }
-    const resolved = resolveReportingPeriod(raw.definition);
+    const resolved = resolveReportingPeriod(raw.definition, undefined, undefined, fiscalYear);
     setInternalPeriodOverride({ definition: raw.definition, ...resolved });
-  }, [initialConfig.periodOverride]);
+  }, [initialConfig.periodOverride, fiscalYear]);
 
   // Sync dataSeries when external config changes (e.g., Calculation toggle)
   const dsJson = JSON.stringify(initialConfig.dataSeries ?? null);
@@ -76,9 +80,9 @@ export function WidgetConfigProvider({ initialConfig, children }: WidgetConfigPr
         setInternalPeriodOverride(null);
         return;
       }
-      const resolved = resolveReportingPeriod(def);
+      const resolved = resolveReportingPeriod(def, undefined, undefined, fiscalYear);
       setInternalPeriodOverride({ definition: def, ...resolved });
-    }, []),
+    }, [fiscalYear]),
     setOptions: useCallback((o) => setOptions(o), []),
   };
 

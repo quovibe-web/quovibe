@@ -15,6 +15,11 @@ interface RateRow {
  * Single-date rate lookup with forward-fill (closest previous date).
  * Uses forward-fill, not interpolation. ECB publishes only on business days;
  * the last known rate is carried forward.
+ *
+ * Lookup order:
+ *   1. Direct pair
+ *   2. Inverse pair
+ *   3. EUR triangulation: from→to = (EUR→to) / (EUR→from)
  */
 export function getRate(
   sqlite: BetterSqlite3.Database,
@@ -24,32 +29,50 @@ export function getRate(
 ): Decimal | null {
   if (from === to) return new Decimal(1);
 
-  // Exact or closest previous (forward-fill)
-  const direct = sqlite.prepare(`
-    SELECT rate FROM vf_exchange_rate
-    WHERE from_currency = ? AND to_currency = ? AND date <= ?
-    ORDER BY date DESC LIMIT 1
-  `).get(from, to, date) as { rate: string } | undefined;
+  const direct = querySingleRate(sqlite, from, to, date);
+  if (direct) return direct;
 
-  if (direct) return new Decimal(direct.rate);
+  const inverse = querySingleRate(sqlite, to, from, date);
+  if (inverse) return invertRate(inverse);
 
-  // Try inverse
-  const inverse = sqlite.prepare(`
-    SELECT rate FROM vf_exchange_rate
-    WHERE from_currency = ? AND to_currency = ? AND date <= ?
-    ORDER BY date DESC LIMIT 1
-  `).get(to, from, date) as { rate: string } | undefined;
-
-  if (inverse) return invertRate(new Decimal(inverse.rate));
+  // EUR triangulation: from→to = (EUR→to) / (EUR→from)
+  if (from !== 'EUR' && to !== 'EUR') {
+    const fromEur = querySingleRate(sqlite, 'EUR', from, date);
+    const toEur = querySingleRate(sqlite, 'EUR', to, date);
+    if (fromEur && toEur) return toEur.div(fromEur);
+  }
 
   return null;
+}
+
+function querySingleRate(
+  sqlite: BetterSqlite3.Database,
+  from: string,
+  to: string,
+  date: string,
+): Decimal | null {
+  const row = sqlite
+    .prepare(
+      `SELECT rate FROM vf_exchange_rate
+       WHERE from_currency = ? AND to_currency = ? AND date <= ?
+       ORDER BY date DESC LIMIT 1`,
+    )
+    .get(from, to, date) as { rate: string } | undefined;
+  return row ? new Decimal(row.rate) : null;
 }
 
 // ─── Public: build dense RateMap ──────────────────────────────────────────────
 
 /**
  * Builds a dense RateMap (foreign→base, multiply convention) for a date range.
- * Handles: direct lookup, inverse, and cross-rate triangulation via EUR.
+ * Merges direct + inverse + EUR triangulation paths into a single sparse map
+ * before forward-filling, so that user-added MANUAL rows in one direction
+ * never orphan the fuller ECB cache in the other.
+ *
+ * Per-date precedence: direct wins over inverse, inverse wins over
+ * triangulation. This keeps the user's most-recent MANUAL entry authoritative
+ * on its declared date while letting the ECB cache backfill prior dates that
+ * the user did not touch.
  */
 export function buildRateMap(
   sqlite: BetterSqlite3.Database,
@@ -63,26 +86,13 @@ export function buildRateMap(
     return new Map();
   }
 
-  // Try direct pair
-  let sparseMap = querySparseRates(sqlite, fromCurrency, toCurrency, startDate, endDate);
+  const sparseMap = new Map<string, Decimal>();
 
-  // Try inverse
-  if (sparseMap.size === 0) {
-    const inverseMap = querySparseRates(sqlite, toCurrency, fromCurrency, startDate, endDate);
-    if (inverseMap.size > 0) {
-      sparseMap = new Map<string, Decimal>();
-      for (const [date, rate] of inverseMap) {
-        sparseMap.set(date, invertRate(rate));
-      }
-    }
-  }
-
-  // Try cross-rate via EUR
-  if (sparseMap.size === 0 && fromCurrency !== 'EUR' && toCurrency !== 'EUR') {
+  // Triangulation via EUR (lowest precedence — overwritten by inverse and direct)
+  if (fromCurrency !== 'EUR' && toCurrency !== 'EUR') {
     const fromEur = querySparseRates(sqlite, 'EUR', fromCurrency, startDate, endDate);
     const toEur = querySparseRates(sqlite, 'EUR', toCurrency, startDate, endDate);
     if (fromEur.size > 0 && toEur.size > 0) {
-      sparseMap = new Map<string, Decimal>();
       for (const [date, fromRate] of fromEur) {
         const toRate = toEur.get(date);
         if (toRate) {
@@ -92,6 +102,18 @@ export function buildRateMap(
         }
       }
     }
+  }
+
+  // Inverse (medium precedence — overwrites triangulation, overwritten by direct)
+  const inverseMap = querySparseRates(sqlite, toCurrency, fromCurrency, startDate, endDate);
+  for (const [date, rate] of inverseMap) {
+    sparseMap.set(date, invertRate(rate));
+  }
+
+  // Direct (highest precedence — wins on every date it covers)
+  const directMap = querySparseRates(sqlite, fromCurrency, toCurrency, startDate, endDate);
+  for (const [date, rate] of directMap) {
+    sparseMap.set(date, rate);
   }
 
   return buildForwardFilledMap(sparseMap, startDate, endDate);

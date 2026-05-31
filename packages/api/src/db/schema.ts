@@ -282,6 +282,11 @@ export const vfExchangeRates = sqliteTable('vf_exchange_rate', {
   fromCurrency: text('from_currency').notNull(),
   toCurrency: text('to_currency').notNull(),
   rate: text('rate').notNull(),
+  // Source tagging: 'ECB' | 'IMPORT' | 'MANUAL'. Installed at runtime via
+  // `apply-bootstrap.ts > VENDOR_COLUMN_PATCHES` (not in bootstrap.sql §3
+  // because vf_exchange_rate is already created there — ALTER TABLE is the
+  // only safe additive path). The ECB writer guards MANUAL rows on conflict.
+  source: text('source').notNull().default('ECB'),
 }, (t) => ({ pk: primaryKey({ columns: [t.date, t.fromCurrency, t.toCurrency] }) }));
 
 export const vfPortfolioMeta = sqliteTable('vf_portfolio_meta', {

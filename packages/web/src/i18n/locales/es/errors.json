@@ -1,6 +1,6 @@
 {
   "import": {
-    "fileTooBig": "El archivo supera los 50 MB. Verifique que exportó el archivo correcto desde su aplicación de portafolio.",
+    "fileTooBig": "El archivo supera el límite de tamaño. Verifique que exportó el archivo correcto desde su aplicación de portafolio.",
     "invalidXml": "El archivo no es un XML válido.",
     "invalidFormat": "Asegúrese de exportar desde su aplicación de portafolio en formato XML con atributos ID (sin cifrar).",
     "encrypted": "El archivo parece estar cifrado. Reexporte desde su aplicación de portafolio eligiendo el formato XML con atributos ID.",
@@ -88,6 +88,11 @@
     "Validation error": "Entrada no válida. Verifique los campos e inténtelo de nuevo.",
     "SECURITY_HAS_TRANSACTIONS": "No se puede eliminar — {{count}} transacciones están vinculadas a este activo. Elimínelas o reasígnelas primero.",
     "ATTRIBUTE_TYPE_NOT_FOUND": "Tipo de atributo no encontrado.",
-    "BUILTIN_TYPE_PROTECTED": "Los tipos de atributo integrados no pueden modificarse ni eliminarse."
+    "BUILTIN_TYPE_PROTECTED": "Los tipos de atributo integrados no pueden modificarse ni eliminarse.",
+    "INVALID_CURRENCY_CODE": "El código de divisa debe tener 3 letras mayúsculas (p. ej., EUR).",
+    "SAME_CURRENCY": "Las divisas de origen y destino deben ser diferentes.",
+    "INVALID_RATE": "El tipo de cambio debe ser un número positivo.",
+    "DUPLICATE_RATE": "Ya existe un tipo de cambio para este par de divisas y fecha.",
+    "RATE_NOT_FOUND_OR_NOT_MANUAL": "Este tipo de cambio no puede editarse (no es una entrada manual o no existe)."
   }
 }

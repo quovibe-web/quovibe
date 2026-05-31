@@ -6,6 +6,7 @@ import type { BrokerageUnit } from '@/api/types';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { Button } from '@/components/ui/button';
 import { usePrivacy } from '@/context/privacy-context';
+import { useBaseCurrency } from '@/hooks/use-base-currency';
 
 interface BrokerageUnitExpandedProps {
   unit: BrokerageUnit;
@@ -14,6 +15,7 @@ interface BrokerageUnitExpandedProps {
 export function BrokerageUnitExpanded({ unit }: BrokerageUnitExpandedProps) {
   const { t } = useTranslation('accounts');
   const { isPrivate } = usePrivacy();
+  const baseCurrency = useBaseCurrency();
   const location = useLocation();
   const { portfolioId } = useParams<{ portfolioId: string }>();
   const periodSearch = location.search;
@@ -26,7 +28,7 @@ export function BrokerageUnitExpanded({ unit }: BrokerageUnitExpandedProps) {
     const grandTotal = secValue + cashValue;
     return grandTotal > 0 ? (cashValue / grandTotal * 100).toFixed(1) : '0.0'; // native-ok
   })();
-  const currency = portfolio.currency ?? deposit?.currency ?? 'EUR';
+  const currency = portfolio.currency ?? deposit?.currency ?? baseCurrency;
 
   return (
     <div className="space-y-3">

@@ -48,6 +48,9 @@ function parseBootstrap(): Record<string, Record<string, string>> {
 const DRIZZLE_MISSING_ALLOWLIST = new Set([
   'price:open', 'price:high', 'price:low', 'price:volume',
   'latest_price:open', 'latest_price:high', 'latest_price:low', 'latest_price:volume',
+  // Installed at runtime via VENDOR_COLUMN_PATCHES (ALTER TABLE ADD COLUMN);
+  // vf_exchange_rate is created in bootstrap.sql §3 without this column.
+  'vf_exchange_rate:source',
 ]);
 
 describe('Gate 2: bootstrap.sql ↔ schema.ts parity', () => {

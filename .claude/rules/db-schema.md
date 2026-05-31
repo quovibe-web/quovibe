@@ -25,7 +25,9 @@ globs: packages/api/src/db/**
 - `vf_*` tables (quovibe-owned, per-portfolio DB, ADR-014 + ADR-015 §3):
   - `vf_exchange_rate` — live FX cache, PK `(date, from_currency, to_currency)`.
   - `vf_portfolio_meta` — portable per-portfolio metadata (key/value).
-    Allowlisted keys: `name`, `createdAt`, `source`, `schemaVersion`.
+    Allowlisted keys: `name`, `createdAt`, `source`, `schemaVersion`,
+    `baseCurrency` (ISO-4217, auto-seeded from primary deposit at bootstrap;
+    see `services/portfolio-base.service.ts`).
   - `vf_dashboard` — portfolio-scoped dashboards (`position` is sole order
     truth; smallest = implicit default, no `is_default` flag).
   - `vf_chart_config` — portfolio-scoped chart **content** only (series refs,

@@ -7,7 +7,7 @@ function isInflowAtPortfolioLevel(type: TransactionType): boolean {
 }
 
 function isInflowToSecurity(type: TransactionType): boolean {
-  return type === TransactionType.BUY || type === TransactionType.DELIVERY_INBOUND;
+  return type === TransactionType.BUY || type === TransactionType.DELIVERY_INBOUND || type === TransactionType.SECURITY_TRANSFER_INBOUND;
 }
 
 export function resolvePortfolioCashflows(transactions: TransactionWithUnits[]): Cashflow[] {

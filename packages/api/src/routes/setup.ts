@@ -23,6 +23,7 @@ import { Router, type RequestHandler, type Router as RouterType } from 'express'
 import { setupPortfolioSchema } from '@quovibe/shared';
 import { listSecuritiesAccounts, AccountServiceError } from '../services/accounts.service';
 import { setupPortfolio, PortfolioManagerError } from '../services/portfolio-manager';
+import { PortfolioBaseError } from '../services/portfolio-base.service';
 import { getSqlite, getPortfolioId } from '../helpers/request';
 
 export const setupRouter: RouterType = Router({ mergeParams: true });
@@ -54,6 +55,10 @@ const postSetup: RequestHandler = (req, res) => {
       // surfaces as 409 wherever a route hits the seeding/insert surface
       // (`.claude/rules/api.md`).
       res.status(409).json({ error: err.code });
+      return;
+    }
+    if (err instanceof PortfolioBaseError && err.code === 'INVALID_CURRENCY_CODE') {
+      res.status(400).json({ error: 'INVALID_INPUT', details: { baseCurrency: err.message } });
       return;
     }
     throw err;

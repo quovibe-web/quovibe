@@ -26,15 +26,18 @@ interface HoldingsResult {
 export function getHoldingsFlat(sqlite: Database.Database, date: string): HoldingsResult {
   const statement = getStatementOfAssets(sqlite, date);
   const totalMV = new Decimal(statement.totals.securityValue);
+  const unresolved = new Set(statement.totals.unresolvedSecurityIds);
 
-  const items = statement.securities.map((s) => ({
-    securityId: s.securityId,
-    name: s.name,
-    marketValue: s.marketValue,
-    percentage: totalMV.gt(0)
-      ? new Decimal(s.marketValue).div(totalMV).mul(100).toFixed(2)
-      : '0',
-  }));
+  const items = statement.securities
+    .filter((s) => !unresolved.has(s.securityId))
+    .map((s) => ({
+      securityId: s.securityId,
+      name: s.name,
+      marketValue: s.marketValue,
+      percentage: totalMV.gt(0)
+        ? new Decimal(s.marketValue).div(totalMV).mul(100).toFixed(2)
+        : '0',
+    }));
 
   return { date, items, totalMarketValue: totalMV.toString() };
 }
@@ -315,7 +318,7 @@ export function getPayments(
        LEFT JOIN account a ON a.uuid = x.account
        WHERE x.type IN ('DIVIDEND', 'DIVIDENDS', 'INTEREST', 'INTEREST_CHARGE')
          AND SUBSTR(x.date, 1, 10) BETWEEN ? AND ?
-       ORDER BY x.date ASC`,
+       ORDER BY x.date ASC, x._order ASC, x._id ASC`,
     )
     .all(periodStart, periodEnd) as PaymentRow[];
 

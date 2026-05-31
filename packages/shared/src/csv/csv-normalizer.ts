@@ -4,23 +4,35 @@ import { TransactionType } from '../enums';
 import { transactionTypeAliases } from './type-aliases';
 import type { CsvDelimiter } from './csv-types';
 
+export interface ParseDateOpts {
+  keepTime?: boolean;
+}
+
+const TIME_RE = /^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/;
+
 /**
  * Parses a raw date string with the given format and returns "YYYY-MM-DD".
  * Returns null if the date is invalid or unparseable.
  *
  * PP CSV exports include an ISO 8601 time component on the Data column
- * (`2020-09-02T15:42:43`, `2020-09-02T15:42`, `2020-09-02T00:00`). The
- * downstream xact row stores DAY granularity only, so the time portion is
- * dropped before the strict format match. The split also tolerates a
- * space-separated time tail (`2020-09-02 15:42:43`) for brokers that emit
- * that variant.
+ * (`2020-09-02T15:42:43`, `2020-09-02T15:42`, `2020-09-02T00:00`). By
+ * default the time portion is dropped for backward compatibility with
+ * the price-import callers. The trade-import path passes
+ * `{ keepTime: true }` to preserve the time tail so same-day BUY+SELL
+ * rows sort deterministically through the engine.
  */
-export function parseDate(raw: string, dateFormat: string): string | null {
+export function parseDate(
+  raw: string,
+  dateFormat: string,
+  opts: ParseDateOpts = {},
+): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
 
-  // Strip optional time tail (`T...` or ` ...`) before the strict format match.
-  const datePart = trimmed.split(/[T ]/, 1)[0] ?? '';
+  // Split on first T or space to isolate date head and optional time tail.
+  const tIdx = trimmed.search(/[T ]/);
+  const datePart = tIdx === -1 ? trimmed : trimmed.slice(0, tIdx); // native-ok
+  const timeTail = tIdx === -1 ? '' : trimmed.slice(tIdx + 1); // native-ok
   if (!datePart) return null;
 
   // date-fns parse uses format tokens: yyyy, MM, dd
@@ -32,7 +44,39 @@ export function parseDate(raw: string, dateFormat: string): string | null {
   const day = parsed.getDate(); // native-ok
   if (month < 1 || month > 12 || day < 1 || day > 31) return null; // native-ok
 
-  return format(parsed, 'yyyy-MM-dd');
+  const dayIso = format(parsed, 'yyyy-MM-dd');
+
+  if (opts.keepTime && timeTail) {
+    const timeIso = parseTimeStr(timeTail);
+    if (timeIso) return `${dayIso}T${timeIso}`;
+    // malformed time tail → fall through to day-only
+  }
+
+  return dayIso;
+}
+
+/**
+ * Takes a day-granular ISO date (`YYYY-MM-DD`) and a separate time cell
+ * (`HH:mm` or `HH:mm:ss`) and returns an ISO timestamp `YYYY-MM-DDTHH:mm:ss`.
+ * Returns the bare date when `time` is empty, whitespace-only, or malformed.
+ */
+export function combineDateAndTime(dayIso: string, time: string): string {
+  const trimmed = time.trim();
+  if (!trimmed) return dayIso;
+  const timeIso = parseTimeStr(trimmed);
+  return timeIso ? `${dayIso}T${timeIso}` : dayIso;
+}
+
+/** Internal: parse `HH:mm[:ss]` → `HH:mm:ss` with zero-padding, or null. */
+function parseTimeStr(raw: string): string | null {
+  const m = TIME_RE.exec(raw.trim());
+  if (!m) return null;
+  const hh = parseInt(m[1]!, 10); // native-ok
+  const mm = parseInt(m[2]!, 10); // native-ok
+  const ss = m[3] != null ? parseInt(m[3], 10) : 0; // native-ok
+  if (hh > 23 || mm > 59 || ss > 59) return null; // native-ok
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
 }
 
 /**

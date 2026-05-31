@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { getPeriodId, DEFAULT_PERIODS, ALL_PERIOD_ID } from '../period-utils';
+import { getPeriodId, DEFAULT_PERIODS, ALL_PERIOD_ID, formatPeriodLabel, formatPeriodShortLabel, buildFiscalPreview } from '../period-utils';
 import { resolveReportingPeriod } from '@quovibe/shared';
-import type { ReportingPeriodDef } from '@quovibe/shared';
+import type { ReportingPeriodDef, FiscalYearConfig } from '@quovibe/shared';
 
 describe('getPeriodId', () => {
   it('returns "1Y" for lastYearsMonths with 1 year, 0 months', () => {
@@ -79,5 +79,46 @@ describe('period active matching', () => {
         fakeStart === resolved.periodStart && fakeEnd === resolved.periodEnd;
       expect(isActive).toBe(false);
     }
+  });
+});
+
+// Identity translator: returns the key + interpolated year so assertions are deterministic.
+const tId = ((key: string, opts?: Record<string, unknown>) =>
+  opts && 'year' in opts ? `${key}:${opts.year}` : key) as unknown as Parameters<typeof formatPeriodLabel>[1];
+
+const FY_JULY_END: FiscalYearConfig = { enabled: true, startMonth: 7, startDay: 1, numbering: 'endYear' };
+const FY_OFF: FiscalYearConfig = { enabled: false, startMonth: 1, startDay: 1, numbering: 'endYear' };
+
+describe('period-utils fiscal labels', () => {
+  it('year label is FY key when fiscal active', () => {
+    expect(formatPeriodLabel({ type: 'year', year: 2026 }, tId, FY_JULY_END)).toBe('periods.labels.fiscalYear:2026');
+  });
+  it('year label is plain number when fiscal off', () => {
+    expect(formatPeriodLabel({ type: 'year', year: 2026 }, tId, FY_OFF)).toBe('2026');
+  });
+  it('currentYTD label switches to fiscal key', () => {
+    expect(formatPeriodLabel({ type: 'currentYTD' }, tId, FY_JULY_END)).toBe('periods.labels.fiscalYTD');
+    expect(formatPeriodLabel({ type: 'currentYTD' }, tId, FY_OFF)).toBe('periods.labels.currentYTD');
+  });
+  it('previousYear label switches to fiscal key', () => {
+    expect(formatPeriodLabel({ type: 'previousYear' }, tId, FY_JULY_END)).toBe('periods.labels.previousFiscalYear');
+  });
+});
+
+describe('period-utils id stability (fiscal must not change ids)', () => {
+  it('getPeriodId is unaffected by fiscal config', () => {
+    expect(getPeriodId({ type: 'year', year: 2026 })).toBe('year:2026');
+    expect(getPeriodId({ type: 'currentYTD' })).toBe('YTD');
+    expect(getPeriodId({ type: 'previousYear' })).toBe('previousYear');
+  });
+});
+
+describe('buildFiscalPreview', () => {
+  it('July-end FY at 2026-03-19 → FY2026 spanning 2025-06-30..2026-06-30', () => {
+    expect(buildFiscalPreview(FY_JULY_END, '2026-03-19')).toEqual({
+      fyLabel: 2026,
+      periodStart: '2025-06-30',
+      periodEnd: '2026-06-30',
+    });
   });
 });

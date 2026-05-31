@@ -99,7 +99,7 @@ export function getMovers(
 ): MoversResponse {
   const data: BatchData = fetchBatchData(sqlite, period);
   const secFilter = scope?.securityIds;
-  const secResults = computeAllSecurities(data, period, costMethod, preTax, secFilter);
+  const secResults = computeAllSecurities(sqlite, data, period, costMethod, preTax, secFilter);
 
   // Filter out securities with zero shares at period end (not held)
   const held = secResults.filter((sr) => sr.sharesEnd.gt(0));

@@ -76,5 +76,10 @@
     "description": "Dodaj swój pierwszy walor, aby rozpocząć",
     "noMatches": "Brak walorów na tym koncie",
     "noMatchesHint": "Dostosuj filtr konta, aby zobaczyć inne pozycje."
-  }
+  },
+  "unresolvedFx_one": "{{count}} walor wykluczony z sum — brak kursu wymiany. Kliknij, aby dodać kurs.",
+  "unresolvedFx_few": "{{count}} walory wykluczone z sum — brak kursu wymiany. Kliknij, aby dodać kurs.",
+  "unresolvedFx_many": "{{count}} walorów wykluczonych z sum — brak kursu wymiany. Kliknij, aby dodać kurs.",
+  "unresolvedFx_other": "{{count}} walorów wykluczonych z sum — brak kursu wymiany. Kliknij, aby dodać kurs.",
+  "unresolvedFxOpenModal": "Otwórz okno nierozwiązanych kursów wymiany"
 }

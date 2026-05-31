@@ -76,5 +76,8 @@
     "description": "Fügen Sie Ihr erstes Wertpapier hinzu",
     "noMatches": "Keine Wertpapiere in diesem Konto",
     "noMatchesHint": "Passen Sie den Kontofilter an, um andere Positionen zu sehen."
-  }
+  },
+  "unresolvedFx_one": "{{count}} Wertpapier von Summen ausgeschlossen — fehlender Wechselkurs. Klicken, um einen Kurs hinzuzufügen.",
+  "unresolvedFx_other": "{{count}} Wertpapiere von Summen ausgeschlossen — fehlender Wechselkurs. Klicken, um einen Kurs hinzuzufügen.",
+  "unresolvedFxOpenModal": "Dialog für nicht aufgelöste Wechselkurse öffnen"
 }

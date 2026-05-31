@@ -1,5 +1,11 @@
 import type { TFunction } from 'react-i18next';
-import type { ReportingPeriodDef } from '@quovibe/shared';
+import {
+  type ReportingPeriodDef,
+  type FiscalYearConfig,
+  resolveReportingPeriod,
+  fiscalActive,
+  currentFiscalYearLabel,
+} from '@quovibe/shared';
 import { formatDate } from './formatters';
 import { format, parseISO } from 'date-fns';
 import { getDateLocale } from './formatters';
@@ -69,7 +75,11 @@ export const ALL_PERIOD_ID = 'ALL';
 // formatPeriodLabel — human-readable label for a ReportingPeriodDef
 // ---------------------------------------------------------------------------
 
-export function formatPeriodLabel(period: ReportingPeriodDef, t: TFunction): string {
+export function formatPeriodLabel(
+  period: ReportingPeriodDef,
+  t: TFunction,
+  fiscalYear?: FiscalYearConfig,
+): string {
   switch (period.type) {
     case 'lastYearsMonths': {
       const { years, months } = period;
@@ -99,7 +109,9 @@ export function formatPeriodLabel(period: ReportingPeriodDef, t: TFunction): str
       return t('periods.labels.since', { date: formatDate(period.date), ns: 'settings' });
 
     case 'year':
-      return String(period.year);
+      return fiscalActive(fiscalYear)
+        ? t('periods.labels.fiscalYear', { year: period.year, ns: 'settings' })
+        : String(period.year);
 
     case 'currentWeek':
       return t('periods.labels.currentWeek', { ns: 'settings' });
@@ -111,7 +123,9 @@ export function formatPeriodLabel(period: ReportingPeriodDef, t: TFunction): str
       return t('periods.labels.currentQuarter', { ns: 'settings' });
 
     case 'currentYTD':
-      return t('periods.labels.currentYTD', { ns: 'settings' });
+      return t(fiscalActive(fiscalYear) ? 'periods.labels.fiscalYTD' : 'periods.labels.currentYTD', {
+        ns: 'settings',
+      });
 
     case 'previousDay':
       return t('periods.labels.previousDay', { ns: 'settings' });
@@ -129,7 +143,10 @@ export function formatPeriodLabel(period: ReportingPeriodDef, t: TFunction): str
       return t('periods.labels.previousQuarter', { ns: 'settings' });
 
     case 'previousYear':
-      return t('periods.labels.previousYear', { ns: 'settings' });
+      return t(
+        fiscalActive(fiscalYear) ? 'periods.labels.previousFiscalYear' : 'periods.labels.previousYear',
+        { ns: 'settings' },
+      );
   }
 }
 
@@ -183,19 +200,42 @@ export function extractPeriodSearch(search: string): string {
 
 const SHORT_LABEL_MAX_LENGTH = 20;
 
-export function formatPeriodShortLabel(period: ReportingPeriodDef, t: TFunction): string {
+export function formatPeriodShortLabel(
+  period: ReportingPeriodDef,
+  t: TFunction,
+  fiscalYear?: FiscalYearConfig,
+): string {
   switch (period.type) {
     case 'lastYearsMonths':
       return formatYearsMonths(period.years, period.months);
 
     case 'currentYTD':
-      return 'YTD';
+      return fiscalActive(fiscalYear) ? t('periods.labels.fiscalYTD', { ns: 'settings' }) : 'YTD';
 
     default: {
-      const full = formatPeriodLabel(period, t);
+      const full = formatPeriodLabel(period, t, fiscalYear);
       return full.length > SHORT_LABEL_MAX_LENGTH
         ? full.slice(0, SHORT_LABEL_MAX_LENGTH - 1) + '…'
         : full;
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// buildFiscalPreview — pure resolver of the current fiscal year for the
+// settings preview line. Returns the label + full-year resolved range.
+// ---------------------------------------------------------------------------
+
+export function buildFiscalPreview(
+  fiscalYear: FiscalYearConfig,
+  today: string,
+): { fyLabel: number; periodStart: string; periodEnd: string } {
+  const fyLabel = currentFiscalYearLabel(fiscalYear, today);
+  const { periodStart, periodEnd } = resolveReportingPeriod(
+    { type: 'year', year: fyLabel },
+    today,
+    undefined,
+    fiscalYear,
+  );
+  return { fyLabel, periodStart, periodEnd };
 }

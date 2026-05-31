@@ -1,6 +1,7 @@
 import { usePortfolio } from '@/api/use-portfolio';
+import { resolveBaseCurrency } from '@/lib/resolve-base-currency';
 
 export function useBaseCurrency(): string {
   const { data } = usePortfolio();
-  return data?.config?.['portfolio.currency'] ?? 'EUR';
+  return resolveBaseCurrency(data?.config);
 }

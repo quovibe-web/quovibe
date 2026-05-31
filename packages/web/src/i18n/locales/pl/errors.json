@@ -1,6 +1,6 @@
 {
   "import": {
-    "fileTooBig": "Plik przekracza 50 MB. Sprawdź, czy wyeksportowałeś właściwy plik z aplikacji portfela.",
+    "fileTooBig": "Plik przekracza dozwolony rozmiar. Sprawdź, czy wyeksportowałeś właściwy plik z aplikacji portfela.",
     "invalidXml": "Plik nie jest prawidłowym XML.",
     "invalidFormat": "Upewnij się, że eksportujesz z aplikacji portfela w formacie XML z atrybutami ID (niezaszyfrowany).",
     "encrypted": "Plik wydaje się być zaszyfrowany. Ponownie wyeksportuj z aplikacji portfela, wybierając format XML z atrybutami ID.",
@@ -88,6 +88,11 @@
     "Validation error": "Nieprawidłowe dane. Sprawdź pola i spróbuj ponownie.",
     "SECURITY_HAS_TRANSACTIONS": "Nie można usunąć — {{count}} transakcji jest powiązanych z tym walorem. Najpierw je usuń lub przypisz ponownie.",
     "ATTRIBUTE_TYPE_NOT_FOUND": "Typ atrybutu nie został znaleziony.",
-    "BUILTIN_TYPE_PROTECTED": "Wbudowane typy atrybutów nie mogą być modyfikowane ani usuwane."
+    "BUILTIN_TYPE_PROTECTED": "Wbudowane typy atrybutów nie mogą być modyfikowane ani usuwane.",
+    "INVALID_CURRENCY_CODE": "Kod waluty musi składać się z 3 wielkich liter (np. EUR).",
+    "SAME_CURRENCY": "Waluta źródłowa i docelowa muszą być różne.",
+    "INVALID_RATE": "Kurs wymiany musi być liczbą dodatnią.",
+    "DUPLICATE_RATE": "Dla tej pary walutowej i tej daty istnieje już kurs.",
+    "RATE_NOT_FOUND_OR_NOT_MANUAL": "Tego kursu nie można edytować (nie jest wpisem ręcznym lub nie istnieje)."
   }
 }

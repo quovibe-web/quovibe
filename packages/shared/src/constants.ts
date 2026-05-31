@@ -21,4 +21,8 @@ export const SECURITY_CASHFLOW_TYPES = [
   TransactionType.DIVIDEND,
   TransactionType.DELIVERY_INBOUND,
   TransactionType.DELIVERY_OUTBOUND,
+  // Security transfers are neutral at portfolio level (PP "Performance Neutral Transfers")
+  // but count as cost (inbound) / proceeds (outbound) for per-security IRR.
+  TransactionType.SECURITY_TRANSFER_INBOUND,
+  TransactionType.SECURITY_TRANSFER_OUTBOUND,
 ] as const;

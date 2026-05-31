@@ -16,7 +16,13 @@ export interface Transaction {
 export interface TransactionUnit {
   id: string;
   transactionId: string;
-  type: 'FEE' | 'TAX' | 'FOREX';
+  /**
+   * PP unit type. ppxml2db emits GROSS_VALUE / FEE / TAX. Quovibe JSON and
+   * CSV ingest paths additionally emit a FOREX-tagged FEE/TAX for the
+   * security-currency leg, but the wire type itself stays one of these
+   * three. See docs/architecture/multi-currency.md.
+   */
+  type: 'GROSS_VALUE' | 'FEE' | 'TAX' | 'FOREX';
   amount: number;
   currencyCode: string | null;
   fxAmount: number | null;

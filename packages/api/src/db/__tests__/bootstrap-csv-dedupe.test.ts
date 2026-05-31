@@ -85,6 +85,34 @@ function seedFkRefs(db: Database.Database): void {
     expect(indexes).toHaveLength(1);
   });
 
+  it('dedupes a re-import where existing rows are date-only and incoming rows carry T-tail (upgrade case)', () => {
+    const db = new Database(':memory:');
+    applyBootstrap(db);
+    seedFkRefs(db);
+
+    // Pre-fix row: day-only date (shape produced before BUG-182 fix).
+    db.prepare(
+      `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, source, updatedAt, _xmlid, _order)
+       VALUES ('pre-fix-1', 'BUY', '2025-03-14', 'EUR', 100, 1100000000, 'sec-1', 'port-1', 'portfolio', 'CSV_IMPORT', '2025-03-14', 1, 1)`,
+    ).run();
+
+    // Post-fix re-import row: same logical row, timestamped date (shape after BUG-182 fix).
+    // INSERT OR IGNORE should drop it because the natural-key fingerprint must treat
+    // '2025-03-14' and '2025-03-14T15:48:00' as the same date component.
+    const returned = db.prepare(
+      `INSERT OR IGNORE INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype, source, updatedAt, _xmlid, _order)
+       VALUES ('post-fix-1', 'BUY', '2025-03-14T15:48:00', 'EUR', 100, 1100000000, 'sec-1', 'port-1', 'portfolio', 'CSV_IMPORT', '2025-03-14T15:48:00', 2, 2)
+       RETURNING uuid`,
+    ).get();
+
+    // EXPECTED TO FAIL until Task 6 fixes the index expression to substr(date,1,10):
+    // currently '2025-03-14' !== '2025-03-14T15:48:00' in the raw index, so the
+    // second INSERT succeeds (returned uuid is defined, count is 2).
+    expect(returned).toBeUndefined();
+    const count = (db.prepare(`SELECT COUNT(*) AS n FROM xact WHERE source='CSV_IMPORT'`).get() as { n: number }).n;
+    expect(count).toBe(1);
+  });
+
   it('survives divergent CSV duplicates without breaking bootstrap', () => {
     const db = new Database(':memory:');
     applyBootstrap(db);

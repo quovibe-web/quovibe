@@ -23,6 +23,7 @@ import enPortfolioSettings from './locales/en/portfolioSettings.json';
 import enUserSettings from './locales/en/userSettings.json';
 import enPortfolioSetup from './locales/en/portfolio-setup.json';
 import enTaxonomyTemplates from './locales/en/taxonomy-templates.json';
+import enCurrencies from './locales/en/currencies.json';
 // IT
 import itCommon from './locales/it/common.json';
 import itNavigation from './locales/it/navigation.json';
@@ -43,6 +44,7 @@ import itPortfolioSettings from './locales/it/portfolioSettings.json';
 import itUserSettings from './locales/it/userSettings.json';
 import itPortfolioSetup from './locales/it/portfolio-setup.json';
 import itTaxonomyTemplates from './locales/it/taxonomy-templates.json';
+import itCurrencies from './locales/it/currencies.json';
 // DE
 import deCommon from './locales/de/common.json';
 import deNavigation from './locales/de/navigation.json';
@@ -63,6 +65,7 @@ import dePortfolioSettings from './locales/de/portfolioSettings.json';
 import deUserSettings from './locales/de/userSettings.json';
 import dePortfolioSetup from './locales/de/portfolio-setup.json';
 import deTaxonomyTemplates from './locales/de/taxonomy-templates.json';
+import deCurrencies from './locales/de/currencies.json';
 // FR
 import frCommon from './locales/fr/common.json';
 import frNavigation from './locales/fr/navigation.json';
@@ -83,6 +86,7 @@ import frPortfolioSettings from './locales/fr/portfolioSettings.json';
 import frUserSettings from './locales/fr/userSettings.json';
 import frPortfolioSetup from './locales/fr/portfolio-setup.json';
 import frTaxonomyTemplates from './locales/fr/taxonomy-templates.json';
+import frCurrencies from './locales/fr/currencies.json';
 // ES
 import esCommon from './locales/es/common.json';
 import esNavigation from './locales/es/navigation.json';
@@ -103,6 +107,7 @@ import esPortfolioSettings from './locales/es/portfolioSettings.json';
 import esUserSettings from './locales/es/userSettings.json';
 import esPortfolioSetup from './locales/es/portfolio-setup.json';
 import esTaxonomyTemplates from './locales/es/taxonomy-templates.json';
+import esCurrencies from './locales/es/currencies.json';
 // NL
 import nlCommon from './locales/nl/common.json';
 import nlNavigation from './locales/nl/navigation.json';
@@ -123,6 +128,7 @@ import nlPortfolioSettings from './locales/nl/portfolioSettings.json';
 import nlUserSettings from './locales/nl/userSettings.json';
 import nlPortfolioSetup from './locales/nl/portfolio-setup.json';
 import nlTaxonomyTemplates from './locales/nl/taxonomy-templates.json';
+import nlCurrencies from './locales/nl/currencies.json';
 // PL
 import plCommon from './locales/pl/common.json';
 import plNavigation from './locales/pl/navigation.json';
@@ -143,6 +149,7 @@ import plPortfolioSettings from './locales/pl/portfolioSettings.json';
 import plUserSettings from './locales/pl/userSettings.json';
 import plPortfolioSetup from './locales/pl/portfolio-setup.json';
 import plTaxonomyTemplates from './locales/pl/taxonomy-templates.json';
+import plCurrencies from './locales/pl/currencies.json';
 // PT
 import ptCommon from './locales/pt/common.json';
 import ptNavigation from './locales/pt/navigation.json';
@@ -163,6 +170,7 @@ import ptPortfolioSettings from './locales/pt/portfolioSettings.json';
 import ptUserSettings from './locales/pt/userSettings.json';
 import ptPortfolioSetup from './locales/pt/portfolio-setup.json';
 import ptTaxonomyTemplates from './locales/pt/taxonomy-templates.json';
+import ptCurrencies from './locales/pt/currencies.json';
 
 // Drop the language-detector's default key, superseded by `quovibe-language`.
 if (typeof localStorage !== 'undefined') {
@@ -181,18 +189,18 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { common: enCommon, navigation: enNavigation, securities: enSecurities, transactions: enTransactions, accounts: enAccounts, performance: enPerformance, reports: enReports, settings: enSettings, errors: enErrors, dashboard: enDashboard, investments: enInvestments, 'csv-import': enCsvImport, watchlists: enWatchlists, welcome: enWelcome, switcher: enSwitcher, portfolioSettings: enPortfolioSettings, userSettings: enUserSettings, 'portfolio-setup': enPortfolioSetup, 'taxonomy-templates': enTaxonomyTemplates },
-      it: { common: itCommon, navigation: itNavigation, securities: itSecurities, transactions: itTransactions, accounts: itAccounts, performance: itPerformance, reports: itReports, settings: itSettings, errors: itErrors, dashboard: itDashboard, investments: itInvestments, 'csv-import': itCsvImport, watchlists: itWatchlists, welcome: itWelcome, switcher: itSwitcher, portfolioSettings: itPortfolioSettings, userSettings: itUserSettings, 'portfolio-setup': itPortfolioSetup, 'taxonomy-templates': itTaxonomyTemplates },
-      de: { common: deCommon, navigation: deNavigation, securities: deSecurities, transactions: deTransactions, accounts: deAccounts, performance: dePerformance, reports: deReports, settings: deSettings, errors: deErrors, dashboard: deDashboard, investments: deInvestments, 'csv-import': deCsvImport, watchlists: deWatchlists, welcome: deWelcome, switcher: deSwitcher, portfolioSettings: dePortfolioSettings, userSettings: deUserSettings, 'portfolio-setup': dePortfolioSetup, 'taxonomy-templates': deTaxonomyTemplates },
-      fr: { common: frCommon, navigation: frNavigation, securities: frSecurities, transactions: frTransactions, accounts: frAccounts, performance: frPerformance, reports: frReports, settings: frSettings, errors: frErrors, dashboard: frDashboard, investments: frInvestments, 'csv-import': frCsvImport, watchlists: frWatchlists, welcome: frWelcome, switcher: frSwitcher, portfolioSettings: frPortfolioSettings, userSettings: frUserSettings, 'portfolio-setup': frPortfolioSetup, 'taxonomy-templates': frTaxonomyTemplates },
-      es: { common: esCommon, navigation: esNavigation, securities: esSecurities, transactions: esTransactions, accounts: esAccounts, performance: esPerformance, reports: esReports, settings: esSettings, errors: esErrors, dashboard: esDashboard, investments: esInvestments, 'csv-import': esCsvImport, watchlists: esWatchlists, welcome: esWelcome, switcher: esSwitcher, portfolioSettings: esPortfolioSettings, userSettings: esUserSettings, 'portfolio-setup': esPortfolioSetup, 'taxonomy-templates': esTaxonomyTemplates },
-      nl: { common: nlCommon, navigation: nlNavigation, securities: nlSecurities, transactions: nlTransactions, accounts: nlAccounts, performance: nlPerformance, reports: nlReports, settings: nlSettings, errors: nlErrors, dashboard: nlDashboard, investments: nlInvestments, 'csv-import': nlCsvImport, watchlists: nlWatchlists, welcome: nlWelcome, switcher: nlSwitcher, portfolioSettings: nlPortfolioSettings, userSettings: nlUserSettings, 'portfolio-setup': nlPortfolioSetup, 'taxonomy-templates': nlTaxonomyTemplates },
-      pl: { common: plCommon, navigation: plNavigation, securities: plSecurities, transactions: plTransactions, accounts: plAccounts, performance: plPerformance, reports: plReports, settings: plSettings, errors: plErrors, dashboard: plDashboard, investments: plInvestments, 'csv-import': plCsvImport, watchlists: plWatchlists, welcome: plWelcome, switcher: plSwitcher, portfolioSettings: plPortfolioSettings, userSettings: plUserSettings, 'portfolio-setup': plPortfolioSetup, 'taxonomy-templates': plTaxonomyTemplates },
-      pt: { common: ptCommon, navigation: ptNavigation, securities: ptSecurities, transactions: ptTransactions, accounts: ptAccounts, performance: ptPerformance, reports: ptReports, settings: ptSettings, errors: ptErrors, dashboard: ptDashboard, investments: ptInvestments, 'csv-import': ptCsvImport, watchlists: ptWatchlists, welcome: ptWelcome, switcher: ptSwitcher, portfolioSettings: ptPortfolioSettings, userSettings: ptUserSettings, 'portfolio-setup': ptPortfolioSetup, 'taxonomy-templates': ptTaxonomyTemplates },
+      en: { common: enCommon, navigation: enNavigation, securities: enSecurities, transactions: enTransactions, accounts: enAccounts, performance: enPerformance, reports: enReports, settings: enSettings, errors: enErrors, dashboard: enDashboard, investments: enInvestments, 'csv-import': enCsvImport, watchlists: enWatchlists, welcome: enWelcome, switcher: enSwitcher, portfolioSettings: enPortfolioSettings, userSettings: enUserSettings, 'portfolio-setup': enPortfolioSetup, 'taxonomy-templates': enTaxonomyTemplates, currencies: enCurrencies },
+      it: { common: itCommon, navigation: itNavigation, securities: itSecurities, transactions: itTransactions, accounts: itAccounts, performance: itPerformance, reports: itReports, settings: itSettings, errors: itErrors, dashboard: itDashboard, investments: itInvestments, 'csv-import': itCsvImport, watchlists: itWatchlists, welcome: itWelcome, switcher: itSwitcher, portfolioSettings: itPortfolioSettings, userSettings: itUserSettings, 'portfolio-setup': itPortfolioSetup, 'taxonomy-templates': itTaxonomyTemplates, currencies: itCurrencies },
+      de: { common: deCommon, navigation: deNavigation, securities: deSecurities, transactions: deTransactions, accounts: deAccounts, performance: dePerformance, reports: deReports, settings: deSettings, errors: deErrors, dashboard: deDashboard, investments: deInvestments, 'csv-import': deCsvImport, watchlists: deWatchlists, welcome: deWelcome, switcher: deSwitcher, portfolioSettings: dePortfolioSettings, userSettings: deUserSettings, 'portfolio-setup': dePortfolioSetup, 'taxonomy-templates': deTaxonomyTemplates, currencies: deCurrencies },
+      fr: { common: frCommon, navigation: frNavigation, securities: frSecurities, transactions: frTransactions, accounts: frAccounts, performance: frPerformance, reports: frReports, settings: frSettings, errors: frErrors, dashboard: frDashboard, investments: frInvestments, 'csv-import': frCsvImport, watchlists: frWatchlists, welcome: frWelcome, switcher: frSwitcher, portfolioSettings: frPortfolioSettings, userSettings: frUserSettings, 'portfolio-setup': frPortfolioSetup, 'taxonomy-templates': frTaxonomyTemplates, currencies: frCurrencies },
+      es: { common: esCommon, navigation: esNavigation, securities: esSecurities, transactions: esTransactions, accounts: esAccounts, performance: esPerformance, reports: esReports, settings: esSettings, errors: esErrors, dashboard: esDashboard, investments: esInvestments, 'csv-import': esCsvImport, watchlists: esWatchlists, welcome: esWelcome, switcher: esSwitcher, portfolioSettings: esPortfolioSettings, userSettings: esUserSettings, 'portfolio-setup': esPortfolioSetup, 'taxonomy-templates': esTaxonomyTemplates, currencies: esCurrencies },
+      nl: { common: nlCommon, navigation: nlNavigation, securities: nlSecurities, transactions: nlTransactions, accounts: nlAccounts, performance: nlPerformance, reports: nlReports, settings: nlSettings, errors: nlErrors, dashboard: nlDashboard, investments: nlInvestments, 'csv-import': nlCsvImport, watchlists: nlWatchlists, welcome: nlWelcome, switcher: nlSwitcher, portfolioSettings: nlPortfolioSettings, userSettings: nlUserSettings, 'portfolio-setup': nlPortfolioSetup, 'taxonomy-templates': nlTaxonomyTemplates, currencies: nlCurrencies },
+      pl: { common: plCommon, navigation: plNavigation, securities: plSecurities, transactions: plTransactions, accounts: plAccounts, performance: plPerformance, reports: plReports, settings: plSettings, errors: plErrors, dashboard: plDashboard, investments: plInvestments, 'csv-import': plCsvImport, watchlists: plWatchlists, welcome: plWelcome, switcher: plSwitcher, portfolioSettings: plPortfolioSettings, userSettings: plUserSettings, 'portfolio-setup': plPortfolioSetup, 'taxonomy-templates': plTaxonomyTemplates, currencies: plCurrencies },
+      pt: { common: ptCommon, navigation: ptNavigation, securities: ptSecurities, transactions: ptTransactions, accounts: ptAccounts, performance: ptPerformance, reports: ptReports, settings: ptSettings, errors: ptErrors, dashboard: ptDashboard, investments: ptInvestments, 'csv-import': ptCsvImport, watchlists: ptWatchlists, welcome: ptWelcome, switcher: ptSwitcher, portfolioSettings: ptPortfolioSettings, userSettings: ptUserSettings, 'portfolio-setup': ptPortfolioSetup, 'taxonomy-templates': ptTaxonomyTemplates, currencies: ptCurrencies },
     },
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'navigation', 'securities', 'transactions', 'accounts', 'performance', 'reports', 'settings', 'errors', 'dashboard', 'investments', 'csv-import', 'watchlists', 'welcome', 'switcher', 'portfolioSettings', 'userSettings', 'portfolio-setup', 'taxonomy-templates'],
+    ns: ['common', 'navigation', 'securities', 'transactions', 'accounts', 'performance', 'reports', 'settings', 'errors', 'dashboard', 'investments', 'csv-import', 'watchlists', 'welcome', 'switcher', 'portfolioSettings', 'userSettings', 'portfolio-setup', 'taxonomy-templates', 'currencies'],
     detection: {
       order: ['localStorage', 'navigator'],
       lookupLocalStorage: LANGUAGE_STORAGE_KEY,

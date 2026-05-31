@@ -22,15 +22,21 @@ export const BUY_SELL_TYPES: ReadonlySet<TransactionType> = new Set([
   TransactionType.SELL,
 ]);
 
-// The covered set below ({BUY, SELL, TRANSFER_BETWEEN_ACCOUNTS}) must stay in
-// sync with `CROSS_CURRENCY_FX_TYPES` in `packages/shared/src/transaction-gating.ts`.
-// If a new type is added there, this helper needs a matching derivation rule —
-// otherwise the server's FX gate fires on a payload the client never built an
-// input for (silent client gap).
+// The covered set below ({BUY, SELL, DIVIDEND, TRANSFER_BETWEEN_ACCOUNTS}) must
+// stay in sync with `CROSS_CURRENCY_FX_TYPES` in
+// `packages/shared/src/transaction-gating.ts`. If a new type is added there,
+// this helper needs a matching derivation rule — otherwise the server's FX gate
+// fires on a payload the client never built an input for (silent client gap).
+// Enforced by the drift-guard test in transaction-form-fx.utils.test.ts, which
+// iterates the shared set and asserts each member resolves cross.
 //
 // BUY/SELL: src = cash leg (crossAccount), dst = security currency. The FX rate
 // transforms the deposit-side amount into the security-currency forex_amount,
 // matching transaction.service.ts > buildUnits BUY/SELL convention.
+//
+// DIVIDEND: src = cash deposit (sourceAccount — the DIVIDEND picker restricts
+// the account to a deposit), dst = security currency. Same rate direction as
+// BUY/SELL (security-per-deposit), matching the buildUnits DIVIDEND FOREX block.
 //
 // TRANSFER_BETWEEN_ACCOUNTS: src = source deposit, dst = destination deposit.
 // fxRate transforms xact.amount (src ccy) into xact_unit.forex_amount (dst ccy).
@@ -47,6 +53,9 @@ export function deriveFxCurrencies({
 
   if (BUY_SELL_TYPES.has(type)) {
     srcCurrency = crossAccount?.currency ?? null;
+    dstCurrency = security?.currency ?? null;
+  } else if (type === TransactionType.DIVIDEND) {
+    srcCurrency = sourceAccount?.currency ?? null;
     dstCurrency = security?.currency ?? null;
   } else if (type === TransactionType.TRANSFER_BETWEEN_ACCOUNTS) {
     srcCurrency = sourceAccount?.currency ?? null;

@@ -76,5 +76,8 @@
     "description": "Ajoutez votre premier titre pour commencer",
     "noMatches": "Aucun titre dans ce compte",
     "noMatchesHint": "Modifiez le filtre de compte pour voir d'autres positions."
-  }
+  },
+  "unresolvedFx_one": "{{count}} titre exclu des totaux — taux de change manquant. Cliquez pour ajouter un taux.",
+  "unresolvedFx_other": "{{count}} titres exclus des totaux — taux de change manquant. Cliquez pour ajouter un taux.",
+  "unresolvedFxOpenModal": "Ouvrir la fenêtre des taux de change non résolus"
 }

@@ -165,8 +165,13 @@ export function createTestDb(): BetterSqlite3.Database {
       rate TEXT NOT NULL,
       PRIMARY KEY (date, from_currency, to_currency)
     );
+    CREATE TABLE IF NOT EXISTS vf_portfolio_meta (
+      key TEXT NOT NULL PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
   db.prepare(`INSERT INTO property (name, value) VALUES (?, ?)`).run('portfolio.currency', 'EUR');
+  db.prepare(`INSERT INTO vf_portfolio_meta (key, value) VALUES (?, ?)`).run('baseCurrency', 'EUR');
   return db;
 }
 

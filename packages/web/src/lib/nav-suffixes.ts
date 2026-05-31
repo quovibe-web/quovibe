@@ -10,6 +10,7 @@ import {
   Settings,
   SlidersHorizontal,
   Upload,
+  Coins,
 } from 'lucide-react';
 
 export type NavItem = {
@@ -59,6 +60,7 @@ export const NAV_SUFFIXES: NavSection[] = [
     sectionKey: 'sections.system',
     items: [
       { to: '/settings', labelKey: 'items.preferences', icon: SlidersHorizontal },
+      { to: '/settings/currencies', labelKey: 'items.currencies', icon: Coins },
       { to: 'settings/data', labelKey: 'items.settings', icon: Settings },
     ],
   },

@@ -413,7 +413,7 @@ export function getTaxonomySeriesPerformance(
 ): TaxonomySliceResult[] {
   const interval = resolveInterval(period.start, period.end, requestedInterval);
   const batchData = fetchBatchData(sqlite, period);
-  const allSecPerf = computeAllSecurities(batchData, period, costMethod, preTax);
+  const allSecPerf = computeAllSecurities(sqlite, batchData, period, costMethod, preTax);
 
   return categoryIds.map((categoryId) => {
     const meta = getCategoryMeta(sqlite, categoryId);

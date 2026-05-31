@@ -113,7 +113,7 @@ const postCreate: RequestHandler = async (req, res) => {
       return;
     }
     if (err instanceof Error && 'code' in err && (err as { code?: string }).code === 'LIMIT_FILE_SIZE') {
-      res.status(413).json({ error: 'FILE_TOO_LARGE', details: `max ${IMPORT_MAX_MB} MB` });
+      res.status(413).json({ error: 'FILE_TOO_LARGE', maxMb: IMPORT_MAX_MB });
       return;
     }
     throw err;

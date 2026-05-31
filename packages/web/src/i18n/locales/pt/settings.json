@@ -121,7 +121,10 @@
       "previousWeek": "Semana anterior",
       "previousMonth": "Mês anterior",
       "previousQuarter": "Trimestre anterior",
-      "previousYear": "Ano anterior"
+      "previousYear": "Ano anterior",
+      "fiscalYear": "AF{{year}}",
+      "fiscalYTD": "AF acumulado",
+      "previousFiscalYear": "AF anterior"
     }
   },
   "export": {
@@ -195,5 +198,17 @@
     "fetchSuccess": "{{count}} taxas de câmbio atualizadas em {{duration}}ms",
     "fetchError": "Erro ao atualizar as taxas de câmbio",
     "noForeignCurrencies": "Nenhuma moeda estrangeira detectada na carteira"
+  },
+  "fiscalYear": {
+    "title": "Ano fiscal",
+    "description": "Redefina o ano para os períodos de relatório (YTD, Ano, Ano anterior).",
+    "enable": "Usar um ano fiscal personalizado",
+    "startMonth": "Mês de início",
+    "startDay": "Dia de início",
+    "numbering": "Rótulo do ano",
+    "numberingStartYear": "Por ano de início",
+    "numberingEndYear": "Por ano de fim",
+    "numberingHint": "Só altera o rótulo quando o início não é 1 de janeiro.",
+    "preview": "Ano fiscal atual"
   }
 }

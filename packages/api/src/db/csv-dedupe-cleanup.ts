@@ -117,13 +117,17 @@ interface MemberRow {
  * xact_cross_entry tables — no effect on DBs without CSV-source duplicates.
  *
  * Wrapped in a single db.transaction() so partial cleanup never persists.
+ *
+ * Day-granular fingerprint: matches the index expression
+ * `substr(date,1,10)` so pre-fix (date-only) and post-fix
+ * (timestamped) rows collapse to the same group.
  */
 export function cleanupCsvDuplicates(db: BetterSqlite3.Database): CsvDuplicateCleanupResult {
   const groups = db.prepare(`
-    SELECT date, type, security, account, shares, amount, COUNT(*) AS n
+    SELECT substr(date, 1, 10) AS date, type, security, account, shares, amount, COUNT(*) AS n
     FROM xact
     WHERE source = 'CSV_IMPORT'
-    GROUP BY date, type, security, account, shares, amount
+    GROUP BY substr(date, 1, 10), type, security, account, shares, amount
     HAVING n > 1
   `).all() as NaturalKeyGroupRow[];
 
@@ -143,7 +147,7 @@ export function cleanupCsvDuplicates(db: BetterSqlite3.Database): CsvDuplicateCl
     SELECT _id, uuid, note, currency, fees, taxes, acctype
     FROM xact
     WHERE source = 'CSV_IMPORT'
-      AND date = ? AND type = ? AND security IS ?
+      AND substr(date, 1, 10) = substr(?, 1, 10) AND type = ? AND security IS ?
       AND account = ? AND shares = ? AND amount = ?
     ORDER BY _id ASC
   `);

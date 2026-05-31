@@ -121,7 +121,10 @@
       "previousWeek": "Vorherige Woche",
       "previousMonth": "Vorheriger Monat",
       "previousQuarter": "Vorheriges Quartal",
-      "previousYear": "Vorheriges Jahr"
+      "previousYear": "Vorheriges Jahr",
+      "fiscalYear": "GJ{{year}}",
+      "fiscalYTD": "GJ laufend",
+      "previousFiscalYear": "Vorheriges GJ"
     }
   },
   "export": {
@@ -195,5 +198,17 @@
     "fetchSuccess": "{{count}} Wechselkurse in {{duration}}ms aktualisiert",
     "fetchError": "Fehler beim Aktualisieren der Wechselkurse",
     "noForeignCurrencies": "Keine Fremdwährungen im Portfolio erkannt"
+  },
+  "fiscalYear": {
+    "title": "Geschäftsjahr",
+    "description": "Definiere das Jahr für Berichtszeiträume neu (YTD, Jahr, Vorjahr).",
+    "enable": "Benutzerdefiniertes Geschäftsjahr verwenden",
+    "startMonth": "Startmonat",
+    "startDay": "Starttag",
+    "numbering": "Jahresbezeichnung",
+    "numberingStartYear": "Nach Startjahr",
+    "numberingEndYear": "Nach Endjahr",
+    "numberingHint": "Ändert die Bezeichnung nur, wenn der Start nicht der 1. Januar ist.",
+    "preview": "Aktuelles Geschäftsjahr"
   }
 }

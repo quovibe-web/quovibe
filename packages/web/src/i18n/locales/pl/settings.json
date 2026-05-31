@@ -129,7 +129,10 @@
       "previousWeek": "Poprzedni tydzień",
       "previousMonth": "Poprzedni miesiąc",
       "previousQuarter": "Poprzedni kwartał",
-      "previousYear": "Poprzedni rok"
+      "previousYear": "Poprzedni rok",
+      "fiscalYear": "RO{{year}}",
+      "fiscalYTD": "RO narastająco",
+      "previousFiscalYear": "Poprzedni RO"
     }
   },
   "export": {
@@ -205,5 +208,17 @@
     "fetchSuccess": "Zaktualizowano {{count}} kursów walut w {{duration}}ms",
     "fetchError": "Błąd podczas aktualizacji kursów walut",
     "noForeignCurrencies": "Brak walut obcych w portfelu"
+  },
+  "fiscalYear": {
+    "title": "Rok obrotowy",
+    "description": "Zmień definicję roku dla okresów raportowania (narastająco, Rok, Poprzedni rok).",
+    "enable": "Użyj niestandardowego roku obrotowego",
+    "startMonth": "Miesiąc początkowy",
+    "startDay": "Dzień początkowy",
+    "numbering": "Etykieta roku",
+    "numberingStartYear": "Według roku początkowego",
+    "numberingEndYear": "Według roku końcowego",
+    "numberingHint": "Zmienia etykietę tylko, gdy początek nie przypada na 1 stycznia.",
+    "preview": "Bieżący rok obrotowy"
   }
 }

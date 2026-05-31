@@ -1,6 +1,7 @@
 import Decimal from 'decimal.js';
 import type BetterSqlite3 from 'better-sqlite3';
 import { format } from 'date-fns';
+import { getPortfolioBaseCurrency } from './portfolio-base.service';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -102,9 +103,18 @@ function saveRates(
   to: string,
   rates: { date: string; rate: Decimal }[],
 ): void {
+  // UPSERT with MANUAL-row guard. ECB-fetched rates may freely overwrite
+  // existing ECB/IMPORT rows on the same (date, from, to) PK, but rows that
+  // a user has explicitly set with source='MANUAL' are preserved. The WHERE
+  // clause on the DO UPDATE branch skips the assignment when the existing
+  // row's source is MANUAL — SQLite UPSERT semantics keep the original row.
   const insert = sqlite.prepare(`
-    INSERT OR REPLACE INTO vf_exchange_rate (date, from_currency, to_currency, rate)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO vf_exchange_rate (date, from_currency, to_currency, rate, source)
+    VALUES (?, ?, ?, ?, 'ECB')
+    ON CONFLICT(date, from_currency, to_currency) DO UPDATE SET
+      rate = excluded.rate,
+      source = excluded.source
+    WHERE source != 'MANUAL'
   `);
 
   const tx = sqlite.transaction(() => {
@@ -117,12 +127,7 @@ function saveRates(
 
 // ─── Public: shared currency helpers ─────────────────────────────────────────
 
-export function getBaseCurrency(sqlite: BetterSqlite3.Database): string {
-  const baseProp = sqlite.prepare(
-    `SELECT value FROM property WHERE name = 'portfolio.currency'`,
-  ).get() as { value: string } | undefined;
-  return baseProp?.value ?? 'EUR';
-}
+export { getPortfolioBaseCurrency as getBaseCurrency } from './portfolio-base.service';
 
 export function listForeignCurrencies(
   sqlite: BetterSqlite3.Database,
@@ -162,7 +167,7 @@ export function needsFxFetch(sqlite: BetterSqlite3.Database): boolean {
       'SELECT COUNT(*) as cnt FROM vf_exchange_rate',
     ).get() as { cnt: number };
     if (count.cnt > 0) return false;
-    return hasForeignCurrencies(sqlite, getBaseCurrency(sqlite));
+    return hasForeignCurrencies(sqlite, getPortfolioBaseCurrency(sqlite));
   } catch {
     return false;
   }
@@ -194,7 +199,7 @@ export async function fetchAllExchangeRates(
   options?: { startDate?: string; endDate?: string },
 ): Promise<FxFetchSummary> {
   const start = Date.now();
-  const baseCurrency = getBaseCurrency(sqlite);
+  const baseCurrency = getPortfolioBaseCurrency(sqlite);
   const targets = listForeignCurrencies(sqlite, baseCurrency);
 
   const ecbByCurrency = await fetchAllPairsFromEcb(

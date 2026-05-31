@@ -76,5 +76,8 @@
     "description": "Adicione o seu primeiro título para começar",
     "noMatches": "Sem títulos nesta conta",
     "noMatchesHint": "Ajuste o filtro de conta para ver outras posições."
-  }
+  },
+  "unresolvedFx_one": "{{count}} título excluído dos totais — falta a taxa de câmbio. Clique para adicionar uma taxa.",
+  "unresolvedFx_other": "{{count}} títulos excluídos dos totais — falta a taxa de câmbio. Clique para adicionar uma taxa.",
+  "unresolvedFxOpenModal": "Abrir janela de taxas de câmbio não resolvidas"
 }

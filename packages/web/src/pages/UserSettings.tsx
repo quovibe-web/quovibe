@@ -6,9 +6,12 @@
 // Uses raw `apiFetch` — not React Query — per the Phase 5b blocker constraints.
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Plus, Minus, Palette, SlidersHorizontal, RefreshCw, type LucideIcon } from 'lucide-react';
-import type { QuovibeSettings, QuovibePreferences } from '@quovibe/shared';
+import { Check, Plus, Minus, Palette, SlidersHorizontal, RefreshCw, CalendarRange, type LucideIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { type QuovibeSettings, type QuovibePreferences, type FiscalYearConfig, fiscalActive } from '@quovibe/shared';
 import { apiFetch } from '@/api/fetch';
+import { formatPeriodRange, buildFiscalPreview } from '@/lib/period-utils';
+import { getDateLocale } from '@/lib/formatters';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +34,13 @@ const APP_FLAG_ROUTE: Record<AppFlagKey, string> = {
 };
 
 type SettingsResponse = Pick<QuovibeSettings, 'preferences' | 'app'>;
+
+const DEFAULT_FISCAL_YEAR: FiscalYearConfig = {
+  enabled: false,
+  startMonth: 1,
+  startDay: 1,
+  numbering: 'endYear',
+};
 
 function SettingRow({
   label,
@@ -83,7 +93,7 @@ function SectionHeader({
 }
 
 export default function UserSettings() {
-  const { t } = useTranslation('settings');
+  const { t, i18n } = useTranslation('settings');
   const { t: tUser } = useTranslation('userSettings');
   useEffect(() => { document.title = `${tUser('preferences.title')} · quovibe`; }, [tUser]);
 
@@ -97,6 +107,7 @@ export default function UserSettings() {
   const [quotesPrecision, setQuotesPrecision] = useState(2);
   const [showCurrencyCode, setShowCurrencyCode] = useState(false);
   const [showPaSuffix, setShowPaSuffix] = useState(true);
+  const [fiscalYear, setFiscalYear] = useState<FiscalYearConfig>(DEFAULT_FISCAL_YEAR);
   const [appFlags, setAppFlags] = useState<Record<AppFlagKey, boolean>>({
     autoFetchPricesOnFirstOpen: false,
   });
@@ -110,6 +121,7 @@ export default function UserSettings() {
         setQuotesPrecision(s.preferences.quotesPrecision ?? 2);
         setShowCurrencyCode(s.preferences.showCurrencyCode ?? false);
         setShowPaSuffix(s.preferences.showPaSuffix ?? true);
+        setFiscalYear(s.preferences.fiscalYear ?? DEFAULT_FISCAL_YEAR);
         setAppFlags({
           autoFetchPricesOnFirstOpen: s.app.autoFetchPricesOnFirstOpen ?? false,
         });
@@ -135,6 +147,15 @@ export default function UserSettings() {
     flashSaved(field);
   }
 
+  async function saveFiscalYear(next: FiscalYearConfig): Promise<void> {
+    setFiscalYear(next);
+    await apiFetch('/api/settings/preferences', {
+      method: 'PUT',
+      body: JSON.stringify({ fiscalYear: next }),
+    });
+    flashSaved('fiscalYear');
+  }
+
   async function saveAppFlag(key: AppFlagKey, next: boolean): Promise<void> {
     setAppFlags(prev => ({ ...prev, [key]: next }));
     await apiFetch(APP_FLAG_ROUTE[key], {
@@ -158,6 +179,10 @@ export default function UserSettings() {
     setPrivacy(next);
     void savePreference('privacyMode', next);
   };
+
+  const fyPreview = fiscalActive(fiscalYear)
+    ? buildFiscalPreview(fiscalYear, format(new Date(), 'yyyy-MM-dd'))
+    : null;
 
 
   return (
@@ -318,6 +343,82 @@ export default function UserSettings() {
             }}
           />
         </SettingRow>
+      </section>
+
+      {/* ── FISCAL YEAR ── */}
+      <section>
+        <SectionHeader icon={CalendarRange}>{t('fiscalYear.title')}</SectionHeader>
+
+        <SettingRow
+          label={t('fiscalYear.enable')}
+          description={t('fiscalYear.description')}
+          saved={savedField === 'fiscalYear'}
+        >
+          <Switch
+            checked={fiscalYear.enabled}
+            onCheckedChange={(v) => void saveFiscalYear({ ...fiscalYear, enabled: v })}
+          />
+        </SettingRow>
+
+        {fiscalYear.enabled && (
+          <>
+            <SettingRow label={t('fiscalYear.startMonth')}>
+              <Select
+                value={String(fiscalYear.startMonth)}
+                onValueChange={(v) => void saveFiscalYear({ ...fiscalYear, startMonth: Number(v) })}
+              >
+                <SelectTrigger className="w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, m) => (
+                    <SelectItem key={m + 1} value={String(m + 1)}>
+                      {format(new Date(2000, m, 1), 'LLLL', { locale: getDateLocale(i18n.language) })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingRow>
+
+            <SettingRow label={t('fiscalYear.startDay')}>
+              <Select
+                value={String(fiscalYear.startDay)}
+                onValueChange={(v) => void saveFiscalYear({ ...fiscalYear, startDay: Number(v) })}
+              >
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 31 }, (_, d) => (
+                    <SelectItem key={d + 1} value={String(d + 1)}>
+                      {d + 1}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingRow>
+
+            <SettingRow label={t('fiscalYear.numbering')} description={t('fiscalYear.numberingHint')}>
+              <SegmentedControl<'startYear' | 'endYear'>
+                segments={[
+                  { value: 'startYear', label: t('fiscalYear.numberingStartYear') },
+                  { value: 'endYear', label: t('fiscalYear.numberingEndYear') },
+                ]}
+                value={fiscalYear.numbering}
+                onChange={(v) => void saveFiscalYear({ ...fiscalYear, numbering: v })}
+                size="md"
+              />
+            </SettingRow>
+
+            {fyPreview && (
+              <p className="px-1 py-2 text-xs text-muted-foreground">
+                {t('fiscalYear.preview')}:{' '}
+                {t('periods.labels.fiscalYear', { year: fyPreview.fyLabel })} ·{' '}
+                {formatPeriodRange(fyPreview.periodStart, fyPreview.periodEnd, i18n.language)}
+              </p>
+            )}
+          </>
+        )}
       </section>
 
       {/* ── UPDATES ── */}

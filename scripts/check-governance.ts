@@ -599,6 +599,98 @@ if (existsSync(signRegistryPath)) {
   info('sign-convention-registry.md not found — G13 skipped');
 }
 
+// ─── [G15] Perf wire field ⇔ shared/web type parity ────────
+header('[G15] Perf wire field ⇔ shared/web type parity');
+
+/**
+ * Extracts the body of a named `interface Foo {…}` from source text using
+ * brace-counting so it handles nested objects correctly, then returns the
+ * set of field names that contain "Base", "Capital", or "Fx" (case-insensitive)
+ * — the Phase-3 perf decomposition fields we want to keep in sync.
+ */
+function extractPerfFields(content: string, interfaceName: string): Set<string> {
+  const fields = new Set<string>();
+  const lines = content.split('\n');
+
+  // Find the line that starts the interface
+  const startRe = new RegExp(`(?:export\\s+)?interface\\s+${interfaceName}\\s*(?:extends\\s+[^{]+)?\\{`);
+  let startLine = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (startRe.test(lines[i])) {
+      startLine = i;
+      break;
+    }
+  }
+  if (startLine === -1) return fields;
+
+  // Walk lines with a depth counter to find the closing `}`
+  let depth = 0;
+  for (let i = startLine; i < lines.length; i++) {
+    for (const ch of lines[i]) {
+      if (ch === '{') depth++;
+      if (ch === '}') { depth--; if (depth === 0) return fields; }
+    }
+    if (i === startLine) continue; // opening line has no fields
+    // Only look for fields at depth 1 (direct members, not nested objects)
+    if (depth !== 1) continue;
+    // Match `fieldName?:` or `fieldName:` at the start of a trimmed line
+    const fieldMatch = lines[i].match(/^\s*(\w+)\s*\??\s*:/);
+    if (!fieldMatch) continue;
+    const name = fieldMatch[1];
+    if (/Base|Capital|Fx/i.test(name)) {
+      fields.add(name);
+    }
+  }
+  return fields;
+}
+
+try {
+  const perfServicePath = join(ROOT, 'packages/api/src/services/performance.service.ts');
+  const sharedTypesPath = join(ROOT, 'packages/shared/src/types/calculation.ts');
+  const webTypesPath    = join(ROOT, 'packages/web/src/api/types.ts');
+
+  const apiContent    = readFileSync(perfServicePath, 'utf-8');
+  const sharedContent = readFileSync(sharedTypesPath,  'utf-8');
+  const webContent    = readFileSync(webTypesPath,     'utf-8');
+
+  // ── SecurityPerfResult (api) ↔ SecurityPerfResponse (web) ───────────────────
+  const apiSecurityFields = extractPerfFields(apiContent,  'SecurityPerfResult');
+  const webSecurityFields = extractPerfFields(webContent,  'SecurityPerfResponse');
+
+  for (const f of apiSecurityFields) {
+    if (!webSecurityFields.has(f)) {
+      fail(`SecurityPerfResponse (web/types.ts) missing field: ${f}`);
+    }
+  }
+  for (const f of webSecurityFields) {
+    if (!apiSecurityFields.has(f)) {
+      fail(`SecurityPerfResult (performance.service.ts) missing field present in web: ${f}`);
+    }
+  }
+
+  // ── PortfolioCalcResult (api) ↔ CalculationBreakdownResponse (shared) ───────
+  const apiPortfolioFields    = extractPerfFields(apiContent,    'PortfolioCalcResult');
+  const sharedPortfolioFields = extractPerfFields(sharedContent, 'CalculationBreakdownResponse');
+
+  for (const f of apiPortfolioFields) {
+    if (!sharedPortfolioFields.has(f)) {
+      fail(`CalculationBreakdownResponse (shared/types/calculation.ts) missing field: ${f}`);
+    }
+  }
+  for (const f of sharedPortfolioFields) {
+    if (!apiPortfolioFields.has(f)) {
+      fail(`PortfolioCalcResult (performance.service.ts) missing field present in shared: ${f}`);
+    }
+  }
+
+  const totalApiFields    = apiSecurityFields.size    + apiPortfolioFields.size;
+  const totalMirrorFields = webSecurityFields.size    + sharedPortfolioFields.size;
+  ok(`${totalApiFields} api fields ↔ ${totalMirrorFields} shared/web fields aligned`
+     + ` (security: ${apiSecurityFields.size}, portfolio: ${apiPortfolioFields.size})`);
+} catch (err) {
+  fail(`G15 check failed to run: ${(err as Error).message}`);
+}
+
 // ─── Summary ────────────────────────────────────────────────
 console.log('\n══════════════════════════════════════════');
 console.log(`  Result: ${criticalErrors} critical errors, ${warnings} warnings`);

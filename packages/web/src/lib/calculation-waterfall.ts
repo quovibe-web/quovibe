@@ -11,11 +11,19 @@ export interface WaterfallBar {
   base: number;
   /** Signed height. Positive = bar grows up from base; negative = bar grows down from base. Anchors carry the full magnitude. */
   value: number;
+  /** [lo, hi] tuple consumed by Recharts as the Bar dataKey to render a floating range rect. lo === hi for zero-magnitude bars. */
+  range: [number, number];
   /** Magnitude (always non-negative) used for the magnitude-scale heuristic. */
   magnitude: number;
   color: WaterfallBarColor;
   /** Whether this bar is an anchor (MVB/MVE) vs a middle delta bar. */
   isAnchor: boolean;
+}
+
+function rangeOf(base: number, value: number): [number, number] {
+  const lo = Math.min(base, base + value);
+  const hi = Math.max(base, base + value);
+  return [lo, hi];
 }
 
 export function buildWaterfallData(data: CalculationBreakdownResponse): WaterfallBar[] {
@@ -43,43 +51,59 @@ export function buildWaterfallData(data: CalculationBreakdownResponse): Waterfal
     ? postFrictions
     : postFrictions.plus(flowsValue);
 
+  const mvbBase = 0;
+  const mvbValue = mvb.toNumber();
+  const driversBase = mvb.toNumber();
+  const driversValue = driversTotal.toNumber();
+  const frictionsBase = postDrivers.minus(frictionsTotal).toNumber();
+  const frictionsValue = frictionsDisplayValue.toNumber();
+  const flowsBaseN = flowsBase.toNumber();
+  const flowsValueN = flowsValue.toNumber();
+  const mveBase = 0;
+  const mveValue = mve.toNumber();
+
   return [
     {
       name: 'MVB',
-      base: 0,
-      value: mvb.toNumber(),
+      base: mvbBase,
+      value: mvbValue,
+      range: rangeOf(mvbBase, mvbValue),
       magnitude: mvb.abs().toNumber(),
       color: 'secondary',
       isAnchor: true,
     },
     {
       name: 'Drivers',
-      base: mvb.toNumber(),
-      value: driversTotal.toNumber(),
+      base: driversBase,
+      value: driversValue,
+      range: rangeOf(driversBase, driversValue),
       magnitude: driversTotal.abs().toNumber(),
       color: 'positive',
       isAnchor: false,
     },
     {
       name: 'Frictions',
-      base: postDrivers.minus(frictionsTotal).toNumber(),
-      value: frictionsDisplayValue.toNumber(),
+      base: frictionsBase,
+      value: frictionsValue,
+      range: rangeOf(frictionsBase, frictionsValue),
       magnitude: frictionsTotal.abs().toNumber(),
       color: 'negative',
       isAnchor: false,
     },
     {
       name: 'Flows',
-      base: flowsBase.toNumber(),
-      value: flowsValue.toNumber(),
+      base: flowsBaseN,
+      value: flowsValueN,
+      range: rangeOf(flowsBaseN, flowsValueN),
       magnitude: flowsValue.abs().toNumber(),
       color: 'muted',
       isAnchor: false,
     },
     {
       name: 'MVE',
-      base: 0,
-      value: mve.toNumber(),
+      base: mveBase,
+      value: mveValue,
+      range: rangeOf(mveBase, mveValue),
       magnitude: mve.abs().toNumber(),
       color: 'display',
       isAnchor: true,

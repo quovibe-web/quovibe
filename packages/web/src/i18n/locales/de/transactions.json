@@ -44,6 +44,7 @@
     "quantity": "Anzahl",
     "price": "Kurs",
     "pricePerShare": "Kurs pro Anteil",
+    "pricePerShareInCcy": "Kurs pro Anteil ({{ccy}})",
     "pricePerShareOptional": "Kurs pro Anteil (optional)",
     "amount": "Betrag",
     "fees": "Gebühren",

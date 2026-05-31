@@ -407,7 +407,7 @@ const listTransactions: RequestHandler = (req, res) => {
        LEFT JOIN account oa ON oa.uuid = ce2.to_acc
        WHERE ${where}
        GROUP BY x.uuid
-       ORDER BY x.date DESC
+       ORDER BY x.date DESC, x._order DESC, x._id DESC
        LIMIT ? OFFSET ?`,
     )
     .all(...params, limit, offset) as Record<string, unknown>[];

@@ -6,14 +6,12 @@ import { updateSettingsSchema } from '@quovibe/shared';
 import { DATA_DIR } from '../config';
 import { configEntries } from '../db/schema';
 import { getDb, getSqlite } from '../helpers/request';
+import { getPortfolioBaseCurrency } from '../services/portfolio-base.service';
 import { getSettings, updateAppState } from '../services/settings.service';
 
-// quovibe stores its own settings in the `property` table (same key space as baseCurrency).
+// quovibe stores its own settings in the `property` table.
 // Keys are prefixed with 'portfolio.' to namespace from legacy properties.
 const QUOVIBE_SETTING_KEYS = ['portfolio.costMethod', 'portfolio.currency', 'portfolio.calendar'] as const;
-// Legacy property key for base currency — read alongside quovibe settings so the frontend
-// can pre-populate the currency field after a fresh import (before the user saves via quovibe).
-const PP_CURRENCY_KEY = 'baseCurrency';
 
 export const portfolioRouter: RouterType = Router();
 
@@ -29,13 +27,18 @@ const getPortfolio: RequestHandler = async (req, res) => {
   }
 
   // quovibe own settings from property table
-  const propKeys = [...QUOVIBE_SETTING_KEYS, PP_CURRENCY_KEY, 'provider.alphavantage.apiKey', 'provider.alphavantage.rateLimit'];
+  const propKeys = [...QUOVIBE_SETTING_KEYS, 'provider.alphavantage.apiKey', 'provider.alphavantage.rateLimit'];
   const propRows = sqlite
     .prepare(`SELECT name, value FROM property WHERE name IN (${propKeys.map(() => '?').join(',')})`)
     .all(...propKeys) as { name: string; value: string }[];
   for (const row of propRows) {
     config[row.name] = row.value;
   }
+  // Canonical base currency from vf_portfolio_meta (seeded at every applyBootstrap call).
+  // Always takes precedence over the legacy property.baseCurrency PP path so that fresh
+  // M3 portfolios and PP-XML imports both surface the correct currency before the user
+  // saves their first Settings change.
+  config['baseCurrency'] = getPortfolioBaseCurrency(sqlite);
 
   // Never expose the raw API key — only report whether one is configured
   const rawKey = config['provider.alphavantage.apiKey'];
@@ -111,13 +114,14 @@ const updateSettings: RequestHandler = async (req, res) => {
   for (const row of rows) {
     if (row.name != null) config[row.name] = row.data ?? null;
   }
-  const respPropKeys = [...QUOVIBE_SETTING_KEYS, PP_CURRENCY_KEY, 'provider.alphavantage.apiKey', 'provider.alphavantage.rateLimit'];
+  const respPropKeys = [...QUOVIBE_SETTING_KEYS, 'provider.alphavantage.apiKey', 'provider.alphavantage.rateLimit'];
   const propRows = sqlite
     .prepare(`SELECT name, value FROM property WHERE name IN (${respPropKeys.map(() => '?').join(',')})`)
     .all(...respPropKeys) as { name: string; value: string }[];
   for (const row of propRows) {
     config[row.name] = row.value;
   }
+  config['baseCurrency'] = getPortfolioBaseCurrency(sqlite);
 
   // Never expose the raw API key — only report whether one is configured
   const respRawKey = config['provider.alphavantage.apiKey'];

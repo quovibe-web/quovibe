@@ -76,5 +76,8 @@
     "description": "Add your first security to get started",
     "noMatches": "No securities in this account",
     "noMatchesHint": "Adjust the account filter to see other holdings."
-  }
+  },
+  "unresolvedFx_one": "{{count}} security excluded from totals — missing FX rate. Click to add a rate.",
+  "unresolvedFx_other": "{{count}} securities excluded from totals — missing FX rate. Click to add a rate.",
+  "unresolvedFxOpenModal": "Open unresolved exchange rates dialog"
 }

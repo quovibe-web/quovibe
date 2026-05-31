@@ -121,7 +121,10 @@
       "previousWeek": "Previous week",
       "previousMonth": "Previous month",
       "previousQuarter": "Previous quarter",
-      "previousYear": "Previous year"
+      "previousYear": "Previous year",
+      "fiscalYear": "FY{{year}}",
+      "fiscalYTD": "FY YTD",
+      "previousFiscalYear": "Previous FY"
     }
   },
   "export": {
@@ -195,5 +198,17 @@
     "fetchSuccess": "Updated {{count}} exchange rates in {{duration}}ms",
     "fetchError": "Failed to update exchange rates",
     "noForeignCurrencies": "No foreign currencies detected in portfolio"
+  },
+  "fiscalYear": {
+    "title": "Fiscal year",
+    "description": "Redefine 'year' for reporting periods (YTD, Year, Previous year).",
+    "enable": "Use a custom fiscal year",
+    "startMonth": "Start month",
+    "startDay": "Start day",
+    "numbering": "Year label",
+    "numberingStartYear": "By start year",
+    "numberingEndYear": "By end year",
+    "numberingHint": "Only changes the label when the start is not January 1.",
+    "preview": "Current fiscal year"
   }
 }
