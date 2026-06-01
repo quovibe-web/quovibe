@@ -3244,6 +3244,14 @@ export interface StatementSecurityEntry {
   securityId: string;
   name: string;
   shares: string;
+  // CURRENCY SPLIT — read before consuming: for a foreign-currency holding
+  // `pricePerShare` is the instrument's NATIVE quote (e.g. US$) while
+  // `marketValue` and `currency` are BASE-converted (e.g. EUR). This is
+  // intentional — the native quote matches broker UIs (Latest Quote, IBKR,
+  // Directa) and must not be re-denominated. CONSEQUENCE: `pricePerShare ×
+  // shares ≠ marketValue` across currencies. Any consumer doing base-currency
+  // math (e.g. computing a share count from a base amount) MUST use the
+  // base price per share `marketValue / shares`, never `pricePerShare`.
   pricePerShare: string;
   marketValue: string;
   currency: string;
