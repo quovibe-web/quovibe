@@ -137,7 +137,9 @@ export function SecurityDrawer({
                             ? '••••'
                             : `${statement.shares} × ${formatCurrency(
                                 parseFloat(statement.pricePerShare),
-                                statement.currency,
+                                // price is the instrument's native quote; statement.currency
+                                // describes its (possibly base-converted) marketValue.
+                                perf.currency,
                               )}`}
                         </span>
                       )}
