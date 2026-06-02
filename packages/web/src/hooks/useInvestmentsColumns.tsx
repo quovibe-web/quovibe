@@ -185,9 +185,13 @@ export function useInvestmentsColumns({
         cell: ({ row }) => {
           const entry = statementMap.get(row.original.id);
           if (!entry) return <div className="text-right">—</div>;
+          // pricePerShare is the instrument's quote in its OWN currency; the
+          // statement entry's `currency` describes its marketValue (base for a
+          // resolved cross-currency holding), so it would mislabel the native
+          // price. Use the security's native currency, like the Latest Quote column.
           return (
             <div className="text-right">
-              <CurrencyDisplay value={parseFloat(entry.pricePerShare)} currency={entry.currency} className="qv-numeric text-sm" />
+              <CurrencyDisplay value={parseFloat(entry.pricePerShare)} currency={row.original.currency} className="qv-numeric text-sm" />
             </div>
           );
         },

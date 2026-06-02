@@ -10,6 +10,9 @@ interface SecurityDetail {
   rebalancingIncluded: boolean;
   actualValue: Decimal;
   currentPrice: string;
+  // Base price per share (marketValue / shares); divisor for the rebalance
+  // share count. `currentPrice` is the native quote, for display only.
+  basePrice: string;
   currency: string;
   isAccount: boolean;
   logoUrl: string | null;
@@ -103,10 +106,35 @@ export function computeRebalancing(
   for (const s of statement.securities) mvByItemId.set(s.securityId, new Decimal(s.marketValue));
   for (const a of statement.depositAccounts) mvByItemId.set(a.accountId, new Decimal(a.balance));
 
-  // Security names and prices for rebalancing display
-  const securityInfo = new Map<string, { name: string; price: string; currency: string }>();
+  // Native currency per security. The statement entry's `currency` is the
+  // BASE currency (it re-denominates `marketValue` to base), while its
+  // `pricePerShare` is the NATIVE quote. The rebalancing row pairs the native
+  // `currentPrice` with `currency`, so `currency` must be the security's own
+  // native currency to stay internally consistent — never the statement's
+  // base label.
+  const nativeCurrencyMap = new Map<string, string>(
+    (sqlite.prepare('SELECT uuid, currency FROM security').all() as {
+      uuid: string;
+      currency: string | null;
+    }[]).map((r) => [r.uuid, r.currency ?? '']),
+  );
+
+  // Security names + prices. `basePrice` = base price per share (marketValue /
+  // shares), the divisor for the share count; `price` is the native quote for
+  // display. See StatementSecurityEntry for the native-vs-base split.
+  const securityInfo = new Map<string, { name: string; price: string; basePrice: string; currency: string }>();
   for (const s of statement.securities) {
-    securityInfo.set(s.securityId, { name: s.name, price: s.pricePerShare ?? '0', currency: s.currency });
+    const sh = new Decimal(s.shares);
+    // Zero-shares guard is load-bearing — keep it even though the statement
+    // currently filters out unheld securities (shares > 0): it protects the
+    // division if that upstream filter ever loosens.
+    const basePrice = sh.gt(0) ? new Decimal(s.marketValue).div(sh).toString() : '0';
+    securityInfo.set(s.securityId, {
+      name: s.name,
+      price: s.pricePerShare ?? '0',
+      basePrice,
+      currency: nativeCurrencyMap.get(s.securityId) ?? s.currency,
+    });
   }
   // Account names
   const accountInfo = new Map<string, { name: string }>();
@@ -142,8 +170,10 @@ export function computeRebalancing(
     leafCategoryMV.set(a.category, (leafCategoryMV.get(a.category) ?? new Decimal(0)).plus(allocated));
 
     const isExcluded = excludedFromRebal.get(a.category)?.has(a.item) ?? false;
-    const info = isAccount ? accountInfo.get(a.item) : securityInfo.get(a.item);
-    const price = isAccount ? '0' : (securityInfo.get(a.item)?.price ?? '0');
+    const secInfo = isAccount ? undefined : securityInfo.get(a.item);
+    const info = isAccount ? accountInfo.get(a.item) : secInfo;
+    const price = secInfo?.price ?? '0';
+    const basePrice = secInfo?.basePrice ?? '0';
 
     if (!categorySecurities.has(a.category)) categorySecurities.set(a.category, []);
     categorySecurities.get(a.category)!.push({
@@ -153,7 +183,8 @@ export function computeRebalancing(
       rebalancingIncluded: !isExcluded && !isRetired && (isAccount || new Decimal(price).gt(0)),
       actualValue: allocated,
       currentPrice: price,
-      currency: isAccount ? '' : (securityInfo.get(a.item)?.currency ?? ''),
+      basePrice,
+      currency: secInfo?.currency ?? '',
       isAccount,
       logoUrl: logoMap.get(a.item) ?? null,
     });
@@ -254,8 +285,9 @@ export function computeRebalancing(
           } else if (includedSecs.length > 0) { // native-ok
             rebalAmount = delta.div(includedSecs.length); // native-ok
           }
-          const price = new Decimal(s.currentPrice);
-          rebalShares = price.gt(0) ? rebalAmount.div(price) : new Decimal(0);
+          // base amount ÷ base price/share, not the native `currentPrice`.
+          const basePrice = new Decimal(s.basePrice);
+          rebalShares = basePrice.gt(0) ? rebalAmount.div(basePrice) : new Decimal(0);
         }
 
         return {
