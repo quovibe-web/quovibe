@@ -97,6 +97,31 @@ describe('computeRebalancing — cross-currency share count', () => {
     expect(sec.rebalanceShares).toBe('-5.0000');
   });
 
+  it('reports the native currency on the row so it is consistent with the native currentPrice quote', () => {
+    const SEC = 'sec-usd';
+    insertSecuritiesAccount();
+    db.prepare(
+      `INSERT INTO security (uuid, name, currency, isRetired) VALUES (?, 'USD Stock', 'USD', 0)`,
+    ).run(SEC);
+    db.prepare(
+      `INSERT INTO xact (uuid, type, date, currency, amount, shares, security, account, acctype)
+       VALUES ('tx1', 'BUY', ?, 'EUR', ?, ?, ?, ?, 'portfolio')`,
+    ).run(DATE, euros(800), shares(10), SEC, PORT);
+    db.prepare(`INSERT INTO price (security, tstamp, value) VALUES (?, ?, ?)`).run(SEC, DATE, price(100));
+    db.prepare(
+      `INSERT INTO vf_exchange_rate (date, from_currency, to_currency, rate) VALUES (?, 'USD', 'EUR', '0.8')`,
+    ).run(DATE);
+    const { TAX, EQUITY } = seedTaxonomy(SEC);
+
+    const { sec } = rebalanceRow(TAX, EQUITY, SEC);
+
+    // `currentPrice` is the native US$100 quote. `currency` MUST be the native
+    // USD so the pair is internally consistent — emitting base EUR here would
+    // render "US$100 EUR" the moment a consumer surfaces both fields together.
+    expect(sec.currentPrice).toBe('100');
+    expect(sec.currency).toBe('USD');
+  });
+
   it('leaves a same-currency holding unchanged (base price equals native quote)', () => {
     const SEC = 'sec-eur';
     insertSecuritiesAccount();

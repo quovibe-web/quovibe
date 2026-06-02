@@ -106,6 +106,19 @@ export function computeRebalancing(
   for (const s of statement.securities) mvByItemId.set(s.securityId, new Decimal(s.marketValue));
   for (const a of statement.depositAccounts) mvByItemId.set(a.accountId, new Decimal(a.balance));
 
+  // Native currency per security. The statement entry's `currency` is the
+  // BASE currency (it re-denominates `marketValue` to base), while its
+  // `pricePerShare` is the NATIVE quote. The rebalancing row pairs the native
+  // `currentPrice` with `currency`, so `currency` must be the security's own
+  // native currency to stay internally consistent — never the statement's
+  // base label.
+  const nativeCurrencyMap = new Map<string, string>(
+    (sqlite.prepare('SELECT uuid, currency FROM security').all() as {
+      uuid: string;
+      currency: string | null;
+    }[]).map((r) => [r.uuid, r.currency ?? '']),
+  );
+
   // Security names + prices. `basePrice` = base price per share (marketValue /
   // shares), the divisor for the share count; `price` is the native quote for
   // display. See StatementSecurityEntry for the native-vs-base split.
@@ -120,7 +133,7 @@ export function computeRebalancing(
       name: s.name,
       price: s.pricePerShare ?? '0',
       basePrice,
-      currency: s.currency,
+      currency: nativeCurrencyMap.get(s.securityId) ?? s.currency,
     });
   }
   // Account names
