@@ -38,6 +38,7 @@ const listSecurities: RequestHandler = async (req, res) => {
   const asOf = typeof asOfRaw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(asOfRaw)
     ? asOfRaw
     : null;
+  const tradedOnly = req.query.tradedOnly === 'true';
   const rows = await db
     .select({
       id: securities.id,
@@ -73,13 +74,31 @@ const listSecurities: RequestHandler = async (req, res) => {
   // `getStatementOfAssets(asOf)`'s shares filter.
   const netSharesMap = fetchNetSharesPerSecurity(sqlite, asOf);
 
-  // Filter retired-with-no-holdings (PP parity: a retired security still
-  // shows in lists while shares are held; toggle hides only fully-closed
-  // positions). Done in JS because the predicate depends on aggregated
-  // xact rows, not a column on `security`.
-  const filteredRows = includeRetired
-    ? rows
-    : rows.filter(r => !r.isRetired || (netSharesMap.get(r.id)?.gt(0) ?? false));
+  // Build the ever-transacted set when the Investments screen requests it.
+  // Covers all transaction types that carry a security (BUY, SELL, DIVIDEND,
+  // DELIVERY_INBOUND, DELIVERY_OUTBOUND, SECURITY_TRANSFER, …). Cash-only
+  // types have security IS NULL and are correctly excluded by the WHERE clause.
+  // Lifetime scope is intentional: a fully-sold security has history → stays
+  // visible. Only instruments with zero transaction rows of any kind are hidden.
+  let tradedSet: Set<string> | null = null;
+  if (tradedOnly) {
+    const txRows = sqlite
+      .prepare('SELECT DISTINCT security FROM xact WHERE security IS NOT NULL')
+      .all() as { security: string }[];
+    tradedSet = new Set(txRows.map(r => r.security));
+  }
+
+  // Filter securities. Two independent predicates, both must pass:
+  //   1. Retired filter (BUG-26 / BUG-PRE14-09): hide fully-closed retired
+  //      positions unless includeRetired=true or shares are still held.
+  //   2. Traded-only filter (Investments): hide never-transacted watchlist
+  //      instruments when tradedOnly=true.
+  const filteredRows = rows.filter(r => {
+    const heldNow = netSharesMap.get(r.id)?.gt(0) ?? false;
+    if (!includeRetired && r.isRetired && !heldNow) return false;
+    if (tradedSet && !tradedSet.has(r.id)) return false;
+    return true;
+  });
 
   // Batch-fetch last historical close per security
   const secIds = filteredRows.map(r => r.id);

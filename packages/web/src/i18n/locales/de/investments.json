@@ -61,7 +61,14 @@
   },
   "filter": {
     "showingAccount": "Positionen für {{name}}",
-    "clearFilter": "Alle anzeigen"
+    "clearFilter": "Alle anzeigen",
+    "button": "Filter"
+  },
+  "holdings": {
+    "label": "Bestand",
+    "all": "Alle",
+    "held": "Bestand ≠ 0",
+    "exited": "Bestand = 0"
   },
   "search": {
     "placeholder": "Nach Name, ISIN oder Ticker suchen…",
@@ -75,7 +82,10 @@
     "title": "Noch keine Wertpapiere",
     "description": "Fügen Sie Ihr erstes Wertpapier hinzu",
     "noMatches": "Keine Wertpapiere in diesem Konto",
-    "noMatchesHint": "Passen Sie den Kontofilter an, um andere Positionen zu sehen."
+    "noMatchesHint": "Passen Sie den Kontofilter an, um andere Positionen zu sehen.",
+    "noHeld": "Keine offenen Positionen",
+    "noExited": "Keine geschlossenen Positionen",
+    "holdingsHint": "Setze den Positionsfilter zurück, um alle gehandelten Wertpapiere zu sehen."
   },
   "unresolvedFx_one": "{{count}} Wertpapier von Summen ausgeschlossen — fehlender Wechselkurs. Klicken, um einen Kurs hinzuzufügen.",
   "unresolvedFx_other": "{{count}} Wertpapiere von Summen ausgeschlossen — fehlender Wechselkurs. Klicken, um einen Kurs hinzuzufügen.",

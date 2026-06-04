@@ -61,7 +61,14 @@
   },
   "filter": {
     "showingAccount": "Positions pour {{name}}",
-    "clearFilter": "Tout afficher"
+    "clearFilter": "Tout afficher",
+    "button": "Filtre"
+  },
+  "holdings": {
+    "label": "Positions",
+    "all": "Toutes",
+    "held": "Parts détenues ≠ 0",
+    "exited": "Parts détenues = 0"
   },
   "search": {
     "placeholder": "Rechercher par nom, ISIN ou ticker…",
@@ -75,7 +82,10 @@
     "title": "Aucun titre",
     "description": "Ajoutez votre premier titre pour commencer",
     "noMatches": "Aucun titre dans ce compte",
-    "noMatchesHint": "Modifiez le filtre de compte pour voir d'autres positions."
+    "noMatchesHint": "Modifiez le filtre de compte pour voir d'autres positions.",
+    "noHeld": "Aucune position ouverte",
+    "noExited": "Aucune position clôturée",
+    "holdingsHint": "Réinitialisez le filtre de positions pour voir tous les titres négociés."
   },
   "unresolvedFx_one": "{{count}} titre exclu des totaux — taux de change manquant. Cliquez pour ajouter un taux.",
   "unresolvedFx_other": "{{count}} titres exclus des totaux — taux de change manquant. Cliquez pour ajouter un taux.",

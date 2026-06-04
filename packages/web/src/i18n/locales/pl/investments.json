@@ -61,7 +61,14 @@
   },
   "filter": {
     "showingAccount": "Pozycje dla {{name}}",
-    "clearFilter": "Pokaż wszystkie"
+    "clearFilter": "Pokaż wszystkie",
+    "button": "Filtr"
+  },
+  "holdings": {
+    "label": "Pozycje",
+    "all": "Wszystkie",
+    "held": "Udziały ≠ 0",
+    "exited": "Udziały = 0"
   },
   "search": {
     "placeholder": "Szukaj po nazwie, ISIN lub ticker…",
@@ -75,7 +82,10 @@
     "title": "Brak walorów",
     "description": "Dodaj swój pierwszy walor, aby rozpocząć",
     "noMatches": "Brak walorów na tym koncie",
-    "noMatchesHint": "Dostosuj filtr konta, aby zobaczyć inne pozycje."
+    "noMatchesHint": "Dostosuj filtr konta, aby zobaczyć inne pozycje.",
+    "noHeld": "Brak otwartych pozycji",
+    "noExited": "Brak zamkniętych pozycji",
+    "holdingsHint": "Wyczyść filtr pozycji, aby zobaczyć wszystkie instrumenty będące przedmiotem obrotu."
   },
   "unresolvedFx_one": "{{count}} walor wykluczony z sum — brak kursu wymiany. Kliknij, aby dodać kurs.",
   "unresolvedFx_few": "{{count}} walory wykluczone z sum — brak kursu wymiany. Kliknij, aby dodać kurs.",

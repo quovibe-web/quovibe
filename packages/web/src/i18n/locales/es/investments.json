@@ -61,7 +61,14 @@
   },
   "filter": {
     "showingAccount": "Mostrando posiciones de {{name}}",
-    "clearFilter": "Mostrar todos"
+    "clearFilter": "Mostrar todos",
+    "button": "Filtro"
+  },
+  "holdings": {
+    "label": "Posiciones",
+    "all": "Todas",
+    "held": "Participaciones ≠ 0",
+    "exited": "Participaciones = 0"
   },
   "search": {
     "placeholder": "Buscar por nombre, ISIN o ticker…",
@@ -75,7 +82,10 @@
     "title": "Sin valores",
     "description": "Añade tu primer valor para empezar",
     "noMatches": "Sin valores en esta cuenta",
-    "noMatchesHint": "Ajusta el filtro de cuenta para ver otras posiciones."
+    "noMatchesHint": "Ajusta el filtro de cuenta para ver otras posiciones.",
+    "noHeld": "Sin posiciones abiertas",
+    "noExited": "Sin posiciones cerradas",
+    "holdingsHint": "Quita el filtro de posiciones para ver todos los valores negociados."
   },
   "unresolvedFx_one": "{{count}} valor excluido de los totales — falta el tipo de cambio. Haz clic para añadir un tipo.",
   "unresolvedFx_other": "{{count}} valores excluidos de los totales — falta el tipo de cambio. Haz clic para añadir un tipo.",

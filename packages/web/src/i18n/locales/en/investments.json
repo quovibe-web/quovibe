@@ -61,7 +61,14 @@
   },
   "filter": {
     "showingAccount": "Showing holdings for {{name}}",
-    "clearFilter": "Show all"
+    "clearFilter": "Show all",
+    "button": "Filter"
+  },
+  "holdings": {
+    "label": "Holdings",
+    "all": "All",
+    "held": "Shares held ≠ 0",
+    "exited": "Shares held = 0"
   },
   "search": {
     "placeholder": "Search by name, ISIN, or ticker…",
@@ -75,7 +82,10 @@
     "title": "No securities yet",
     "description": "Add your first security to get started",
     "noMatches": "No securities in this account",
-    "noMatchesHint": "Adjust the account filter to see other holdings."
+    "noMatchesHint": "Adjust the account filter to see other holdings.",
+    "noHeld": "No open positions",
+    "noExited": "No closed positions",
+    "holdingsHint": "Clear the holdings filter to see every traded security."
   },
   "unresolvedFx_one": "{{count}} security excluded from totals — missing FX rate. Click to add a rate.",
   "unresolvedFx_other": "{{count}} securities excluded from totals — missing FX rate. Click to add a rate.",

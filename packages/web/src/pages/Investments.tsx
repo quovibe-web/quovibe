@@ -4,7 +4,7 @@ import type { VisibilityState } from '@tanstack/react-table';
 import type { TableLayoutEntry } from '@quovibe/shared';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Briefcase, Filter, Search, X } from 'lucide-react';
+import { Briefcase, ChevronDown, Filter, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/shared/DataTable';
 import { TableToolbar } from '@/components/shared/TableToolbar';
@@ -30,7 +30,16 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuCheckboxItem,
+} from '@/components/ui/dropdown-menu';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useSecurities, useFetchAllPrices, useDeleteSecurity } from '@/api/use-securities';
@@ -53,6 +62,7 @@ import {
 } from '@/hooks/useColumnVisibility';
 import { formatPercentage } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
+import { filterByHoldings, type HoldingsFilter } from '@/lib/holdings-filter';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { computeUnresolvedBadge } from '@/lib/investments-base-rollup';
 import { UnresolvedFxModal, type AffectedSecurity } from '@/components/domain/UnresolvedFxModal';
@@ -241,12 +251,14 @@ export default function Investments() {
   const needsPerf = (PERF_COLUMNS as readonly string[]).some(c => currentVis[c] !== false);
   const needsStatement = (STATEMENT_COLUMNS as readonly string[]).some(c => currentVis[c] !== false) || !needsPerf;
 
-  // Persist chartMode and showRetired to sidecar
+  // Persist chartMode, showRetired, holdingsFilter to sidecar
   const chartMode = savedView?.chartMode ?? 'pie';
   const showRetired = savedView?.showRetired ?? false;
+  const holdingsMode: HoldingsFilter = savedView?.holdingsFilter ?? 'all';
 
   const setChartMode = (mode: 'pie' | 'treemap' | 'off') => saveView({ chartMode: mode });
   const setShowRetired = (val: boolean) => saveView({ showRetired: val });
+  const setHoldingsMode = (mode: HoldingsFilter) => saveView({ holdingsFilter: mode });
 
   // Local UI state
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -264,7 +276,7 @@ export default function Investments() {
   // period end but exited since "now" disappears from the table while still
   // appearing in the period-scoped treemap and SoA totals (mismatched count
   // + market-value footer).
-  const { data: securities = [], isLoading: secLoading, isFetching } = useSecurities(showRetired, periodEnd);
+  const { data: securities = [], isLoading: secLoading, isFetching } = useSecurities(showRetired, periodEnd, true);
   const { data: statement, isLoading: stmtLoading } = useStatementOfAssets(periodEnd, { enabled: needsStatement });
   // Always fetch perf data: the security drawer needs it regardless of which table columns are visible
   const { data: perfData, isLoading: perfLoading } = usePerformanceSecurities({ periodStart, periodEnd });
@@ -287,18 +299,27 @@ export default function Investments() {
     return securities.filter(s => heldIds.has(s.id));
   }, [securities, accountFilterId, filterHoldings]);
 
+  // Holdings quick-filter (all / held / exited) — client-side slice on shares.
+  // Sits between the account filter and the search filter so the table, count,
+  // totals, and empty-state all follow. The summary strip stays on
+  // accountFiltered (it describes the portfolio, not the table filter — BUG-24).
+  const holdingsFiltered = useMemo(
+    () => filterByHoldings(accountFiltered, holdingsMode),
+    [accountFiltered, holdingsMode],
+  );
+
   const trimmedSearchQuery = searchQuery.trim();
 
   // Client-side search filter (name, ISIN, ticker)
   const filteredSecurities = useMemo(() => {
     const q = trimmedSearchQuery.toLowerCase();
-    if (!q) return accountFiltered;
-    return accountFiltered.filter(s =>
+    if (!q) return holdingsFiltered;
+    return holdingsFiltered.filter(s =>
       s.name.toLowerCase().includes(q) ||
       (s.isin && s.isin.toLowerCase().includes(q)) ||
       (s.ticker && s.ticker.toLowerCase().includes(q))
     );
-  }, [accountFiltered, trimmedSearchQuery]);
+  }, [holdingsFiltered, trimmedSearchQuery]);
 
   // Derived data
   const statementMap = useMemo(() => {
@@ -571,17 +592,46 @@ export default function Investments() {
         </div>
       )}
 
-      {/* Toolbar: search + show retired */}
+      {/* Toolbar: search + consolidated filter menu (holdings + retired) */}
       {!isEmptyPortfolio && (
         <TableToolbar
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           searchPlaceholder={t('search.placeholder')}
         >
-          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-            <Checkbox checked={showRetired} onCheckedChange={(v) => setShowRetired(v === true)} />
-            {t('showRetired')}
-          </label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                <Filter className="h-3.5 w-3.5" />
+                {t('filter.button')}
+                {(holdingsMode !== 'all' || showRetired) && (
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]"
+                    aria-hidden="true"
+                  />
+                )}
+                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-44">
+              <DropdownMenuLabel>{t('holdings.label')}</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={holdingsMode}
+                onValueChange={(v) => setHoldingsMode(v as HoldingsFilter)}
+              >
+                <DropdownMenuRadioItem value="all">{t('holdings.all')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="held">{t('holdings.held')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="exited">{t('holdings.exited')}</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={showRetired}
+                onCheckedChange={(v) => setShowRetired(v === true)}
+              >
+                {t('showRetired')}
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </TableToolbar>
       )}
 
@@ -599,6 +649,12 @@ export default function Investments() {
             icon={Search}
             title={t('search.noResults', { query: trimmedSearchQuery })}
             description={t('search.noResultsHint')}
+          />
+        ) : holdingsMode !== 'all' ? (
+          <EmptyState
+            icon={Briefcase}
+            title={holdingsMode === 'held' ? t('empty.noHeld') : t('empty.noExited')}
+            description={t('empty.holdingsHint')}
           />
         ) : (
           <EmptyState

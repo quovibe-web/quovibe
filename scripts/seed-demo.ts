@@ -236,6 +236,17 @@ const TSLA = sec(
   'Speculative single-stock position — review quarterly.',
 );
 
+// Fully-exited positions — exercise the Investments holdings filter
+// ("Shares held = 0") and the "Show retired" toggle against TRADED securities.
+// Watchlist-only ZETH never appears on Investments (tradedOnly hides
+// never-transacted instruments), so it cannot demonstrate the retired toggle
+// there. Both below are bought then fully sold (net shares 0). ZAL stays
+// active (sold out, still tracked). O2D is retired/archived so it surfaces
+// only when "Show retired" is on — securities.ts hides a retired row only
+// while net shares are 0, so a still-held retired row would never toggle.
+const ZAL = sec('Zalando SE', 'ZAL.DE', 'DE000ZAL1111', 'ZAL.DE', 30, 0.05, 0.018, IB_SEC_ID, IB_CASH_ID, false, 'EUR', 'Exited — rotated out of e-commerce, kept on watch for re-entry.');
+const O2D = sec('Telefónica Deutschland', 'O2D.DE', 'DE000A1J5RX9', 'O2D.DE', 2.40, -0.05, 0.015, SC_SEC_ID, SC_CASH_ID, true, 'EUR', 'Closed after Telefónica squeeze-out — archived.');
+
 // Watchlist-only (6)
 const NOVO = sec('Novo Nordisk', 'NOVO-B.CO', 'DK0062498333', 'NOVO-B.CO', 780, 0.10, 0.018, null, null);
 const TSM = sec('Taiwan Semiconductor', 'TSM.DE', 'US8740391003', 'TSM.DE', 140, 0.25, 0.020, null, null);
@@ -248,6 +259,7 @@ const ALL_SECURITIES: SecurityDef[] = [
   VWCE, IWDA, SXR8, EIMI, XBLC, AAPL, ASML, SAP_SEC,
   MSFT, NVDA, MC, ALV, IQQH, CJ1, DTE,
   TSLA,
+  ZAL, O2D,
   NOVO, TSM, GOOGL, AMZN, BTCE, ZETH
 ];
 
@@ -566,6 +578,24 @@ db.transaction(() => {
 })();
 
 console.log('[SELLs] 5 sell orders + 1 rebuy (12 xact rows + 6 cross entries)');
+
+// ---------------------------------------------------------------------------
+// 8b. Fully-exited positions (BUY + full SELL → net shares 0)
+// ZAL: active, surfaces under "Shares held = 0". O2D: retired, hidden by
+// default and revealed by the "Show retired" toggle. Cash nets ~flat (buy
+// then sell), so the non-negative-balance invariant below stays satisfied.
+// ---------------------------------------------------------------------------
+db.transaction(() => {
+  // ZAL — bought then fully sold; security stays active.
+  insertBuy(IB_SEC_ID, IB_CASH_ID, ZAL, '2024-03-05', 50, 'Initial e-commerce position');
+  insertSell(IB_SEC_ID, IB_CASH_ID, ZAL, '2025-04-10', 50, 2.95, 0, 'Full exit — rotated out of e-commerce');
+
+  // O2D — bought then fully sold; security is archived (isRetired=1).
+  insertBuy(SC_SEC_ID, SC_CASH_ID, O2D, '2024-02-12', 1000, 'Telefónica DE position');
+  insertSell(SC_SEC_ID, SC_CASH_ID, O2D, '2025-01-20', 1000, 2.95, 0, 'Closed after squeeze-out — archived');
+})();
+
+console.log('[Exited] 2 fully-exited securities (ZAL active, O2D retired) — 4 orders');
 
 // ---------------------------------------------------------------------------
 // 9. Transactions — Dividends

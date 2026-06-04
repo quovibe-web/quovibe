@@ -107,6 +107,7 @@ export type Dashboard = z.infer<typeof dashboardSchema>;
 export const investmentsViewSchema = z.object({
   chartMode: z.enum(['pie', 'treemap', 'off']).default('pie'),
   showRetired: z.boolean().default(false),
+  holdingsFilter: z.enum(['all', 'held', 'exited']).default('all'),
   columns: z.union([
     z.array(z.string()),
     z.record(

@@ -5,8 +5,8 @@ import type { SecurityListItem, SecurityDetailResponse, TestFetchResponse, Fetch
 import { taxonomyKeys } from './use-taxonomies';
 
 export const securitiesKeys = {
-  all: (pid: string, includeRetired = false, asOf?: string) =>
-    ['portfolios', pid, 'securities', { includeRetired, asOf: asOf ?? null }] as const,
+  all: (pid: string, includeRetired = false, asOf?: string, tradedOnly = false) =>
+    ['portfolios', pid, 'securities', { includeRetired, asOf: asOf ?? null, tradedOnly }] as const,
   detail: (pid: string, id: string) =>
     ['portfolios', pid, 'securities', id] as const,
   search: (pid: string, query: string) =>
@@ -15,14 +15,15 @@ export const securitiesKeys = {
     ['portfolios', pid, 'securities', 'preview', ticker, startDate] as const,
 };
 
-export function useSecurities(includeRetired = false, asOf?: string) {
+export function useSecurities(includeRetired = false, asOf?: string, tradedOnly = false) {
   const api = useScopedApi();
   return useQuery({
-    queryKey: securitiesKeys.all(api.portfolioId, includeRetired, asOf),
+    queryKey: securitiesKeys.all(api.portfolioId, includeRetired, asOf, tradedOnly),
     queryFn: () => {
       const params = new URLSearchParams();
       if (includeRetired) params.set('includeRetired', 'true');
       if (asOf) params.set('asOf', asOf);
+      if (tradedOnly) params.set('tradedOnly', 'true');
       const qs = params.toString();
       return api.fetch<{ data: SecurityListItem[] }>(
         `/api/securities${qs ? `?${qs}` : ''}`,

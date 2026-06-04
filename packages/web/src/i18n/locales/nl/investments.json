@@ -61,7 +61,14 @@
   },
   "filter": {
     "showingAccount": "Posities voor {{name}}",
-    "clearFilter": "Alles tonen"
+    "clearFilter": "Alles tonen",
+    "button": "Filter"
+  },
+  "holdings": {
+    "label": "Posities",
+    "all": "Alle",
+    "held": "Aandelen ≠ 0",
+    "exited": "Aandelen = 0"
   },
   "search": {
     "placeholder": "Zoeken op naam, ISIN of ticker…",
@@ -75,7 +82,10 @@
     "title": "Nog geen effecten",
     "description": "Voeg uw eerste effect toe om te beginnen",
     "noMatches": "Geen effecten in deze rekening",
-    "noMatchesHint": "Pas het rekeningfilter aan om andere posities te zien."
+    "noMatchesHint": "Pas het rekeningfilter aan om andere posities te zien.",
+    "noHeld": "Geen open posities",
+    "noExited": "Geen gesloten posities",
+    "holdingsHint": "Wis het positiefilter om alle verhandelde effecten te zien."
   },
   "unresolvedFx_one": "{{count}} effect uitgesloten van totalen — wisselkoers ontbreekt. Klik om een koers toe te voegen.",
   "unresolvedFx_other": "{{count}} effecten uitgesloten van totalen — wisselkoers ontbreekt. Klik om een koers toe te voegen.",
