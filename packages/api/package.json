@@ -7,6 +7,7 @@
   "scripts": {
     "build": "tsc && node -e \"require('fs').mkdirSync('dist/db',{recursive:true});require('fs').copyFileSync('src/db/bootstrap.sql','dist/db/bootstrap.sql')\"",
     "dev": "nodemon --watch src --ext ts,json --exec \"node_modules/.bin/tsx src/index.ts\"",
+    "typecheck": "tsc --noEmit",
     "test": "vitest"
   },
   "dependencies": {

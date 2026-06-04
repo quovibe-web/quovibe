@@ -27,9 +27,9 @@ function makeLazySectionState(_rootMargin = '200px') {
   };
 
   // Simulate the useEffect inside LazySection — use a regular function so it can be called with `new`
-  function MockIO(cb: IOCallback) {
+  function MockIO(this: object, cb: IOCallback) {
     observeCallback = cb;
-    Object.assign(this as object, obs);
+    Object.assign(this, obs);
   }
 
   // Start observation (simulates mounting)

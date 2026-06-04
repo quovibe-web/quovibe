@@ -12,11 +12,11 @@
     "check:arch": "tsx scripts/check-architecture.ts",
     "check:bootstrap": "bash packages/api/scripts/check-bootstrap-fresh.sh",
     "regen-bootstrap": "bash packages/api/scripts/regen-bootstrap.sh",
-    "check:all": "pnpm build && pnpm test && pnpm lint:engine && pnpm check:governance && pnpm check:arch && pnpm check:bootstrap",
+    "check:all": "pnpm build && pnpm typecheck && pnpm test && pnpm lint:engine && pnpm check:governance && pnpm check:arch && pnpm check:bootstrap",
     "preflight": "bash scripts/preflight.sh",
     "postflight": "bash scripts/postflight.sh",
     "changelog:draft": "bash scripts/generate-changelog-entry.sh",
-    "typecheck": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
     "test:e2e": "pnpm --filter @quovibe/e2e exec playwright test",
     "ci": "bash scripts/ci.sh",
     "ci:full": "bash scripts/ci.sh --e2e"

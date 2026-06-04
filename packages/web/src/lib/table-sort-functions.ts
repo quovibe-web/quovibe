@@ -18,7 +18,16 @@
  * - asc + a is null → return +1 (after TanStack: +1 → null last) ✓
  * - desc + a is null → return -1 (after TanStack: -(-1) = +1 → null last) ✓
  */
-import type { SortingFn } from '@tanstack/react-table';
+import type { Row } from '@tanstack/react-table';
+
+/**
+ * Generic TanStack comparator signature. A generic-function value typed this way
+ * instantiates to any `SortingFn<TData>` the column-def spread target needs, so
+ * a single comparator can back columns of any row type without per-call-site
+ * generics. (TanStack's own `SortingFn<TData>` is invariant in `TData` and can't
+ * be reused across row types.)
+ */
+export type SortFn = <TData>(rowA: Row<TData>, rowB: Row<TData>, columnId: string) => number;
 
 // ---------------------------------------------------------------------------
 // Direction detection helper
@@ -125,7 +134,7 @@ export function toDecimalValue(v: unknown): { comparedTo: (other: unknown) => nu
  * Handles `0` correctly (zero is a valid value, NOT null).
  * Handles negative numbers. Accepts raw numbers or string-encoded numbers.
  */
-export const sortNumeric: SortingFn<unknown> = (rowA, rowB, columnId) => {
+export const sortNumeric: SortFn = (rowA, rowB, columnId) => {
   const a = toNumber(rowA.getValue(columnId));
   const b = toNumber(rowB.getValue(columnId));
   const aNaN = Number.isNaN(a);
@@ -147,7 +156,7 @@ export const sortNumeric: SortingFn<unknown> = (rowA, rowB, columnId) => {
  * timestamps. `null`, `undefined`, and invalid dates → always last.
  * Uses getTime() for comparison (not string comparison).
  */
-export const sortDate: SortingFn<unknown> = (rowA, rowB, columnId) => {
+export const sortDate: SortFn = (rowA, rowB, columnId) => {
   const a = toTimestamp(rowA.getValue(columnId));
   const b = toTimestamp(rowB.getValue(columnId));
   const aNull = a === null;
@@ -169,7 +178,7 @@ export const sortDate: SortingFn<unknown> = (rowA, rowB, columnId) => {
  * `null`, `undefined`, and empty/whitespace-only strings → always last.
  * Trims whitespace before comparison.
  */
-export const sortString: SortingFn<unknown> = (rowA, rowB, columnId) => {
+export const sortString: SortFn = (rowA, rowB, columnId) => {
   const a = toSortableString(rowA.getValue(columnId));
   const b = toSortableString(rowB.getValue(columnId));
   const aNull = a === null;
@@ -190,7 +199,7 @@ export const sortString: SortingFn<unknown> = (rowA, rowB, columnId) => {
  * `true` sorts before `false` in ascending order.
  * `null`, `undefined` → always last.
  */
-export const sortBoolean: SortingFn<unknown> = (rowA, rowB, columnId) => {
+export const sortBoolean: SortFn = (rowA, rowB, columnId) => {
   const a = toBoolValue(rowA.getValue(columnId));
   const b = toBoolValue(rowB.getValue(columnId));
   const aNull = a === null;
@@ -211,7 +220,7 @@ export const sortBoolean: SortingFn<unknown> = (rowA, rowB, columnId) => {
  * Uses `.comparedTo()` method for comparison. Handles `null`, `undefined`,
  * and Decimal NaN → always last. Uses duck typing (no direct decimal.js import).
  */
-export const sortDecimalJs: SortingFn<unknown> = (rowA, rowB, columnId) => {
+export const sortDecimalJs: SortFn = (rowA, rowB, columnId) => {
   const a = toDecimalValue(rowA.getValue(columnId));
   const b = toDecimalValue(rowB.getValue(columnId));
   const aNull = a === null;

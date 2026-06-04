@@ -78,7 +78,7 @@ function sortArray<T>(
   }));
 
   rows.sort((a, b) => {
-    const result = sortFn(a, b, columnId);
+    const result = sortFn(a as unknown as Row<unknown>, b as unknown as Row<unknown>, columnId);
     // TanStack negates for desc
     return dir === 'desc' ? -result : result;
   });

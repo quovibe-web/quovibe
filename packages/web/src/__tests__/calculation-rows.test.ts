@@ -19,6 +19,9 @@ describe('CALCULATION_ROWS', () => {
 
   test('sum of rows 2-8 equals finalValue - initialValue on fixture', () => {
     const fixture: CalculationBreakdownResponse = {
+      baseCurrency: 'EUR',
+      unresolvedCount: 0,
+      unresolvedSecurityIds: [],
       initialValue: '10000',
       capitalGains: { unrealized: '500', realized: '200', foreignCurrencyGains: '50', total: '550', items: [] },
       realizedGains: { total: '200', items: [] },
@@ -37,6 +40,13 @@ describe('CALCULATION_ROWS', () => {
       maxDrawdown: '0.05', currentDrawdown: '0.02', maxDrawdownPeakDate: null, maxDrawdownTroughDate: null, maxDrawdownDuration: 0,
       lastDayAbsoluteChange: '10', lastDayDeltaValue: '10',
       lastDayDelta: '0.001', lastDayAbsolutePerformance: '10',
+      volatility: null, semivariance: null, sharpeRatio: null,
+      openPositionPnL: { value: '0', percentage: '0', cost: '0', marketValue: '0', fifo: { value: '0', percentage: '0', cost: '0' } },
+      realizedCapitalBase: '0',
+      realizedFxBase: '0',
+      unrealizedCapitalBase: '0',
+      unrealizedFxBase: '0',
+      dividendFxBase: '0',
     };
 
     // capitalGains.total = unrealized + FX (no realized)

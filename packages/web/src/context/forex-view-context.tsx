@@ -24,12 +24,14 @@ export function ForexViewProvider({ children }: { children: ReactNode }) {
   const updateMut = useUpdatePreferences();
   const state: Partial<ForexView> = preferences?.forexView ?? {};
 
-  // Send only the forexView partial — PUT /api/settings/preferences accepts
-  // a partial merge, so the entire preferences blob is not needed on the wire.
+  // Send only the forexView object (not the entire preferences blob — PUT
+  // /api/settings/preferences accepts a partial merge). DEFAULTS is spread
+  // first so every surface is populated: the wire type requires a full
+  // ForexView, and unset surfaces resolve to their documented default.
   const ctx: ForexViewCtx = {
     state,
     setView: (surface, view) => {
-      updateMut.mutate({ forexView: { ...state, [surface]: view } });
+      updateMut.mutate({ forexView: { ...DEFAULTS, ...state, [surface]: view } });
     },
   };
 

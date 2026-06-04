@@ -9,6 +9,8 @@ import type { CalculationBreakdownResponse } from '@quovibe/shared';
 function makeFixture(overrides: Partial<CalculationBreakdownResponse> = {}): CalculationBreakdownResponse {
   return {
     baseCurrency: 'EUR',
+    unresolvedCount: 0,
+    unresolvedSecurityIds: [],
     initialValue: '100000',
     capitalGains: { unrealized: '12000', realized: '4000', foreignCurrencyGains: '200', total: '16200', items: [] },
     realizedGains: { total: '4000', items: [] },
@@ -24,6 +26,11 @@ function makeFixture(overrides: Partial<CalculationBreakdownResponse> = {}): Cal
     volatility: null, semivariance: null, sharpeRatio: null,
     lastDayAbsoluteChange: '0', lastDayDeltaValue: '0', lastDayDelta: '0', lastDayAbsolutePerformance: '0',
     openPositionPnL: { value: '0', percentage: '0', cost: '0', marketValue: '0', fifo: { value: '0', percentage: '0', cost: '0' } },
+    realizedCapitalBase: '0',
+    realizedFxBase: '0',
+    unrealizedCapitalBase: '0',
+    unrealizedFxBase: '0',
+    dividendFxBase: '0',
     ...overrides,
   };
 }

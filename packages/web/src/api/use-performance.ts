@@ -67,7 +67,7 @@ export const performanceKeys = {
 
 export function useCalculation(
   preTax = true,
-  costMethod = CostMethod.MOVING_AVERAGE,
+  costMethod: CostMethod = CostMethod.MOVING_AVERAGE,
   periodStartOverride?: string,
   periodEndOverride?: string,
   filter?: string,
