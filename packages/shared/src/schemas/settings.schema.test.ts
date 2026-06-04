@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculationViewSchema, forexViewSchema, quovibeSettingsSchema, DEFAULT_SETTINGS, fiscalYearSchema, preferencesSchema } from './settings.schema';
+import { calculationViewSchema, forexViewSchema, quovibeSettingsSchema, DEFAULT_SETTINGS, fiscalYearSchema, preferencesSchema, investmentsViewSchema } from './settings.schema';
 
 describe('calculationViewSchema', () => {
   it('defaults to premium layout and comfortable density', () => {
@@ -98,5 +98,24 @@ describe('fiscalYearSchema', () => {
 
   it('rejects invalid numbering value', () => {
     expect(() => fiscalYearSchema.parse({ numbering: 'calendarYear' })).toThrow();
+  });
+});
+
+describe('investmentsViewSchema holdingsFilter', () => {
+  it('defaults holdingsFilter to all', () => {
+    expect(investmentsViewSchema.parse({}).holdingsFilter).toBe('all');
+  });
+
+  it('accepts held and exited', () => {
+    expect(investmentsViewSchema.parse({ holdingsFilter: 'held' }).holdingsFilter).toBe('held');
+    expect(investmentsViewSchema.parse({ holdingsFilter: 'exited' }).holdingsFilter).toBe('exited');
+  });
+
+  it('rejects an unknown holdingsFilter value', () => {
+    expect(() => investmentsViewSchema.parse({ holdingsFilter: 'sold' })).toThrow();
+  });
+
+  it('is wired into DEFAULT_SETTINGS', () => {
+    expect(DEFAULT_SETTINGS.investmentsView.holdingsFilter).toBe('all');
   });
 });

@@ -106,7 +106,7 @@ settingsRouter.delete('/reporting-periods/:index', deleteReportingPeriod);
 // GET /api/settings/investments-view
 settingsRouter.get('/investments-view', (_req, res) => {
   const { investmentsView } = getSettings();
-  res.json(investmentsView ?? { chartMode: 'pie', showRetired: false, columns: {} });
+  res.json(investmentsView ?? { chartMode: 'pie', showRetired: false, holdingsFilter: 'all', columns: {} });
 });
 
 // PUT /api/settings/investments-view
