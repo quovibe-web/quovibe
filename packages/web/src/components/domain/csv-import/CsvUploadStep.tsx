@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useParseCsvTrades, useReparseCsvTrades, useCsvConfigs } from '@/api/use-csv-import';
@@ -209,7 +208,7 @@ export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
                   <SelectContent>
                     {csvDelimiters.map((d) => (
                       <SelectItem key={d} value={d}>
-                        {d === '\t' ? 'Tab' : d === '|' ? 'Pipe' : d}
+                        {d === '\t' ? t('upload.delimiterTab') : d === '|' ? t('upload.delimiterPipe') : d}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -251,17 +250,6 @@ export function CsvUploadStep({ state, onUpdate, onNext }: Props) {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div>
-              <Label>{t('upload.skipLines')}</Label>
-              <Input
-                type="number"
-                min={0}
-                defaultValue={0}
-                onChange={(_e) => {/* skipLines control — handled on re-parse */}}
-                className="w-24"
-              />
             </div>
 
             {reparseError && (
