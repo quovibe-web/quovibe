@@ -264,7 +264,7 @@ export default function Investments() {
   // period end but exited since "now" disappears from the table while still
   // appearing in the period-scoped treemap and SoA totals (mismatched count
   // + market-value footer).
-  const { data: securities = [], isLoading: secLoading, isFetching } = useSecurities(showRetired, periodEnd);
+  const { data: securities = [], isLoading: secLoading, isFetching } = useSecurities(showRetired, periodEnd, true);
   const { data: statement, isLoading: stmtLoading } = useStatementOfAssets(periodEnd, { enabled: needsStatement });
   // Always fetch perf data: the security drawer needs it regardless of which table columns are visible
   const { data: perfData, isLoading: perfLoading } = usePerformanceSecurities({ periodStart, periodEnd });
