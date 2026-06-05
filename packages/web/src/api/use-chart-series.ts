@@ -33,7 +33,7 @@ export interface ResolvedSeries {
 
 export function resolveSeriesStatus(q: {
   isLoading: boolean;
-  data: unknown[] | undefined;
+  data: readonly unknown[] | undefined;
   error: Error | null;
 }): ResolvedSeries['status'] {
   if (q.error) return 'error';

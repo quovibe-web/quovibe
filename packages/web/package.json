@@ -8,6 +8,7 @@
     "build": "vite build",
     "dev": "vite",
     "test": "vitest",
+    "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test"
   },
   "dependencies": {

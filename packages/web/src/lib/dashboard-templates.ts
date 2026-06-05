@@ -1,5 +1,5 @@
 import { TrendingUp, Shield, Banknote, LayoutGrid, type LucideIcon } from 'lucide-react';
-import { getWidgetDef } from './widget-registry';
+import { getWidgetDef, type WidgetDef } from './widget-registry';
 import { nanoid } from 'nanoid';
 import type { DashboardWidget } from '@quovibe/shared';
 
@@ -42,19 +42,24 @@ export const DASHBOARD_TEMPLATES: DashboardTemplate[] = [
   },
 ];
 
+/** Build a fresh DashboardWidget from a widget type + its registry def (visible by default). */
+export function createDashboardWidget(type: string, def: WidgetDef): DashboardWidget {
+  return {
+    id: nanoid(),
+    type,
+    title: null,
+    span: def.defaultSpan,
+    config: structuredClone(def.defaultConfig),
+    hidden: false,
+  };
+}
+
 /** Generate a DashboardWidget array from a template, with fresh IDs and registry defaults */
 export function applyTemplate(template: DashboardTemplate): DashboardWidget[] {
   return template.widgetTypes
-    .map((type) => {
+    .map((type): DashboardWidget | null => {
       const def = getWidgetDef(type);
-      if (!def) return null;
-      return {
-        id: nanoid(),
-        type,
-        title: null,
-        span: def.defaultSpan,
-        config: structuredClone(def.defaultConfig),
-      } satisfies DashboardWidget;
+      return def ? createDashboardWidget(type, def) : null;
     })
     .filter((w): w is DashboardWidget => w !== null);
 }

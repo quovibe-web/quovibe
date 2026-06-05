@@ -5,7 +5,7 @@ import { useWidgetConfig } from '@/context/widget-config-context';
 import { useCalculation, useReportingPeriod } from '@/api/use-performance';
 import { usePortfolioRegistry } from '@/api/use-portfolios';
 import { CALCULATION_ROWS } from '@/lib/calculation-rows';
-import type { RowDef } from '@/lib/calculation-rows';
+import type { RowDef, RowItem } from '@/lib/calculation-rows';
 import { buildCalculationCsv, downloadCalculationCsv, slugifyFilename } from '@/lib/analytics-export';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { MetricCardSkeleton } from '@/components/shared/MetricCardSkeleton';
@@ -373,7 +373,7 @@ function FullRowHeader({ row, total, isExpandable, isExpanded, onToggle }: FullR
 
 interface ExpandedTableProps {
   rowKey: string;
-  items: { label: string; amount: string; subLabel?: string }[];
+  items: RowItem[];
   data: CalculationBreakdownResponse;
   negate?: boolean;
 }

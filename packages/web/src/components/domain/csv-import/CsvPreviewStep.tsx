@@ -26,7 +26,6 @@ const ROW_ERROR_I18N: Partial<Record<CsvErrorCode, string>> = {
   INVALID_PRICE: 'errors.invalidPrice',
   MISSING_SECURITY: 'errors.missingSecurity',
   MISSING_SHARES: 'errors.missingShares',
-  MISSING_CROSS_ACCOUNT: 'errors.missingCrossAccount',
   FX_RATE_REQUIRED: 'errors.fxRateRequired',
   INVALID_FX_RATE: 'errors.invalidFxRate',
   FX_VERIFICATION_FAILED: 'errors.fxVerificationFailed',

@@ -63,9 +63,8 @@ import { useTransactions } from '@/api/use-transactions';
 import { DashboardEmptyState } from '@/components/domain/DashboardEmptyState';
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { appendSearch } from '@/lib/router-helpers';
-import { nanoid } from 'nanoid';
 import { getWidgetDef, CHART_WIDGET_TYPES } from '@/lib/widget-registry';
-import { DASHBOARD_TEMPLATES, applyTemplate, type DashboardTemplate } from '@/lib/dashboard-templates';
+import { DASHBOARD_TEMPLATES, applyTemplate, createDashboardWidget, type DashboardTemplate } from '@/lib/dashboard-templates';
 import { useAccounts } from '@/api/use-accounts';
 import { useTaxonomies } from '@/api/use-taxonomies';
 import { useSecurities } from '@/api/use-securities';
@@ -560,16 +559,7 @@ export default function Dashboard() {
   function addWidget(type: string) {
     const def = getWidgetDef(type);
     if (!def) return;
-    patchActiveWidgets((widgets) => [
-      ...widgets,
-      {
-        id: nanoid(),
-        type,
-        title: null,
-        span: def.defaultSpan,
-        config: structuredClone(def.defaultConfig),
-      },
-    ]);
+    patchActiveWidgets((widgets) => [...widgets, createDashboardWidget(type, def)]);
     setCatalogOpen(false);
   }
 

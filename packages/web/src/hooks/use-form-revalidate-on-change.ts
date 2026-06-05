@@ -13,7 +13,7 @@ export function useFormRevalidateOnChange<T extends FieldValues>(
 ): void {
   useEffect(() => {
     const sub = form.watch((_, info) => {
-      if (info.type === 'change' && info.name && !form.formState.touchedFields[info.name]) {
+      if (info.type === 'change' && info.name && !form.getFieldState(info.name).isTouched) {
         void form.trigger(info.name);
       }
     });

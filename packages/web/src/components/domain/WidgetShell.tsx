@@ -28,6 +28,7 @@ import {
 import { Check } from 'lucide-react';
 import type { WidgetDefBase } from '@quovibe/shared';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
+import type { DraggableAttributes } from '@dnd-kit/core';
 import { DataSeriesDialog } from './DataSeriesDialog';
 import { PeriodOverrideDialog } from './PeriodOverrideDialog';
 import { BenchmarkWidgetConfigDialog } from './BenchmarkWidgetConfigDialog';
@@ -68,7 +69,7 @@ interface WidgetShellProps {
   currentSpan?: 1 | 2 | 3;
   maxSpan?: 2 | 3;
   dragHandleListeners?: SyntheticListenerMap;
-  dragHandleAttributes?: Record<string, unknown>;
+  dragHandleAttributes?: DraggableAttributes;
   /** Index for stagger-in animation delay */
   index?: number;
   /** Compact mode for detail zone — reduced padding and text */

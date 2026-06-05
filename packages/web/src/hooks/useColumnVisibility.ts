@@ -73,7 +73,7 @@ export function useColumnVisibility({ savedView, onSave }: UseColumnVisibilityPa
   }, [visibleColumns]);
 
   // Debounced save
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const debouncedSave = useCallback((cols: string[]) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {

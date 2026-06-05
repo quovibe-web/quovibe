@@ -18,8 +18,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import type { TooltipContentProps } from 'recharts';
-import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useChartColors } from '@/hooks/use-chart-colors';
 import { useChartTheme } from '@/hooks/use-chart-theme';
@@ -112,6 +110,12 @@ export function IncomeStackedBar({
   const { isPrivate } = usePrivacy();
   const { barHandlers, tooltipProps } = useActiveBar();
 
+  // Shared by both stacked <Bar> segments — navigate on a month-bucket click.
+  const handleBarClick = (d: { payload?: { bucket?: string } }) => {
+    const bucket = d.payload?.bucket;
+    if (bucket && onBarClick && groupBy === 'month') onBarClick(bucket);
+  };
+
   const data = useMemo(
     () => buildSeries(dividendGroups, interestGroups, amountMode, groupBy, periodStart, periodEnd),
     [dividendGroups, interestGroups, amountMode, groupBy, periodStart, periodEnd],
@@ -164,9 +168,7 @@ export function IncomeStackedBar({
                 {...tooltipProps}
                 cursor={false}
                 wrapperStyle={ANCHORED_TOOLTIP_WRAPPER_STYLE}
-                content={(props: TooltipContentProps<ValueType, NameType>) => (
-                  <IncomeStackedBreakdownTooltip {...props} amountMode={amountMode} />
-                )}
+                content={<IncomeStackedBreakdownTooltip amountMode={amountMode} />}
               />
               <Bar
                 dataKey="dividend"
@@ -176,9 +178,7 @@ export function IncomeStackedBar({
                 animationEasing="ease-out"
                 activeBar={{ style: { filter: isDark ? 'brightness(1.6) saturate(1.5)' : 'brightness(1.15) saturate(1.2)', transition: 'filter 0.15s ease' } }}
                 {...barHandlers}
-                onClick={(d: { bucket?: string }) => {
-                  if (d?.bucket && onBarClick && groupBy === 'month') onBarClick(d.bucket);
-                }}
+                onClick={handleBarClick}
               />
               <Bar
                 dataKey="interest"
@@ -189,9 +189,7 @@ export function IncomeStackedBar({
                 animationEasing="ease-out"
                 activeBar={{ style: { filter: isDark ? 'brightness(1.6) saturate(1.5)' : 'brightness(1.15) saturate(1.2)', transition: 'filter 0.15s ease' } }}
                 {...barHandlers}
-                onClick={(d: { bucket?: string }) => {
-                  if (d?.bucket && onBarClick && groupBy === 'month') onBarClick(d.bucket);
-                }}
+                onClick={handleBarClick}
               />
             </BarChart>
           </ResponsiveContainer>

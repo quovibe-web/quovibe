@@ -3,8 +3,9 @@ set -euo pipefail
 
 # ═══════════════════════════════════════
 #   quovibe CI Pipeline
-#   Steps 1-4: typecheck, governance, architecture, tests
-#   Step 5 (optional): Playwright E2E (requires --e2e flag)
+#   Steps: build, typecheck (tsc --noEmit, all packages), lint,
+#          governance, architecture, tests
+#   Final step (optional): Playwright E2E (requires --e2e flag)
 # ═══════════════════════════════════════
 
 # Minimum test count — prevents silent test deletion.
@@ -35,9 +36,19 @@ echo "════════════════════════�
 echo "  quovibe CI Pipeline"
 echo "═══════════════════════════════════════"
 
-# ─── Step 1: Typecheck (pnpm build = tsc for all packages) ───
-step "Typecheck (pnpm build)"
+# ─── Step 1: Build all packages (produces dist; tsc emits for libs) ───
+step "Build all packages"
 if pnpm build 2>&1 | tail -5; then
+  echo "  OK"
+else
+  fail "build"
+fi
+
+# ─── Step 2: Typecheck (tsc --noEmit, ALL packages incl. web/Vite) ───
+# pnpm build does NOT typecheck web (vite/esbuild strips types). This step is
+# the real type gate across every package.
+step "Typecheck (tsc --noEmit)"
+if pnpm typecheck 2>&1 | tail -10; then
   echo "  OK"
 else
   fail "typecheck"

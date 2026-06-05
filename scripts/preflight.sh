@@ -6,11 +6,11 @@ echo "  quovibe Preflight — Governance 2.0"
 echo "═══════════════════════════════════════"
 echo ""
 
-echo "▶ [1/5] Build all packages..."
-if pnpm build 2>&1 | tail -5; then
-  echo "  ✅ Build OK"
+echo "▶ [1/5] Build + typecheck all packages..."
+if pnpm build 2>&1 | tail -5 && pnpm typecheck 2>&1 | tail -10; then
+  echo "  ✅ Build + typecheck OK"
 else
-  echo "  ❌ BUILD FAILED — fix before starting"
+  echo "  ❌ BUILD/TYPECHECK FAILED — fix before starting"
   exit 1
 fi
 echo ""

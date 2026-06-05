@@ -4,8 +4,9 @@
 //
 // BUG-54/55 Phase 3 — Task 3.3.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useFormRevalidateOnChange } from '@/hooks/use-form-revalidate-on-change';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -72,17 +73,8 @@ export function PortfolioSetupForm({
     formState: { errors, isValid },
   } = form;
 
-  // RHF's onChange revalidate gate is closed until first blur; this clears
-  // inline errors before the user blurs. Skip after blur — RHF's native path
-  // takes over.
-  useEffect(() => {
-    const sub = form.watch((_, info) => {
-      if (info.type === 'change' && info.name && !form.formState.touchedFields[info.name]) {
-        void form.trigger(info.name);
-      }
-    });
-    return () => sub.unsubscribe();
-  }, [form]);
+  // Clears inline errors as the user types, before first blur.
+  useFormRevalidateOnChange(form);
 
   const { fields, append, remove } = useFieldArray({ control, name: 'extraDeposits' });
 

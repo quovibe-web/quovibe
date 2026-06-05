@@ -14,6 +14,7 @@ import {
   getSortedRowModel,
   type ColumnDef,
   type SortingState,
+  type ExpandedState,
   flexRender,
 } from '@tanstack/react-table';
 import { AlertTriangle, ArrowDown, ArrowUp, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, MoreHorizontal, Plus, RotateCcw, TrendingUp, Landmark } from 'lucide-react';
@@ -602,7 +603,7 @@ function TreeTable({ data, taxonomyId, taxonomyName, rootId, highlightedCategory
 }) {
   const { t } = useTranslation('reports');
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState<ExpandedState>({});
   const [rootExpanded, setRootExpanded] = useState(true);
 
   // Context menu mutation hooks

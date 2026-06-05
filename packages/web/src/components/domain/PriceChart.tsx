@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   LineSeries, AreaSeries, CandlestickSeries, BarSeries, BaselineSeries, HistogramSeries,
   createSeriesMarkers,
-  type ISeriesApi, type SeriesType, type MouseEventParams, type ISeriesMarkersPluginApi,
+  type ISeriesApi, type SeriesType, type MouseEventParams, type ISeriesMarkersPluginApi, type Time,
 } from 'lightweight-charts';
 import { formatDate, formatQuote } from '@/lib/formatters';
 import { usePrivacy } from '@/context/privacy-context';
@@ -86,7 +86,7 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
 
   const seriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
-  const markersPluginRef = useRef<ISeriesMarkersPluginApi<string> | null>(null);
+  const markersPluginRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const [seriesVersion, setSeriesVersion] = useState(0); // native-ok
   const [tooltip, setTooltip] = useState<TooltipState>({
     visible: false, x: 0, y: 0, items: [], date: '',
@@ -153,7 +153,7 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
         let bestDist = THRESHOLD + 1; // native-ok
 
         for (const td of txDates) {
-          const coord = chart.timeScale().timeToCoordinate(td as unknown as Parameters<typeof chart.timeScale.prototype.timeToCoordinate>[0]);
+          const coord = chart.timeScale().timeToCoordinate(td as Time);
           if (coord === null) continue;
           const dist = Math.abs(coord - cursorX); // native-ok
           if (dist < bestDist) { // native-ok

@@ -3,6 +3,12 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
+    // Web is a Vite application, not a consumed library — it emits no .d.ts.
+    // Disable declaration emit so the typecheck gate doesn't flag TS4058
+    // (declaration-nameability) on inferred hook return types, which is a
+    // non-issue for an app bundle. Real type errors are still caught.
+    "declaration": false,
+    "declarationMap": false,
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",

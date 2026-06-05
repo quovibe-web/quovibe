@@ -145,7 +145,7 @@ export function useTableLayout(
   });
 
   // --- Debounced sizing save ---
-  const sizingTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const sizingTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pendingSizingRef = useRef<ColumnSizingState | null>(null);
 
   useEffect(() => () => {
