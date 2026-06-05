@@ -196,20 +196,30 @@ Required wiring:
    value, until the next blur. To deliver the "errors clear as they're
    fixed" UX the rule promises, add this watch subscription right after
    `useForm`:
+   `useForm`. The canonical helper is `useFormRevalidateOnChange(form)` from
+   `@/hooks/use-form-revalidate-on-change` — call it right after `useForm`.
+   Internally it is:
    ```ts
    useEffect(() => {
      const sub = form.watch((_, info) => {
-       if (info.type === 'change' && info.name && !form.formState.touchedFields[info.name]) {
+       if (info.type === 'change' && info.name) {
          void form.trigger(info.name);
        }
      });
      return () => sub.unsubscribe();
    }, [form]);
    ```
-   `!touchedFields[name]` guard avoids double-firing the resolver after first
-   blur (RHF's native onChange revalidate path takes over once a field is
-   touched). Per-field re-trigger keeps mount silent (no validation event
-   yet) and clears the inline error on the first valid keystroke.
+   **No touched-state guard.** A field IS touched right after blur, which is
+   exactly when the inline error must still clear on the next keystroke — and
+   RHF's native `reValidateMode:'onChange'` is dormant until the first submit
+   (NOT after a blur-driven pass), so nothing else revalidates it. `trigger()`
+   is field-scoped + idempotent, so re-running it (even if RHF's native path
+   ever does fire) is harmless; `info.type === 'change'` keeps mount silent and
+   filters `setValue()` emissions. Do NOT re-add a
+   `!touchedFields[info.name]` (or `!getFieldState(name).isTouched`) guard:
+   the dotted-key index is a type error on nested fields, AND the guard
+   suppresses the clear-on-type this rule promises — that exact guard regressed
+   `PortfolioSetupForm` once and was removed.
    Exemplars: `TransactionForm.tsx`, `PortfolioSetupForm.tsx`.
 2. Wrap each field in `<FormField>/<FormItem>/<FormLabel>/<FormControl>/<FormMessage>`
    from `@/components/ui/form` (the shadcn integration). `FormControl` injects
