@@ -1,7 +1,15 @@
 import type { QuoteFeedProvider, FetchContext, ProviderResult, FetchedPrice } from './types';
 import { safeDecimal, parseFlexibleDate, inDateRange } from './utils';
 
-// ─── Header constants (accent-free, lowercase) ───────────────────────────────
+// ─── Header constants ────────────────────────────────────────────────────────
+// All candidates MUST be lowercase and accent-free: headers are run through
+// normalizeHeader() (lowercase + NFD diacritic strip) before matching, so e.g.
+// "Último"/"Máxima" are compared as "ultimo"/"maxima". Adding an accented
+// candidate here would never match. `substr` candidates use substring matching;
+// keep them long enough to avoid cross-column hits (the short FR low token
+// 'bas' assumes a price-HISTORY page layout — it would mis-hit a "Basis"/"Base"
+// column on screener-style tables, which this provider does not target).
+// Genuinely short/ambiguous tokens ('max'/'min') go in `exact` instead.
 
 interface HeaderSpec {
   substr: string[];

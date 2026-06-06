@@ -57,6 +57,13 @@ describe('parseTableHtml', () => {
     expect(prices).toHaveLength(1);
     expect(prices[0].high).toBeUndefined(); // "Maximum" must NOT be read as high
   });
+
+  it('exact-token min does not false-match longer words', () => {
+    const html = tableHtml(['Date', 'Price', 'Minimum'], [['2026-06-04', '50.00', '1']]);
+    const { prices } = parseTableHtml(html, {});
+    expect(prices).toHaveLength(1);
+    expect(prices[0].low).toBeUndefined(); // "Minimum" must NOT be read as low
+  });
 });
 
 describe('TableProvider', () => {
