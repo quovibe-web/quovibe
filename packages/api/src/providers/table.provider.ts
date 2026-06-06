@@ -27,6 +27,73 @@ function parseNumericCell(cell: string): number | null {
   return isNaN(n) ? null : n;
 }
 
+// ─── Pure parse ──────────────────────────────────────────────────────────────
+
+export interface ParseTableOptions {
+  startDate?: string;
+  endDate?: string;
+  dateFormat?: string;
+  feedUrl?: string;
+}
+
+export function parseTableHtml(html: string, opts: ParseTableOptions = {}): ProviderResult {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const cheerio = require('cheerio');
+  const $ = cheerio.load(html);
+
+  const results: FetchedPrice[] = [];
+
+  $('table').each((_i: number, table: unknown) => {
+    const headers: string[] = [];
+    $(table).find('tr').first().find('th, td').each((_j: number, cell: unknown) => {
+      headers.push($(cell).text());
+    });
+
+    const dateIdx = findColIndex(headers, DATE_HEADERS);
+    const closeIdx = findColIndex(headers, CLOSE_HEADERS);
+    if (dateIdx === -1 || closeIdx === -1) return; // not a price table
+
+    const highIdx = findColIndex(headers, HIGH_HEADERS);
+    const lowIdx = findColIndex(headers, LOW_HEADERS);
+    const volIdx = findColIndex(headers, VOLUME_HEADERS);
+
+    $(table).find('tr').slice(1).each((_j: number, row: unknown) => {
+      const cells: string[] = [];
+      $(row).find('td').each((_k: number, cell: unknown) => {
+        cells.push($(cell).text());
+      });
+      if (cells.length === 0) return;
+
+      const dateStr = parseFlexibleDate(cells[dateIdx]?.trim(), opts.dateFormat ?? null);
+      if (!dateStr) return;
+      if (!inDateRange(dateStr, opts.startDate, opts.endDate)) return;
+
+      const closeVal = parseNumericCell(cells[closeIdx] ?? '');
+      if (closeVal == null) return;
+
+      results.push({
+        date: dateStr,
+        close: safeDecimal(closeVal),
+        high: highIdx !== -1 && cells[highIdx]
+          ? (parseNumericCell(cells[highIdx]) != null
+            ? safeDecimal(parseNumericCell(cells[highIdx])!)
+            : undefined)
+          : undefined,
+        low: lowIdx !== -1 && cells[lowIdx]
+          ? (parseNumericCell(cells[lowIdx]) != null
+            ? safeDecimal(parseNumericCell(cells[lowIdx])!)
+            : undefined)
+          : undefined,
+        volume: volIdx !== -1 && cells[volIdx]
+          ? (parseNumericCell(cells[volIdx]) ?? undefined)
+          : undefined,
+      });
+    });
+  });
+
+  return { prices: results };
+}
+
 // ─── Core fetch function ─────────────────────────────────────────────────────
 
 async function fetchPricesFromTable(
@@ -36,10 +103,8 @@ async function fetchPricesFromTable(
   dateFormat?: string,
 ): Promise<ProviderResult> {
   try {
-     
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const axios = require('axios');
-     
-    const cheerio = require('cheerio');
 
     const res = await axios.get(feedUrl, {
       timeout: 20000,
@@ -57,66 +122,16 @@ async function fetchPricesFromTable(
         'Sec-Fetch-User': '?1',
       },
     });
-    const $ = cheerio.load(res.data as string);
+
+    const html = res.data as string;
 
     // Sanity check: if we got a Cloudflare challenge page, bail early
-    const html = res.data as string;
     if (html.includes('cf-browser-verification') || html.includes('challenges.cloudflare.com')) {
       console.warn(`[prices] TABLE: Cloudflare challenge for ${feedUrl} — cannot scrape without a real browser`);
       return { prices: [], warning: 'Cloudflare challenge — site requires a real browser' };
     }
 
-    const results: FetchedPrice[] = [];
-
-    $('table').each((_i: number, table: unknown) => {
-      const headers: string[] = [];
-      $(table).find('tr').first().find('th, td').each((_j: number, cell: unknown) => {
-        headers.push($(cell).text());
-      });
-
-      const dateIdx = findColIndex(headers, DATE_HEADERS);
-      const closeIdx = findColIndex(headers, CLOSE_HEADERS);
-      if (dateIdx === -1 || closeIdx === -1) return; // not a price table
-
-      const highIdx = findColIndex(headers, HIGH_HEADERS);
-      const lowIdx = findColIndex(headers, LOW_HEADERS);
-      const volIdx = findColIndex(headers, VOLUME_HEADERS);
-
-      $(table).find('tr').slice(1).each((_j: number, row: unknown) => {
-        const cells: string[] = [];
-        $(row).find('td').each((_k: number, cell: unknown) => {
-          cells.push($(cell).text());
-        });
-        if (cells.length === 0) return;
-
-        const dateStr = parseFlexibleDate(cells[dateIdx]?.trim(), dateFormat ?? null);
-        if (!dateStr) return;
-        if (!inDateRange(dateStr, startDate, endDate)) return;
-
-        const closeVal = parseNumericCell(cells[closeIdx] ?? '');
-        if (closeVal == null) return;
-
-        results.push({
-          date: dateStr,
-          close: safeDecimal(closeVal),
-          high: highIdx !== -1 && cells[highIdx]
-            ? (parseNumericCell(cells[highIdx]) != null
-              ? safeDecimal(parseNumericCell(cells[highIdx])!)
-              : undefined)
-            : undefined,
-          low: lowIdx !== -1 && cells[lowIdx]
-            ? (parseNumericCell(cells[lowIdx]) != null
-              ? safeDecimal(parseNumericCell(cells[lowIdx])!)
-              : undefined)
-            : undefined,
-          volume: volIdx !== -1 && cells[volIdx]
-            ? (parseNumericCell(cells[volIdx]) ?? undefined)
-            : undefined,
-        });
-      });
-    });
-
-    return { prices: results };
+    return parseTableHtml(html, { startDate, endDate, dateFormat, feedUrl });
   } catch (err) {
     const msg = (err as Error).message;
     console.warn(`[prices] TABLE fetch failed for ${feedUrl}:`, msg);
