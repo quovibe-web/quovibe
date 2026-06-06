@@ -65,6 +65,23 @@ function parseNumericCell(cell: string): number | null {
   return isNaN(n) ? null : n;
 }
 
+// ─── investing.com history-URL suggestion ────────────────────────────────────
+
+function investingHistoryHint(feedUrl: string | undefined): string {
+  if (!feedUrl) return '';
+  let url: URL;
+  try {
+    url = new URL(feedUrl);
+  } catch {
+    return '';
+  }
+  const host = url.hostname.toLowerCase();
+  if (host !== 'investing.com' && !host.endsWith('.investing.com')) return '';
+  if (url.pathname.endsWith('-historical-data')) return '';
+  const suggested = `${url.origin}${url.pathname}-historical-data${url.search}${url.hash}`;
+  return ` For investing.com use the history page: ${suggested}`;
+}
+
 // ─── Pure parse ──────────────────────────────────────────────────────────────
 
 export interface ParseTableOptions {
@@ -81,8 +98,11 @@ export function parseTableHtml(html: string, opts: ParseTableOptions = {}): Prov
   const $ = cheerio.load(html);
 
   const results: FetchedPrice[] = [];
+  let tableCount = 0;
+  let priceTableFound = false;
 
   $('table').each((_i: number, table: unknown) => {
+    tableCount++;
     const headers: string[] = [];
     $(table).find('tr').first().find('th, td').each((_j: number, cell: unknown) => {
       headers.push($(cell).text());
@@ -91,6 +111,7 @@ export function parseTableHtml(html: string, opts: ParseTableOptions = {}): Prov
     const dateIdx = findColIndex(headers, DATE_HEADERS);
     const closeIdx = findColIndex(headers, CLOSE_HEADERS);
     if (dateIdx === -1 || closeIdx === -1) return; // not a price table
+    priceTableFound = true;
 
     const highIdx = findColIndex(headers, HIGH_HEADERS);
     const lowIdx = findColIndex(headers, LOW_HEADERS);
@@ -123,6 +144,18 @@ export function parseTableHtml(html: string, opts: ParseTableOptions = {}): Prov
       });
     });
   });
+
+  if (results.length === 0) {
+    let warning: string;
+    if (tableCount === 0) {
+      warning = 'No tables found at this URL.';
+    } else if (!priceTableFound) {
+      warning = `Found ${tableCount} tables, none with a recognizable Date + Close column.${investingHistoryHint(opts.feedUrl)}`;
+    } else {
+      warning = 'Found a price table but no usable rows.';
+    }
+    return { prices: [], warning };
+  }
 
   return { prices: results };
 }

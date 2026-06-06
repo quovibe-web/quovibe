@@ -64,6 +64,44 @@ describe('parseTableHtml', () => {
     expect(prices).toHaveLength(1);
     expect(prices[0].low).toBeUndefined(); // "Minimum" must NOT be read as low
   });
+
+  it('warns when tables exist but none has Date+Close', () => {
+    const html = tableHtml(['Name', 'Kurs', '+/- %', 'Vol.'], [['ACME', '10', '1%', '100']]);
+    const { prices, warning } = parseTableHtml(html, {});
+    expect(prices).toHaveLength(0);
+    expect(warning).toContain('Found 1 tables');
+    expect(warning).toContain('Date');
+  });
+
+  it('appends the investing.com history hint on an overview URL', () => {
+    const html = tableHtml(['Name', 'Kurs', '+/- %', 'Vol.'], [['ACME', '10', '1%', '100']]);
+    const { warning } = parseTableHtml(html, {
+      feedUrl: 'https://de.investing.com/rates-bonds/xs2829810923',
+    });
+    expect(warning).toContain('https://de.investing.com/rates-bonds/xs2829810923-historical-data');
+  });
+
+  it('does not double-append when the URL already targets historical-data', () => {
+    const html = tableHtml(['Name', 'Kurs', '+/- %', 'Vol.'], [['ACME', '10', '1%', '100']]);
+    const { warning } = parseTableHtml(html, {
+      feedUrl: 'https://de.investing.com/rates-bonds/xs2829810923-historical-data',
+    });
+    expect(warning).not.toContain('-historical-data-historical-data');
+    expect(warning).not.toContain('use the history page');
+  });
+
+  it('warns when no tables are found', () => {
+    const { prices, warning } = parseTableHtml('<html><body><p>nope</p></body></html>', {});
+    expect(prices).toHaveLength(0);
+    expect(warning).toBe('No tables found at this URL.');
+  });
+
+  it('warns when a price table has no usable rows', () => {
+    const html = tableHtml(['Date', 'Price'], [['not-a-date', 'abc']]);
+    const { prices, warning } = parseTableHtml(html, {});
+    expect(prices).toHaveLength(0);
+    expect(warning).toBe('Found a price table but no usable rows.');
+  });
 });
 
 describe('TableProvider', () => {
