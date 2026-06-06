@@ -69,7 +69,7 @@ describe('parseTableHtml', () => {
     const html = tableHtml(['Name', 'Kurs', '+/- %', 'Vol.'], [['ACME', '10', '1%', '100']]);
     const { prices, warning } = parseTableHtml(html, {});
     expect(prices).toHaveLength(0);
-    expect(warning).toContain('Found 1 tables');
+    expect(warning).toContain('Found 1 table');
     expect(warning).toContain('Date');
   });
 
@@ -88,6 +88,7 @@ describe('parseTableHtml', () => {
     });
     expect(warning).not.toContain('-historical-data-historical-data');
     expect(warning).not.toContain('use the history page');
+    expect(warning).toContain('Found 1 table');
   });
 
   it('warns when no tables are found', () => {
@@ -100,7 +101,28 @@ describe('parseTableHtml', () => {
     const html = tableHtml(['Date', 'Price'], [['not-a-date', 'abc']]);
     const { prices, warning } = parseTableHtml(html, {});
     expect(prices).toHaveLength(0);
-    expect(warning).toBe('Found a price table but no usable rows.');
+    expect(warning).toBe('Found a price table but no usable rows (check the date range or row format).');
+  });
+
+  it('handles a trailing slash on the overview URL', () => {
+    const html = tableHtml(['Name', 'Kurs', '+/- %', 'Vol.'], [['ACME', '10', '1%', '100']]);
+    const { warning } = parseTableHtml(html, { feedUrl: 'https://de.investing.com/rates-bonds/xs2829810923/' });
+    expect(warning).toContain('https://de.investing.com/rates-bonds/xs2829810923-historical-data');
+    expect(warning).not.toContain('/-historical-data');
+  });
+
+  it('does not append when historical-data URL has a trailing slash', () => {
+    const html = tableHtml(['Name', 'Kurs', '+/- %', 'Vol.'], [['ACME', '10', '1%', '100']]);
+    const { warning } = parseTableHtml(html, { feedUrl: 'https://de.investing.com/rates-bonds/xs2829810923-historical-data/' });
+    expect(warning).not.toContain('use the history page');
+    expect(warning).not.toContain('-historical-data-historical-data');
+  });
+
+  it('emits no investing hint for a non-investing host', () => {
+    const html = tableHtml(['Name', 'Kurs', '+/- %', 'Vol.'], [['ACME', '10', '1%', '100']]);
+    const { warning } = parseTableHtml(html, { feedUrl: 'https://example.com/foo' });
+    expect(warning).toContain('Found 1 table');
+    expect(warning).not.toContain('use the history page');
   });
 });
 

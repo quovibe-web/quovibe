@@ -77,8 +77,9 @@ function investingHistoryHint(feedUrl: string | undefined): string {
   }
   const host = url.hostname.toLowerCase();
   if (host !== 'investing.com' && !host.endsWith('.investing.com')) return '';
-  if (url.pathname.endsWith('-historical-data')) return '';
-  const suggested = `${url.origin}${url.pathname}-historical-data${url.search}${url.hash}`;
+  const cleanPath = url.pathname.replace(/\/$/, '');
+  if (cleanPath.endsWith('-historical-data')) return '';
+  const suggested = `${url.origin}${cleanPath}-historical-data${url.search}${url.hash}`;
   return ` For investing.com use the history page: ${suggested}`;
 }
 
@@ -150,9 +151,9 @@ export function parseTableHtml(html: string, opts: ParseTableOptions = {}): Prov
     if (tableCount === 0) {
       warning = 'No tables found at this URL.';
     } else if (!priceTableFound) {
-      warning = `Found ${tableCount} tables, none with a recognizable Date + Close column.${investingHistoryHint(opts.feedUrl)}`;
+      warning = `Found ${tableCount} table${tableCount === 1 ? '' : 's'}, none with a recognizable Date + Close column.${investingHistoryHint(opts.feedUrl)}`;
     } else {
-      warning = 'Found a price table but no usable rows.';
+      warning = 'Found a price table but no usable rows (check the date range or row format).';
     }
     return { prices: [], warning };
   }
