@@ -23,6 +23,8 @@ describe('parseTableHtml', () => {
     expect(prices[0].close.toString()).toBe('101.25');
     expect(prices[0].high?.toString()).toBe('102');
     expect(prices[0].low?.toString()).toBe('100.5');
+    expect(prices[1].date).toBe('2026-06-03'); // row order preserved
+    // Note: the 'Open' column in the fixture is intentionally unsupported by this provider — silently ignored.
   });
 });
 

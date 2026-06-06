@@ -33,6 +33,7 @@ export interface ParseTableOptions {
   startDate?: string;
   endDate?: string;
   dateFormat?: string;
+  /** Passed through for caller diagnostics (e.g. URL hints); not read by the parser today. */
   feedUrl?: string;
 }
 
@@ -71,22 +72,16 @@ export function parseTableHtml(html: string, opts: ParseTableOptions = {}): Prov
       const closeVal = parseNumericCell(cells[closeIdx] ?? '');
       if (closeVal == null) return;
 
+      const highVal = highIdx !== -1 ? parseNumericCell(cells[highIdx] ?? '') : null;
+      const lowVal = lowIdx !== -1 ? parseNumericCell(cells[lowIdx] ?? '') : null;
+      const volVal = volIdx !== -1 ? parseNumericCell(cells[volIdx] ?? '') : null;
+
       results.push({
         date: dateStr,
         close: safeDecimal(closeVal),
-        high: highIdx !== -1 && cells[highIdx]
-          ? (parseNumericCell(cells[highIdx]) != null
-            ? safeDecimal(parseNumericCell(cells[highIdx])!)
-            : undefined)
-          : undefined,
-        low: lowIdx !== -1 && cells[lowIdx]
-          ? (parseNumericCell(cells[lowIdx]) != null
-            ? safeDecimal(parseNumericCell(cells[lowIdx])!)
-            : undefined)
-          : undefined,
-        volume: volIdx !== -1 && cells[volIdx]
-          ? (parseNumericCell(cells[volIdx]) ?? undefined)
-          : undefined,
+        high: highVal != null ? safeDecimal(highVal) : undefined,
+        low: lowVal != null ? safeDecimal(lowVal) : undefined,
+        volume: volVal != null ? volVal : undefined,
       });
     });
   });
