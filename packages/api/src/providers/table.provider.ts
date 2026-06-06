@@ -1,21 +1,51 @@
 import type { QuoteFeedProvider, FetchContext, ProviderResult, FetchedPrice } from './types';
 import { safeDecimal, parseFlexibleDate, inDateRange } from './utils';
 
-// ─── Header constants ────────────────────────────────────────────────────────
+// ─── Header constants (accent-free, lowercase) ───────────────────────────────
 
-const DATE_HEADERS = ['date', 'datum', 'data', 'fecha', 'dat'];
-const CLOSE_HEADERS = ['close', 'zuletzt', 'kurs', 'schluss', 'chiusura', 'cierre', 'last', 'price', 'preis', 'dernier', 'precio'];
-const HIGH_HEADERS = ['high', 'hoch', 'alto', 'massimo'];
-const LOW_HEADERS = ['low', 'tief', 'bajo', 'minimo'];
-const VOLUME_HEADERS = ['volume', 'volumen', 'volum', 'vol'];
+interface HeaderSpec {
+  substr: string[];
+  exact?: string[];
+}
+
+const DATE_HEADERS: HeaderSpec = {
+  substr: ['date', 'datum', 'data', 'fecha', 'dat'],
+};
+const CLOSE_HEADERS: HeaderSpec = {
+  substr: ['close', 'zuletzt', 'kurs', 'schluss', 'chiusura', 'cierre', 'last', 'price', 'preis', 'dernier', 'precio', 'ultimo', 'laatste', 'ostatnio'],
+};
+const HIGH_HEADERS: HeaderSpec = {
+  substr: ['high', 'hoch', 'alto', 'massimo', 'haut', 'hoog', 'maximo', 'maxima'],
+  exact: ['max'],
+};
+const LOW_HEADERS: HeaderSpec = {
+  substr: ['low', 'tief', 'bajo', 'minimo', 'bas', 'laag', 'minima'],
+  exact: ['min'],
+};
+const VOLUME_HEADERS: HeaderSpec = {
+  substr: ['volume', 'volumen', 'volum', 'vol'],
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function findColIndex(headers: string[], candidates: string[]): number {
-  const lower = headers.map(h => h.toLowerCase().trim());
-  for (const c of candidates) {
-    const idx = lower.findIndex(h => h.includes(c));
+// Lowercase, strip combining diacritics (so "Último" → "ultimo"), trim.
+function normalizeHeader(h: string): string {
+  return h.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
+}
+
+function findColIndex(headers: string[], spec: HeaderSpec): number {
+  const norm = headers.map(normalizeHeader);
+  for (const c of spec.substr) {
+    const idx = norm.findIndex(h => h.includes(c));
     if (idx !== -1) return idx;
+  }
+  if (spec.exact) {
+    for (const c of spec.exact) {
+      // Strip a single trailing period (PL "Max." / "Min.") then require an exact match,
+      // so short tokens can't substring-match longer words like "Maximum".
+      const idx = norm.findIndex(h => h.replace(/\.$/, '') === c);
+      if (idx !== -1) return idx;
+    }
   }
   return -1;
 }
