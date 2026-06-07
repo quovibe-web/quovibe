@@ -85,3 +85,28 @@ export function editPrice(
     syncLatestPriceFromGlobalMax(sqlite, securityId);
   })();
 }
+
+/** Delete the given date rows (single or many), then re-sync latest_price. */
+export function deletePrices(
+  sqlite: BetterSqlite3.Database,
+  securityId: string,
+  dates: string[],
+): void {
+  if (dates.length === 0) return;
+  const del = sqlite.prepare(`DELETE FROM price WHERE security = ? AND tstamp = ?`);
+  sqlite.transaction(() => {
+    for (const d of dates) del.run(securityId, d);
+    syncLatestPriceFromGlobalMax(sqlite, securityId);
+  })();
+}
+
+/** Delete all price rows for the security and clear its latest_price. */
+export function deleteAllPrices(
+  sqlite: BetterSqlite3.Database,
+  securityId: string,
+): void {
+  sqlite.transaction(() => {
+    sqlite.prepare(`DELETE FROM price WHERE security = ?`).run(securityId);
+    syncLatestPriceFromGlobalMax(sqlite, securityId); // no rows => clears latest_price
+  })();
+}

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { applyBootstrap } from '../../db/apply-bootstrap';
-import { upsertPrice, editPrice } from '../manual-prices.service';
+import { upsertPrice, editPrice, deletePrices, deleteAllPrices } from '../manual-prices.service';
 
 const SEC = 'sec-1';
 
@@ -70,5 +70,47 @@ describe('editPrice', () => {
     editPrice(db, SEC, '2025-03-14', { date: '2025-03-20', value: '100' });
     expect(readPrice(db, '2025-03-14')).toBeUndefined();
     expect(readPrice(db, '2025-03-20')?.value).toBe(10000000000);
+  });
+});
+
+describe('deletePrices', () => {
+  let db: Database.Database;
+  beforeEach(() => {
+    db = freshDb();
+    upsertPrice(db, SEC, { date: '2025-01-01', value: '100' });
+    upsertPrice(db, SEC, { date: '2025-02-01', value: '200' });
+    upsertPrice(db, SEC, { date: '2025-03-01', value: '300' });
+  });
+
+  it('deletes a single date and re-syncs latest_price to the new max', () => {
+    deletePrices(db, SEC, ['2025-03-01']); // remove the current max
+    expect(readPrice(db, '2025-03-01')).toBeUndefined();
+    const lp = db.prepare(`SELECT tstamp FROM latest_price WHERE security = ?`).get(SEC) as { tstamp: string };
+    expect(lp.tstamp).toBe('2025-02-01'); // latest_price moved down
+  });
+
+  it('deletes multiple dates', () => {
+    deletePrices(db, SEC, ['2025-01-01', '2025-02-01']);
+    expect(readPrice(db, '2025-01-01')).toBeUndefined();
+    expect(readPrice(db, '2025-02-01')).toBeUndefined();
+    expect(readPrice(db, '2025-03-01')?.value).toBe(30000000000);
+  });
+
+  it('is a no-op on an empty dates array', () => {
+    deletePrices(db, SEC, []);
+    expect(readPrice(db, '2025-03-01')?.value).toBe(30000000000);
+    const cnt = db.prepare(`SELECT COUNT(*) c FROM price WHERE security = ?`).get(SEC) as { c: number };
+    expect(cnt.c).toBe(3);
+  });
+});
+
+describe('deleteAllPrices', () => {
+  it('removes every price row and clears latest_price', () => {
+    const db = freshDb();
+    upsertPrice(db, SEC, { date: '2025-01-01', value: '100' });
+    upsertPrice(db, SEC, { date: '2025-02-01', value: '200' });
+    deleteAllPrices(db, SEC);
+    expect(db.prepare(`SELECT COUNT(*) c FROM price WHERE security = ?`).get(SEC)).toEqual({ c: 0 });
+    expect(db.prepare(`SELECT * FROM latest_price WHERE security = ?`).get(SEC)).toBeUndefined();
   });
 });
