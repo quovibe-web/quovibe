@@ -16,3 +16,4 @@ export * from './portfolio.schema';
 export * from './dashboard-wire.schema';
 export * from './csv-import.schema';
 export * from './attribute-type.schema';
+export * from './manual-price.schema';
