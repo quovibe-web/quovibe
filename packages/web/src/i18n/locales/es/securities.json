@@ -357,7 +357,13 @@
       "low": "Mínimo",
       "volume": "Volumen",
       "save": "Guardar",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "errors": {
+        "invalidDate": "Introduce una fecha válida",
+        "invalidValue": "Introduce un valor mayor que 0",
+        "invalidPrice": "Introduce un valor mayor que 0",
+        "invalidVolume": "Introduce un número entero ≥ 0"
+      }
     },
     "edit": "Editar",
     "delete": "Eliminar",

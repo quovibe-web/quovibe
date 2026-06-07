@@ -357,7 +357,13 @@
       "low": "Laag",
       "volume": "Volume",
       "save": "Opslaan",
-      "cancel": "Annuleren"
+      "cancel": "Annuleren",
+      "errors": {
+        "invalidDate": "Voer een geldige datum in",
+        "invalidValue": "Voer een waarde groter dan 0 in",
+        "invalidPrice": "Voer een waarde groter dan 0 in",
+        "invalidVolume": "Voer een geheel getal ≥ 0 in"
+      }
     },
     "edit": "Bewerken",
     "delete": "Verwijderen",

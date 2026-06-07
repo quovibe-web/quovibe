@@ -357,7 +357,13 @@
       "low": "Low",
       "volume": "Volume",
       "save": "Save",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "errors": {
+        "invalidDate": "Enter a valid date",
+        "invalidValue": "Enter a value greater than 0",
+        "invalidPrice": "Enter a value greater than 0",
+        "invalidVolume": "Enter a whole number ≥ 0"
+      }
     },
     "edit": "Edit",
     "delete": "Delete",

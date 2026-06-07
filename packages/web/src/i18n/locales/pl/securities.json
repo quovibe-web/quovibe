@@ -359,7 +359,13 @@
       "low": "Najniższy",
       "volume": "Wolumen",
       "save": "Zapisz",
-      "cancel": "Anuluj"
+      "cancel": "Anuluj",
+      "errors": {
+        "invalidDate": "Wprowadź prawidłową datę",
+        "invalidValue": "Wprowadź wartość większą niż 0",
+        "invalidPrice": "Wprowadź wartość większą niż 0",
+        "invalidVolume": "Wprowadź liczbę całkowitą ≥ 0"
+      }
     },
     "edit": "Edytuj",
     "delete": "Usuń",

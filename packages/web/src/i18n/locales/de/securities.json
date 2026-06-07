@@ -357,7 +357,13 @@
       "low": "Tief",
       "volume": "Volumen",
       "save": "Speichern",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "errors": {
+        "invalidDate": "Geben Sie ein gültiges Datum ein",
+        "invalidValue": "Geben Sie einen Wert größer als 0 ein",
+        "invalidPrice": "Geben Sie einen Wert größer als 0 ein",
+        "invalidVolume": "Geben Sie eine ganze Zahl ≥ 0 ein"
+      }
     },
     "edit": "Bearbeiten",
     "delete": "Löschen",

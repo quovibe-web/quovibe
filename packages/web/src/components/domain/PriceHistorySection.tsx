@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Pencil, Trash2, PlusCircle, RefreshCw, Trash } from 'lucide-react';
@@ -18,6 +17,16 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Form,
   FormControl,
   FormField,
@@ -30,7 +39,7 @@ import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { SubmitButton } from '@/components/shared/SubmitButton';
 import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { useFormRevalidateOnChange } from '@/hooks/use-form-revalidate-on-change';
-import { formatDate } from '@/lib/formatters';
+import { formatDate, formatNumber } from '@/lib/formatters';
 
 import {
   useRawPrices,
@@ -41,68 +50,13 @@ import {
   useDerivePrices,
   type RawPriceRow,
 } from '@/api/use-manual-prices';
-import type { ManualPriceInput } from '@quovibe/shared';
-
-// ---------------------------------------------------------------------------
-// Form schema — all-strings so optional fields can be '' (empty input).
-// We convert '' → undefined and volume string → number on submit.
-// Using wire schema (manualPriceSchema) directly would fail Save gate
-// because positiveDecimal rejects '' and volume expects a number.
-// ---------------------------------------------------------------------------
-
-const positiveDecimalStr = z
-  .string()
-  .regex(/^(0|[1-9]\d*)(\.\d+)?$/, 'INVALID_VALUE')
-  .refine((s) => parseFloat(s) > 0, 'INVALID_VALUE');
-
-const optionalDecimalStr = z
-  .string()
-  .optional()
-  .refine(
-    (s) => s === undefined || s === '' || /^(0|[1-9]\d*)(\.\d+)?$/.test(s),
-    'INVALID_VALUE',
-  )
-  .refine(
-    (s) => s === undefined || s === '' || parseFloat(s) > 0,
-    'INVALID_VALUE',
-  );
-
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'INVALID_DATE');
-
-const priceFormSchema = z.object({
-  date: isoDate,
-  value: positiveDecimalStr,
-  open: optionalDecimalStr,
-  high: optionalDecimalStr,
-  low: optionalDecimalStr,
-  volume: z
-    .string()
-    .optional()
-    .refine(
-      (s) => s === undefined || s === '' || /^\d+$/.test(s),
-      'INVALID_VALUE',
-    ),
-});
-
-type PriceFormValues = z.infer<typeof priceFormSchema>;
-
-/** Convert form values to the wire payload. '' → undefined, volume string → number. */
-function toWirePayload(values: PriceFormValues): ManualPriceInput {
-  const coerce = (s: string | undefined): string | undefined =>
-    s && s.trim() !== '' ? s.trim() : undefined;
-  const coerceVol = (s: string | undefined): number | undefined => {
-    const n = s && s.trim() !== '' ? parseInt(s.trim(), 10) : undefined; // native-ok
-    return n !== undefined && !isNaN(n) ? n : undefined; // native-ok
-  };
-  return {
-    date: values.date,
-    value: values.value,
-    open: coerce(values.open),
-    high: coerce(values.high),
-    low: coerce(values.low),
-    volume: coerceVol(values.volume),
-  };
-}
+import {
+  buildPriceFormSchema,
+  toWirePayload,
+  rowToFormValues,
+  EMPTY_FORM,
+  type PriceFormValues,
+} from './price-history-form.schema';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -138,16 +92,18 @@ function PriceDialog({
   const createMutation = useCreatePrice(securityId);
   const editMutation = useEditPrice(securityId);
 
+  // Schema depends only on `t` (per-language stable from useTranslation), so a
+  // plain useMemo([t]) is sufficient — no schema-ref dance like the dynamic
+  // transaction form needs.
+  const schema = useMemo(() => buildPriceFormSchema(t), [t]);
+
   const form = useForm<PriceFormValues>({
-    resolver: zodResolver(priceFormSchema),
+    resolver: zodResolver(schema),
     mode: 'onBlur',
     reValidateMode: 'onChange',
     defaultValues: initialValues,
   });
 
-  // When dialog opens with new initialValues (edit mode), reset the form.
-  // We rely on the parent calling onOpenChange(false) + re-opening with new
-  // initialValues — the form's key on the Dialog resets state fully.
   useFormRevalidateOnChange(form);
 
   const activeMutation = mode === 'edit' ? editMutation : createMutation;
@@ -306,28 +262,6 @@ function PriceDialog({
 // Main section
 // ---------------------------------------------------------------------------
 
-/** Default (empty) form values for the Add dialog. */
-const EMPTY_FORM: PriceFormValues = {
-  date: '',
-  value: '',
-  open: '',
-  high: '',
-  low: '',
-  volume: '',
-};
-
-/** Build form values pre-populated from an existing row (for Edit). */
-function rowToFormValues(row: RawPriceRow): PriceFormValues {
-  return {
-    date: row.date,
-    value: row.value,
-    open: row.open ?? '',
-    high: row.high ?? '',
-    low: row.low ?? '',
-    volume: row.volume != null ? String(row.volume) : '',
-  };
-}
-
 export function PriceHistorySection({ securityId, currency }: PriceHistorySectionProps) {
   const { t } = useTranslation('securities');
 
@@ -342,6 +276,7 @@ export function PriceHistorySection({ securityId, currency }: PriceHistorySectio
   const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
   const [editingDate, setEditingDate] = useState<string | null>(null);
   const [dialogInitialValues, setDialogInitialValues] = useState<PriceFormValues>(EMPTY_FORM);
+  const [deleteAllConfirmOpen, setDeleteAllConfirmOpen] = useState(false);
 
   function openAdd() {
     setDialogMode('add');
@@ -361,11 +296,10 @@ export function PriceHistorySection({ securityId, currency }: PriceHistorySectio
     deletePriceMutation.mutate(date);
   }
 
-  const { run: handleDeleteAll, inFlight: deleteAllInFlight } = useGuardedSubmit(async () => {
-    const confirmed = window.confirm(t('priceHistory.confirmDeleteAll'));
-    if (!confirmed) return;
+  const { run: confirmDeleteAll, inFlight: deleteAllInFlight } = useGuardedSubmit(async () => {
     try {
       await deleteAllMutation.mutateAsync();
+      setDeleteAllConfirmOpen(false);
     } catch {
       // Global MutationCache toast surfaces the error.
     }
@@ -436,7 +370,7 @@ export function PriceHistorySection({ securityId, currency }: PriceHistorySectio
       header: t('priceHistory.columns.volume'),
       cell: ({ row }) =>
         row.original.volume != null ? (
-          <span>{row.original.volume.toLocaleString()}</span>
+          <span>{formatNumber(row.original.volume, { maximumFractionDigits: 0 })}</span>
         ) : (
           <span className="text-muted-foreground">—</span>
         ),
@@ -491,8 +425,7 @@ export function PriceHistorySection({ securityId, currency }: PriceHistorySectio
           <Button
             size="sm"
             variant="outline"
-            onClick={() => void handleDeleteAll()}
-            disabled={deleteAllInFlight || deleteAllMutation.isPending}
+            onClick={() => setDeleteAllConfirmOpen(true)}
           >
             <Trash className="h-4 w-4 mr-1" />
             {t('priceHistory.deleteAll')}
@@ -524,6 +457,31 @@ export function PriceHistorySection({ securityId, currency }: PriceHistorySectio
         initialValues={dialogInitialValues}
         securityId={securityId}
       />
+
+      {/* Delete-all confirmation */}
+      <AlertDialog open={deleteAllConfirmOpen} onOpenChange={setDeleteAllConfirmOpen}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('priceHistory.deleteAll')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('priceHistory.confirmDeleteAll')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('priceHistory.form.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmDeleteAll();
+              }}
+              disabled={deleteAllInFlight || deleteAllMutation.isPending}
+            >
+              {t('priceHistory.deleteAll')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
