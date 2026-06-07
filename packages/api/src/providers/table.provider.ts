@@ -58,10 +58,35 @@ function findColIndex(headers: string[], spec: HeaderSpec): number {
   return -1;
 }
 
+// Parse a scraped numeric cell across locales. Handles both decimal conventions
+// (US "1,234.56" and European "1.234,56") plus thousands-only grouping.
+// Rule: when both separators appear, the RIGHTMOST is the decimal point and the
+// other is a thousands separator; a separator that repeats is always thousands;
+// a lone separator is treated as the decimal point (the common price case).
+// The inherent "1.234" / "1,234" single-separator ambiguity resolves to a
+// decimal — matching the legacy behavior and the comma-decimal target locales.
 function parseNumericCell(cell: string): number | null {
-  // Remove thousands separators and normalize decimal
-  const clean = cell.trim().replace(/[^\d.,-]/g, '').replace(',', '.');
-  const n = parseFloat(clean);
+  const cleaned = cell.trim().replace(/[^\d.,-]/g, '');
+  if (cleaned === '' || cleaned === '-') return null;
+
+  const dots = (cleaned.match(/\./g) ?? []).length;
+  const commas = (cleaned.match(/,/g) ?? []).length;
+
+  let normalized = cleaned;
+  if (dots > 0 && commas > 0) {
+    normalized = cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')
+      ? cleaned.replace(/\./g, '').replace(',', '.') // comma decimal, dot thousands
+      : cleaned.replace(/,/g, '');                   // dot decimal, comma thousands
+  } else if (commas > 1) {
+    normalized = cleaned.replace(/,/g, '');           // comma thousands, no decimal
+  } else if (dots > 1) {
+    normalized = cleaned.replace(/\./g, '');          // dot thousands, no decimal
+  } else if (commas === 1) {
+    normalized = cleaned.replace(',', '.');           // lone comma = decimal point
+  }
+  // lone dot or no separator: already a valid float string
+
+  const n = parseFloat(normalized);
   return isNaN(n) ? null : n;
 }
 

@@ -67,8 +67,7 @@ describe('parseTableHtml', () => {
 
   it('parses comma-decimal numbers (European locale, values < 1000)', () => {
     // Matches the real format de/it/es/… investing.com pages serve (e.g. "98,43").
-    // Known limitation: thousands-grouped values like "1.234,56" are NOT handled
-    // by parseNumericCell today — tracked as a separate follow-up.
+    // Thousands-grouped values are covered by the dedicated locale tests below.
     const html = tableHtml(
       ['Datum', 'Zuletzt', 'Eröffn.', 'Hoch', 'Tief', '+/- %'],
       [
@@ -81,6 +80,30 @@ describe('parseTableHtml', () => {
     expect(prices[0].close.toString()).toBe('98.43');
     expect(prices[0].high?.toString()).toBe('98.59');
     expect(prices[0].low?.toString()).toBe('97.67');
+  });
+
+  it('parses European thousands-grouped numbers (1.234,56 → 1234.56)', () => {
+    const html = tableHtml(
+      ['Datum', 'Zuletzt', 'Hoch', 'Tief'],
+      [['2026-06-04', '1.234,56', '1.250,00', '1.200,99']],
+    );
+    const { prices } = parseTableHtml(html, {});
+    expect(prices[0].close.toString()).toBe('1234.56');
+    expect(prices[0].high?.toString()).toBe('1250');
+    expect(prices[0].low?.toString()).toBe('1200.99');
+  });
+
+  it('parses US thousands-grouped numbers (1,234.56 → 1234.56)', () => {
+    const html = tableHtml(['Date', 'Price'], [['2026-06-04', '1,234.56']]);
+    const { prices } = parseTableHtml(html, {});
+    expect(prices[0].close.toString()).toBe('1234.56');
+  });
+
+  it('parses thousands without a decimal part (1,234,567 and 1.234.567 → 1234567)', () => {
+    const us = parseTableHtml(tableHtml(['Date', 'Price'], [['2026-06-04', '1,234,567']]), {});
+    const eu = parseTableHtml(tableHtml(['Date', 'Price'], [['2026-06-04', '1.234.567']]), {});
+    expect(us.prices[0].close.toString()).toBe('1234567');
+    expect(eu.prices[0].close.toString()).toBe('1234567');
   });
 
   it('warns when tables exist but none has Date+Close', () => {
