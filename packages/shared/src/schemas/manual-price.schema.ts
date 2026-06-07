@@ -3,9 +3,11 @@ import { z } from 'zod';
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'INVALID_DATE');
 
 // Positive decimal string (API numeric convention: values cross the wire as strings).
+// No leading zeros: matches Decimal.toString() output, keeps GET->PUT round-trips stable.
 const positiveDecimal = z
   .string()
-  .refine((s) => /^\d+(\.\d+)?$/.test(s) && parseFloat(s) > 0, 'INVALID_VALUE');
+  .regex(/^(0|[1-9]\d*)(\.\d+)?$/, 'INVALID_VALUE')
+  .refine((s) => parseFloat(s) > 0, 'INVALID_VALUE');
 
 export const manualPriceSchema = z.object({
   date: isoDate,
@@ -17,8 +19,8 @@ export const manualPriceSchema = z.object({
 });
 
 export const deletePricesSchema = z.object({
-  // Omit (or empty) => delete-all sentinel. A present array deletes those dates.
-  dates: z.array(isoDate).optional(),
+  // Omit the field entirely => delete-all sentinel. A present array must be non-empty.
+  dates: z.array(isoDate).min(1).optional(),
 });
 
 export type ManualPriceInput = z.infer<typeof manualPriceSchema>;
