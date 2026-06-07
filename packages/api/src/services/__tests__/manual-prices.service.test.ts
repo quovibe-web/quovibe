@@ -54,11 +54,14 @@ describe('editPrice', () => {
     expect(readPrice(db, '2025-03-14')?.value).toBe(15000000000);
   });
 
-  it('moves the row when the date changes (old date removed, new date written)', () => {
+  it('moves the row when the date changes (old date removed, new date written, latest_price follows)', () => {
     upsertPrice(db, SEC, { date: '2025-03-14', value: '100' });
-    editPrice(db, SEC, '2025-03-14', { date: '2025-03-20', value: '100' });
-    expect(readPrice(db, '2025-03-14')).toBeUndefined();
-    expect(readPrice(db, '2025-03-20')?.value).toBe(10000000000);
+    upsertPrice(db, SEC, { date: '2025-03-20', value: '200' }); // 2025-03-20 is the max
+    editPrice(db, SEC, '2025-03-20', { date: '2025-03-15', value: '150' }); // move max earlier
+    expect(readPrice(db, '2025-03-20')).toBeUndefined();
+    expect(readPrice(db, '2025-03-15')?.value).toBe(15000000000);
+    const lp = db.prepare(`SELECT tstamp FROM latest_price WHERE security = ?`).get(SEC) as { tstamp: string };
+    expect(lp.tstamp).toBe('2025-03-15'); // latest_price followed the new global max
   });
 
   it('overwrites the target date when changing onto an occupied date', () => {

@@ -4,6 +4,18 @@ import type { ManualPriceInput } from '@quovibe/shared';
 import { convertPriceToDb } from './unit-conversion';
 import { syncLatestPriceFromGlobalMax } from './prices.service';
 
+/** Upsert one price row, overwriting all columns on conflict. */
+const UPSERT_PRICE_SQL = `
+  INSERT INTO price (security, tstamp, value, open, high, low, volume)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
+  ON CONFLICT(security, tstamp) DO UPDATE SET
+    value  = excluded.value,
+    open   = excluded.open,
+    high   = excluded.high,
+    low    = excluded.low,
+    volume = excluded.volume
+`;
+
 /** Convert a ManualPriceInput to DB-scaled integer fields. */
 function toDbPrice(input: ManualPriceInput): {
   value: number;
@@ -37,19 +49,10 @@ export function upsertPrice(
   securityId: string,
   input: ManualPriceInput,
 ): void {
-  const db = toDbPrice(input);
-  const insert = sqlite.prepare(`
-    INSERT INTO price (security, tstamp, value, open, high, low, volume)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(security, tstamp) DO UPDATE SET
-      value  = excluded.value,
-      open   = excluded.open,
-      high   = excluded.high,
-      low    = excluded.low,
-      volume = excluded.volume
-  `);
+  const scaled = toDbPrice(input);
+  const insert = sqlite.prepare(UPSERT_PRICE_SQL);
   sqlite.transaction(() => {
-    insert.run(securityId, input.date, db.value, db.open, db.high, db.low, db.volume);
+    insert.run(securityId, input.date, scaled.value, scaled.open, scaled.high, scaled.low, scaled.volume);
     syncLatestPriceFromGlobalMax(sqlite, securityId);
   })();
 }
@@ -69,23 +72,16 @@ export function editPrice(
   oldDate: string,
   input: ManualPriceInput,
 ): void {
-  const db = toDbPrice(input);
+  const scaled = toDbPrice(input);
   const del = sqlite.prepare(
     `DELETE FROM price WHERE security = ? AND tstamp = ?`,
   );
-  const insert = sqlite.prepare(`
-    INSERT INTO price (security, tstamp, value, open, high, low, volume)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(security, tstamp) DO UPDATE SET
-      value  = excluded.value,
-      open   = excluded.open,
-      high   = excluded.high,
-      low    = excluded.low,
-      volume = excluded.volume
-  `);
+  const insert = sqlite.prepare(UPSERT_PRICE_SQL);
   sqlite.transaction(() => {
     if (oldDate !== input.date) del.run(securityId, oldDate);
-    insert.run(securityId, input.date, db.value, db.open, db.high, db.low, db.volume);
+    // Edit replaces the full row: open/high/low/volume default to null when omitted.
+    // The edit form must pre-populate OHLCV from the existing row before submit.
+    insert.run(securityId, input.date, scaled.value, scaled.open, scaled.high, scaled.low, scaled.volume);
     syncLatestPriceFromGlobalMax(sqlite, securityId);
   })();
 }
