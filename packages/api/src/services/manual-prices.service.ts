@@ -113,6 +113,8 @@ export function deleteAllPrices(
   })();
 }
 
+// ─── Derive prices from transactions ────────────────────────────────────────
+
 interface RawTradeRow {
   uuid: string;
   type: string;

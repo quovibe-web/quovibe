@@ -213,4 +213,24 @@ describe('derivePricesFromTransactions', () => {
     const r = derivePricesFromTransactions(db, SEC);
     expect(r).toEqual({ written: 0, skipped: 0 });
   });
+
+  it('same-date trades: last by _id wins (overwrite)', () => {
+    seedTrade(db, { uuid: 'sd1', type: 'BUY', date: '2025-07-01', shares: 10 * 1e8, amountHecto: 100000, currency: 'EUR' }); // 100/sh
+    seedTrade(db, { uuid: 'sd2', type: 'BUY', date: '2025-07-01', shares: 10 * 1e8, amountHecto: 120000, currency: 'EUR' }); // 120/sh, inserted later
+    const r = derivePricesFromTransactions(db, SEC);
+    expect(r.written).toBe(2); // both processed
+    expect(readPrice(db, '2025-07-01')?.value).toBe(12000000000); // last (_id-ordered) wins → 120
+  });
+
+  it('mixed batch: counts written and skipped independently', () => {
+    db.prepare(`UPDATE security SET currency='USD' WHERE uuid=?`).run(SEC);
+    // resolvable: cross-ccy BUY with FOREX unit → 110 USD/sh
+    seedTrade(db, { uuid: 'mb1', type: 'BUY', date: '2025-08-01', shares: 10 * 1e8, amountHecto: 100000, currency: 'EUR', forexAmountHecto: 110000, forexCurrency: 'USD', rate: '1.1' });
+    // unresolvable: EUR trade, no FOREX unit, security is USD
+    seedTrade(db, { uuid: 'mb2', type: 'BUY', date: '2025-08-02', shares: 10 * 1e8, amountHecto: 100000, currency: 'EUR' });
+    const r = derivePricesFromTransactions(db, SEC);
+    expect(r).toEqual({ written: 1, skipped: 1 });
+    expect(readPrice(db, '2025-08-01')?.value).toBe(11000000000);
+    expect(readPrice(db, '2025-08-02')).toBeUndefined();
+  });
 });
