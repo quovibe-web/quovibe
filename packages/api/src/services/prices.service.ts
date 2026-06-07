@@ -97,13 +97,14 @@ function writeLatestQuote(
  * table for one security. Upserts when a max exists; deletes the latest_price
  * row when the price table is empty for the security (prevents a stale orphan
  * pointing at a deleted max-date). Single source of truth for the
- * latest_price <-> price relationship; reused by savePricesToDb and the
+ * price -> latest_price derivation; reused by savePricesToDb and the
  * manual-prices service.
  */
 export function syncLatestPriceFromGlobalMax(
   sqlite: BetterSqlite3.Database,
   securityId: string,
 ): void {
+  // tstamp is ISO-shaped (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS); lexicographic ORDER BY matches date order.
   const globalMax = sqlite
     .prepare(
       `SELECT tstamp, value, open, high, low, volume FROM price WHERE security = ? ORDER BY tstamp DESC LIMIT 1`,

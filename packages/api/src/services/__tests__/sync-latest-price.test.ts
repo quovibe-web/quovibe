@@ -33,4 +33,14 @@ describe('syncLatestPriceFromGlobalMax', () => {
     const lp = db.prepare(`SELECT * FROM latest_price WHERE security = ?`).get(SEC);
     expect(lp).toBeUndefined();
   });
+
+  it('moves latest_price to the prior row after the max-date row is removed', () => {
+    db.prepare(`INSERT INTO price (security, tstamp, value) VALUES (?, '2025-01-01', 100), (?, '2025-02-01', 200)`).run(SEC, SEC);
+    syncLatestPriceFromGlobalMax(db, SEC);
+    db.prepare(`DELETE FROM price WHERE security = ? AND tstamp = '2025-02-01'`).run(SEC);
+    syncLatestPriceFromGlobalMax(db, SEC);
+    const lp = db.prepare(`SELECT tstamp, value FROM latest_price WHERE security = ?`).get(SEC) as { tstamp: string; value: number };
+    expect(lp.tstamp).toBe('2025-01-01');
+    expect(lp.value).toBe(100);
+  });
 });
