@@ -90,6 +90,42 @@ function writeLatestQuote(
   }
 }
 
+// ─── Latest-price sync helper ─────────────────────────────────────────────────
+
+/**
+ * Re-derives latest_price from the current global max-date row of the price
+ * table for one security. Upserts when a max exists; deletes the latest_price
+ * row when the price table is empty for the security (prevents a stale orphan
+ * pointing at a deleted max-date). Single source of truth for the
+ * latest_price <-> price relationship; reused by savePricesToDb and the
+ * manual-prices service.
+ */
+export function syncLatestPriceFromGlobalMax(
+  sqlite: BetterSqlite3.Database,
+  securityId: string,
+): void {
+  const globalMax = sqlite
+    .prepare(
+      `SELECT tstamp, value, open, high, low, volume FROM price WHERE security = ? ORDER BY tstamp DESC LIMIT 1`,
+    )
+    .get(securityId) as PriceDbRow | undefined;
+
+  if (globalMax) {
+    sqlite
+      .prepare(
+        `INSERT OR REPLACE INTO latest_price (security, tstamp, value, open, high, low, volume)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        securityId, globalMax.tstamp, globalMax.value,
+        globalMax.open ?? null, globalMax.high ?? null,
+        globalMax.low ?? null, globalMax.volume ?? null,
+      );
+  } else {
+    sqlite.prepare(`DELETE FROM latest_price WHERE security = ?`).run(securityId);
+  }
+}
+
 // ─── Save to DB ───────────────────────────────────────────────────────────────
 
 function savePricesToDb(
@@ -116,17 +152,8 @@ function savePricesToDb(
       volume = excluded.volume
   `);
 
-  const insertLatest = sqlite.prepare(`
-    INSERT OR REPLACE INTO latest_price (security, tstamp, value, open, high, low, volume)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `);
-
   const deletePrice = sqlite.prepare(`DELETE FROM price WHERE security = ?`);
   const deleteLatest = sqlite.prepare(`DELETE FROM latest_price WHERE security = ?`);
-
-  const selectGlobalMax = sqlite.prepare(
-    `SELECT tstamp, value, open, high, low, volume FROM price WHERE security = ? ORDER BY tstamp DESC LIMIT 1`,
-  );
 
   const sorted = [...fetchedPrices].sort((a, b) => a.date.localeCompare(b.date));
 
@@ -143,11 +170,7 @@ function savePricesToDb(
     }
 
     if (!skipLatestPriceSync) {
-      // Sync latest_price from global max — includes newly inserted rows
-      const globalMax = selectGlobalMax.get(securityId) as PriceDbRow | undefined;
-      if (globalMax) {
-        insertLatest.run(securityId, globalMax.tstamp, globalMax.value, globalMax.open ?? null, globalMax.high ?? null, globalMax.low ?? null, globalMax.volume ?? null);
-      }
+      syncLatestPriceFromGlobalMax(sqlite, securityId);
     }
   });
 
