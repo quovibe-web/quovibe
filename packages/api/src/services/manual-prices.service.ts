@@ -1,6 +1,8 @@
 import type BetterSqlite3 from 'better-sqlite3';
 import Decimal from 'decimal.js';
-import type { ManualPriceInput } from '@quovibe/shared';
+import type { ManualPriceInput, TransactionWithUnits, TransactionUnit } from '@quovibe/shared';
+import { TransactionType } from '@quovibe/shared';
+import { getSecurityCurrencyGross } from '@quovibe/engine';
 import { convertPriceToDb } from './unit-conversion';
 import { syncLatestPriceFromGlobalMax } from './prices.service';
 
@@ -109,4 +111,114 @@ export function deleteAllPrices(
     sqlite.prepare(`DELETE FROM price WHERE security = ?`).run(securityId);
     syncLatestPriceFromGlobalMax(sqlite, securityId); // no rows => clears latest_price
   })();
+}
+
+interface RawTradeRow {
+  uuid: string;
+  type: string;
+  date: string;
+  shares: number;
+  amount: number;
+  currency: string | null;
+}
+
+interface RawUnitRow {
+  xact: string;
+  type: string;
+  amount: number;
+  currency: string | null;
+  forex_amount: number | null;
+  forex_currency: string | null;
+  exchangeRate: string | null;
+}
+
+export interface DeriveResult {
+  written: number;
+  skipped: number;
+}
+
+/**
+ * Derive close-only price rows from the security's BUY/SELL transactions.
+ * Price = security-currency gross-per-share (fees/taxes excluded — reconstructed
+ * via the engine helper, NOT amount/shares). Overwrites any existing quote on a
+ * trade date (PP precedence). Trades whose security-currency gross can't be
+ * resolved (cross-currency, no FX unit/rate) are skipped and counted.
+ */
+export function derivePricesFromTransactions(
+  sqlite: BetterSqlite3.Database,
+  securityId: string,
+): DeriveResult {
+  const sec = sqlite
+    .prepare(`SELECT currency FROM security WHERE uuid = ?`)
+    .get(securityId) as { currency: string | null } | undefined;
+  const securityCurrency = sec?.currency ?? 'EUR';
+
+  const trades = sqlite
+    .prepare(
+      `SELECT uuid, type, date, shares, amount, currency
+       FROM xact
+       WHERE security = ? AND type IN ('BUY','SELL') AND shares > 0
+       ORDER BY date ASC, _id ASC`,
+    )
+    .all(securityId) as RawTradeRow[];
+
+  if (trades.length === 0) return { written: 0, skipped: 0 };
+
+  const unitStmt = sqlite.prepare(
+    `SELECT xact, type, amount, currency, forex_amount, forex_currency, exchangeRate
+     FROM xact_unit WHERE xact = ?`,
+  );
+  const insertPrice = sqlite.prepare(`
+    INSERT INTO price (security, tstamp, value, open, high, low, volume)
+    VALUES (?, ?, ?, NULL, NULL, NULL, NULL)
+    ON CONFLICT(security, tstamp) DO UPDATE SET value = excluded.value
+  `);
+
+  let written = 0;
+  let skipped = 0;
+
+  sqlite.transaction(() => {
+    for (const t of trades) {
+      const rawUnits = unitStmt.all(t.uuid) as RawUnitRow[];
+      const units: TransactionUnit[] = rawUnits.map((u) => ({
+        id: '',
+        transactionId: t.uuid,
+        type: u.type as TransactionUnit['type'],
+        amount: u.amount / 100,
+        currencyCode: u.currency,
+        fxAmount: u.forex_amount != null ? u.forex_amount / 100 : null,
+        fxCurrencyCode: u.forex_currency,
+        fxRate: u.exchangeRate != null ? parseFloat(u.exchangeRate) : null,
+      }));
+
+      const tx: TransactionWithUnits = {
+        id: t.uuid,
+        type: t.type === 'SELL' ? TransactionType.SELL : TransactionType.BUY,
+        date: t.date.slice(0, 10),
+        currencyCode: t.currency,
+        amount: t.amount != null ? t.amount / 100 : null,
+        shares: t.shares,
+        note: null,
+        securityId,
+        source: null,
+        updatedAt: null,
+        units,
+      };
+
+      const secGross = getSecurityCurrencyGross(tx, securityCurrency);
+      const sharesCount = new Decimal(t.shares).div(1e8); // native-ok
+      if (secGross == null || sharesCount.isZero()) {
+        skipped++;
+        continue;
+      }
+
+      const price = secGross.div(sharesCount);
+      const dbValue = convertPriceToDb({ close: price }).close;
+      insertPrice.run(securityId, tx.date, dbValue);
+      written++;
+    }
+    syncLatestPriceFromGlobalMax(sqlite, securityId);
+  })();
+
+  return { written, skipped };
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { applyBootstrap } from '../../db/apply-bootstrap';
-import { upsertPrice, editPrice, deletePrices, deleteAllPrices } from '../manual-prices.service';
+import { upsertPrice, editPrice, deletePrices, deleteAllPrices, derivePricesFromTransactions } from '../manual-prices.service';
 
 const SEC = 'sec-1';
 
@@ -112,5 +112,105 @@ describe('deleteAllPrices', () => {
     deleteAllPrices(db, SEC);
     expect(db.prepare(`SELECT COUNT(*) c FROM price WHERE security = ?`).get(SEC)).toEqual({ c: 0 });
     expect(db.prepare(`SELECT * FROM latest_price WHERE security = ?`).get(SEC)).toBeUndefined();
+  });
+});
+
+// Seed one securities-side xact (shares>0) + optional FEE/TAX/FOREX units.
+// Requires an account with uuid='acc-1' and type='portfolio' in the DB.
+function seedTrade(
+  db: Database.Database,
+  opts: {
+    uuid: string;
+    type: 'BUY' | 'SELL';
+    date: string;
+    shares: number;
+    amountHecto: number;
+    currency: string;
+    feeHecto?: number;
+    taxHecto?: number;
+    forexAmountHecto?: number;
+    forexCurrency?: string;
+    rate?: string;
+  },
+): void {
+  db.prepare(
+    `INSERT OR IGNORE INTO account (uuid, type, name, updatedAt, _xmlid, _order)
+     VALUES ('acc-1', 'portfolio', 'Test Account', '2025-01-01T00:00:00', 0, 0)`,
+  ).run();
+  db.prepare(
+    `INSERT INTO xact (uuid, type, date, acctype, account, security, shares, amount, currency, updatedAt, _xmlid, _order)
+     VALUES (?, ?, ?, 'portfolio', 'acc-1', ?, ?, ?, ?, '2025-01-01T00:00:00', 0, 0)`,
+  ).run(opts.uuid, opts.type, opts.date, SEC, opts.shares, opts.amountHecto, opts.currency);
+  const unit = db.prepare(
+    `INSERT INTO xact_unit (xact, type, amount, currency, forex_amount, forex_currency, exchangeRate)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  );
+  if (opts.feeHecto) unit.run(opts.uuid, 'FEE', opts.feeHecto, opts.currency, null, null, null);
+  if (opts.taxHecto) unit.run(opts.uuid, 'TAX', opts.taxHecto, opts.currency, null, null, null);
+  if (opts.forexAmountHecto != null)
+    unit.run(opts.uuid, 'FOREX', opts.amountHecto, opts.currency, opts.forexAmountHecto, opts.forexCurrency, opts.rate ?? null);
+}
+
+describe('derivePricesFromTransactions', () => {
+  let db: Database.Database;
+  beforeEach(() => { db = freshDb(); }); // SEC currency = EUR
+
+  it('derives gross-per-share, EXCLUDING fees+taxes (not amount/shares)', () => {
+    // BUY 10 shares, total cash = 1050 EUR = gross 1000 + 30 fee + 20 tax.
+    // amount(hecto)=105000, fee=3000, tax=2000. gross=1000 => price 100.00/share.
+    seedTrade(db, { uuid: 't1', type: 'BUY', date: '2025-03-14', shares: 10 * 1e8, amountHecto: 105000, currency: 'EUR', feeHecto: 3000, taxHecto: 2000 });
+    const r = derivePricesFromTransactions(db, SEC);
+    expect(r).toEqual({ written: 1, skipped: 0 });
+    expect(readPrice(db, '2025-03-14')?.value).toBe(10000000000); // 100.00 x 1e8
+  });
+
+  it('SELL: gross = amount + fees + taxes', () => {
+    // SELL 10 shares, cash received 950 = gross 1000 - 30 fee - 20 tax. price 100/share.
+    seedTrade(db, { uuid: 't2', type: 'SELL', date: '2025-04-01', shares: 10 * 1e8, amountHecto: 95000, currency: 'EUR', feeHecto: 3000, taxHecto: 2000 });
+    const r = derivePricesFromTransactions(db, SEC);
+    expect(r.written).toBe(1);
+    expect(readPrice(db, '2025-04-01')?.value).toBe(10000000000);
+  });
+
+  it('cross-currency BUY uses the security-currency gross from the FOREX unit', () => {
+    db.prepare(`UPDATE security SET currency='USD' WHERE uuid=?`).run(SEC);
+    // BUY 10 sh, deposit-ccy(EUR) gross 1000 (amount=100000 hecto), FOREX forex_amount = 1100 USD (110000 hecto).
+    // security-ccy gross = 1100 USD => price 110 USD/share.
+    seedTrade(db, { uuid: 't3', type: 'BUY', date: '2025-05-01', shares: 10 * 1e8, amountHecto: 100000, currency: 'EUR', forexAmountHecto: 110000, forexCurrency: 'USD', rate: '1.1' });
+    const r = derivePricesFromTransactions(db, SEC);
+    expect(r.written).toBe(1);
+    expect(readPrice(db, '2025-05-01')?.value).toBe(11000000000); // 110 x 1e8
+  });
+
+  it('overwrites an existing same-date manual quote (PP precedence)', () => {
+    upsertPrice(db, SEC, { date: '2025-03-14', value: '999' });
+    seedTrade(db, { uuid: 't4', type: 'BUY', date: '2025-03-14', shares: 10 * 1e8, amountHecto: 100000, currency: 'EUR' });
+    derivePricesFromTransactions(db, SEC);
+    expect(readPrice(db, '2025-03-14')?.value).toBe(10000000000); // 100, not 999
+  });
+
+  it('skips + counts a cross-currency trade with no resolvable rate', () => {
+    db.prepare(`UPDATE security SET currency='USD' WHERE uuid=?`).run(SEC);
+    // EUR trade, no FOREX unit => security-currency gross unresolvable.
+    seedTrade(db, { uuid: 't5', type: 'BUY', date: '2025-06-01', shares: 10 * 1e8, amountHecto: 100000, currency: 'EUR' });
+    const r = derivePricesFromTransactions(db, SEC);
+    expect(r).toEqual({ written: 0, skipped: 1 });
+    expect(readPrice(db, '2025-06-01')).toBeUndefined();
+  });
+
+  it('ignores the BUY cash-side row (shares=0)', () => {
+    seedTrade(db, { uuid: 't6', type: 'BUY', date: '2025-03-14', shares: 10 * 1e8, amountHecto: 100000, currency: 'EUR' });
+    // cash-side row (shares=0) — uses the same acc-1 seeded by seedTrade above
+    db.prepare(
+      `INSERT INTO xact (uuid, type, date, acctype, account, security, shares, amount, currency, updatedAt, _xmlid, _order)
+       VALUES ('t6c','BUY','2025-03-14','portfolio','acc-1',?,0,100000,'EUR','2025-01-01T00:00:00',0,0)`,
+    ).run(SEC);
+    const r = derivePricesFromTransactions(db, SEC);
+    expect(r.written).toBe(1); // only the shares>0 leg priced
+  });
+
+  it('returns {written:0, skipped:0} when the security has no trades', () => {
+    const r = derivePricesFromTransactions(db, SEC);
+    expect(r).toEqual({ written: 0, skipped: 0 });
   });
 });
