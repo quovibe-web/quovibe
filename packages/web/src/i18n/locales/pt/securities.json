@@ -331,5 +331,39 @@
     "totalSecurities": "Total de títulos",
     "activeSecurities": "Ativos",
     "totalMarketValue": "Valor de mercado total"
+  },
+  "priceHistory": {
+    "title": "Histórico de preços",
+    "addPrice": "Adicionar preço",
+    "fillFromTrades": "Preencher de transações",
+    "deleteAll": "Eliminar tudo",
+    "columns": {
+      "date": "Data",
+      "value": "Cotação",
+      "open": "Abertura",
+      "high": "Máximo",
+      "low": "Mínimo",
+      "volume": "Volume"
+    },
+    "form": {
+      "title": {
+        "add": "Adicionar preço",
+        "edit": "Editar preço"
+      },
+      "date": "Data",
+      "value": "Cotação",
+      "open": "Abertura",
+      "high": "Máximo",
+      "low": "Mínimo",
+      "volume": "Volume",
+      "save": "Guardar",
+      "cancel": "Cancelar"
+    },
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "empty": "Sem histórico de preços. Adicione um preço ou preencha de transações.",
+    "deriveResult": "{{written}} preços escritos, {{skipped}} ignorados",
+    "deriveSkippedHint": "As transações ignoradas não têm taxa de câmbio.",
+    "confirmDeleteAll": "Eliminar todo o histórico de preços para este título? Esta ação não pode ser desfeita."
   }
 }

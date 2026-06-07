@@ -30,6 +30,7 @@ import { getTransactionCashflowSign } from '@/lib/transaction-display';
 import { TypeBadge } from '@/components/shared/TypeBadge';
 import { SignedPercent } from '@/components/shared/SignedPercent';
 import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
+import { PriceHistorySection } from '@/components/domain/PriceHistorySection';
 
 function SharesCell({ value }: { value: string | null }) {
   const { isPrivate } = usePrivacy();
@@ -373,6 +374,14 @@ export default function SecurityDetail() {
           )}
         </CardContent>
       </Card>
+
+      {id && security && (
+        <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '210ms' }}>
+          <CardContent className="pt-6">
+            <PriceHistorySection securityId={id} currency={security.currency} />
+          </CardContent>
+        </Card>
+      )}
 
       <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '240ms' }}>
         <CardHeader>

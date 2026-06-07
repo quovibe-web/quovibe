@@ -331,5 +331,39 @@
     "totalSecurities": "Wertpapiere gesamt",
     "activeSecurities": "Aktiv",
     "totalMarketValue": "Gesamter Marktwert"
+  },
+  "priceHistory": {
+    "title": "Kursverlauf",
+    "addPrice": "Kurs hinzufügen",
+    "fillFromTrades": "Aus Transaktionen füllen",
+    "deleteAll": "Alle löschen",
+    "columns": {
+      "date": "Datum",
+      "value": "Kurs",
+      "open": "Eröffnung",
+      "high": "Hoch",
+      "low": "Tief",
+      "volume": "Volumen"
+    },
+    "form": {
+      "title": {
+        "add": "Kurs hinzufügen",
+        "edit": "Kurs bearbeiten"
+      },
+      "date": "Datum",
+      "value": "Kurs",
+      "open": "Eröffnung",
+      "high": "Hoch",
+      "low": "Tief",
+      "volume": "Volumen",
+      "save": "Speichern",
+      "cancel": "Abbrechen"
+    },
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "empty": "Kein Kursverlauf vorhanden. Fügen Sie einen Kurs hinzu oder füllen Sie aus Transaktionen.",
+    "deriveResult": "{{written}} Kurse geschrieben, {{skipped}} übersprungen",
+    "deriveSkippedHint": "Übersprungene Transaktionen haben keinen Wechselkurs.",
+    "confirmDeleteAll": "Den gesamten Kursverlauf für dieses Wertpapier löschen? Dies kann nicht rückgängig gemacht werden."
   }
 }

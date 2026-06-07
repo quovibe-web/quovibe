@@ -331,5 +331,39 @@
     "totalSecurities": "Total des titres",
     "activeSecurities": "Actifs",
     "totalMarketValue": "Valeur de marché totale"
+  },
+  "priceHistory": {
+    "title": "Historique des prix",
+    "addPrice": "Ajouter un prix",
+    "fillFromTrades": "Remplir depuis les transactions",
+    "deleteAll": "Tout supprimer",
+    "columns": {
+      "date": "Date",
+      "value": "Cours",
+      "open": "Ouverture",
+      "high": "Haut",
+      "low": "Bas",
+      "volume": "Volume"
+    },
+    "form": {
+      "title": {
+        "add": "Ajouter un prix",
+        "edit": "Modifier le prix"
+      },
+      "date": "Date",
+      "value": "Cours",
+      "open": "Ouverture",
+      "high": "Haut",
+      "low": "Bas",
+      "volume": "Volume",
+      "save": "Enregistrer",
+      "cancel": "Annuler"
+    },
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "empty": "Aucun historique de prix. Ajoutez un prix ou remplissez depuis les transactions.",
+    "deriveResult": "{{written}} prix enregistrés, {{skipped}} ignorés",
+    "deriveSkippedHint": "Les transactions ignorées n'ont pas de taux de change.",
+    "confirmDeleteAll": "Supprimer tout l'historique des prix pour ce titre ? Cette action est irréversible."
   }
 }

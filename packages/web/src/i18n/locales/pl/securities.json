@@ -333,5 +333,39 @@
     "totalSecurities": "Walory razem",
     "activeSecurities": "Aktywne",
     "totalMarketValue": "Łączna wartość rynkowa"
+  },
+  "priceHistory": {
+    "title": "Historia kursów",
+    "addPrice": "Dodaj kurs",
+    "fillFromTrades": "Wypełnij z transakcji",
+    "deleteAll": "Usuń wszystkie",
+    "columns": {
+      "date": "Data",
+      "value": "Kurs",
+      "open": "Otwarcie",
+      "high": "Najwyższy",
+      "low": "Najniższy",
+      "volume": "Wolumen"
+    },
+    "form": {
+      "title": {
+        "add": "Dodaj kurs",
+        "edit": "Edytuj kurs"
+      },
+      "date": "Data",
+      "value": "Kurs",
+      "open": "Otwarcie",
+      "high": "Najwyższy",
+      "low": "Najniższy",
+      "volume": "Wolumen",
+      "save": "Zapisz",
+      "cancel": "Anuluj"
+    },
+    "edit": "Edytuj",
+    "delete": "Usuń",
+    "empty": "Brak historii kursów. Dodaj kurs lub wypełnij z transakcji.",
+    "deriveResult": "{{written}} kursów zapisanych, {{skipped}} pominiętych",
+    "deriveSkippedHint": "Pominięte transakcje nie mają kursu wymiany.",
+    "confirmDeleteAll": "Usunąć całą historię kursów dla tego papieru wartościowego? Tej operacji nie można cofnąć."
   }
 }

@@ -331,5 +331,39 @@
     "totalSecurities": "Totaal effecten",
     "activeSecurities": "Actief",
     "totalMarketValue": "Totale marktwaarde"
+  },
+  "priceHistory": {
+    "title": "Koersgeschiedenis",
+    "addPrice": "Koers toevoegen",
+    "fillFromTrades": "Vullen vanuit transacties",
+    "deleteAll": "Alles verwijderen",
+    "columns": {
+      "date": "Datum",
+      "value": "Koers",
+      "open": "Opening",
+      "high": "Hoog",
+      "low": "Laag",
+      "volume": "Volume"
+    },
+    "form": {
+      "title": {
+        "add": "Koers toevoegen",
+        "edit": "Koers bewerken"
+      },
+      "date": "Datum",
+      "value": "Koers",
+      "open": "Opening",
+      "high": "Hoog",
+      "low": "Laag",
+      "volume": "Volume",
+      "save": "Opslaan",
+      "cancel": "Annuleren"
+    },
+    "edit": "Bewerken",
+    "delete": "Verwijderen",
+    "empty": "Nog geen koersgeschiedenis. Voeg een koers toe of vul vanuit transacties.",
+    "deriveResult": "{{written}} koersen geschreven, {{skipped}} overgeslagen",
+    "deriveSkippedHint": "Overgeslagen transacties hebben geen wisselkoers.",
+    "confirmDeleteAll": "De volledige koersgeschiedenis voor dit effect verwijderen? Dit kan niet ongedaan worden gemaakt."
   }
 }

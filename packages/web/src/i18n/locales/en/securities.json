@@ -331,5 +331,39 @@
     "totalSecurities": "Total Securities",
     "activeSecurities": "Active",
     "totalMarketValue": "Total Market Value"
+  },
+  "priceHistory": {
+    "title": "Price history",
+    "addPrice": "Add price",
+    "fillFromTrades": "Fill from trades",
+    "deleteAll": "Delete all",
+    "columns": {
+      "date": "Date",
+      "value": "Quote",
+      "open": "Open",
+      "high": "High",
+      "low": "Low",
+      "volume": "Volume"
+    },
+    "form": {
+      "title": {
+        "add": "Add price",
+        "edit": "Edit price"
+      },
+      "date": "Date",
+      "value": "Quote",
+      "open": "Open",
+      "high": "High",
+      "low": "Low",
+      "volume": "Volume",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "edit": "Edit",
+    "delete": "Delete",
+    "empty": "No price history yet. Add a price or fill from trades.",
+    "deriveResult": "{{written}} prices written, {{skipped}} skipped",
+    "deriveSkippedHint": "Skipped trades are missing an exchange rate.",
+    "confirmDeleteAll": "Delete all price history for this security? This cannot be undone."
   }
 }
