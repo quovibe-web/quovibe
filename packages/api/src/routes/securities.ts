@@ -2,7 +2,7 @@ import { Router, type Router as RouterType } from 'express';
 import type { RequestHandler } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { eq, asc, and, like } from 'drizzle-orm';
-import { createSecuritySchema, filterTradingDays, resolveCalendarId, updateSecurityAttributesSchema, updateSecurityTaxonomiesSchema, updateAccountLogoSchema } from '@quovibe/shared';
+import { createSecuritySchema, filterTradingDays, resolveCalendarId, updateSecurityAttributesSchema, updateSecurityTaxonomiesSchema, updateAccountLogoSchema, manualPriceSchema, deletePricesSchema } from '@quovibe/shared';
 import { securities, latestPrices, prices, securityAttributes } from '../db/schema';
 import { convertPriceFromDb } from '../services/unit-conversion';
 import { fetchNetSharesPerSecurity } from '../services/performance.service';
@@ -18,6 +18,13 @@ import {
   deleteSecurity as deleteSecurityService,
   SecurityServiceError,
 } from '../services/securities.service';
+import {
+  upsertPrice,
+  editPrice,
+  deletePrices,
+  deleteAllPrices,
+  derivePricesFromTransactions,
+} from '../services/manual-prices.service';
 
 export const securitiesRouter: RouterType = Router();
 
@@ -558,3 +565,131 @@ securitiesRouter.put('/:id/taxonomy', updateTaxonomyHandler);
 securitiesRouter.put('/:id/prices/fetch', fetchSecurityPricesHandler);
 securitiesRouter.post('/:id/prices/test-fetch', testFetchPricesHandler);
 securitiesRouter.put('/:id/feed-config', updateFeedConfigHandler);
+
+// ─── Manual price CRUD routes ────────────────────────────────────────────────
+// Registered after the existing price routes so /:id/prices/fetch and
+// /:id/prices/test-fetch are matched first (different verbs but explicit ordering
+// avoids any future ambiguity).
+
+const listPricesRaw: RequestHandler = async (req, res) => {
+  const db = getDb(req);
+  const sqlite = getSqlite(req);
+  const id = req.params['id'] as string;
+
+  const exists = await db.select({ id: securities.id }).from(securities).where(eq(securities.id, id));
+  if (exists.length === 0) {
+    res.status(404).json({ error: 'Security not found' });
+    return;
+  }
+
+  const rows = sqlite
+    .prepare(
+      `SELECT tstamp, value, open, high, low, volume FROM price WHERE security = ? ORDER BY tstamp DESC`,
+    )
+    .all(id) as { tstamp: string; value: number; open: number | null; high: number | null; low: number | null; volume: number | null }[];
+
+  res.json({
+    prices: rows.map((p) => {
+      const c = convertPriceFromDb({ close: p.value, open: p.open, high: p.high, low: p.low });
+      return {
+        date: p.tstamp.slice(0, 10),
+        value: c.close.toString(),
+        open: c.open?.toString() ?? null,
+        high: c.high?.toString() ?? null,
+        low: c.low?.toString() ?? null,
+        volume: p.volume ?? null,
+      };
+    }),
+  });
+};
+
+const createPriceHandler: RequestHandler = async (req, res) => {
+  const db = getDb(req);
+  const sqlite = getSqlite(req);
+  const id = req.params['id'] as string;
+
+  const exists = await db.select({ id: securities.id }).from(securities).where(eq(securities.id, id));
+  if (exists.length === 0) {
+    res.status(404).json({ error: 'Security not found' });
+    return;
+  }
+
+  const input = manualPriceSchema.parse(req.body);
+  upsertPrice(sqlite, id, input);
+  res.json({ ok: true });
+};
+
+const editPriceHandler: RequestHandler = async (req, res) => {
+  const db = getDb(req);
+  const sqlite = getSqlite(req);
+  const id = req.params['id'] as string;
+  const oldDate = req.params['date'] as string;
+
+  const exists = await db.select({ id: securities.id }).from(securities).where(eq(securities.id, id));
+  if (exists.length === 0) {
+    res.status(404).json({ error: 'Security not found' });
+    return;
+  }
+
+  const input = manualPriceSchema.parse(req.body);
+  editPrice(sqlite, id, oldDate, input);
+  res.json({ ok: true });
+};
+
+const deletePriceHandler: RequestHandler = async (req, res) => {
+  const db = getDb(req);
+  const sqlite = getSqlite(req);
+  const id = req.params['id'] as string;
+  const date = req.params['date'] as string;
+
+  const exists = await db.select({ id: securities.id }).from(securities).where(eq(securities.id, id));
+  if (exists.length === 0) {
+    res.status(404).json({ error: 'Security not found' });
+    return;
+  }
+
+  deletePrices(sqlite, id, [date]);
+  res.json({ ok: true });
+};
+
+const deletePricesHandler: RequestHandler = async (req, res) => {
+  const db = getDb(req);
+  const sqlite = getSqlite(req);
+  const id = req.params['id'] as string;
+
+  const exists = await db.select({ id: securities.id }).from(securities).where(eq(securities.id, id));
+  if (exists.length === 0) {
+    res.status(404).json({ error: 'Security not found' });
+    return;
+  }
+
+  const input = deletePricesSchema.parse(req.body ?? {});
+  if (input.dates && input.dates.length > 0) {
+    deletePrices(sqlite, id, input.dates);
+  } else {
+    deleteAllPrices(sqlite, id);
+  }
+  res.json({ ok: true });
+};
+
+const derivePricesHandler: RequestHandler = async (req, res) => {
+  const db = getDb(req);
+  const sqlite = getSqlite(req);
+  const id = req.params['id'] as string;
+
+  const exists = await db.select({ id: securities.id }).from(securities).where(eq(securities.id, id));
+  if (exists.length === 0) {
+    res.status(404).json({ error: 'Security not found' });
+    return;
+  }
+
+  const result = derivePricesFromTransactions(sqlite, id);
+  res.json(result);
+};
+
+securitiesRouter.get('/:id/prices', listPricesRaw);
+securitiesRouter.post('/:id/prices/derive', derivePricesHandler);
+securitiesRouter.post('/:id/prices', createPriceHandler);
+securitiesRouter.put('/:id/prices/:date', editPriceHandler);
+securitiesRouter.delete('/:id/prices/:date', deletePriceHandler);
+securitiesRouter.delete('/:id/prices', deletePricesHandler);
