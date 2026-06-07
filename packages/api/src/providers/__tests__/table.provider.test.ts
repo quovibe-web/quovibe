@@ -65,6 +65,24 @@ describe('parseTableHtml', () => {
     expect(prices[0].low).toBeUndefined(); // "Minimum" must NOT be read as low
   });
 
+  it('parses comma-decimal numbers (European locale, values < 1000)', () => {
+    // Matches the real format de/it/es/… investing.com pages serve (e.g. "98,43").
+    // Known limitation: thousands-grouped values like "1.234,56" are NOT handled
+    // by parseNumericCell today — tracked as a separate follow-up.
+    const html = tableHtml(
+      ['Datum', 'Zuletzt', 'Eröffn.', 'Hoch', 'Tief', '+/- %'],
+      [
+        ['2026-06-04', '98,43', '98,00', '98,59', '97,67', '0,1%'],
+        ['2026-06-03', '97,70', '97,50', '98,36', '97,60', '-0,2%'],
+      ],
+    );
+    const { prices } = parseTableHtml(html, {});
+    expect(prices).toHaveLength(2);
+    expect(prices[0].close.toString()).toBe('98.43');
+    expect(prices[0].high?.toString()).toBe('98.59');
+    expect(prices[0].low?.toString()).toBe('97.67');
+  });
+
   it('warns when tables exist but none has Date+Close', () => {
     const html = tableHtml(['Name', 'Kurs', '+/- %', 'Vol.'], [['ACME', '10', '1%', '100']]);
     const { prices, warning } = parseTableHtml(html, {});
