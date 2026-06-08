@@ -43,6 +43,18 @@ describe('buildPriceFormSchema', () => {
     expect(schema.safeParse(values({ date: '2025-6-7' })).success).toBe(false);
   });
 
+  it('rejects an impossible calendar date (month 13)', () => {
+    expect(schema.safeParse(values({ date: '2025-13-40' })).success).toBe(false);
+  });
+
+  it('rejects an impossible calendar date (Feb 30)', () => {
+    expect(schema.safeParse(values({ date: '2025-02-30' })).success).toBe(false);
+  });
+
+  it('accepts a leap-year date (2024-02-29)', () => {
+    expect(schema.safeParse(values({ date: '2024-02-29' })).success).toBe(true);
+  });
+
   it('accepts blank open', () => {
     expect(schema.safeParse(values({ open: '' })).success).toBe(true);
   });

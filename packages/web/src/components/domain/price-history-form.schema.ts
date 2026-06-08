@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ManualPriceInput } from '@quovibe/shared';
+import { isRealCalendarDate, type ManualPriceInput } from '@quovibe/shared';
 import type { RawPriceRow } from '@/api/use-manual-prices';
 
 // Form schema is all-strings so optional OHLCV fields can be '' (empty input)
@@ -41,7 +41,10 @@ function isPositiveDecimal(s: string): boolean {
  */
 export function buildPriceFormSchema(t: Translator) {
   return z.object({
-    date: z.string().regex(DATE_RE, t('priceHistory.form.errors.invalidDate')),
+    date: z
+      .string()
+      .regex(DATE_RE, t('priceHistory.form.errors.invalidDate'))
+      .refine(isRealCalendarDate, t('priceHistory.form.errors.invalidDate')),
     value: z
       .string()
       .refine(isPositiveDecimal, t('priceHistory.form.errors.invalidValue')),

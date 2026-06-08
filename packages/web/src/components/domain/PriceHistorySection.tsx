@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -105,6 +105,13 @@ function PriceDialog({
   });
 
   useFormRevalidateOnChange(form);
+
+  // Reset to the current initialValues whenever the dialog opens, so reopening
+  // Add after a Cancel never shows stale values (Cancel + submit-close bypass the
+  // Dialog-root onOpenChange reset, and the key is identical across two Add opens).
+  useEffect(() => {
+    if (open) form.reset(initialValues);
+  }, [open, initialValues, form]);
 
   const activeMutation = mode === 'edit' ? editMutation : createMutation;
 

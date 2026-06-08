@@ -1,6 +1,19 @@
 import { z } from 'zod';
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'INVALID_DATE');
+/** True only for a real calendar date in YYYY-MM-DD form (rejects 2025-13-40, 2025-02-30). */
+export function isRealCalendarDate(s: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return false;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return false;
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d;
+}
+
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'INVALID_DATE')
+  .refine(isRealCalendarDate, 'INVALID_DATE');
 
 // Positive decimal string (API numeric convention: values cross the wire as strings).
 // No leading zeros: matches Decimal.toString() output, keeps GET->PUT round-trips stable.

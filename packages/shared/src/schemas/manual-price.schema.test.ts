@@ -46,6 +46,26 @@ describe('manualPriceSchema', () => {
   it('rejects a negative volume', () => {
     expect(manualPriceSchema.safeParse({ date: '2025-03-14', value: '1', volume: -5 }).success).toBe(false);
   });
+
+  it('rejects an impossible calendar date (month 13)', () => {
+    expect(manualPriceSchema.safeParse({ date: '2025-13-40', value: '1' }).success).toBe(false);
+  });
+
+  it('rejects an impossible calendar date (Feb 30)', () => {
+    expect(manualPriceSchema.safeParse({ date: '2025-02-30', value: '1' }).success).toBe(false);
+  });
+
+  it('accepts a leap-year date (2024-02-29)', () => {
+    expect(manualPriceSchema.safeParse({ date: '2024-02-29', value: '1' }).success).toBe(true);
+  });
+
+  it('accepts 2025-02-28 (non-leap year, last day of Feb)', () => {
+    expect(manualPriceSchema.safeParse({ date: '2025-02-28', value: '1' }).success).toBe(true);
+  });
+
+  it('accepts 2025-12-31', () => {
+    expect(manualPriceSchema.safeParse({ date: '2025-12-31', value: '1' }).success).toBe(true);
+  });
 });
 
 describe('deletePricesSchema', () => {
