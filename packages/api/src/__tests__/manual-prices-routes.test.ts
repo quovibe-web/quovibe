@@ -168,4 +168,21 @@ describe('manual price routes', () => {
     );
     expect(r.status).toBe(404);
   });
+
+  it('sub-micro-unit price round-trips through GET and re-PUT (no exponential notation)', async () => {
+    loadSettings();
+    recoverFromInterruptedSwap();
+    const app = createApp();
+    const pid = await makePortfolio(app, 'mp-exp');
+    const sid = await makeSecurity(app, pid);
+    // 0.00000001 → DB integer 1; must NOT serialize as "1e-8"
+    const post = await request(app).post(`/api/p/${pid}/securities/${sid}/prices`).send({ date: '2025-03-14', value: '0.00000001' });
+    expect(post.status).toBe(200);
+    const get = await request(app).get(`/api/p/${pid}/securities/${sid}/prices`);
+    expect(get.body.prices[0].value).toBe('0.00000001'); // fixed-point, not '1e-8'
+    // re-PUT the exact value the GET returned — must be accepted, not 400
+    const put = await request(app).put(`/api/p/${pid}/securities/${sid}/prices/2025-03-14`)
+      .send({ date: '2025-03-14', value: get.body.prices[0].value });
+    expect(put.status).toBe(200);
+  });
 });

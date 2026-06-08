@@ -20,14 +20,6 @@ export function manualPricesKey(portfolioId: string, securityId: string): readon
   return ['portfolios', portfolioId, 'securities', securityId, 'prices', 'raw'];
 }
 
-/**
- * Collapse empty/undefined → {} (delete-all sentinel).
- * The API's deletePricesSchema rejects an explicit empty array.
- */
-export function buildDeleteBody(dates: string[] | undefined): { dates?: string[] } {
-  return dates && dates.length > 0 ? { dates } : {};
-}
-
 function jsonInit(method: string, body?: unknown): RequestInit {
   return {
     method,

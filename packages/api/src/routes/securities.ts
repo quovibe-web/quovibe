@@ -593,10 +593,10 @@ const listPricesRaw: RequestHandler = async (req, res) => {
       const c = convertPriceFromDb({ close: p.value, open: p.open, high: p.high, low: p.low });
       return {
         date: p.tstamp.slice(0, 10),
-        value: c.close.toString(),
-        open: c.open?.toString() ?? null,
-        high: c.high?.toString() ?? null,
-        low: c.low?.toString() ?? null,
+        value: c.close.toFixed(),
+        open: c.open?.toFixed() ?? null,
+        high: c.high?.toFixed() ?? null,
+        low: c.low?.toFixed() ?? null,
         volume: p.volume ?? null,
       };
     }),
