@@ -28,11 +28,14 @@ function jsonInit(method: string, body?: unknown): RequestInit {
   };
 }
 
-function useInvalidatePrices(api: ReturnType<typeof useScopedApi>, securityId: string) {
+function useInvalidatePrices(api: ReturnType<typeof useScopedApi>) {
   const qc = useQueryClient();
   return () => {
-    qc.invalidateQueries({ queryKey: manualPricesKey(api.portfolioId, securityId) });
-    // Refresh chart + latest-price column on SecurityDetail.
+    // A manual price edit ripples into the raw table, the chart + effective
+    // latest price, the securities-list price column, and the price-derived
+    // perf cards on this page. Invalidate the whole portfolio subtree so none
+    // is left stale; refetchType defaults to 'active', so only mounted queries
+    // refetch now (off-page dashboard/holdings just go stale until next visit).
     qc.invalidateQueries({ queryKey: ['portfolios', api.portfolioId] });
   };
 }
@@ -48,7 +51,7 @@ export function useRawPrices(securityId: string) {
 
 export function useCreatePrice(securityId: string) {
   const api = useScopedApi();
-  const invalidate = useInvalidatePrices(api, securityId);
+  const invalidate = useInvalidatePrices(api);
   return useMutation({
     mutationFn: (input: ManualPriceInput) =>
       api.fetch<{ ok: true }>(`/api/securities/${securityId}/prices`, jsonInit('POST', input)),
@@ -58,7 +61,7 @@ export function useCreatePrice(securityId: string) {
 
 export function useEditPrice(securityId: string) {
   const api = useScopedApi();
-  const invalidate = useInvalidatePrices(api, securityId);
+  const invalidate = useInvalidatePrices(api);
   return useMutation({
     mutationFn: ({ oldDate, input }: { oldDate: string; input: ManualPriceInput }) =>
       api.fetch<{ ok: true }>(
@@ -71,7 +74,7 @@ export function useEditPrice(securityId: string) {
 
 export function useDeletePrice(securityId: string) {
   const api = useScopedApi();
-  const invalidate = useInvalidatePrices(api, securityId);
+  const invalidate = useInvalidatePrices(api);
   return useMutation({
     mutationFn: (date: string) =>
       api.fetch<{ ok: true }>(
@@ -84,7 +87,7 @@ export function useDeletePrice(securityId: string) {
 
 export function useDeleteAllPrices(securityId: string) {
   const api = useScopedApi();
-  const invalidate = useInvalidatePrices(api, securityId);
+  const invalidate = useInvalidatePrices(api);
   return useMutation({
     mutationFn: () =>
       api.fetch<{ ok: true }>(
@@ -97,7 +100,7 @@ export function useDeleteAllPrices(securityId: string) {
 
 export function useDerivePrices(securityId: string) {
   const api = useScopedApi();
-  const invalidate = useInvalidatePrices(api, securityId);
+  const invalidate = useInvalidatePrices(api);
   return useMutation({
     mutationFn: () =>
       api.fetch<DeriveResult>(

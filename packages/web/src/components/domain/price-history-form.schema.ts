@@ -29,8 +29,22 @@ function isPresent(v: string | undefined): v is string {
   return v != null && v.trim() !== '';
 }
 
+/**
+ * Accept the locale comma decimal separator the table displays (es/it/de/fr/…
+ * render "18,18 €") on input too. Comma and dot are the ONLY decimal separators
+ * across the 8 shipped locales, so a literal comma->dot replace is
+ * locale-agnostic and — unlike an Intl group-strip — never mangles an
+ * already-dot value on a no-op edit ("18.18" stays "18.18"). Grouped input
+ * ("1.234,56") becomes "1.234.56" and is rejected by DECIMAL_RE rather than
+ * silently corrupted.
+ */
+export function normalizeDecimalInput(raw: string): string {
+  return raw.trim().replace(/,/g, '.');
+}
+
 function isPositiveDecimal(s: string): boolean {
-  return DECIMAL_RE.test(s) && parseFloat(s) > 0;
+  const n = normalizeDecimalInput(s);
+  return DECIMAL_RE.test(n) && parseFloat(n) > 0;
 }
 
 /**
@@ -90,13 +104,16 @@ export const EMPTY_FORM: PriceFormValues = {
  * value/date pass through as strings; volume '' → undefined, else parseInt.
  */
 export function toWirePayload(values: PriceFormValues): ManualPriceInput {
+  // Price-shaped fields normalize the comma decimal to the dot form the wire
+  // schema (positiveDecimal) expects. Volume stays raw — it is an integer count
+  // with no decimal separator.
   const coerce = (s: string): string | undefined =>
-    isPresent(s) ? s.trim() : undefined;
+    isPresent(s) ? normalizeDecimalInput(s) : undefined;
   const coerceVolume = (s: string): number | undefined =>
     isPresent(s) ? parseInt(s.trim(), 10) : undefined; // native-ok: integer parse
   return {
     date: values.date,
-    value: values.value,
+    value: normalizeDecimalInput(values.value),
     open: coerce(values.open),
     high: coerce(values.high),
     low: coerce(values.low),

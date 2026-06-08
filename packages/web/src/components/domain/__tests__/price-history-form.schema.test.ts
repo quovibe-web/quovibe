@@ -86,6 +86,25 @@ describe('buildPriceFormSchema', () => {
       expect(r.error.issues[0].message).toBe('priceHistory.form.errors.invalidValue');
     }
   });
+
+  // Comma decimal separator (es/it/de/fr/nl/pl/pt users type "23,23"). Display
+  // uses the locale comma, so input must accept it too. Comma + dot are the only
+  // decimal separators across the 8 shipped locales, so a literal comma->dot
+  // replace is locale-agnostic and safe.
+  it('accepts a comma decimal value', () => {
+    expect(schema.safeParse(values({ value: '23,23' })).success).toBe(true);
+  });
+
+  it('accepts a comma decimal in open/high/low', () => {
+    expect(
+      schema.safeParse(values({ open: '10,5', high: '12,75', low: '9,1' })).success,
+    ).toBe(true);
+  });
+
+  it('rejects a grouped value with both separators (no thousands grouping)', () => {
+    // "1.234,56" -> "1.234.56" -> rejected (not silently corrupted to 1234.56).
+    expect(schema.safeParse(values({ value: '1.234,56' })).success).toBe(false);
+  });
 });
 
 describe('toWirePayload', () => {
@@ -118,6 +137,23 @@ describe('toWirePayload', () => {
     expect(p.open).toBe('10');
     expect(p.high).toBe('12');
     expect(p.low).toBe('9');
+  });
+
+  it('normalizes comma decimals to dot form on the wire', () => {
+    const p = toWirePayload(values({ value: '23,23', open: '10,5', high: '12,75', low: '9,1' }));
+    expect(p.value).toBe('23.23');
+    expect(p.open).toBe('10.5');
+    expect(p.high).toBe('12.75');
+    expect(p.low).toBe('9.1');
+  });
+
+  it('leaves an already-dot value untouched (edit round-trip is corruption-safe)', () => {
+    // Regression guard: row.value arrives dot-form ("18.18") from the API; a
+    // locale-aware group-strip would mangle this to "1818" on a no-op edit.
+    const wire = toWirePayload(rowToFormValues({
+      date: '2026-04-15', value: '18.18', open: null, high: null, low: null, volume: null,
+    }));
+    expect(wire.value).toBe('18.18');
   });
 });
 

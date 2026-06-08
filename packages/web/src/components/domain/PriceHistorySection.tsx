@@ -450,6 +450,7 @@ export function PriceHistorySection({ securityId, currency }: PriceHistorySectio
           columns={columns}
           data={rows}
           isLoading={isLoading}
+          pagination
           pageSize={20}
         />
       )}
