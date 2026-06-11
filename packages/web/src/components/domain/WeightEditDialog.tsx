@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { normalizeDecimalInput } from '@/lib/decimal-input';
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,9 @@ export function WeightEditDialog({ open, onOpenChange, defaultValue, onConfirm }
   }, [open, defaultValue]);
 
   function handleSubmit() {
-    const v = parseFloat(val);
+    // Accept the locale comma decimal (es/it/de/…) the same way the price and
+    // transaction forms do — a bare parseFloat("12,5") would drop the fraction.
+    const v = parseFloat(normalizeDecimalInput(val));
     if (isNaN(v)) return;
     onConfirm(Math.round(v * 100));
     onOpenChange(false);
@@ -46,10 +49,7 @@ export function WeightEditDialog({ open, onOpenChange, defaultValue, onConfirm }
         <div className="py-2">
           <Label>{t('assetAllocation.columns.weight')}</Label>
           <Input
-            type="number"
-            min={0}
-            max={100}
-            step={0.01}
+            inputMode="decimal"
             value={val}
             onChange={(e) => setVal(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
@@ -61,7 +61,7 @@ export function WeightEditDialog({ open, onOpenChange, defaultValue, onConfirm }
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t('common:cancel')}
           </Button>
-          <Button onClick={handleSubmit} disabled={val === '' || isNaN(parseFloat(val))}>
+          <Button onClick={handleSubmit} disabled={val === '' || isNaN(parseFloat(normalizeDecimalInput(val)))}>
             {t('common:save')}
           </Button>
         </DialogFooter>

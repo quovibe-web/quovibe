@@ -94,8 +94,16 @@ export function toWirePayload(values: PriceFormValues): ManualPriceInput {
   // with no decimal separator.
   const coerce = (s: string): string | undefined =>
     isPresent(s) ? normalizeDecimalInput(s) : undefined;
-  const coerceVolume = (s: string): number | undefined =>
-    isPresent(s) ? parseInt(s.trim(), 10) : undefined; // native-ok: integer parse
+  // Volume is a strict integer count. Parse ONLY when it matches INTEGER_RE — the
+  // same gate the schema validates with — so a grouped/decimal string like
+  // "1.234" can never be silently truncated to 1 by parseInt, even if a direct
+  // (non-form) caller bypasses validation. Grouping is rejected, never stripped.
+  const coerceVolume = (s: string): number | undefined => {
+    const trimmed = s.trim();
+    return isPresent(trimmed) && INTEGER_RE.test(trimmed)
+      ? parseInt(trimmed, 10) // native-ok: integer parse, INTEGER_RE-guarded
+      : undefined;
+  };
   return {
     date: values.date,
     value: normalizeDecimalInput(values.value),

@@ -609,6 +609,28 @@ export function DataTable<TData, TValue>({
     return clamped ? result : rawSizing;
   }, [rawSizing, sizeConstraintsMap]);
 
+  // Safety fallback: a table given neither `pagination` nor `enableVirtualization`
+  // renders every row to the DOM. Above this row count that risks a janky or
+  // blocking first paint, so we auto-enable pagination as a contained fallback.
+  // Strictly additive — it only ever turns pagination ON, never off, and fires
+  // only in the high-row range where the alternative is an unbounded render.
+  // Keyed off construction-time `data.length` because the pagination row model
+  // is decided here, in useReactTable.
+  const AUTO_PAGINATE_THRESHOLD = 300; // native-ok
+  const autoPaginate =
+    !pagination && enableVirtualization === false && data.length > AUTO_PAGINATE_THRESHOLD;
+  const effectivePagination = pagination || autoPaginate;
+
+  useEffect(() => {
+    if (autoPaginate && import.meta.env.DEV) {
+      console.warn(
+        `[DataTable] ${data.length} rows rendered with neither \`pagination\` nor ` +
+          '`enableVirtualization`; auto-enabled pagination as a fallback. Pass one ' +
+          'explicitly to pick the intended behavior.',
+      );
+    }
+  }, [autoPaginate, data.length]);
+
   const table = useReactTable({
     data,
     columns,
@@ -617,7 +639,7 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     enableMultiSort: true,
     maxMultiSortColCount: 3, // native-ok
-    ...(pagination && { getPaginationRowModel: getPaginationRowModel() }),
+    ...(effectivePagination && { getPaginationRowModel: getPaginationRowModel() }),
     ...(enableResize && { columnResizeMode: 'onChange' as const }),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -647,7 +669,7 @@ export function DataTable<TData, TValue>({
       }) as OnChangeFn<ColumnSizingState>,
       onColumnSizingInfoChange: setSizingInfo as OnChangeFn<ColumnSizingInfoState>,
     }),
-    initialState: pagination ? { pagination: { pageSize } } : undefined,
+    initialState: effectivePagination ? { pagination: { pageSize } } : undefined,
   });
 
   // Build set of locked column IDs from column defs (logo, actions, etc.)
@@ -945,7 +967,7 @@ export function DataTable<TData, TValue>({
           {headerContent}
           <TableBody>
             {isLoading ? (
-              Array.from({ length: skeletonRows ?? (pagination ? pageSize : 5) }).map((_, rowIdx) => (
+              Array.from({ length: skeletonRows ?? (effectivePagination ? pageSize : 5) }).map((_, rowIdx) => (
                 <TableRow
                   key={`skeleton-${rowIdx}`}
                   style={{
@@ -1254,7 +1276,7 @@ export function DataTable<TData, TValue>({
         </DndContext>
       ) : tableInner}
       </div>
-      {pagination && !isLoading && table.getPageCount() > 1 && (
+      {effectivePagination && !isLoading && table.getPageCount() > 1 && (
         <div className="flex items-center justify-end gap-2">
           <span className="text-sm text-muted-foreground tabular-nums">
             {t('pagination.pageOf', { current: table.getState().pagination.pageIndex + 1, total: table.getPageCount() })}

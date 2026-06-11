@@ -71,6 +71,10 @@ describe('buildPriceFormSchema', () => {
     expect(schema.safeParse(values({ volume: '1.5' })).success).toBe(false);
   });
 
+  it('rejects a grouped volume "1.234" (no thousands grouping, never stripped)', () => {
+    expect(schema.safeParse(values({ volume: '1.234' })).success).toBe(false);
+  });
+
   it('accepts an integer volume', () => {
     expect(schema.safeParse(values({ volume: '100' })).success).toBe(true);
   });
@@ -130,6 +134,12 @@ describe('toWirePayload', () => {
   it('maps blank volume to undefined', () => {
     const p = toWirePayload(values({ volume: '' }));
     expect(p.volume).toBeUndefined();
+  });
+
+  it('defensively ignores a grouped/decimal volume rather than truncating it', () => {
+    // A direct caller bypassing schema validation must not get parseInt("1.234")=1.
+    expect(toWirePayload(values({ volume: '1.234' })).volume).toBeUndefined();
+    expect(toWirePayload(values({ volume: '1.5' })).volume).toBeUndefined();
   });
 
   it('carries present OHLC strings through', () => {
