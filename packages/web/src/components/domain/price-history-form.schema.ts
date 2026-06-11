@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { isRealCalendarDate, type ManualPriceInput } from '@quovibe/shared';
+import { normalizeDecimalInput } from '@/lib/decimal-input';
+import { isPresent } from '@/lib/utils';
 import type { RawPriceRow } from '@/api/use-manual-prices';
 
 // Form schema is all-strings so optional OHLCV fields can be '' (empty input)
@@ -24,23 +26,6 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 // zeros, optional fraction. Keeps GET->PUT round-trips byte-stable.
 const DECIMAL_RE = /^(0|[1-9]\d*)(\.\d+)?$/;
 const INTEGER_RE = /^\d+$/;
-
-function isPresent(v: string | undefined): v is string {
-  return v != null && v.trim() !== '';
-}
-
-/**
- * Accept the locale comma decimal separator the table displays (es/it/de/fr/…
- * render "18,18 €") on input too. Comma and dot are the ONLY decimal separators
- * across the 8 shipped locales, so a literal comma->dot replace is
- * locale-agnostic and — unlike an Intl group-strip — never mangles an
- * already-dot value on a no-op edit ("18.18" stays "18.18"). Grouped input
- * ("1.234,56") becomes "1.234.56" and is rejected by DECIMAL_RE rather than
- * silently corrupted.
- */
-export function normalizeDecimalInput(raw: string): string {
-  return raw.trim().replace(/,/g, '.');
-}
 
 function isPositiveDecimal(s: string): boolean {
   const n = normalizeDecimalInput(s);

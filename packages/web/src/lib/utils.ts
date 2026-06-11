@@ -12,3 +12,8 @@ export function cn(...inputs: ClassValue[]) {
 export function txTypeKey(type: string): string {
   return type.toLowerCase().replace(/_([a-z])/g, (_, c) => c.toUpperCase());
 }
+
+/** A string is "present" when it is non-null and not whitespace-only. */
+export function isPresent(v: string | undefined): v is string {
+  return v != null && v.trim() !== '';
+}
