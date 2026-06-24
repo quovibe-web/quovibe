@@ -5,6 +5,8 @@ import {
   SECURITY_REQUIRED_TYPES,
   TransactionType,
 } from '@quovibe/shared';
+import { normalizeDecimalInput } from '@/lib/decimal-input';
+import { isPresent } from '@/lib/utils';
 
 // Date / time stay in local component state (calendar popover + locale parsing
 // is heavy enough that keeping it outside RHF avoids re-renders on every
@@ -56,20 +58,20 @@ export interface TransactionFormSchemaContext {
 
 export type Translator = (key: string) => string;
 
-function isPresent(v: string | undefined): v is string {
-  return v != null && v.trim() !== '';
-}
-
 // Strict numeric grammar: optional sign, digits, optional fraction, optional
-// exponent. Rejects ' 10 ' (silently trimmed by Number()), '1 0', '1,5'
-// (locale comma), and other whitespace/punctuation that Number() would coerce
-// or NaN inconsistently. Matches what the wire schema's z.number() accepts
-// after preparePayload's parseFloat().
+// exponent. Input is first run through normalizeDecimalInput, which trims
+// surrounding whitespace and converts the locale comma decimal to dot form, so
+// '1,5' and ' 10 ' are accepted (and parsed identically by preparePayload's
+// parseFloat). Internal whitespace ('1 0') and grouped values ('1.234,56' ->
+// '1.234.56') still fail the grammar — they are rejected, never coerced. The
+// matching normalization in preparePayload keeps validation and the wire
+// payload byte-consistent.
 const NUMERIC_RE = /^-?\d+(\.\d+)?([eE][+-]?\d+)?$/;
 
 function parseFiniteNumber(v: string): number | null {
-  if (!NUMERIC_RE.test(v)) return null;
-  const n = Number(v);
+  const s = normalizeDecimalInput(v);
+  if (!NUMERIC_RE.test(s)) return null;
+  const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }
 

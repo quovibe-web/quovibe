@@ -88,3 +88,13 @@ if (hist && (!lpDate || hist.date > lpDate)) {   // NOTE: strict >
 ## Recommended signature
 `fetchLatestPrices` must return `Map<string, { price: Decimal; date: string | null }>`
 (not just `Decimal`) so that consumers can apply the date guard.
+
+## Manual price ops (see .claude/rules/manual-prices.md)
+
+Manual add/edit/delete of `price` rows and "derive from transactions" all
+re-sync `latest_price` from the post-mutation global max via
+`syncLatestPriceFromGlobalMax` (`prices.service.ts`). Deleting the max-date row
+moves latest_price down; deleting all rows clears it. There is no manual-vs-feed
+source column — feed refresh can overwrite manual rows on fed securities (the
+OHLC-backfill replace path wipes NULL-open rows); manual entry's safe home is
+no-feed securities. Full contract in `.claude/rules/manual-prices.md`.

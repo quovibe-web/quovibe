@@ -2,29 +2,188 @@ import type { QuoteFeedProvider, FetchContext, ProviderResult, FetchedPrice } fr
 import { safeDecimal, parseFlexibleDate, inDateRange } from './utils';
 
 // ─── Header constants ────────────────────────────────────────────────────────
+// All candidates MUST be lowercase and accent-free: headers are run through
+// normalizeHeader() (lowercase + NFD diacritic strip) before matching, so e.g.
+// "Último"/"Máxima" are compared as "ultimo"/"maxima". Adding an accented
+// candidate here would never match. `substr` candidates use substring matching;
+// keep them long enough to avoid cross-column hits (the short FR low token
+// 'bas' assumes a price-HISTORY page layout — it would mis-hit a "Basis"/"Base"
+// column on screener-style tables, which this provider does not target).
+// Genuinely short/ambiguous tokens ('max'/'min') go in `exact` instead.
 
-const DATE_HEADERS = ['date', 'datum', 'data', 'fecha', 'dat'];
-const CLOSE_HEADERS = ['close', 'zuletzt', 'kurs', 'schluss', 'chiusura', 'cierre', 'last', 'price', 'preis', 'dernier', 'precio'];
-const HIGH_HEADERS = ['high', 'hoch', 'alto', 'massimo'];
-const LOW_HEADERS = ['low', 'tief', 'bajo', 'minimo'];
-const VOLUME_HEADERS = ['volume', 'volumen', 'volum', 'vol'];
+interface HeaderSpec {
+  substr: string[];
+  exact?: string[];
+}
+
+const DATE_HEADERS: HeaderSpec = {
+  substr: ['date', 'datum', 'data', 'fecha', 'dat'],
+};
+const CLOSE_HEADERS: HeaderSpec = {
+  substr: ['close', 'zuletzt', 'kurs', 'schluss', 'chiusura', 'cierre', 'last', 'price', 'preis', 'dernier', 'precio', 'ultimo', 'laatste', 'ostatnio'],
+};
+const HIGH_HEADERS: HeaderSpec = {
+  substr: ['high', 'hoch', 'alto', 'massimo', 'haut', 'hoog', 'maximo', 'maxima'],
+  exact: ['max'],
+};
+const LOW_HEADERS: HeaderSpec = {
+  substr: ['low', 'tief', 'bajo', 'minimo', 'bas', 'laag', 'minima'],
+  exact: ['min'],
+};
+const VOLUME_HEADERS: HeaderSpec = {
+  substr: ['volume', 'volumen', 'volum', 'vol'],
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function findColIndex(headers: string[], candidates: string[]): number {
-  const lower = headers.map(h => h.toLowerCase().trim());
-  for (const c of candidates) {
-    const idx = lower.findIndex(h => h.includes(c));
+// Lowercase, strip combining diacritics (so "Último" → "ultimo"), trim.
+function normalizeHeader(h: string): string {
+  return h.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
+}
+
+function findColIndex(headers: string[], spec: HeaderSpec): number {
+  const norm = headers.map(normalizeHeader);
+  for (const c of spec.substr) {
+    const idx = norm.findIndex(h => h.includes(c));
     if (idx !== -1) return idx;
+  }
+  if (spec.exact) {
+    for (const c of spec.exact) {
+      // Strip a single trailing period (PL "Max." / "Min.") then require an exact match,
+      // so short tokens can't substring-match longer words like "Maximum".
+      const idx = norm.findIndex(h => h.replace(/\.$/, '') === c);
+      if (idx !== -1) return idx;
+    }
   }
   return -1;
 }
 
+// Parse a scraped numeric cell across locales. Handles both decimal conventions
+// (US "1,234.56" and European "1.234,56") plus thousands-only grouping.
+// Rule: when both separators appear, the RIGHTMOST is the decimal point and the
+// other is a thousands separator; a separator that repeats is always thousands;
+// a lone separator is treated as the decimal point (the common price case).
+// The inherent "1.234" / "1,234" single-separator ambiguity resolves to a
+// decimal — matching the legacy behavior and the comma-decimal target locales.
 function parseNumericCell(cell: string): number | null {
-  // Remove thousands separators and normalize decimal
-  const clean = cell.trim().replace(/[^\d.,-]/g, '').replace(',', '.');
-  const n = parseFloat(clean);
+  const cleaned = cell.trim().replace(/[^\d.,-]/g, '');
+  if (cleaned === '' || cleaned === '-') return null;
+
+  const dots = (cleaned.match(/\./g) ?? []).length;
+  const commas = (cleaned.match(/,/g) ?? []).length;
+
+  let normalized = cleaned;
+  if (dots > 0 && commas > 0) {
+    normalized = cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')
+      ? cleaned.replace(/\./g, '').replace(',', '.') // comma decimal, dot thousands
+      : cleaned.replace(/,/g, '');                   // dot decimal, comma thousands
+  } else if (commas > 1) {
+    normalized = cleaned.replace(/,/g, '');           // comma thousands, no decimal
+  } else if (dots > 1) {
+    normalized = cleaned.replace(/\./g, '');          // dot thousands, no decimal
+  } else if (commas === 1) {
+    normalized = cleaned.replace(',', '.');           // lone comma = decimal point
+  }
+  // lone dot or no separator: already a valid float string
+
+  const n = parseFloat(normalized);
   return isNaN(n) ? null : n;
+}
+
+// ─── investing.com history-URL suggestion ────────────────────────────────────
+
+function investingHistoryHint(feedUrl: string | undefined): string {
+  if (!feedUrl) return '';
+  let url: URL;
+  try {
+    url = new URL(feedUrl);
+  } catch {
+    return '';
+  }
+  const host = url.hostname.toLowerCase();
+  if (host !== 'investing.com' && !host.endsWith('.investing.com')) return '';
+  const cleanPath = url.pathname.replace(/\/$/, '');
+  if (cleanPath.endsWith('-historical-data')) return '';
+  const suggested = `${url.origin}${cleanPath}-historical-data${url.search}${url.hash}`;
+  return ` For investing.com use the history page: ${suggested}`;
+}
+
+// ─── Pure parse ──────────────────────────────────────────────────────────────
+
+export interface ParseTableOptions {
+  startDate?: string;
+  endDate?: string;
+  dateFormat?: string;
+  /** Passed through for caller diagnostics (e.g. URL hints); not read by the parser today. */
+  feedUrl?: string;
+}
+
+export function parseTableHtml(html: string, opts: ParseTableOptions = {}): ProviderResult {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const cheerio = require('cheerio');
+  const $ = cheerio.load(html);
+
+  const results: FetchedPrice[] = [];
+  let tableCount = 0;
+  let priceTableFound = false;
+
+  $('table').each((_i: number, table: unknown) => {
+    tableCount++;
+    const headers: string[] = [];
+    $(table).find('tr').first().find('th, td').each((_j: number, cell: unknown) => {
+      headers.push($(cell).text());
+    });
+
+    const dateIdx = findColIndex(headers, DATE_HEADERS);
+    const closeIdx = findColIndex(headers, CLOSE_HEADERS);
+    if (dateIdx === -1 || closeIdx === -1) return; // not a price table
+    priceTableFound = true;
+
+    const highIdx = findColIndex(headers, HIGH_HEADERS);
+    const lowIdx = findColIndex(headers, LOW_HEADERS);
+    const volIdx = findColIndex(headers, VOLUME_HEADERS);
+
+    $(table).find('tr').slice(1).each((_j: number, row: unknown) => {
+      const cells: string[] = [];
+      $(row).find('td').each((_k: number, cell: unknown) => {
+        cells.push($(cell).text());
+      });
+      if (cells.length === 0) return;
+
+      const dateStr = parseFlexibleDate(cells[dateIdx]?.trim(), opts.dateFormat ?? null);
+      if (!dateStr) return;
+      if (!inDateRange(dateStr, opts.startDate, opts.endDate)) return;
+
+      const closeVal = parseNumericCell(cells[closeIdx] ?? '');
+      if (closeVal == null) return;
+
+      const highVal = highIdx !== -1 ? parseNumericCell(cells[highIdx] ?? '') : null;
+      const lowVal = lowIdx !== -1 ? parseNumericCell(cells[lowIdx] ?? '') : null;
+      const volVal = volIdx !== -1 ? parseNumericCell(cells[volIdx] ?? '') : null;
+
+      results.push({
+        date: dateStr,
+        close: safeDecimal(closeVal),
+        high: highVal != null ? safeDecimal(highVal) : undefined,
+        low: lowVal != null ? safeDecimal(lowVal) : undefined,
+        volume: volVal != null ? volVal : undefined,
+      });
+    });
+  });
+
+  if (results.length === 0) {
+    let warning: string;
+    if (tableCount === 0) {
+      warning = 'No tables found at this URL.';
+    } else if (!priceTableFound) {
+      warning = `Found ${tableCount} table${tableCount === 1 ? '' : 's'}, none with a recognizable Date + Close column.${investingHistoryHint(opts.feedUrl)}`;
+    } else {
+      warning = 'Found a price table but no usable rows (check the date range or row format).';
+    }
+    return { prices: [], warning };
+  }
+
+  return { prices: results };
 }
 
 // ─── Core fetch function ─────────────────────────────────────────────────────
@@ -36,10 +195,8 @@ async function fetchPricesFromTable(
   dateFormat?: string,
 ): Promise<ProviderResult> {
   try {
-     
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const axios = require('axios');
-     
-    const cheerio = require('cheerio');
 
     const res = await axios.get(feedUrl, {
       timeout: 20000,
@@ -57,66 +214,16 @@ async function fetchPricesFromTable(
         'Sec-Fetch-User': '?1',
       },
     });
-    const $ = cheerio.load(res.data as string);
+
+    const html = res.data as string;
 
     // Sanity check: if we got a Cloudflare challenge page, bail early
-    const html = res.data as string;
     if (html.includes('cf-browser-verification') || html.includes('challenges.cloudflare.com')) {
       console.warn(`[prices] TABLE: Cloudflare challenge for ${feedUrl} — cannot scrape without a real browser`);
       return { prices: [], warning: 'Cloudflare challenge — site requires a real browser' };
     }
 
-    const results: FetchedPrice[] = [];
-
-    $('table').each((_i: number, table: unknown) => {
-      const headers: string[] = [];
-      $(table).find('tr').first().find('th, td').each((_j: number, cell: unknown) => {
-        headers.push($(cell).text());
-      });
-
-      const dateIdx = findColIndex(headers, DATE_HEADERS);
-      const closeIdx = findColIndex(headers, CLOSE_HEADERS);
-      if (dateIdx === -1 || closeIdx === -1) return; // not a price table
-
-      const highIdx = findColIndex(headers, HIGH_HEADERS);
-      const lowIdx = findColIndex(headers, LOW_HEADERS);
-      const volIdx = findColIndex(headers, VOLUME_HEADERS);
-
-      $(table).find('tr').slice(1).each((_j: number, row: unknown) => {
-        const cells: string[] = [];
-        $(row).find('td').each((_k: number, cell: unknown) => {
-          cells.push($(cell).text());
-        });
-        if (cells.length === 0) return;
-
-        const dateStr = parseFlexibleDate(cells[dateIdx]?.trim(), dateFormat ?? null);
-        if (!dateStr) return;
-        if (!inDateRange(dateStr, startDate, endDate)) return;
-
-        const closeVal = parseNumericCell(cells[closeIdx] ?? '');
-        if (closeVal == null) return;
-
-        results.push({
-          date: dateStr,
-          close: safeDecimal(closeVal),
-          high: highIdx !== -1 && cells[highIdx]
-            ? (parseNumericCell(cells[highIdx]) != null
-              ? safeDecimal(parseNumericCell(cells[highIdx])!)
-              : undefined)
-            : undefined,
-          low: lowIdx !== -1 && cells[lowIdx]
-            ? (parseNumericCell(cells[lowIdx]) != null
-              ? safeDecimal(parseNumericCell(cells[lowIdx])!)
-              : undefined)
-            : undefined,
-          volume: volIdx !== -1 && cells[volIdx]
-            ? (parseNumericCell(cells[volIdx]) ?? undefined)
-            : undefined,
-        });
-      });
-    });
-
-    return { prices: results };
+    return parseTableHtml(html, { startDate, endDate, dateFormat, feedUrl });
   } catch (err) {
     const msg = (err as Error).message;
     console.warn(`[prices] TABLE fetch failed for ${feedUrl}:`, msg);

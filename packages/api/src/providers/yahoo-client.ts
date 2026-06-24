@@ -10,9 +10,8 @@
 // returns the usable data — so the warnings are pure noise in our logs.
 // Disable them globally; real errors still surface via thrown exceptions.
 
-type YahooFinanceCtor = new () => unknown;
+type YahooFinanceCtor = new (opts?: { validation?: { logErrors?: boolean } }) => unknown;
 interface YahooInstance {
-  setGlobalConfig?: (cfg: { validation?: { logErrors?: boolean } }) => void;
   [key: string]: unknown;
 }
 
@@ -24,8 +23,7 @@ export function getYahoo(): YahooInstance {
 
   const mod = require('yahoo-finance2');
   const YahooFinance = (mod.default ?? mod) as YahooFinanceCtor;
-  const yf = new YahooFinance() as YahooInstance;
-  yf.setGlobalConfig?.({ validation: { logErrors: false } });
+  const yf = new YahooFinance({ validation: { logErrors: false } }) as YahooInstance;
   cached = yf;
   return yf;
 }

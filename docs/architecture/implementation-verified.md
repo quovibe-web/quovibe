@@ -153,3 +153,18 @@ User-driven CRUD for `vf_exchange_rate` rows tagged `source='MANUAL'`. ECB-sched
 | `updateFxRate` | vf_exchange_rate | Verified (Phase 3) — UPDATE guarded by `WHERE source='MANUAL'`; throws RATE_NOT_FOUND_OR_NOT_MANUAL when 0 rows affected |
 | `deleteFxRate` | vf_exchange_rate | Verified (Phase 3) — DELETE guarded by `WHERE source='MANUAL'` |
 | `importEcbRates` | vf_exchange_rate | Verified (Phase 3) — INSERT OR IGNORE with source='IMPORT', preserves MANUAL rows on PK conflict |
+
+## manual-prices.service.ts
+
+Manual add/edit/delete of `price` rows and "derive from transactions" for the
+Historical Quotes panel. Every write ends by calling `syncLatestPriceFromGlobalMax`
+so `latest_price` always reflects the post-mutation global max. All writes are
+wrapped in a single SQLite transaction.
+
+| Method | Tables written | Audit status |
+|--------|---------------|--------------|
+| `upsertPrice` | price, latest_price | Verified — INSERT OR REPLACE via `ON CONFLICT DO UPDATE`; re-syncs latest_price |
+| `editPrice` | price, latest_price | Verified — delete old-date row + upsert on new date; latest_price invariant locked by test |
+| `deletePrices` | price, latest_price | Verified — batch date-key deletes in single transaction; latest_price moves down on max-row removal |
+| `deleteAllPrices` | price, latest_price | Verified — clears all price rows then clears latest_price via sync (no rows = clear) |
+| `derivePricesFromTransactions` | price, latest_price | Verified — gross-per-share from BUY/SELL (fees excluded via engine helper); overwrites same-date quotes; re-syncs latest_price |

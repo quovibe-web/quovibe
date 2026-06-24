@@ -525,7 +525,10 @@ describe('buildTransactionFormSchema — REMOVAL (cash-only, security NOT requir
 });
 
 describe('buildTransactionFormSchema — pathological numeric strings', () => {
-  it('rejects whitespace-padded "10 " on shares', () => {
+  it('accepts whitespace-padded "10 " on shares (input is trimmed)', () => {
+    // Leading/trailing whitespace carries no numeric meaning — trimming it is
+    // safe and matches the manual-price form. (Internal whitespace like "1 0"
+    // still fails the numeric grammar below.)
     const schema = buildTransactionFormSchema(ctx({ type: TransactionType.BUY }), t);
     const r = schema.safeParse({
       ...baseFields,
@@ -536,6 +539,20 @@ describe('buildTransactionFormSchema — pathological numeric strings', () => {
       shares: '10 ',
       price: '50',
     });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejects internal whitespace "1 0" on shares', () => {
+    const schema = buildTransactionFormSchema(ctx({ type: TransactionType.BUY }), t);
+    const r = schema.safeParse({
+      ...baseFields,
+      type: TransactionType.BUY,
+      accountId: ACC_A,
+      crossAccountId: ACC_B,
+      securityId: SEC,
+      shares: '1 0',
+      price: '50',
+    });
     expect(r.success).toBe(false);
     if (!r.success) {
       const errs = fieldErrors(r.error.issues);
@@ -543,7 +560,9 @@ describe('buildTransactionFormSchema — pathological numeric strings', () => {
     }
   });
 
-  it('rejects locale comma "1,5" on price', () => {
+  it('accepts locale comma "1,5" on price (es/it/de/fr/nl/pl/pt users)', () => {
+    // The app displays the locale comma, so input must accept it too. Comma is
+    // normalized to dot before the numeric grammar runs.
     const schema = buildTransactionFormSchema(ctx({ type: TransactionType.BUY }), t);
     const r = schema.safeParse({
       ...baseFields,
@@ -553,6 +572,21 @@ describe('buildTransactionFormSchema — pathological numeric strings', () => {
       securityId: SEC,
       shares: '10',
       price: '1,5',
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejects a grouped value "1.234,56" on price (no thousands grouping)', () => {
+    // "1.234,56" -> "1.234.56" -> rejected, never silently corrected to 1234.56.
+    const schema = buildTransactionFormSchema(ctx({ type: TransactionType.BUY }), t);
+    const r = schema.safeParse({
+      ...baseFields,
+      type: TransactionType.BUY,
+      accountId: ACC_A,
+      crossAccountId: ACC_B,
+      securityId: SEC,
+      shares: '10',
+      price: '1.234,56',
     });
     expect(r.success).toBe(false);
     if (!r.success) {

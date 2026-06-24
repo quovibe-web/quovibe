@@ -331,5 +331,45 @@
     "totalSecurities": "Titoli totali",
     "activeSecurities": "Attivi",
     "totalMarketValue": "Valore di mercato totale"
+  },
+  "priceHistory": {
+    "title": "Storico prezzi",
+    "addPrice": "Aggiungi prezzo",
+    "fillFromTrades": "Riempi da transazioni",
+    "deleteAll": "Elimina tutto",
+    "columns": {
+      "date": "Data",
+      "value": "Quotazione",
+      "open": "Apertura",
+      "high": "Massimo",
+      "low": "Minimo",
+      "volume": "Volume"
+    },
+    "form": {
+      "title": {
+        "add": "Aggiungi prezzo",
+        "edit": "Modifica prezzo"
+      },
+      "date": "Data",
+      "value": "Quotazione",
+      "open": "Apertura",
+      "high": "Massimo",
+      "low": "Minimo",
+      "volume": "Volume",
+      "save": "Salva",
+      "cancel": "Annulla",
+      "errors": {
+        "invalidDate": "Inserisci una data valida",
+        "invalidValue": "Inserisci un valore maggiore di 0",
+        "invalidPrice": "Inserisci un valore maggiore di 0",
+        "invalidVolume": "Inserisci un numero intero ≥ 0"
+      }
+    },
+    "edit": "Modifica",
+    "delete": "Elimina",
+    "empty": "Nessuno storico prezzi. Aggiungi un prezzo o riempi dalle transazioni.",
+    "deriveResult": "{{written}} prezzi scritti, {{skipped}} saltati",
+    "deriveSkippedHint": "Le transazioni saltate mancano di un tasso di cambio.",
+    "confirmDeleteAll": "Eliminare tutto lo storico prezzi per questo titolo? Questa operazione non può essere annullata."
   }
 }
