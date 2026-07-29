@@ -113,7 +113,9 @@ No new engine signatures, no `RateMap` injection into engine functions.
 
 `SecurityPerfResponse` rows gain `marketValueBase`, `costBase`,
 `unrealizedBase`, `realizedBase`, `dividendsBase`, `baseCurrency` alongside
-existing per-security native fields. Portfolio + statement totals gain
+existing per-security native fields (extended 2026-07-29 with `feesBase` /
+`taxesBase`; `unrealizedBase` switched to per-leg conversion — see the
+ADR-018 §3 amendment). Portfolio + statement totals gain
 `unresolvedSecurityIds` + `unresolvedCount`. Zero breaking changes for
 existing consumers.
 
