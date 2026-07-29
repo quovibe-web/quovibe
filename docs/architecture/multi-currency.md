@@ -390,3 +390,66 @@ can later override via Portfolio Settings UI (Branch B).
 - Forex-view toggle to swap base ↔ native default per surface.
 - Multi-deposit-currency UI polish (currency picker on portfolio
   creation, native-ccy badges per deposit account row).
+
+## Per-security base fields — conversion convention (2026-07-29)
+
+The per-security wire row (`SecurityPerfResult` /
+`SecurityPerfResponse`) carries both a native and a base value for each
+money field, and the security surfaces render them as one number behind
+the forex-view toggle. Which conversion each base field uses is
+therefore load-bearing, not cosmetic.
+
+| Field | Convention |
+|---|---|
+| `marketValueBase` | period-end rate on `mve` |
+| `costBase` | per-lot FIFO, each lot at its acquisition-date rate |
+| `unrealizedBase` | **per-leg**: `marketValueBase − costBase` |
+| `realizedBase` | period-end rate on the native `realizedGain` |
+| `dividendsBase` | booked deposit cash at each receipt-date rate |
+| `feesBase` / `taxesBase` | each transaction at its own date |
+
+### Why `unrealizedBase` subtracts after converting
+
+Converting the native difference at one rate
+(`unrealizedGain × endRate`) and converting each leg at its own date
+give different answers whenever FX moved between acquisition and the
+reporting date — different enough to flip the sign on a position whose
+quote rose while its currency fell. The upstream reference computes the
+foreign-currency capital gain the second way (cost at its own date,
+valuation at the reporting date, subtract in term currency), and it is
+the only shape under which the three fields rendered together on the
+security detail card reconcile.
+
+Consequence: `unrealizedBase ≡ unrealizedCapitalBase + unrealizedFxBase`
+now holds by construction. It is computed from `mveBase`/`costBase`
+rather than by summing the decomposition so it stays defined when the
+decomposition guards bail (missing period-end rate, zero end position).
+
+Two inherited caveats, both from `costBase` rather than from this rule:
+
+- `costBase` always runs FIFO, while native `purchaseValue` /
+  `unrealizedGain` honour the requested `costMethod`. Cross-currency
+  positions with partial sells differ by cost method as well as by FX.
+- `costBase` is fee-inclusive and since-inception; the native
+  `unrealizedGain` is fee-free and rebased to the period start. On a
+  fee-carrying or pre-period position the toggle therefore moves more
+  than the exchange rate. Making the two axes agree means giving the
+  base side a period-rebased, fee-free cost pass — a separate exercise.
+
+### Why `realizedBase` was left on the uniform projection
+
+Realized gain has no companion cost field on the wire to reconcile
+against, so the visible-inconsistency argument does not apply, and its
+native value is rebased to the period start (proceeds − value at period
+start) while `realizedCapitalBase + realizedFxBase` uses
+since-inception lot cost. Switching it would change the number without
+making anything on screen add up.
+
+### Why the portfolio rollup was left alone
+
+`getPortfolioCalc` projects `unrealizedGain` / `realizedGain` at the
+period-end rate for its own accumulators. The calculation panel is an
+additive bridge — `initialValue + capitalGains + earnings − fees −
+taxes + cashCurrencyGains + PNT = finalValue` — whose terms are all
+period-end-uniform. Moving one term to trade-date FX breaks the
+reconciliation, so aligning the rollup means moving every term at once.

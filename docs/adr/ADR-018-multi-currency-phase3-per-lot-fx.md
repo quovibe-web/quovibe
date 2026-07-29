@@ -65,6 +65,17 @@ Identity: `realizedBase + unrealizedBase ≡ realizedCapitalBase +
 realizedFxBase + unrealizedCapitalBase + unrealizedFxBase`. Engine
 tests pin this.
 
+> **Amendment (2026-07-29).** The identity as written never held: both
+> `realizedBase` and `unrealizedBase` shipped as the native value
+> projected at the period-end rate, while the decomposition uses
+> per-lot acquisition rates. `unrealizedBase` is now
+> `marketValueBase − costBase` — each leg converted at its own date —
+> so `unrealizedBase ≡ unrealizedCapitalBase + unrealizedFxBase` does
+> hold. `realizedBase` deliberately stays on the period-end projection.
+> Rationale and the remaining divergences:
+> `docs/architecture/multi-currency.md > Per-security base fields`.
+> The wire row also gained `feesBase` / `taxesBase` in the same pass.
+
 Wire fields added to `SecurityPerfResponse`:
 `realizedCapitalBase`, `realizedFxBase`,
 `unrealizedCapitalBase`, `unrealizedFxBase`,

@@ -12,6 +12,8 @@ import { dateColumnMeta, textColumnMeta, currencyColumnMeta, sharesColumnMeta } 
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { CurrencyDisplayWithToggle } from '@/components/shared/CurrencyDisplayWithToggle';
 import { ForexViewChip } from '@/components/shared/ForexViewChip';
+import { useForexView } from '@/context/forex-view-context';
+import { resolveUnrealizedGainPct } from '@/lib/unrealized-gain-pct';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { useSecurityDetail, useFetchPrices } from '@/api/use-securities';
 import { SecurityEditor, type EditorSection } from '@/components/domain/SecurityEditor';
@@ -130,6 +132,20 @@ export default function SecurityDetail() {
     if (!perfData || !id) return null;
     return perfData.find(p => p.securityId === id) ?? null;
   }, [perfData, id]);
+
+  // Hero percentage follows the currency the hero amount is rendered in.
+  const { view: forexView } = useForexView('securityDetail');
+  const unrealizedGainPct = perf
+    ? resolveUnrealizedGainPct({
+        view: forexView,
+        unrealizedBase: perf.unrealizedBase,
+        costBase: perf.costBase,
+        unrealizedNative: perf.unrealizedGain,
+        purchaseValueNative: perf.purchaseValue,
+        baseCurrency: perf.baseCurrency,
+        nativeCurrency: perf.currency,
+      })
+    : null;
 
   const txColumns = useMemo<ColumnDef<TransactionListItem>[]>(() => [
     { accessorKey: 'date', ...dateColumnMeta(), header: tTx('columns.date'), cell: ({ getValue }) => formatDate(getValue<string>()) },
@@ -302,12 +318,9 @@ export default function SecurityDetail() {
                   colorize
                   className="qv-numeric text-2xl font-medium"
                 />
-                {parseFloat(perf.purchaseValue) > 0 && (
+                {unrealizedGainPct !== null && (
                   <p className="mt-1 flex items-center gap-1.5 text-xs">
-                    <SignedPercent
-                      value={parseFloat(perf.unrealizedGain) / parseFloat(perf.purchaseValue)}
-                      className="text-xs"
-                    />
+                    <SignedPercent value={unrealizedGainPct} className="text-xs" />
                     <span className="text-muted-foreground">{t('detail.fromPurchase')}</span>
                   </p>
                 )}
@@ -338,8 +351,8 @@ export default function SecurityDetail() {
               <PerfMetric label={t('detail.perfMetrics.irr')} value={perf.irr} type="pct" isPrivate={isPrivate} converged={perf.irrConverged} notConvergedLabel={t('detail.perfMetrics.notConverged')} />
               <PerfMetric label={t('detail.perfMetrics.realizedGain')} value={perf.realizedGain} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.realizedBase} baseCurrency={perf.baseCurrency} />
               <PerfMetric label={t('detail.perfMetrics.dividends')} value={perf.dividends} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.dividendsBase} baseCurrency={perf.baseCurrency} />
-              <PerfMetric label={t('detail.perfMetrics.fees')} value={perf.fees} type="currency" currency={security.currency} isPrivate={isPrivate} />
-              <PerfMetric label={t('detail.perfMetrics.taxes')} value={perf.taxes} type="currency" currency={security.currency} isPrivate={isPrivate} />
+              <PerfMetric label={t('detail.perfMetrics.fees')} value={perf.fees} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.feesBase} baseCurrency={perf.baseCurrency} />
+              <PerfMetric label={t('detail.perfMetrics.taxes')} value={perf.taxes} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.taxesBase} baseCurrency={perf.baseCurrency} />
               <PerfMetric label={t('detail.perfMetrics.purchaseValue')} value={perf.purchaseValue} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.costBase} baseCurrency={perf.baseCurrency} />
               <PerfMetric label={t('detail.perfMetrics.mve')} value={perf.mve} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.marketValueBase} baseCurrency={perf.baseCurrency} />
             </div>
