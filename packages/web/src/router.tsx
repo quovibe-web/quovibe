@@ -24,6 +24,7 @@ import PortfolioSettings from '@/pages/PortfolioSettings';
 import TaxonomySeries from '@/pages/TaxonomySeries';
 import CsvImportPage from '@/pages/CsvImportPage';
 import PriceImportWizard from '@/pages/PriceImportWizard';
+import StockSplitWizard from '@/pages/StockSplitWizard';
 import PortfolioImportHub from '@/pages/PortfolioImportHub';
 import Analytics from '@/pages/Analytics';
 import Welcome from '@/pages/Welcome';
@@ -101,6 +102,8 @@ export const router = createBrowserRouter([
       },
       { path: 'allocation', element: <AssetAllocation /> },
       { path: 'taxonomies/data-series', element: <TaxonomySeries /> },
+      // Static segment ranks above the sibling `securities/:id` alias.
+      { path: 'securities/split', element: <StockSplitWizard /> },
       { path: 'securities/:id', element: <RedirectSecurityDetail /> },
       { path: 'import', element: <PortfolioImportHub /> },
       { path: 'import/csv', element: <CsvImportPage /> },
