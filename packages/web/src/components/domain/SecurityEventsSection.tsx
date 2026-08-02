@@ -99,9 +99,12 @@ export function SecurityEventsSection({ securityId }: SecurityEventsSectionProps
           const label = ratio.newShares.gt(ratio.oldShares)
             ? t('split.events.forwardLabel')
             : t('split.events.reverseLabel');
+          // Only the ratio is monospaced; the direction label reads as prose.
           return (
-            <span className="qv-numeric">
-              {formatSplitRatio(ratio)} · <span className="not-qv-numeric">{label}</span>
+            <span>
+              <span className="qv-numeric">{formatSplitRatio(ratio)}</span>
+              {' · '}
+              {label}
             </span>
           );
         },
