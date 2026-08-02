@@ -435,6 +435,10 @@
     "nav": {
       "next": "Avanti",
       "back": "Indietro"
+    },
+    "warnings": {
+      "FUTURE_EX_DATE": "La data di stacco è nel futuro. Tutto ciò che è registrato prima verrà ricalcolato adesso.",
+      "NO_ROWS_AFFECTED": "Nulla cambia prima della data di stacco. Verrà registrato solo il marcatore dell’evento."
     }
   }
 }

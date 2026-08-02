@@ -435,6 +435,10 @@
     "nav": {
       "next": "Suivant",
       "back": "Retour"
+    },
+    "warnings": {
+      "FUTURE_EX_DATE": "La date de détachement est dans le futur. Tout ce qui précède sera recalculé dès maintenant.",
+      "NO_ROWS_AFFECTED": "Rien ne change avant la date de détachement. Seul le repère de l’événement sera enregistré."
     }
   }
 }

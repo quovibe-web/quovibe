@@ -7,6 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/shared/DataTable';
 import { formatDate, formatShares } from '@/lib/formatters';
 import { txTypeKey } from '@/lib/utils';
+import { usePrivacy } from '@/context/privacy-context';
+import { maskShares } from '@/lib/privacy';
 import type { SplitPreviewTx } from '@/api/use-stock-split';
 
 interface SplitTransactionsStepProps {
@@ -25,6 +27,7 @@ export function SplitTransactionsStep({
   onNext,
 }: SplitTransactionsStepProps) {
   const { t } = useTranslation('securities');
+  const { isPrivate } = usePrivacy();
 
   const columns = useMemo<ColumnDef<SplitPreviewTx>[]>(
     () => [
@@ -58,7 +61,7 @@ export function SplitTransactionsStep({
         size: 110,
         cell: ({ row }) => (
           <span className="qv-numeric block truncate">
-            {formatShares(row.original.sharesOld / 1e8)}
+            {maskShares(formatShares(row.original.sharesOld / 1e8), isPrivate)}
           </span>
         ),
       },
@@ -68,12 +71,12 @@ export function SplitTransactionsStep({
         size: 110,
         cell: ({ row }) => (
           <span className="qv-numeric font-medium block truncate">
-            {formatShares(row.original.sharesNew / 1e8)}
+            {maskShares(formatShares(row.original.sharesNew / 1e8), isPrivate)}
           </span>
         ),
       },
     ],
-    [t],
+    [t, isPrivate],
   );
 
   return (

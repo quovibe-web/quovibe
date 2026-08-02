@@ -435,6 +435,10 @@
     "nav": {
       "next": "Volgende",
       "back": "Terug"
+    },
+    "warnings": {
+      "FUTURE_EX_DATE": "De ex-datum ligt in de toekomst. Alles wat daarvoor is vastgelegd wordt nu herrekend.",
+      "NO_ROWS_AFFECTED": "Er verandert niets vóór de ex-datum. Alleen de gebeurtenismarkering wordt vastgelegd."
     }
   }
 }

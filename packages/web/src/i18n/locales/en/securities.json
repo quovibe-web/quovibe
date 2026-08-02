@@ -435,6 +435,10 @@
     "nav": {
       "next": "Next",
       "back": "Back"
+    },
+    "warnings": {
+      "FUTURE_EX_DATE": "The ex-date is in the future. Everything recorded before it will be restated now.",
+      "NO_ROWS_AFFECTED": "Nothing before the ex-date changes. Only the event marker will be recorded."
     }
   }
 }

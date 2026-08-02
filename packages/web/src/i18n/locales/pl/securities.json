@@ -437,6 +437,10 @@
     "nav": {
       "next": "Dalej",
       "back": "Wstecz"
+    },
+    "warnings": {
+      "FUTURE_EX_DATE": "Dzień ustalenia praw jest w przyszłości. Wszystko zapisane wcześniej zostanie teraz przeliczone.",
+      "NO_ROWS_AFFECTED": "Nic przed dniem ustalenia praw się nie zmienia. Zapisany zostanie tylko znacznik zdarzenia."
     }
   }
 }

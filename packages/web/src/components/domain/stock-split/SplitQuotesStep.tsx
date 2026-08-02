@@ -8,6 +8,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DataTable } from '@/components/shared/DataTable';
 import { formatDate, formatNumber } from '@/lib/formatters';
+import { usePrivacy } from '@/context/privacy-context';
+import { maskCurrency } from '@/lib/privacy';
 import type { SplitPreviewQuote } from '@/api/use-stock-split';
 
 interface SplitQuotesStepProps {
@@ -34,6 +36,7 @@ export function SplitQuotesStep({
   isApplying,
 }: SplitQuotesStepProps) {
   const { t } = useTranslation('securities');
+  const { isPrivate } = usePrivacy();
 
   const columns = useMemo<ColumnDef<SplitPreviewQuote>[]>(
     () => [
@@ -48,7 +51,9 @@ export function SplitQuotesStep({
         header: () => t('split.columns.quoteBefore'),
         size: 160,
         cell: ({ row }) => (
-          <span className="qv-numeric block truncate">{formatQuote(row.original.valueOld)}</span>
+          <span className="qv-numeric block truncate">
+            {maskCurrency(formatQuote(row.original.valueOld), isPrivate)}
+          </span>
         ),
       },
       {
@@ -57,12 +62,12 @@ export function SplitQuotesStep({
         size: 160,
         cell: ({ row }) => (
           <span className="qv-numeric font-medium block truncate">
-            {formatQuote(row.original.valueNew)}
+            {maskCurrency(formatQuote(row.original.valueNew), isPrivate)}
           </span>
         ),
       },
     ],
-    [t],
+    [t, isPrivate],
   );
 
   const affectedTransactions = transactionCount;

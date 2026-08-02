@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useNavTitle } from '@/hooks/useNavTitle';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useGuardedSubmit } from '@/hooks/use-guarded-submit';
 import { usePortfolio } from '@/context/PortfolioContext';
 import { resolveErrorMessage } from '@/api/query-client';
@@ -137,6 +138,20 @@ export default function StockSplitWizard() {
           }
           onNext={(next) => void handleSelectNext(next)}
         />
+      )}
+
+      {/* Preview warnings live at wizard level so they stay visible across
+          both preview steps rather than scrolling away with one table. */}
+      {step !== 'select' && preview && preview.warnings.length > 0 && (
+        <Alert className="mb-4">
+          <AlertDescription>
+            <ul className="list-disc pl-4 space-y-1">
+              {preview.warnings.map((w) => (
+                <li key={w}>{t(`split.warnings.${w}`)}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
       )}
 
       {step === 'transactions' && preview && (

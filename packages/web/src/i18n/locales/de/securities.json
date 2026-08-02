@@ -435,6 +435,10 @@
     "nav": {
       "next": "Weiter",
       "back": "Zurück"
+    },
+    "warnings": {
+      "FUTURE_EX_DATE": "Der Stichtag liegt in der Zukunft. Alles davor Erfasste wird jetzt umgerechnet.",
+      "NO_ROWS_AFFECTED": "Vor dem Stichtag ändert sich nichts. Es wird nur die Ereignis-Markierung erfasst."
     }
   }
 }

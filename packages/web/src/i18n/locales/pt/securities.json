@@ -435,6 +435,10 @@
     "nav": {
       "next": "Seguinte",
       "back": "Voltar"
+    },
+    "warnings": {
+      "FUTURE_EX_DATE": "A data ex é futura. Tudo o que foi registado antes será recalculado agora.",
+      "NO_ROWS_AFFECTED": "Nada muda antes da data ex. Apenas o marcador do evento será registado."
     }
   }
 }
