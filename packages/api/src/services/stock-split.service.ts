@@ -57,10 +57,16 @@ export interface StockSplitResult {
 
 interface TxRow {
   uuid: string;
+  shares: number;
+}
+
+interface TxPreviewRow extends TxRow {
   date: string;
   type: string;
-  shares: number;
+  acctype: string;
   accountName: string | null;
+  crossAccId: string | null;
+  ownAccount: string;
 }
 
 interface QuoteRow {
@@ -75,14 +81,52 @@ interface QuoteRow {
 // and `price.tstamp` are VARCHAR(32) and may carry an ISO time tail, so both
 // predicates truncate to the date part — the same convention the CSV dedupe
 // fingerprint uses.
+// The rewrite only needs the primary key and the share count, so it deliberately
+// skips the account join and the type columns the preview needs for labelling.
 const SELECT_TRANSACTIONS = `
+  SELECT x.uuid AS uuid, x.shares AS shares
+  FROM xact x
+  WHERE x.security = ? AND substr(x.date, 1, 10) < ?
+  ORDER BY x.date, x._order, x._id
+`;
+
+const SELECT_TRANSACTIONS_PREVIEW = `
   SELECT x.uuid AS uuid, x.date AS date, x.type AS type, x.shares AS shares,
-         a.name AS accountName
+         x.acctype AS acctype, x.account AS ownAccount, a.name AS accountName,
+         (SELECT ce.to_acc FROM xact_cross_entry ce
+           WHERE ce.from_xact = x.uuid AND ce.from_xact != ce.to_xact
+           LIMIT 1) AS crossAccId
   FROM xact x
   LEFT JOIN account a ON a.uuid = x.account
   WHERE x.security = ? AND substr(x.date, 1, 10) < ?
   ORDER BY x.date, x._order, x._id
 `;
+
+/**
+ * `xact.type` stores the ppxml2db form, which diverges from the app enum for
+ * dividends and the transfer family. Read routes normalize at their own
+ * boundary; the preview does the same so the client never has to know about the
+ * divergence. Mirrors the mapping in `routes/accounts.ts`.
+ */
+function normalizeDbType(row: TxPreviewRow): string {
+  const hasShares = row.shares != null && row.shares !== 0;
+  if (row.type === 'TRANSFER_IN') {
+    if (row.acctype === 'portfolio' || hasShares) {
+      if (row.crossAccId && row.crossAccId !== row.ownAccount) return 'SECURITY_TRANSFER';
+      return 'DELIVERY_INBOUND';
+    }
+    return 'TRANSFER_BETWEEN_ACCOUNTS';
+  }
+  if (row.type === 'TRANSFER_OUT') {
+    if (row.acctype === 'portfolio' || hasShares) {
+      if (row.crossAccId && row.crossAccId !== row.ownAccount) return 'SECURITY_TRANSFER';
+      return 'DELIVERY_OUTBOUND';
+    }
+    return 'TRANSFER_BETWEEN_ACCOUNTS';
+  }
+  if (row.type === 'DIVIDENDS') return 'DIVIDEND';
+  return row.type;
+}
 
 const SELECT_QUOTES = `
   SELECT tstamp, value, open, high, low
@@ -144,7 +188,9 @@ export function previewStockSplit(
   assertSecurityExists(sqlite, input.securityId);
   const ratio = toRatio(input);
 
-  const txRows = sqlite.prepare(SELECT_TRANSACTIONS).all(input.securityId, input.exDate) as TxRow[];
+  const txRows = sqlite
+    .prepare(SELECT_TRANSACTIONS_PREVIEW)
+    .all(input.securityId, input.exDate) as TxPreviewRow[];
   const quoteRows = sqlite.prepare(SELECT_QUOTES).all(input.securityId, input.exDate) as QuoteRow[];
 
   const transactions: SplitPreviewTransaction[] = [];
@@ -157,7 +203,7 @@ export function previewStockSplit(
     transactions.push({
       uuid: row.uuid,
       date: row.date,
-      type: row.type,
+      type: normalizeDbType(row),
       accountName: row.accountName,
       sharesOld: row.shares,
       sharesNew,

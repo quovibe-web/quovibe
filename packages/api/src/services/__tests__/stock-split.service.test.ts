@@ -139,6 +139,49 @@ describe('previewStockSplit', () => {
     expect(previewStockSplit(db, withFlags()).transactions.map((t) => t.uuid)).toEqual(['tx-div']);
   });
 
+  // xact.type stores the ppxml2db form; the client renders t('types.' + key), so
+  // an un-normalized type surfaces a raw i18n key in the preview table.
+  it('normalizes the stored type to the app enum form', () => {
+    insertTx(db, 'tx-div', '2026-07-15', 'DIVIDENDS', 100 * 1e8);
+    insertTx(db, 'tx-in', '2026-07-15', 'TRANSFER_IN', 50 * 1e8);
+    insertTx(db, 'tx-out', '2026-07-15', 'TRANSFER_OUT', 25 * 1e8);
+
+    const byUuid = new Map(
+      previewStockSplit(db, withFlags()).transactions.map((t) => [t.uuid, t.type]),
+    );
+    expect(byUuid.get('tx-div')).toBe('DIVIDEND');
+    expect(byUuid.get('tx-in')).toBe('DELIVERY_INBOUND');
+    expect(byUuid.get('tx-out')).toBe('DELIVERY_OUTBOUND');
+  });
+
+  it('reports a cross-account share transfer as SECURITY_TRANSFER', () => {
+    const ACC2 = '33333333-3333-4333-8333-333333333333';
+    db.prepare(
+      `INSERT INTO account (uuid, name, type, currency, isRetired, updatedAt, _xmlid, _order)
+       VALUES (?, 'Second Securities', 'portfolio', 'EUR', 0, '2026-01-01T00:00:00', 1, 1)`,
+    ).run(ACC2);
+    insertTx(db, 'tx-xfer', '2026-07-15', 'TRANSFER_OUT', 25 * 1e8);
+    insertTx(db, 'tx-xfer-in', '2026-07-15', 'TRANSFER_IN', 25 * 1e8);
+    db.prepare(
+      `INSERT INTO xact_cross_entry (type, from_acc, from_xact, to_acc, to_xact)
+       VALUES ('TRANSFER', ?, 'tx-xfer', ?, 'tx-xfer-in')`,
+    ).run(ACC, ACC2);
+
+    const types = new Map(
+      previewStockSplit(db, withFlags()).transactions.map((t) => [t.uuid, t.type]),
+    );
+    expect(types.get('tx-xfer')).toBe('SECURITY_TRANSFER');
+    // The receiving leg has no cross-entry of its own, so it stays a delivery.
+    expect(types.get('tx-xfer-in')).toBe('DELIVERY_INBOUND');
+  });
+
+  it('leaves BUY and SELL untouched by normalization', () => {
+    insertTx(db, 'tx-buy', '2026-07-15', 'BUY', 250 * 1e8);
+    insertTx(db, 'tx-sell', '2026-07-15', 'SELL', 50 * 1e8);
+    const types = previewStockSplit(db, withFlags()).transactions.map((t) => t.type);
+    expect(types).toEqual(['BUY', 'SELL']);
+  });
+
   it('previews quotes moving inversely to the ratio', () => {
     insertPrice(db, '2026-07-15', 400000000); // 4.00
     const [q] = previewStockSplit(db, withFlags()).quotes;
