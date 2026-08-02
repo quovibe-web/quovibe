@@ -64,10 +64,14 @@ price history and a compute-time model's would not.
 - Cost basis needs no special handling. FIFO and moving-average read `shares`
   directly from `xact`, so they follow the rewrite for free. That is precisely
   why the destructive model is the correct one.
-- Undo is approximate, not byte-exact: rounding drift is bounded at one 10⁻⁸
-  unit per row and only compounds if the user loops apply/undo. The portfolio
-  `.db` export remains the exact recovery path, and the wizard's destructive
-  warning says so.
+- Undo is approximate, not byte-exact. Whether it drifts at all depends on the
+  ratio: a round trip through a ratio that divides the stored count evenly
+  (e.g. 1:25 on 250 shares) returns the original integer exactly, while one
+  that does not (1:3 on 100 shares) lands one 10⁻⁸ unit away. Measured over
+  five consecutive apply/undo loops, the drift appears **once and then holds
+  steady** — the rounding reaches a fixed point rather than accumulating, and
+  quotes showed no drift at all. The portfolio `.db` export remains the exact
+  recovery path, and the wizard's destructive warning says so.
 - Undo leaves its own marker rather than deleting the original. PP behaves the
   same way; deleting a marker is documented as removing the chart mark only.
 - Rewriting share counts can make two previously-distinct CSV-imported rows
