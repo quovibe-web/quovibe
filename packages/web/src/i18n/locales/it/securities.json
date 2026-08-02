@@ -431,6 +431,10 @@
         "type": "Tipo",
         "details": "Dettagli"
       }
+    },
+    "nav": {
+      "next": "Avanti",
+      "back": "Indietro"
     }
   }
 }

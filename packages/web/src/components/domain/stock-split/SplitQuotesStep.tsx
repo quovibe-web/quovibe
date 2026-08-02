@@ -98,7 +98,7 @@ export function SplitQuotesStep({
 
         <div className="flex justify-between">
           <Button variant="outline" onClick={onBack} disabled={isApplying}>
-            {t('common:back')}
+            {t('split.nav.back')}
           </Button>
           <Button onClick={onApply} disabled={isApplying}>
             {isApplying ? t('split.applying') : t('split.apply')}

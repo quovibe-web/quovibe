@@ -35,7 +35,7 @@ export default function StockSplitWizard() {
 
   // The events-section undo action links here with the inverted ratio already
   // in the query string, so an undo still walks the normal preview + confirm.
-  const [defaultValues] = useState<SplitFormValues>(() => ({
+  const [initialValues] = useState<SplitFormValues>(() => ({
     securityId: preselectedSecurityId,
     exDate: searchParams.get('exDate') ?? new Date().toISOString().slice(0, 10),
     oldShares: searchParams.get('oldShares') ?? '',
@@ -126,7 +126,10 @@ export default function StockSplitWizard() {
 
       {step === 'select' && (
         <SplitSelectStep
-          defaultValues={defaultValues}
+          // Stepping back remounts this component, so seed it from what the
+          // user last submitted rather than the pristine URL-derived values —
+          // otherwise Back silently wipes the ratio they just typed.
+          defaultValues={values ?? initialValues}
           lockSecurity={preselectedSecurityId !== ''}
           isPreviewing={previewInFlight || previewMutation.isPending}
           previewError={

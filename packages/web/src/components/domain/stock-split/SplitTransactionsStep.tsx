@@ -96,9 +96,9 @@ export function SplitTransactionsStep({
 
         <div className="flex justify-between">
           <Button variant="outline" onClick={onBack}>
-            {t('common:back')}
+            {t('split.nav.back')}
           </Button>
-          <Button onClick={onNext}>{t('common:next')}</Button>
+          <Button onClick={onNext}>{t('split.nav.next')}</Button>
         </div>
       </CardContent>
     </Card>

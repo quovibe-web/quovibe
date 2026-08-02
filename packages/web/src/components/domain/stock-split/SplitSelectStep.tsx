@@ -159,7 +159,7 @@ export function SplitSelectStep({
 
             <div className="flex justify-end">
               <Button type="submit" disabled={!form.formState.isValid || isPreviewing}>
-                {isPreviewing ? t('split.previewing') : t('common:next')}
+                {isPreviewing ? t('split.previewing') : t('split.nav.next')}
               </Button>
             </div>
           </form>

@@ -433,6 +433,10 @@
         "type": "Typ",
         "details": "Szczegóły"
       }
+    },
+    "nav": {
+      "next": "Dalej",
+      "back": "Wstecz"
     }
   }
 }

@@ -431,6 +431,10 @@
         "type": "Type",
         "details": "Details"
       }
+    },
+    "nav": {
+      "next": "Volgende",
+      "back": "Terug"
     }
   }
 }
