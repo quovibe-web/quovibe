@@ -25,11 +25,25 @@ Maintains a running average cost. BUY increases total cost. SELL does NOT change
 
 ## Stock Split Adjustment
 
-Lots with `date < split.date` are adjusted: `shares *= ratio`, `pricePerShare /= ratio`, `totalCost` unchanged.
+**The engine has no split awareness, by design.** Splits are applied
+destructively at the persistence layer: `applyStockSplit` rewrites
+`xact.shares` and `price.{value,open,high,low}` for every row strictly before
+the ex-date, so cost basis, market value and quotes all follow automatically —
+FIFO and moving-average read `shares` straight from `xact`.
 
-Historical prices are NOT modified — it's the lot costs that are adjusted.
+The `security_event` row a split writes is a **marker only**. It is never read
+back to adjust a calculation: rows imported from a Portfolio Performance XML
+export describe splits PP had already applied destructively before export, so
+a compute-time model would double-apply every one of them.
 
-> Source: `packages/engine/src/cost/split.ts`
+Ratio orientation is `new:old` — a 20-for-1 forward split is `20:1`, a 1-for-25
+reverse split is `1:25`. Shares move with the ratio, quotes against it, both
+rounded half-even on the raw ×10⁸ integer after a division at 10 significant
+digits.
+
+> Sources: `packages/shared/src/split/pp-split.ts` (arithmetic),
+> `packages/api/src/services/stock-split.service.ts` (rewrite).
+> Full contract: `.claude/rules/stock-split.md`. Rationale: ADR-019.
 
 ## TTWROR (True Time-Weighted Rate of Return)
 

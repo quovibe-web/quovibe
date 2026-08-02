@@ -47,6 +47,7 @@ quovibe/
 │   │   │   │   ├── security-event.schema.ts
 │   │   │   │   ├── security-search.schema.ts
 │   │   │   │   ├── settings.schema.ts          # Sidecar quovibe.settings.json shape
+│   │   │   │   ├── stock-split.schema.ts       # Split ratio + apply flags (ADR-019)
 │   │   │   │   ├── taxonomy.schema.ts
 │   │   │   │   ├── transaction.schema.ts       # Per-type invariants (BUG-106/111/112/113)
 │   │   │   │   ├── watchlist.schema.ts
@@ -71,6 +72,9 @@ quovibe/
 │   │   │   ├── xml/                    # Pure PP-XML client-side sniff (BUG-09)
 │   │   │   │   ├── xml-sniff.ts
 │   │   │   │   └── index.ts
+│   │   │   ├── split/                  # Stock split ratio math (ADR-019)
+│   │   │   │   ├── pp-split.ts
+│   │   │   │   └── index.ts
 │   │   │   ├── enums.ts                # TransactionType, CostMethod, AccountType, InstrumentType
 │   │   │   ├── instrument-type.ts
 │   │   │   ├── cashflow.ts             # Cashflow definitions per level (portfolio/account/security)
@@ -87,7 +91,6 @@ quovibe/
 │   │   │   ├── cost/
 │   │   │   │   ├── fifo.ts
 │   │   │   │   ├── moving-average.ts
-│   │   │   │   ├── split.ts
 │   │   │   │   ├── types.ts
 │   │   │   │   └── index.ts
 │   │   │   ├── performance/
@@ -184,6 +187,7 @@ quovibe/
 │   │   │   │   ├── security-search.ts
 │   │   │   │   ├── settings.ts
 │   │   │   │   ├── setup.ts                    # /securities-accounts + /setup (BUG-54)
+│   │   │   │   ├── stock-split.ts              # /split/preview + /split (ADR-019)
 │   │   │   │   ├── taxonomies.ts
 │   │   │   │   ├── taxonomy-write.ts
 │   │   │   │   ├── transactions.ts
@@ -221,6 +225,7 @@ quovibe/
 │   │   │   │   ├── reports.service.ts
 │   │   │   │   ├── securities.service.ts
 │   │   │   │   ├── security-search-import.service.ts
+│   │   │   │   ├── stock-split.service.ts      # Destructive retroactive rewrite (ADR-019)
 │   │   │   │   ├── settings.service.ts
 │   │   │   │   ├── taxonomy.service.ts
 │   │   │   │   ├── taxonomy-performance.service.ts
@@ -288,6 +293,7 @@ quovibe/
 │       │   │   ├── use-securities.ts
 │       │   │   ├── use-securities-accounts.ts
 │       │   │   ├── use-security-events.ts
+│       │   │   ├── use-stock-split.ts
 │       │   │   ├── use-table-layout.ts
 │       │   │   ├── use-taxonomies.ts
 │       │   │   ├── use-taxonomy-mutations.ts
@@ -352,7 +358,12 @@ quovibe/
 │       │   │   │   ├── CalculationBreakdownCard.tsx
 │       │   │   │   ├── CalculationDetail.tsx
 │       │   │   │   ├── CorporateEventDialog.tsx
-│       │   │   │   ├── StockSplitDialog.tsx
+│       │   │   │   ├── SecurityEventsSection.tsx
+│       │   │   │   ├── stock-split/
+│       │   │   │   │   ├── stock-split-form.schema.ts
+│       │   │   │   │   ├── SplitSelectStep.tsx
+│       │   │   │   │   ├── SplitTransactionsStep.tsx
+│       │   │   │   │   └── SplitQuotesStep.tsx
 │       │   │   │   ├── AccountDetailTabs.tsx
 │       │   │   │   ├── AccountSummaryStrip.tsx
 │       │   │   │   ├── BrokerageUnitCard.tsx
@@ -432,6 +443,7 @@ quovibe/
 │       │   │   ├── TaxonomySeries.tsx
 │       │   │   ├── AssetAllocation.tsx
 │       │   │   ├── CsvImportPage.tsx
+│       │   │   ├── StockSplitWizard.tsx        # 3-step split wizard (ADR-019)
 │       │   │   ├── Watchlists.tsx
 │       │   │   ├── PortfolioSettings.tsx       # Per-portfolio settings (split from old Settings)
 │       │   │   └── UserSettings.tsx            # Cross-portfolio user prefs
