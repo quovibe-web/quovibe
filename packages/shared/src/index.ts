@@ -9,3 +9,4 @@ export * from './calendars';
 export * from './reporting-period-resolver';
 export * from './csv';
 export * from './xml';
+export * from './split';
