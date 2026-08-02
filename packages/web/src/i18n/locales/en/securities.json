@@ -124,10 +124,6 @@
     "sell": "SELL",
     "div": "DIV"
   },
-  "stockSplit": {
-    "title": "Stock Split",
-    "description": "Record a stock split event for a security"
-  },
   "corporateEvent": {
     "title": "Corporate Event",
     "description": "Record a corporate event for a security"
@@ -371,5 +367,70 @@
     "deriveResult": "{{written}} prices written, {{skipped}} skipped",
     "deriveSkippedHint": "Skipped trades are missing an exchange rate.",
     "confirmDeleteAll": "Delete all price history for this security? This cannot be undone."
+  },
+  "split": {
+    "title": "Stock Split",
+    "subtitle": "Restate share counts and historical quotes as if the split had always been in effect.",
+    "action": "Stock split…",
+    "previewing": "Loading preview…",
+    "apply": "Apply split",
+    "applying": "Applying…",
+    "applied": "Split applied: {{transactions}} transactions and {{quotes}} quotes restated.",
+    "convertTransactions": "Restate transactions before the ex-date",
+    "convertQuotes": "Restate historical quotes before the ex-date",
+    "noTransactions": "No transactions before the ex-date.",
+    "noQuotes": "No historical quotes before the ex-date.",
+    "destructiveWarning": "This restates {{transactions}} transactions and {{quotes}} historical quotes as if the split had always been in effect. It is not automatically reversible — export a backup of this portfolio first.",
+    "steps": {
+      "select": "Ratio",
+      "transactions": "Transactions",
+      "quotes": "Quotes"
+    },
+    "fields": {
+      "security": "Security",
+      "selectSecurity": "Select a security",
+      "exDate": "Ex-date",
+      "exDateHint": "Transactions and quotes before this date are restated. Rows on the date itself are left alone.",
+      "oldShares": "Old shares",
+      "newShares": "New shares"
+    },
+    "direction": {
+      "forward": "{{oldShares}} → {{newShares}} shares: a forward split (more shares, each worth less)",
+      "reverse": "{{oldShares}} → {{newShares}} shares: a reverse split (fewer shares, each worth more)",
+      "noop": "Both sides are equal — this split would change nothing."
+    },
+    "errors": {
+      "securityRequired": "Select a security.",
+      "invalidDate": "Enter a date as YYYY-MM-DD.",
+      "invalidRatioSide": "Enter a number greater than zero.",
+      "noOpRatio": "The two sides must differ — a 1:1 split changes nothing."
+    },
+    "columns": {
+      "date": "Date",
+      "type": "Type",
+      "account": "Account",
+      "sharesBefore": "Shares before",
+      "sharesAfter": "Shares after",
+      "quoteBefore": "Quote before",
+      "quoteAfter": "Quote after"
+    },
+    "events": {
+      "title": "Corporate events",
+      "empty": "No corporate events recorded for this security.",
+      "typeStockSplit": "Stock split",
+      "forwardLabel": "forward split",
+      "reverseLabel": "reverse split",
+      "undo": "Undo split",
+      "delete": "Delete marker",
+      "deleted": "Event deleted.",
+      "deleteTitle": "Delete this event?",
+      "deleteWarning": "Deleting this marker removes it from the chart only. It does not undo the split — to reverse it, use Undo split, which re-applies the inverse ratio.",
+      "deleteGeneric": "This removes the event from this security.",
+      "columns": {
+        "date": "Date",
+        "type": "Type",
+        "details": "Details"
+      }
+    }
   }
 }

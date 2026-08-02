@@ -124,10 +124,6 @@
     "sell": "SPRZEDAŻ",
     "div": "DYW"
   },
-  "stockSplit": {
-    "title": "Podział akcji",
-    "description": "Zarejestruj podział akcji dla waloru"
-  },
   "corporateEvent": {
     "title": "Zdarzenie korporacyjne",
     "description": "Zarejestruj zdarzenie korporacyjne dla waloru"
@@ -373,5 +369,70 @@
     "deriveResult": "{{written}} kursów zapisanych, {{skipped}} pominiętych",
     "deriveSkippedHint": "Pominięte transakcje nie mają kursu wymiany.",
     "confirmDeleteAll": "Usunąć całą historię kursów dla tego papieru wartościowego? Tej operacji nie można cofnąć."
+  },
+  "split": {
+    "title": "Split akcji",
+    "subtitle": "Przelicza liczbę akcji i notowania historyczne tak, jakby split obowiązywał od zawsze.",
+    "action": "Split akcji…",
+    "previewing": "Wczytywanie podglądu…",
+    "apply": "Zastosuj split",
+    "applying": "Stosowanie…",
+    "applied": "Split zastosowany: przeliczono {{transactions}} transakcji i {{quotes}} notowań.",
+    "convertTransactions": "Przelicz transakcje sprzed dnia ustalenia praw",
+    "convertQuotes": "Przelicz notowania historyczne sprzed dnia ustalenia praw",
+    "noTransactions": "Brak transakcji przed dniem ustalenia praw.",
+    "noQuotes": "Brak notowań historycznych przed dniem ustalenia praw.",
+    "destructiveWarning": "Ta operacja przeliczy {{transactions}} transakcji i {{quotes}} notowań historycznych tak, jakby split obowiązywał od zawsze. Nie da się jej cofnąć automatycznie — najpierw wyeksportuj kopię tego portfela.",
+    "steps": {
+      "select": "Stosunek",
+      "transactions": "Transakcje",
+      "quotes": "Notowania"
+    },
+    "fields": {
+      "security": "Instrument",
+      "selectSecurity": "Wybierz instrument",
+      "exDate": "Dzień ustalenia praw",
+      "exDateHint": "Przeliczane są transakcje i notowania sprzed tej daty. Pozycje z tego dnia pozostają bez zmian.",
+      "oldShares": "Akcje przed",
+      "newShares": "Akcje po"
+    },
+    "direction": {
+      "forward": "{{oldShares}} → {{newShares}} akcji: split (więcej akcji, każda warta mniej)",
+      "reverse": "{{oldShares}} → {{newShares}} akcji: resplit (mniej akcji, każda warta więcej)",
+      "noop": "Obie wartości są równe — ten split niczego by nie zmienił."
+    },
+    "errors": {
+      "securityRequired": "Wybierz instrument.",
+      "invalidDate": "Podaj datę w formacie RRRR-MM-DD.",
+      "invalidRatioSide": "Podaj liczbę większą od zera.",
+      "noOpRatio": "Obie wartości muszą się różnić — stosunek 1:1 niczego nie zmienia."
+    },
+    "columns": {
+      "date": "Data",
+      "type": "Typ",
+      "account": "Konto",
+      "sharesBefore": "Akcje przed",
+      "sharesAfter": "Akcje po",
+      "quoteBefore": "Notowanie przed",
+      "quoteAfter": "Notowanie po"
+    },
+    "events": {
+      "title": "Zdarzenia korporacyjne",
+      "empty": "Brak zapisanych zdarzeń korporacyjnych dla tego instrumentu.",
+      "typeStockSplit": "Split akcji",
+      "forwardLabel": "split",
+      "reverseLabel": "resplit",
+      "undo": "Cofnij split",
+      "delete": "Usuń znacznik",
+      "deleted": "Zdarzenie usunięte.",
+      "deleteTitle": "Usunąć to zdarzenie?",
+      "deleteWarning": "Usunięcie znacznika kasuje go tylko z wykresu. Nie cofa splitu — aby go odwrócić, użyj opcji Cofnij split, która zastosuje odwrotny stosunek.",
+      "deleteGeneric": "Zdarzenie zostanie usunięte z tego instrumentu.",
+      "columns": {
+        "date": "Data",
+        "type": "Typ",
+        "details": "Szczegóły"
+      }
+    }
   }
 }

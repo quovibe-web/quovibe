@@ -124,10 +124,6 @@
     "sell": "VENTA",
     "div": "DIV"
   },
-  "stockSplit": {
-    "title": "División de acciones",
-    "description": "Registrar un desdoblamiento de acciones para un valor"
-  },
   "corporateEvent": {
     "title": "Evento corporativo",
     "description": "Registrar un evento corporativo para un valor"
@@ -371,5 +367,70 @@
     "deriveResult": "{{written}} precios escritos, {{skipped}} omitidos",
     "deriveSkippedHint": "Las operaciones omitidas no tienen tipo de cambio.",
     "confirmDeleteAll": "¿Eliminar todo el historial de precios de este valor? Esta acción no se puede deshacer."
+  },
+  "split": {
+    "title": "División de acciones",
+    "subtitle": "Recalcula las cantidades y las cotizaciones históricas como si la división siempre hubiera estado vigente.",
+    "action": "División de acciones…",
+    "previewing": "Cargando vista previa…",
+    "apply": "Aplicar división",
+    "applying": "Aplicando…",
+    "applied": "División aplicada: {{transactions}} transacciones y {{quotes}} cotizaciones recalculadas.",
+    "convertTransactions": "Recalcular las transacciones anteriores a la fecha ex",
+    "convertQuotes": "Recalcular las cotizaciones históricas anteriores a la fecha ex",
+    "noTransactions": "No hay transacciones anteriores a la fecha ex.",
+    "noQuotes": "No hay cotizaciones históricas anteriores a la fecha ex.",
+    "destructiveWarning": "Esto recalcula {{transactions}} transacciones y {{quotes}} cotizaciones históricas como si la división siempre hubiera estado vigente. No es reversible automáticamente: exporta antes una copia de seguridad de esta cartera.",
+    "steps": {
+      "select": "Ratio",
+      "transactions": "Transacciones",
+      "quotes": "Cotizaciones"
+    },
+    "fields": {
+      "security": "Valor",
+      "selectSecurity": "Selecciona un valor",
+      "exDate": "Fecha ex",
+      "exDateHint": "Se recalculan las transacciones y cotizaciones anteriores a esta fecha. Las filas de esa misma fecha no se tocan.",
+      "oldShares": "Acciones antes",
+      "newShares": "Acciones después"
+    },
+    "direction": {
+      "forward": "{{oldShares}} → {{newShares}} acciones: división directa (más acciones, cada una vale menos)",
+      "reverse": "{{oldShares}} → {{newShares}} acciones: contrasplit (menos acciones, cada una vale más)",
+      "noop": "Ambos valores son iguales: esta división no cambiaría nada."
+    },
+    "errors": {
+      "securityRequired": "Selecciona un valor.",
+      "invalidDate": "Introduce una fecha con el formato AAAA-MM-DD.",
+      "invalidRatioSide": "Introduce un número mayor que cero.",
+      "noOpRatio": "Los dos valores deben ser distintos: un ratio 1:1 no cambia nada."
+    },
+    "columns": {
+      "date": "Fecha",
+      "type": "Tipo",
+      "account": "Cuenta",
+      "sharesBefore": "Acciones antes",
+      "sharesAfter": "Acciones después",
+      "quoteBefore": "Cotización antes",
+      "quoteAfter": "Cotización después"
+    },
+    "events": {
+      "title": "Eventos corporativos",
+      "empty": "No hay eventos corporativos registrados para este valor.",
+      "typeStockSplit": "División de acciones",
+      "forwardLabel": "división directa",
+      "reverseLabel": "contrasplit",
+      "undo": "Deshacer división",
+      "delete": "Eliminar marcador",
+      "deleted": "Evento eliminado.",
+      "deleteTitle": "¿Eliminar este evento?",
+      "deleteWarning": "Eliminar este marcador solo lo quita del gráfico. No deshace la división: para revertirla usa Deshacer división, que aplica el ratio inverso.",
+      "deleteGeneric": "El evento se eliminará de este valor.",
+      "columns": {
+        "date": "Fecha",
+        "type": "Tipo",
+        "details": "Detalles"
+      }
+    }
   }
 }

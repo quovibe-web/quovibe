@@ -124,10 +124,6 @@
     "sell": "VENDITA",
     "div": "DIV"
   },
-  "stockSplit": {
-    "title": "Frazionamento Azionario",
-    "description": "Registra un frazionamento azionario per un titolo"
-  },
   "corporateEvent": {
     "title": "Evento Societario",
     "description": "Registra un evento societario per un titolo"
@@ -371,5 +367,70 @@
     "deriveResult": "{{written}} prezzi scritti, {{skipped}} saltati",
     "deriveSkippedHint": "Le transazioni saltate mancano di un tasso di cambio.",
     "confirmDeleteAll": "Eliminare tutto lo storico prezzi per questo titolo? Questa operazione non può essere annullata."
+  },
+  "split": {
+    "title": "Frazionamento azionario",
+    "subtitle": "Ricalcola quantità e quotazioni storiche come se il frazionamento fosse sempre stato in vigore.",
+    "action": "Frazionamento…",
+    "previewing": "Caricamento anteprima…",
+    "apply": "Applica frazionamento",
+    "applying": "Applicazione…",
+    "applied": "Frazionamento applicato: {{transactions}} transazioni e {{quotes}} quotazioni ricalcolate.",
+    "convertTransactions": "Ricalcola le transazioni precedenti alla data di stacco",
+    "convertQuotes": "Ricalcola le quotazioni storiche precedenti alla data di stacco",
+    "noTransactions": "Nessuna transazione prima della data di stacco.",
+    "noQuotes": "Nessuna quotazione storica prima della data di stacco.",
+    "destructiveWarning": "Verranno ricalcolate {{transactions}} transazioni e {{quotes}} quotazioni storiche come se il frazionamento fosse sempre stato in vigore. L'operazione non è reversibile automaticamente: esporta prima una copia di questo portafoglio.",
+    "steps": {
+      "select": "Rapporto",
+      "transactions": "Transazioni",
+      "quotes": "Quotazioni"
+    },
+    "fields": {
+      "security": "Titolo",
+      "selectSecurity": "Seleziona un titolo",
+      "exDate": "Data di stacco",
+      "exDateHint": "Vengono ricalcolate transazioni e quotazioni precedenti a questa data. Le righe con questa data restano invariate.",
+      "oldShares": "Azioni prima",
+      "newShares": "Azioni dopo"
+    },
+    "direction": {
+      "forward": "{{oldShares}} → {{newShares}} azioni: frazionamento diretto (più azioni, ciascuna di valore minore)",
+      "reverse": "{{oldShares}} → {{newShares}} azioni: raggruppamento (meno azioni, ciascuna di valore maggiore)",
+      "noop": "I due valori sono uguali: questo frazionamento non cambierebbe nulla."
+    },
+    "errors": {
+      "securityRequired": "Seleziona un titolo.",
+      "invalidDate": "Inserisci una data nel formato AAAA-MM-GG.",
+      "invalidRatioSide": "Inserisci un numero maggiore di zero.",
+      "noOpRatio": "I due valori devono essere diversi: un rapporto 1:1 non cambia nulla."
+    },
+    "columns": {
+      "date": "Data",
+      "type": "Tipo",
+      "account": "Conto",
+      "sharesBefore": "Azioni prima",
+      "sharesAfter": "Azioni dopo",
+      "quoteBefore": "Quotazione prima",
+      "quoteAfter": "Quotazione dopo"
+    },
+    "events": {
+      "title": "Eventi societari",
+      "empty": "Nessun evento societario registrato per questo titolo.",
+      "typeStockSplit": "Frazionamento azionario",
+      "forwardLabel": "frazionamento diretto",
+      "reverseLabel": "raggruppamento",
+      "undo": "Annulla frazionamento",
+      "delete": "Elimina marcatore",
+      "deleted": "Evento eliminato.",
+      "deleteTitle": "Eliminare questo evento?",
+      "deleteWarning": "Eliminando il marcatore lo rimuovi solo dal grafico. Non annulla il frazionamento: per invertirlo usa Annulla frazionamento, che applica il rapporto inverso.",
+      "deleteGeneric": "L'evento verrà rimosso da questo titolo.",
+      "columns": {
+        "date": "Data",
+        "type": "Tipo",
+        "details": "Dettagli"
+      }
+    }
   }
 }

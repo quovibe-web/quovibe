@@ -124,10 +124,6 @@
     "sell": "VERKOOP",
     "div": "DIV"
   },
-  "stockSplit": {
-    "title": "Aandelensplitsing",
-    "description": "Een aandelensplitsing vastleggen voor een effect"
-  },
   "corporateEvent": {
     "title": "Bedrijfsgebeurtenis",
     "description": "Een bedrijfsgebeurtenis vastleggen voor een effect"
@@ -371,5 +367,70 @@
     "deriveResult": "{{written}} koersen geschreven, {{skipped}} overgeslagen",
     "deriveSkippedHint": "Overgeslagen transacties hebben geen wisselkoers.",
     "confirmDeleteAll": "De volledige koersgeschiedenis voor dit effect verwijderen? Dit kan niet ongedaan worden gemaakt."
+  },
+  "split": {
+    "title": "Aandelensplitsing",
+    "subtitle": "Herrekent aantallen en historische koersen alsof de splitsing altijd al van kracht was.",
+    "action": "Aandelensplitsing…",
+    "previewing": "Voorbeeld laden…",
+    "apply": "Splitsing toepassen",
+    "applying": "Bezig met toepassen…",
+    "applied": "Splitsing toegepast: {{transactions}} transacties en {{quotes}} koersen herrekend.",
+    "convertTransactions": "Transacties vóór de ex-datum herrekenen",
+    "convertQuotes": "Historische koersen vóór de ex-datum herrekenen",
+    "noTransactions": "Geen transacties vóór de ex-datum.",
+    "noQuotes": "Geen historische koersen vóór de ex-datum.",
+    "destructiveWarning": "Hiermee worden {{transactions}} transacties en {{quotes}} historische koersen herrekend alsof de splitsing altijd al van kracht was. Dit is niet automatisch terug te draaien — exporteer eerst een back-up van deze portefeuille.",
+    "steps": {
+      "select": "Verhouding",
+      "transactions": "Transacties",
+      "quotes": "Koersen"
+    },
+    "fields": {
+      "security": "Effect",
+      "selectSecurity": "Kies een effect",
+      "exDate": "Ex-datum",
+      "exDateHint": "Transacties en koersen vóór deze datum worden herrekend. Regels op de datum zelf blijven ongewijzigd.",
+      "oldShares": "Aandelen vóór",
+      "newShares": "Aandelen na"
+    },
+    "direction": {
+      "forward": "{{oldShares}} → {{newShares}} aandelen: splitsing (meer aandelen, elk minder waard)",
+      "reverse": "{{oldShares}} → {{newShares}} aandelen: omgekeerde splitsing (minder aandelen, elk meer waard)",
+      "noop": "Beide waarden zijn gelijk — deze splitsing zou niets veranderen."
+    },
+    "errors": {
+      "securityRequired": "Kies een effect.",
+      "invalidDate": "Voer een datum in als JJJJ-MM-DD.",
+      "invalidRatioSide": "Voer een getal groter dan nul in.",
+      "noOpRatio": "De twee waarden moeten verschillen — een verhouding van 1:1 verandert niets."
+    },
+    "columns": {
+      "date": "Datum",
+      "type": "Type",
+      "account": "Rekening",
+      "sharesBefore": "Aandelen vóór",
+      "sharesAfter": "Aandelen na",
+      "quoteBefore": "Koers vóór",
+      "quoteAfter": "Koers na"
+    },
+    "events": {
+      "title": "Corporate actions",
+      "empty": "Voor dit effect zijn geen corporate actions vastgelegd.",
+      "typeStockSplit": "Aandelensplitsing",
+      "forwardLabel": "splitsing",
+      "reverseLabel": "omgekeerde splitsing",
+      "undo": "Splitsing ongedaan maken",
+      "delete": "Markering verwijderen",
+      "deleted": "Gebeurtenis verwijderd.",
+      "deleteTitle": "Deze gebeurtenis verwijderen?",
+      "deleteWarning": "Het verwijderen haalt alleen de markering uit de grafiek. De splitsing wordt hiermee niet ongedaan gemaakt — gebruik daarvoor Splitsing ongedaan maken, dat de omgekeerde verhouding toepast.",
+      "deleteGeneric": "De gebeurtenis wordt van dit effect verwijderd.",
+      "columns": {
+        "date": "Datum",
+        "type": "Type",
+        "details": "Details"
+      }
+    }
   }
 }

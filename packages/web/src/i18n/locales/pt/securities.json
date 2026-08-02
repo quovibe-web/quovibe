@@ -124,10 +124,6 @@
     "sell": "VENDA",
     "div": "DIV"
   },
-  "stockSplit": {
-    "title": "Desdobramento de ações",
-    "description": "Registar um desdobramento de ações para um título"
-  },
   "corporateEvent": {
     "title": "Evento corporativo",
     "description": "Registar um evento corporativo para um título"
@@ -371,5 +367,70 @@
     "deriveResult": "{{written}} preços escritos, {{skipped}} ignorados",
     "deriveSkippedHint": "As transações ignoradas não têm taxa de câmbio.",
     "confirmDeleteAll": "Eliminar todo o histórico de preços para este título? Esta ação não pode ser desfeita."
+  },
+  "split": {
+    "title": "Desdobramento de ações",
+    "subtitle": "Recalcula as quantidades e as cotações históricas como se o desdobramento tivesse sempre vigorado.",
+    "action": "Desdobramento…",
+    "previewing": "A carregar pré-visualização…",
+    "apply": "Aplicar desdobramento",
+    "applying": "A aplicar…",
+    "applied": "Desdobramento aplicado: {{transactions}} transações e {{quotes}} cotações recalculadas.",
+    "convertTransactions": "Recalcular as transações anteriores à data ex",
+    "convertQuotes": "Recalcular as cotações históricas anteriores à data ex",
+    "noTransactions": "Sem transações anteriores à data ex.",
+    "noQuotes": "Sem cotações históricas anteriores à data ex.",
+    "destructiveWarning": "Isto recalcula {{transactions}} transações e {{quotes}} cotações históricas como se o desdobramento tivesse sempre vigorado. Não é reversível automaticamente — exporte primeiro uma cópia de segurança desta carteira.",
+    "steps": {
+      "select": "Rácio",
+      "transactions": "Transações",
+      "quotes": "Cotações"
+    },
+    "fields": {
+      "security": "Título",
+      "selectSecurity": "Selecione um título",
+      "exDate": "Data ex",
+      "exDateHint": "São recalculadas as transações e cotações anteriores a esta data. As linhas com esta data ficam inalteradas.",
+      "oldShares": "Ações antes",
+      "newShares": "Ações depois"
+    },
+    "direction": {
+      "forward": "{{oldShares}} → {{newShares}} ações: desdobramento (mais ações, cada uma vale menos)",
+      "reverse": "{{oldShares}} → {{newShares}} ações: agrupamento (menos ações, cada uma vale mais)",
+      "noop": "Os dois valores são iguais — este desdobramento não alteraria nada."
+    },
+    "errors": {
+      "securityRequired": "Selecione um título.",
+      "invalidDate": "Introduza uma data no formato AAAA-MM-DD.",
+      "invalidRatioSide": "Introduza um número maior do que zero.",
+      "noOpRatio": "Os dois valores têm de ser diferentes — um rácio 1:1 não altera nada."
+    },
+    "columns": {
+      "date": "Data",
+      "type": "Tipo",
+      "account": "Conta",
+      "sharesBefore": "Ações antes",
+      "sharesAfter": "Ações depois",
+      "quoteBefore": "Cotação antes",
+      "quoteAfter": "Cotação depois"
+    },
+    "events": {
+      "title": "Eventos societários",
+      "empty": "Sem eventos societários registados para este título.",
+      "typeStockSplit": "Desdobramento de ações",
+      "forwardLabel": "desdobramento",
+      "reverseLabel": "agrupamento",
+      "undo": "Anular desdobramento",
+      "delete": "Eliminar marcador",
+      "deleted": "Evento eliminado.",
+      "deleteTitle": "Eliminar este evento?",
+      "deleteWarning": "Eliminar este marcador remove-o apenas do gráfico. Não anula o desdobramento — para o inverter use Anular desdobramento, que aplica o rácio inverso.",
+      "deleteGeneric": "O evento será removido deste título.",
+      "columns": {
+        "date": "Data",
+        "type": "Tipo",
+        "details": "Detalhes"
+      }
+    }
   }
 }
