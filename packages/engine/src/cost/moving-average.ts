@@ -1,6 +1,5 @@
 import Decimal from 'decimal.js';
 import { CostTransaction } from './types';
-import { SplitEvent } from './split';
 import { getRateFromMap, type RateMap } from '../fx/rate-map';
 
 /**
@@ -71,18 +70,13 @@ export interface MovingAverageOptions {
 export function computeMovingAverage(
   transactions: CostTransaction[],
   currentPrice?: Decimal,
-  splitEvents?: SplitEvent[],
   opts?: MovingAverageOptions,
 ): MovingAverageResult {
   const sorted = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
-  const pendingSplits = splitEvents
-    ? [...splitEvents].sort((a, b) => a.date.localeCompare(b.date))
-    : [];
 
   let totalShares = new Decimal(0);
   let totalCost = new Decimal(0);
   let realizedGain = new Decimal(0);
-  let appliedSplitIdx = 0;
   const rateMap = opts?.rateMap;
   let weightedRateNumerator = new Decimal(0);
   let trackedRateShares = new Decimal(0);
@@ -91,18 +85,6 @@ export function computeMovingAverage(
   const realizedSellSlices: MovingAverageRealizedSlice[] | undefined = rateMap ? [] : undefined;
 
   for (const tx of sorted) {
-    // Apply any split events that occur before or on this transaction's date
-    while (
-      appliedSplitIdx < pendingSplits.length &&
-      pendingSplits[appliedSplitIdx].date <= tx.date
-    ) {
-      const ratio = pendingSplits[appliedSplitIdx].ratio;
-      totalShares = totalShares.mul(ratio);
-      trackedRateShares = trackedRateShares.mul(ratio);
-      // totalCost is invariant; avgPrice adjusts implicitly
-      appliedSplitIdx++;
-    }
-
     if (tx.type === 'BUY' || tx.type === 'DELIVERY_INBOUND' || tx.type === 'SECURITY_TRANSFER_INBOUND') {
       if (tx.shares.lte(0)) {
         throw new Error(`${tx.type} transaction must have positive shares (got ${tx.shares})`);

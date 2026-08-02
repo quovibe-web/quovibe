@@ -2,12 +2,10 @@
 import { describe, test, expect, it } from 'vitest';
 import Decimal from 'decimal.js';
 import { computeFIFO } from '../fifo';
-import { applySplitAdjustment } from '../split';
-import type { CostTransaction, Lot } from '../types';
-import type { SplitEvent } from '../split';
+import type { CostTransaction } from '../types';
 import type { RateMap } from '../../fx/rate-map';
 
-// FIFO edge cases: zero shares, negative shares, and split ratio guards.
+// FIFO edge cases: zero shares and negative shares.
 
 describe('computeFIFO — edge cases: zero / negative shares', () => {
   test('BUY with zero shares throws descriptive error', () => {
@@ -82,40 +80,6 @@ describe('computeFIFO — edge cases: zero / negative shares', () => {
   });
 });
 
-describe('applySplitAdjustment — edge cases: zero / negative ratio', () => {
-  test('split ratio of zero throws descriptive error', () => {
-    const lots: Lot[] = [
-      {
-        date: '2024-01-05',
-        shares: new Decimal('10'),
-        pricePerShare: new Decimal('100'),
-        totalCost: new Decimal('1000'),
-      },
-    ];
-    const events: SplitEvent[] = [
-      { date: '2024-06-01', ratio: new Decimal(0), securityId: 'sec-1' },
-    ];
-
-    expect(() => applySplitAdjustment(lots, events)).toThrow(/Split ratio must be positive/);
-  });
-
-  test('negative split ratio throws descriptive error', () => {
-    const lots: Lot[] = [
-      {
-        date: '2024-01-05',
-        shares: new Decimal('10'),
-        pricePerShare: new Decimal('100'),
-        totalCost: new Decimal('1000'),
-      },
-    ];
-    const events: SplitEvent[] = [
-      { date: '2024-06-01', ratio: new Decimal('-2'), securityId: 'sec-1' },
-    ];
-
-    expect(() => applySplitAdjustment(lots, events)).toThrow(/Split ratio must be positive/);
-  });
-});
-
 describe('computeFIFO with rateMap (Phase 3)', () => {
   it('lots carry acquisitionRate + costInBase when rateMap supplied', () => {
     const rateMap: RateMap = new Map([
@@ -126,7 +90,7 @@ describe('computeFIFO with rateMap (Phase 3)', () => {
       { type: 'BUY', date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
       { type: 'BUY', date: '2026-05-08', shares: new Decimal(5), grossAmount: new Decimal(525), fees: new Decimal(0) },
     ];
-    const result = computeFIFO(txs, undefined, undefined, { rateMap });
+    const result = computeFIFO(txs, undefined, { rateMap });
     expect(result.remainingLots).toHaveLength(2);
     expect(result.remainingLots[0].acquisitionRate?.toString()).toBe('0.86');
     expect(result.remainingLots[0].costInBase?.toString()).toBe('860');
@@ -145,7 +109,7 @@ describe('computeFIFO with rateMap (Phase 3)', () => {
       { type: 'BUY',  date: '2026-05-08', shares: new Decimal(5),  grossAmount: new Decimal(525),  fees: new Decimal(0) },
       { type: 'SELL', date: '2026-05-15', shares: new Decimal(12), grossAmount: new Decimal(1320), fees: new Decimal(0) },
     ];
-    const result = computeFIFO(txs, undefined, undefined, { rateMap });
+    const result = computeFIFO(txs, undefined, { rateMap });
     expect(result.consumedSlices).toHaveLength(2);
     expect(result.consumedSlices![0].shares.toString()).toBe('10');
     expect(result.consumedSlices![0].lotAcquisitionRate?.toString()).toBe('0.86');
@@ -158,7 +122,7 @@ describe('computeFIFO with rateMap (Phase 3)', () => {
     const txs: CostTransaction[] = [
       { type: 'BUY', date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
     ];
-    const result = computeFIFO(txs, undefined, undefined, { rateMap });
+    const result = computeFIFO(txs, undefined, { rateMap });
     expect(result.remainingLots[0].acquisitionRate).toBeUndefined();
     expect(result.remainingLots[0].costInBase).toBeUndefined();
   });
@@ -178,7 +142,7 @@ describe('computeFIFO with rateMap (Phase 3)', () => {
       { type: 'BUY', date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
       { type: 'BUY', date: '2026-05-15', shares: new Decimal(5),  grossAmount: new Decimal(550),  fees: new Decimal(0) }, // no rate
     ];
-    const result = computeFIFO(txs, undefined, undefined, { rateMap });
+    const result = computeFIFO(txs, undefined, { rateMap });
     expect(result.unresolvedBuyDates).toEqual(['2026-05-15']);
     expect(result.remainingLots[0].acquisitionRate?.toString()).toBe('0.86');
     expect(result.remainingLots[1].acquisitionRate).toBeUndefined();
@@ -197,7 +161,7 @@ describe('computeFIFO with rateMap (Phase 3)', () => {
     const txs: CostTransaction[] = [
       { type: 'BUY', date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
     ];
-    const result = computeFIFO(txs, undefined, undefined, { rateMap });
+    const result = computeFIFO(txs, undefined, { rateMap });
     expect(result.unresolvedBuyDates).toEqual([]);
   });
 });

@@ -107,6 +107,15 @@ GET    /api/securities/:id/events        → list events for a security
 POST   /api/securities/:id/events        → create event (stock split, note)
 DELETE /api/securities/:id/events/:eventId → delete event
 
+# ─── Stock Split ──────────────────────────────────
+POST /api/securities/:id/split/preview    → preview affected transactions + quotes
+POST /api/securities/:id/split            → apply the split (destructive, retroactive)
+    body: { exDate, newShares, oldShares, changeTransactions?, changeHistoricalQuotes? }
+    errors: 400 INVALID_INPUT | 400 INVALID_SPLIT_RATIO | 404 SECURITY_NOT_FOUND
+            409 DUPLICATE_SPLIT | 409 SPLIT_DEDUPE_CONFLICT
+    Ratio is new:old (20-for-1 forward = 20:1; 1-for-25 reverse = 1:25).
+    Undo has no endpoint by design — see ADR-019.
+
 # ─── Attribute Types ──────────────────────────────
 GET  /api/attribute-types               → list all attribute types
 

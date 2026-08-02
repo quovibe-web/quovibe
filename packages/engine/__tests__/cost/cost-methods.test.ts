@@ -3,7 +3,6 @@ import Decimal from 'decimal.js';
 import { computeFIFO } from '../../src/cost/fifo';
 import { computeMovingAverage } from '../../src/cost/moving-average';
 import { CostTransaction } from '../../src/cost/types';
-import { SplitEvent } from '../../src/cost/split';
 
 function d(n: number): Decimal {
   return new Decimal(n);
@@ -79,36 +78,3 @@ describe('Total gain invariant', () => {
   });
 });
 
-describe('FIFO split', () => {
-  it('BUY 100@50, split 2:1, SELL 50@30 -> realizedGain = 250', () => {
-    const txs: CostTransaction[] = [
-      { type: 'BUY', date: '2024-01-01', shares: d(100), grossAmount: d(5000), fees: d(0) },
-      { type: 'SELL', date: '2024-07-01', shares: d(50), grossAmount: d(1500), fees: d(0) },
-    ];
-    const splits: SplitEvent[] = [
-      { date: '2024-04-01', ratio: d(2), securityId: 'SEC1' },
-    ];
-    const result = computeFIFO(txs, undefined, splits);
-    // After split: lot is 200 shares @ 25. Sell 50 @ 30 = 1500, cost = 50*25 = 1250, gain = 250
-    expect(result.realizedGain.toNumber()).toBe(250);
-    expect(result.remainingLots[0].shares.toNumber()).toBe(150);
-    expect(result.remainingLots[0].pricePerShare.toNumber()).toBe(25);
-  });
-});
-
-describe('Moving Average split', () => {
-  it('BUY 100@50, split 2:1, SELL 50@30 -> realizedGain = 250', () => {
-    const txs: CostTransaction[] = [
-      { type: 'BUY', date: '2024-01-01', shares: d(100), grossAmount: d(5000), fees: d(0) },
-      { type: 'SELL', date: '2024-07-01', shares: d(50), grossAmount: d(1500), fees: d(0) },
-    ];
-    const splits: SplitEvent[] = [
-      { date: '2024-04-01', ratio: d(2), securityId: 'SEC1' },
-    ];
-    const result = computeMovingAverage(txs, undefined, splits);
-    // After split: 200 shares, totalCost=5000, avg=25. Sell 50@30 gain = 50*(30-25) = 250
-    expect(result.realizedGain.toNumber()).toBe(250);
-    expect(result.totalShares.toNumber()).toBe(150);
-    expect(result.averagePurchasePrice.toNumber()).toBe(25);
-  });
-});

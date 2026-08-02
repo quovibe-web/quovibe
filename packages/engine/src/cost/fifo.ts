@@ -1,6 +1,5 @@
 import Decimal from 'decimal.js';
 import { CostTransaction, Lot, ConsumedLotSlice } from './types';
-import { SplitEvent, applySplitAdjustment } from './split';
 import { getRateFromMap, type RateMap } from '../fx/rate-map';
 
 export interface FIFOResult {
@@ -29,31 +28,17 @@ export interface FIFOOptions {
 export function computeFIFO(
   transactions: CostTransaction[],
   currentPrice?: Decimal,
-  splitEvents?: SplitEvent[],
   opts?: FIFOOptions,
 ): FIFOResult {
   const sorted = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
-  const pendingSplits = splitEvents
-    ? [...splitEvents].sort((a, b) => a.date.localeCompare(b.date))
-    : [];
 
   const lots: Lot[] = [];
   let realizedGain = new Decimal(0);
-  let appliedSplitIdx = 0;
   const rateMap = opts?.rateMap;
   const consumedSlices: ConsumedLotSlice[] | undefined = rateMap ? [] : undefined;
   const unresolvedBuyDates: string[] | undefined = rateMap ? [] : undefined;
 
   for (const tx of sorted) {
-    // Apply any split events that occur before or on this transaction's date
-    while (
-      appliedSplitIdx < pendingSplits.length &&
-      pendingSplits[appliedSplitIdx].date <= tx.date
-    ) {
-      applySplitAdjustment(lots, [pendingSplits[appliedSplitIdx]]);
-      appliedSplitIdx++;
-    }
-
     if (tx.type === 'BUY' || tx.type === 'DELIVERY_INBOUND' || tx.type === 'SECURITY_TRANSFER_INBOUND') {
       if (tx.shares.lte(0)) {
         throw new Error(`${tx.type} transaction must have positive shares (got ${tx.shares})`);
@@ -105,12 +90,6 @@ export function computeFIFO(
         }
       }
     }
-  }
-
-  // Apply any remaining splits (after all transactions)
-  while (appliedSplitIdx < pendingSplits.length) {
-    applySplitAdjustment(lots, [pendingSplits[appliedSplitIdx]]);
-    appliedSplitIdx++;
   }
 
   const purchaseValue = lots.reduce((sum, lot) => sum.plus(lot.totalCost), new Decimal(0));

@@ -124,10 +124,6 @@
     "sell": "VERKAUF",
     "div": "DIV"
   },
-  "stockSplit": {
-    "title": "Aktiensplit",
-    "description": "Einen Aktiensplit für ein Wertpapier erfassen"
-  },
   "corporateEvent": {
     "title": "Unternehmensereignis",
     "description": "Ein Unternehmensereignis für ein Wertpapier erfassen"
@@ -371,5 +367,78 @@
     "deriveResult": "{{written}} Kurse geschrieben, {{skipped}} übersprungen",
     "deriveSkippedHint": "Übersprungene Transaktionen haben keinen Wechselkurs.",
     "confirmDeleteAll": "Den gesamten Kursverlauf für dieses Wertpapier löschen? Dies kann nicht rückgängig gemacht werden."
+  },
+  "split": {
+    "title": "Aktiensplit",
+    "subtitle": "Stückzahlen und historische Kurse werden so umgerechnet, als hätte der Split schon immer gegolten.",
+    "action": "Aktiensplit…",
+    "previewing": "Vorschau wird geladen…",
+    "apply": "Split anwenden",
+    "applying": "Wird angewendet…",
+    "applied": "Split angewendet: {{transactions}} Buchungen und {{quotes}} Kurse umgerechnet.",
+    "convertTransactions": "Buchungen vor dem Stichtag umrechnen",
+    "convertQuotes": "Historische Kurse vor dem Stichtag umrechnen",
+    "noTransactions": "Keine Buchungen vor dem Stichtag.",
+    "noQuotes": "Keine historischen Kurse vor dem Stichtag.",
+    "destructiveWarning": "Dabei werden {{transactions}} Buchungen und {{quotes}} historische Kurse so umgerechnet, als hätte der Split schon immer gegolten. Das lässt sich nicht automatisch rückgängig machen — exportiere zuerst eine Sicherung dieses Portfolios.",
+    "steps": {
+      "select": "Verhältnis",
+      "transactions": "Buchungen",
+      "quotes": "Kurse"
+    },
+    "fields": {
+      "security": "Wertpapier",
+      "selectSecurity": "Wertpapier auswählen",
+      "exDate": "Stichtag",
+      "exDateHint": "Buchungen und Kurse vor diesem Datum werden umgerechnet. Einträge am Stichtag selbst bleiben unverändert.",
+      "oldShares": "Anteile vorher",
+      "newShares": "Anteile nachher"
+    },
+    "direction": {
+      "forward": "{{oldShares}} → {{newShares}} Anteile: Split (mehr Anteile, jeder weniger wert)",
+      "reverse": "{{oldShares}} → {{newShares}} Anteile: Reverse-Split (weniger Anteile, jeder mehr wert)",
+      "noop": "Beide Seiten sind gleich — dieser Split würde nichts verändern."
+    },
+    "errors": {
+      "securityRequired": "Wähle ein Wertpapier aus.",
+      "invalidDate": "Gib ein Datum im Format JJJJ-MM-TT ein.",
+      "invalidRatioSide": "Gib eine Zahl größer als null ein.",
+      "noOpRatio": "Die beiden Seiten müssen sich unterscheiden — ein Verhältnis von 1:1 ändert nichts."
+    },
+    "columns": {
+      "date": "Datum",
+      "type": "Typ",
+      "account": "Konto",
+      "sharesBefore": "Anteile vorher",
+      "sharesAfter": "Anteile nachher",
+      "quoteBefore": "Kurs vorher",
+      "quoteAfter": "Kurs nachher"
+    },
+    "events": {
+      "title": "Kapitalmaßnahmen",
+      "empty": "Für dieses Wertpapier sind keine Kapitalmaßnahmen erfasst.",
+      "typeStockSplit": "Aktiensplit",
+      "forwardLabel": "Split",
+      "reverseLabel": "Reverse-Split",
+      "undo": "Split rückgängig machen",
+      "delete": "Markierung löschen",
+      "deleted": "Ereignis gelöscht.",
+      "deleteTitle": "Dieses Ereignis löschen?",
+      "deleteWarning": "Das Löschen entfernt nur die Markierung aus dem Chart. Der Split wird dadurch nicht rückgängig gemacht — nutze dafür „Split rückgängig machen“, das das umgekehrte Verhältnis anwendet.",
+      "deleteGeneric": "Das Ereignis wird von diesem Wertpapier entfernt.",
+      "columns": {
+        "date": "Datum",
+        "type": "Typ",
+        "details": "Details"
+      }
+    },
+    "nav": {
+      "next": "Weiter",
+      "back": "Zurück"
+    },
+    "warnings": {
+      "FUTURE_EX_DATE": "Der Stichtag liegt in der Zukunft. Alles davor Erfasste wird jetzt umgerechnet.",
+      "NO_ROWS_AFFECTED": "Vor dem Stichtag ändert sich nichts. Es wird nur die Ereignis-Markierung erfasst."
+    }
   }
 }

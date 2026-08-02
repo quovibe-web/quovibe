@@ -16,6 +16,7 @@ import { rebalancingRouter } from './routes/rebalancing';
 import { pricesRouter } from './routes/prices';
 import { debugRouter } from './routes/debug';
 import { securityEventsRouter } from './routes/security-events';
+import { stockSplitRouter } from './routes/stock-split';
 import { calendarsRouter } from './routes/calendars';
 import { attributeTypesRouter } from './routes/attribute-types';
 import { taxonomyWriteRouter } from './routes/taxonomy-write';
@@ -74,6 +75,7 @@ export function createApp(): Express {
   app.use('/api/p/:portfolioId/taxonomies', taxonomyWriteRouter);
   app.use('/api/p/:portfolioId/prices', pricesRouter);
   app.use('/api/p/:portfolioId/securities/:securityId/events', securityEventsRouter);
+  app.use('/api/p/:portfolioId/securities/:securityId/split', stockSplitRouter);
   app.use('/api/p/:portfolioId/calendars', calendarsRouter);
   app.use('/api/p/:portfolioId/attribute-types', attributeTypesRouter);
   app.use('/api/p/:portfolioId/dashboards', dashboardRouter);
