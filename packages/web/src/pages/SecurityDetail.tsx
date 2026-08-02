@@ -33,6 +33,8 @@ import { TypeBadge } from '@/components/shared/TypeBadge';
 import { SignedPercent } from '@/components/shared/SignedPercent';
 import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
 import { PriceHistorySection } from '@/components/domain/PriceHistorySection';
+import { SecurityEventsSection } from '@/components/domain/SecurityEventsSection';
+import { useSecurityEvents } from '@/api/use-security-events';
 
 function SharesCell({ value }: { value: string | null }) {
   const { isPrivate } = usePrivacy();
@@ -106,7 +108,7 @@ function PerfMetric({ label, value, type, currency, isPrivate, converged, notCon
 }
 
 export default function SecurityDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { id, portfolioId } = useParams<{ id: string; portfolioId: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation('securities');
   const { t: tCommon } = useTranslation('common');
@@ -201,6 +203,13 @@ export default function SecurityDetail() {
     });
   }, [security?.prices, periodStart, periodEnd]);
 
+  const { data: rawEvents = [] } = useSecurityEvents(id ?? '');
+  const securityEvents = rawEvents.map(e => ({
+    date: e.date.slice(0, 10),
+    type: e.type,
+    details: e.details,
+  }));
+
   const txMarkers = (transactions as TransactionListItem[])
     .filter(tx => MARKER_TYPES.has(tx.type))
     .map(tx => ({
@@ -275,6 +284,14 @@ export default function SecurityDetail() {
           >
             <RefreshCw className={cn('h-4 w-4', fetchPrices.isPending && 'animate-spin')} />
             {fetchPrices.isPending ? t('actions.refreshing') : t('actions.refreshQuote')}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!id}
+            onClick={() => navigate(`/p/${portfolioId}/securities/split?securityId=${id}`)}
+          >
+            {t('split.action')}
           </Button>
           <Button variant="outline" size="sm" onClick={() => openEditor()}>{tCommon('edit')}</Button>
         </div>
@@ -369,7 +386,7 @@ export default function SecurityDetail() {
         </CardHeader>
         <CardContent>
           {allPrices.length > 0 ? (
-            <PriceChart prices={allPrices} transactions={txMarkers} toolbarPortalId="price-chart-toolbar" />
+            <PriceChart prices={allPrices} transactions={txMarkers} events={securityEvents} toolbarPortalId="price-chart-toolbar" />
           ) : (
             <div>
               <EmptyState icon={TrendingUp} title={t('detail.noPrices')} />
@@ -392,6 +409,14 @@ export default function SecurityDetail() {
         <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '210ms' }}>
           <CardContent className="pt-6">
             <PriceHistorySection securityId={id} currency={security.currency} />
+          </CardContent>
+        </Card>
+      )}
+
+      {id && security && (
+        <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '225ms' }}>
+          <CardContent className="pt-6">
+            <SecurityEventsSection securityId={id} />
           </CardContent>
         </Card>
       )}

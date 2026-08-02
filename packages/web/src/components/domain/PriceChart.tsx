@@ -17,6 +17,7 @@ import { ChartToolbar } from '@/components/shared/ChartToolbar';
 import { ChartLegendOverlay, type LegendSeriesItem } from '@/components/shared/ChartLegendOverlay';
 import { FadeIn } from '@/components/shared/FadeIn';
 import { cn } from '@/lib/utils';
+import { readSplitDetails, formatSplitRatio } from '@quovibe/shared';
 
 interface PricePoint {
   date: string;
@@ -34,9 +35,16 @@ interface TransactionMarker {
   currency?: string;
 }
 
+interface SecurityEventMarker {
+  date: string;
+  type: string;
+  details: string;
+}
+
 interface PriceChartProps {
   prices: PricePoint[];
   transactions?: TransactionMarker[];
+  events?: SecurityEventMarker[];
   isFetching?: boolean;
   /** DOM element ID to portal the toolbar into (e.g. a slot in the card header) */
   toolbarPortalId?: string;
@@ -52,7 +60,7 @@ interface TooltipState {
 
 const CHART_ID = 'price-chart';
 
-export function PriceChart({ prices, transactions = [], isFetching, toolbarPortalId }: PriceChartProps) {
+export function PriceChart({ prices, transactions = [], events = [], isFetching, toolbarPortalId }: PriceChartProps) {
   const { t } = useTranslation('securities');
   const { isPrivate } = usePrivacy();
   const { profit, loss, warning, palette } = useChartColors();
@@ -60,6 +68,9 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
 
   // Determine OHLC availability from data
   const hasOhlc = prices.length > 0 && prices.some(p => p.open != null);
+
+  // Distinct from profit / loss / warning, which the transaction markers use.
+  const splitMarkerColor = palette[4];
 
   const [chartType, setChartType] = useState<ChartSeriesType>(
     () => {
@@ -272,10 +283,10 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
       volumeSeriesRef.current = volumeSeries;
     }
 
-    // Add transaction markers
-    if (transactions.length > 0) { // native-ok
+    // Add transaction and corporate-event markers
+    {
       const priceDateSet = new Set(sortedPrices.map(p => p.date));
-      const markers = transactions
+      const txMarkers = transactions
         .filter(tx => priceDateSet.has(tx.date))
         .map(tx => ({
           time: tx.date as string,
@@ -289,6 +300,20 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
           text: tx.type.charAt(0),
         }));
 
+      const splitMarkers = events
+        .filter(e => e.type === 'STOCK_SPLIT' && priceDateSet.has(e.date))
+        .map(e => {
+          const ratio = readSplitDetails(e.details);
+          return {
+            time: e.date as string,
+            position: 'belowBar' as const,
+            color: splitMarkerColor,
+            shape: 'square' as const,
+            text: ratio ? formatSplitRatio(ratio) : '',
+          };
+        });
+
+      const markers = [...txMarkers, ...splitMarkers];
       markers.sort((a, b) => (a.time as string).localeCompare(b.time as string));
 
       if (markers.length > 0) { // native-ok
@@ -299,7 +324,7 @@ export function PriceChart({ prices, transactions = [], isFetching, toolbarPorta
     chart.timeScale().fitContent();
     setSeriesVersion(v => v + 1); // native-ok
 
-  }, [effectiveType, profit, loss, warning, palette[0], prices, transactions, hasVolume, ready]);
+  }, [effectiveType, profit, loss, warning, palette[0], splitMarkerColor, prices, transactions, events, hasVolume, ready]);
 
   function markerColor(type: string) {
     if (type === 'BUY') return profit;
