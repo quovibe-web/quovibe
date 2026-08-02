@@ -93,7 +93,8 @@ export default function StockSplitWizard() {
         <PageHeader title={t('split.title')} subtitle={t('split.subtitle')} />
       </div>
 
-      <div className="flex gap-2 mb-8">
+      {/* Wraps rather than clipping the last step on narrow viewports. */}
+      <div className="flex flex-wrap gap-2 mb-8">
         {STEPS.map((s, i) => {
           const isActive = i === stepIndex;
           const isDone = i < stepIndex;
