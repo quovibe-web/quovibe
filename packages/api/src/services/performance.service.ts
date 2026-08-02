@@ -2006,7 +2006,7 @@ function computeSecurityFifoInBase(
     });
   }
 
-  const result = computeFIFO(costTxs, undefined, undefined, rateMap ? { rateMap } : undefined);
+  const result = computeFIFO(costTxs, undefined, rateMap ? { rateMap } : undefined);
 
   // Coverage check (cross-ccy only — same-ccy skips rateMap and never populates this).
   if (result.unresolvedBuyDates && result.unresolvedBuyDates.length > 0) return null;
