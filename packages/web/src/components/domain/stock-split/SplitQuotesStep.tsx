@@ -40,18 +40,25 @@ export function SplitQuotesStep({
       {
         accessorKey: 'date',
         header: () => t('split.columns.date'),
+        size: 140,
         cell: ({ row }) => formatDate(row.original.date),
       },
       {
         accessorKey: 'valueOld',
         header: () => t('split.columns.quoteBefore'),
-        cell: ({ row }) => <span className="qv-numeric">{formatQuote(row.original.valueOld)}</span>,
+        size: 160,
+        cell: ({ row }) => (
+          <span className="qv-numeric block truncate">{formatQuote(row.original.valueOld)}</span>
+        ),
       },
       {
         accessorKey: 'valueNew',
         header: () => t('split.columns.quoteAfter'),
+        size: 160,
         cell: ({ row }) => (
-          <span className="qv-numeric font-medium">{formatQuote(row.original.valueNew)}</span>
+          <span className="qv-numeric font-medium block truncate">
+            {formatQuote(row.original.valueNew)}
+          </span>
         ),
       },
     ],

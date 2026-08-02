@@ -28,33 +28,46 @@ export function SplitTransactionsStep({
 
   const columns = useMemo<ColumnDef<SplitPreviewTx>[]>(
     () => [
+      // Explicit sizes: the default 150 per column overflows the wizard card at
+      // five columns, and long account names then paint over the next cell.
       {
         accessorKey: 'date',
         header: () => t('split.columns.date'),
+        size: 100,
         cell: ({ row }) => formatDate(row.original.date),
       },
       {
         accessorKey: 'type',
         header: () => t('split.columns.type'),
+        size: 90,
         cell: ({ row }) => t(`transactions:types.${txTypeKey(row.original.type)}`),
       },
       {
         accessorKey: 'accountName',
         header: () => t('split.columns.account'),
-        cell: ({ row }) => row.original.accountName ?? '—',
+        size: 170,
+        cell: ({ row }) => (
+          <span className="block truncate" title={row.original.accountName ?? undefined}>
+            {row.original.accountName ?? '—'}
+          </span>
+        ),
       },
       {
         accessorKey: 'sharesOld',
         header: () => t('split.columns.sharesBefore'),
+        size: 110,
         cell: ({ row }) => (
-          <span className="qv-numeric">{formatShares(row.original.sharesOld / 1e8)}</span>
+          <span className="qv-numeric block truncate">
+            {formatShares(row.original.sharesOld / 1e8)}
+          </span>
         ),
       },
       {
         accessorKey: 'sharesNew',
         header: () => t('split.columns.sharesAfter'),
+        size: 110,
         cell: ({ row }) => (
-          <span className="qv-numeric font-medium">
+          <span className="qv-numeric font-medium block truncate">
             {formatShares(row.original.sharesNew / 1e8)}
           </span>
         ),
