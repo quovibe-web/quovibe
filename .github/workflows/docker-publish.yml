@@ -58,12 +58,21 @@ jobs:
       - name: Tests
         run: pnpm test
 
+      # Authenticate with the job's own GITHUB_TOKEN rather than a stored PAT.
+      # The `packages: write` permission declared above is what grants the push;
+      # the token is minted per-run and cannot expire, which a classic PAT does
+      # — silently, and only visible at the next release (v1.7.0 failed its
+      # publish with `denied: denied` for exactly that reason).
+      #
+      # Requires the GHCR package to be linked to this repository with Write
+      # access (Package settings → Manage Actions access). That link exists as
+      # long as the package keeps being published from this workflow.
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata
         id: meta
