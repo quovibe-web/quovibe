@@ -21,17 +21,29 @@ export const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 async function refreshRatesThenBackfill(
   id: string,
   sqlite: BetterSqlite3.Database,
+  phase: 'eager' | 'tick',
 ): Promise<void> {
   try {
-    await fetchAllExchangeRates(sqlite);
+    const summary = await fetchAllExchangeRates(sqlite);
+    // Per-pair outcome, not just the aggregate. A pair neither upstream can
+    // serve (ECB does not publish it, Yahoo has no ticker) is indistinguishable
+    // from a blocked egress in the aggregate — and both surface later as
+    // "missing rate at period boundary", far from their cause.
+    const failed = summary.results.filter(r => r.error !== undefined);
+    console.log(
+      `[fx] ${phase} refresh: ${summary.totalFetched} rate(s) over ${summary.results.length} pair(s), ${failed.length} unresolved (${summary.duration} ms)`,
+    );
+    for (const r of failed) {
+      console.warn(`[fx]   ${r.pair}: ${r.error}`);
+    }
   } catch (err) {
-    console.warn('[quovibe] fx fetch failed', { id, err: (err as Error).message });
+    console.warn(`[fx] ${phase} refresh failed`, { id, err: (err as Error).message });
     return;
   }
   try {
     backfillCrossCurrencyGrossUnits(sqlite);
   } catch (err) {
-    console.warn('[quovibe] fx post-fetch backfill failed', { id, err: (err as Error).message });
+    console.warn(`[fx] ${phase} post-fetch backfill failed`, { id, err: (err as Error).message });
   }
 }
 
@@ -88,13 +100,13 @@ export function startFxScheduler(id: string, sqlite: BetterSqlite3.Database): vo
 
   if (!eagerFiredInProcess.has(id)) {
     eagerFiredInProcess.add(id);
-    void refreshRatesThenBackfill(id, sqlite);
+    void refreshRatesThenBackfill(id, sqlite, 'eager');
   }
 
   let self: NodeJS.Timeout;
 
   const tick = (): void => {
-    refreshRatesThenBackfill(id, sqlite)
+    refreshRatesThenBackfill(id, sqlite, 'tick')
       .finally(() => {
         // Re-arm only if THIS tick is still the current owner of the slot
         // (a stop+start pair during the in-flight fetch would replace `self`).

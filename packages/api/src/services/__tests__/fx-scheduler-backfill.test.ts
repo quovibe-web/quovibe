@@ -86,6 +86,23 @@ describe('FX scheduler — backfill after fetch', () => {
     expect(decoratedUnitCount()).toBe(0);
   });
 
+  it('logs the pair that no upstream could serve', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    fetchAllExchangeRates.mockResolvedValue({
+      results: [{ pair: 'HUF/AED', fetched: 0, error: 'No rates found for HUF/AED' }],
+      totalFetched: 0,
+      duration: 1,
+    });
+
+    startFxScheduler(PORTFOLIO_ID, db);
+    await vi.waitFor(() =>
+      expect(warn).toHaveBeenCalledWith('[fx]   HUF/AED: No rates found for HUF/AED'),
+    );
+
+    vi.restoreAllMocks();
+  });
+
   it('survives a failing fetch without unhandled rejection', async () => {
     fetchAllExchangeRates.mockRejectedValue(new Error('ECB unreachable'));
 
