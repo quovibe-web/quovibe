@@ -124,10 +124,6 @@
     "sell": "VENTE",
     "div": "DIV"
   },
-  "stockSplit": {
-    "title": "Division d'actions",
-    "description": "Enregistrer un fractionnement d'actions pour un titre"
-  },
   "corporateEvent": {
     "title": "Événement d'entreprise",
     "description": "Enregistrer un événement d'entreprise pour un titre"
@@ -371,5 +367,78 @@
     "deriveResult": "{{written}} prix enregistrés, {{skipped}} ignorés",
     "deriveSkippedHint": "Les transactions ignorées n'ont pas de taux de change.",
     "confirmDeleteAll": "Supprimer tout l'historique des prix pour ce titre ? Cette action est irréversible."
+  },
+  "split": {
+    "title": "Division d'actions",
+    "subtitle": "Recalcule les quantités et les cours historiques comme si la division avait toujours été effective.",
+    "action": "Division d'actions…",
+    "previewing": "Chargement de l'aperçu…",
+    "apply": "Appliquer la division",
+    "applying": "Application…",
+    "applied": "Division appliquée : {{transactions}} transactions et {{quotes}} cours recalculés.",
+    "convertTransactions": "Recalculer les transactions antérieures à la date de détachement",
+    "convertQuotes": "Recalculer les cours historiques antérieurs à la date de détachement",
+    "noTransactions": "Aucune transaction avant la date de détachement.",
+    "noQuotes": "Aucun cours historique avant la date de détachement.",
+    "destructiveWarning": "Cette opération recalcule {{transactions}} transactions et {{quotes}} cours historiques comme si la division avait toujours été effective. Elle n'est pas réversible automatiquement — exportez d'abord une sauvegarde de ce portefeuille.",
+    "steps": {
+      "select": "Ratio",
+      "transactions": "Transactions",
+      "quotes": "Cours"
+    },
+    "fields": {
+      "security": "Titre",
+      "selectSecurity": "Sélectionnez un titre",
+      "exDate": "Date de détachement",
+      "exDateHint": "Les transactions et les cours antérieurs à cette date sont recalculés. Les lignes à cette date restent inchangées.",
+      "oldShares": "Actions avant",
+      "newShares": "Actions après"
+    },
+    "direction": {
+      "forward": "{{oldShares}} → {{newShares}} actions : division (plus d'actions, chacune valant moins)",
+      "reverse": "{{oldShares}} → {{newShares}} actions : regroupement (moins d'actions, chacune valant plus)",
+      "noop": "Les deux valeurs sont identiques — cette division ne changerait rien."
+    },
+    "errors": {
+      "securityRequired": "Sélectionnez un titre.",
+      "invalidDate": "Saisissez une date au format AAAA-MM-JJ.",
+      "invalidRatioSide": "Saisissez un nombre supérieur à zéro.",
+      "noOpRatio": "Les deux valeurs doivent différer — un ratio 1:1 ne change rien."
+    },
+    "columns": {
+      "date": "Date",
+      "type": "Type",
+      "account": "Compte",
+      "sharesBefore": "Actions avant",
+      "sharesAfter": "Actions après",
+      "quoteBefore": "Cours avant",
+      "quoteAfter": "Cours après"
+    },
+    "events": {
+      "title": "Opérations sur titres",
+      "empty": "Aucune opération sur titres enregistrée pour ce titre.",
+      "typeStockSplit": "Division d'actions",
+      "forwardLabel": "division",
+      "reverseLabel": "regroupement",
+      "undo": "Annuler la division",
+      "delete": "Supprimer le repère",
+      "deleted": "Événement supprimé.",
+      "deleteTitle": "Supprimer cet événement ?",
+      "deleteWarning": "Supprimer ce repère le retire uniquement du graphique. Cela n'annule pas la division — pour l'inverser, utilisez Annuler la division, qui applique le ratio inverse.",
+      "deleteGeneric": "L'événement sera retiré de ce titre.",
+      "columns": {
+        "date": "Date",
+        "type": "Type",
+        "details": "Détails"
+      }
+    },
+    "nav": {
+      "next": "Suivant",
+      "back": "Retour"
+    },
+    "warnings": {
+      "FUTURE_EX_DATE": "La date de détachement est dans le futur. Tout ce qui précède sera recalculé dès maintenant.",
+      "NO_ROWS_AFFECTED": "Rien ne change avant la date de détachement. Seul le repère de l’événement sera enregistré."
+    }
   }
 }

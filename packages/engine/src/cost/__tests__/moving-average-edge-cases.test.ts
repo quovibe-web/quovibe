@@ -97,7 +97,7 @@ describe('computeMovingAverage with rateMap (Phase 3)', () => {
       { type: 'BUY', date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
       { type: 'BUY', date: '2026-05-08', shares: new Decimal(5),  grossAmount: new Decimal(525),  fees: new Decimal(0) },
     ];
-    const result = computeMovingAverage(txs, undefined, undefined, { rateMap });
+    const result = computeMovingAverage(txs, undefined, { rateMap });
     // weightedAvgRate = (10*0.86 + 5*0.85) / 15 = 12.85 / 15 ≈ 0.85666...
     expect(result.weightedAvgRate?.toFixed(6)).toBe('0.856667');
     // costInBase = totalCost × weightedAvgRate = 1525 × 0.85666... ≈ 1306.4166...
@@ -113,7 +113,7 @@ describe('computeMovingAverage with rateMap (Phase 3)', () => {
       { type: 'BUY',  date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
       { type: 'SELL', date: '2026-05-15', shares: new Decimal(4),  grossAmount: new Decimal(440),  fees: new Decimal(0) },
     ];
-    const result = computeMovingAverage(txs, undefined, undefined, { rateMap });
+    const result = computeMovingAverage(txs, undefined, { rateMap });
     expect(result.weightedAvgRate?.toString()).toBe('0.86');
     expect(result.totalShares.toString()).toBe('6');
   });
@@ -133,7 +133,7 @@ describe('computeMovingAverage with rateMap (Phase 3)', () => {
       { type: 'BUY', date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
       { type: 'BUY', date: '2026-05-15', shares: new Decimal(5),  grossAmount: new Decimal(550),  fees: new Decimal(0) },
     ];
-    const result = computeMovingAverage(txs, undefined, undefined, { rateMap });
+    const result = computeMovingAverage(txs, undefined, { rateMap });
     expect(result.unresolvedBuyDates).toEqual(['2026-05-15']);
     expect(result.costInBase).toBeUndefined(); // suppressed when coverage incomplete
     expect(result.weightedAvgRate).toBeDefined(); // informational; still emitted
@@ -154,7 +154,7 @@ describe('computeMovingAverage with rateMap (Phase 3)', () => {
     const txs: CostTransaction[] = [
       { type: 'BUY', date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
     ];
-    const result = computeMovingAverage(txs, undefined, undefined, { rateMap });
+    const result = computeMovingAverage(txs, undefined, { rateMap });
     expect(result.unresolvedBuyDates).toEqual([]);
     expect(result.costInBase).toBeDefined(); // coverage complete → costInBase emitted
   });
@@ -168,7 +168,7 @@ describe('computeMovingAverage with rateMap (Phase 3)', () => {
       { type: 'BUY',  date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
       { type: 'SELL', date: '2026-05-15', shares: new Decimal(4),  grossAmount: new Decimal(440),  fees: new Decimal(0) },
     ];
-    const result = computeMovingAverage(txs, undefined, undefined, { rateMap });
+    const result = computeMovingAverage(txs, undefined, { rateMap });
     expect(result.realizedSellSlices).toHaveLength(1);
     const slice = result.realizedSellSlices![0];
     expect(slice.shares.toString()).toBe('4');
@@ -184,7 +184,7 @@ describe('computeMovingAverage with rateMap (Phase 3)', () => {
       { type: 'BUY',  date: '2026-05-01', shares: new Decimal(10), grossAmount: new Decimal(1000), fees: new Decimal(0) },
       { type: 'SELL', date: '2026-05-15', shares: new Decimal(4),  grossAmount: new Decimal(440),  fees: new Decimal(0) },
     ];
-    const result = computeMovingAverage(txs, undefined, undefined, { rateMap });
+    const result = computeMovingAverage(txs, undefined, { rateMap });
     expect(result.unresolvedSellDates).toEqual(['2026-05-15']);
     expect(result.realizedSellSlices).toEqual([]); // SELL skipped, not partial
   });

@@ -93,7 +93,10 @@ if (hist && (!lpDate || hist.date > lpDate)) {   // NOTE: strict >
 
 Manual add/edit/delete of `price` rows and "derive from transactions" all
 re-sync `latest_price` from the post-mutation global max via
-`syncLatestPriceFromGlobalMax` (`prices.service.ts`). Deleting the max-date row
+`syncLatestPriceFromGlobalMax` (`prices.service.ts`). `applyStockSplit`
+(`stock-split.service.ts`) calls the same helper after rewriting historical
+quotes — a deliberate divergence from PP, which leaves the latest quote alone;
+see `.claude/rules/stock-split.md`. Deleting the max-date row
 moves latest_price down; deleting all rows clears it. There is no manual-vs-feed
 source column — feed refresh can overwrite manual rows on fed securities (the
 OHLC-backfill replace path wipes NULL-open rows); manual entry's safe home is

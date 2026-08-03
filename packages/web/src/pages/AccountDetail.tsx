@@ -28,7 +28,6 @@ import { SummaryStrip } from '@/components/shared/SummaryStrip';
 import { useAccountDetail, useAccountHoldings, useAccounts, useDeactivateAccount, useDeleteAccount, useReactivateAccount } from '@/api/use-accounts';
 import { AccountType, TransactionType, getAvailableTransactionTypes } from '@/lib/enums';
 import { cn, txTypeKey } from '@/lib/utils';
-import { StockSplitDialog } from '@/components/domain/StockSplitDialog';
 import { CorporateEventDialog } from '@/components/domain/CorporateEventDialog';
 import { AccountDetailTabs } from '@/components/domain/AccountDetailTabs';
 import { ChangeReferenceAccountDialog } from '@/components/domain/ChangeReferenceAccountDialog';
@@ -64,7 +63,6 @@ export default function AccountDetail() {
   useNavTitle('account');
   const { t: tCommon } = useTranslation('common');
   const { t: tTx } = useTranslation('transactions');
-  const [splitOpen, setSplitOpen] = useState(false);
   const [eventOpen, setEventOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [changeRefOpen, setChangeRefOpen] = useState(false);
@@ -207,7 +205,9 @@ export default function AccountDetail() {
             {isPortfolio && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setSplitOpen(true)}>
+                <DropdownMenuItem
+                  onClick={() => navigate(`/p/${portfolio.id}/securities/split`)}
+                >
                   {t('menu.stockSplit')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setEventOpen(true)}>
@@ -306,7 +306,6 @@ export default function AccountDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <StockSplitDialog open={splitOpen} onOpenChange={setSplitOpen} />
       <CorporateEventDialog open={eventOpen} onOpenChange={setEventOpen} />
       {isPortfolio && account.referenceAccountId && (
         <ChangeReferenceAccountDialog

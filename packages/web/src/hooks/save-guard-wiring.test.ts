@@ -38,7 +38,7 @@ const SAVE_GUARD_CALL_SITES: ReadonlyArray<string> = [
   'components/domain/CreateTaxonomyDialog.tsx',
   'components/domain/DeleteTaxonomyDialog.tsx',
   'components/domain/CorporateEventDialog.tsx',
-  'components/domain/StockSplitDialog.tsx',
+  'pages/StockSplitWizard.tsx',
   'components/domain/NewPeriodDialog.tsx',
   'components/domain/AddSecurityToWatchlistDialog.tsx',
   'components/domain/ChangeReferenceAccountDialog.tsx',

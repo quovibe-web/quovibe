@@ -730,6 +730,51 @@ function sumAmountInBaseByType(
     }, new Decimal(0));
 }
 
+/**
+ * Base-currency twin of `sumUnitTypeInPeriod`: same fee/tax definition (unit
+ * rows PLUS the standalone FEES / TAXES amount fallback and the refund
+ * subtraction), converted at each transaction's own date.
+ *
+ * Deliberately NOT `sumUnitAmountInBase`: that helper covers only unit rows
+ * because `getPortfolioCalc` adds the standalone transactions through a
+ * separate pass, and folding the fallback into it would double-count there.
+ * Here the two numbers are the SAME metric shown in two currencies behind a
+ * toggle, so they must agree row for row.
+ */
+function sumUnitTypeInBase(
+  txs: TransactionWithUnits[],
+  unitType: 'FEE' | 'TAX',
+  period: { start: string; end: string },
+  rateMaps: Map<string, RateMap>,
+  baseCurrency: string,
+): Decimal {
+  let total = new Decimal(0);
+  for (const tx of txs) {
+    if (tx.date < period.start || tx.date > period.end) continue;
+    const toBase = (amount: Decimal): Decimal | null =>
+      txAmountToBase(amount, tx.currencyCode ?? baseCurrency, baseCurrency, rateMaps, tx.date);
+
+    const matchingUnits = tx.units.filter((u) => u.type === unitType);
+    let native: Decimal | null = null;
+    if (matchingUnits.length > 0) {
+      native = matchingUnits.reduce((s, u) => s.plus(safeDecimal(u.amount)), new Decimal(0));
+    } else if (unitType === 'FEE' && tx.type === TransactionType.FEES) {
+      native = safeDecimal(tx.amount ?? 0);
+    } else if (unitType === 'FEE' && tx.type === TransactionType.FEES_REFUND) {
+      native = safeDecimal(tx.amount ?? 0).negated();
+    } else if (unitType === 'TAX' && tx.type === TransactionType.TAXES) {
+      native = safeDecimal(tx.amount ?? 0);
+    } else if (unitType === 'TAX' && tx.type === TransactionType.TAX_REFUND) {
+      native = safeDecimal(tx.amount ?? 0).negated();
+    }
+    if (native === null) continue;
+
+    const converted = toBase(native);
+    if (converted !== null) total = total.plus(converted);
+  }
+  return total;
+}
+
 // Sums deposit-ccy FEE or TAX xact_unit amounts → base using per-transaction frozen FX rates.
 function sumUnitAmountInBase(
   txs: TransactionWithUnits[],
@@ -1056,20 +1101,50 @@ export interface SecurityPerfResult {
   /** Surviving-lot cost basis in base ccy via per-lot FIFO + trade-date FX. */
   costBase: string;
   /**
-   * `sr.unrealizedGain` × period-end FX rate. **Period-end-uniform projection** —
-   * NOT the same number as `unrealizedCapitalBase + unrealizedFxBase`, which
-   * uses per-lot acquisition rates. Kept for backward compatibility with the
-   * Investments table and SecurityDrawer (`packages/web/src/...`). Future
-   * contributors: do not attempt to "fix" the identity by replacing this with
-   * the decomposition sum — that would silently change UI numbers users
-   * already see.
+   * Cross-ccy: `marketValueBase − costBase`. Each leg is converted at its own
+   * date — market value at period-end FX, surviving-lot cost at per-lot
+   * acquisition FX — and only then subtracted. Equals
+   * `unrealizedCapitalBase + unrealizedFxBase` (same algebra, computed from
+   * `mveBase`/`costBase` directly so it stays defined when the decomposition
+   * guards bail on a missing rate or a zero end position).
+   * Same-ccy: `sr.unrealizedGain` verbatim.
+   *
+   * This field previously projected the NATIVE difference at the period-end
+   * rate (`sr.unrealizedGain × endRate`), which is the "convert the difference"
+   * shape rather than "convert each leg". The two disagree by the FX move on
+   * the cost basis between acquisition and period end — enough to flip the
+   * sign — and the three fields are rendered side by side on the security
+   * detail card, where they visibly failed to reconcile. Converting per leg is
+   * also the documented reference behaviour for foreign-currency capital gains.
+   *
+   * Two caveats that follow from `costBase`, not from this change:
+   *  - `costBase` runs per-lot FIFO regardless of the requested `costMethod`,
+   *    while native `purchaseValue` / `unrealizedGain` honour it. A cross-ccy
+   *    position with partial sells therefore differs by cost method too.
+   *  - `costBase` is fee-inclusive (lot cost = gross + fees) and is
+   *    since-inception, while the native `unrealizedGain` is fee-free and
+   *    rebased to the period start. Toggling currency on a fee-carrying or
+   *    pre-period position shifts more than the exchange rate.
    */
   unrealizedBase: string;
   /**
-   * `sr.realizedGain` × period-end FX rate. Same period-end-uniform caveat as
-   * `unrealizedBase`. Does NOT equal `realizedCapitalBase + realizedFxBase`.
+   * `sr.realizedGain` × period-end FX rate — still the period-end-uniform
+   * projection, deliberately NOT switched to the per-leg shape used by
+   * `unrealizedBase`. Realized gain has no companion cost field on the wire to
+   * reconcile against, and its native value is rebased to the period start
+   * (proceeds − value at period start), so `realizedCapitalBase +
+   * realizedFxBase` (since-inception lot cost) answers a different question.
+   * Does NOT equal `realizedCapitalBase + realizedFxBase`.
    */
   realizedBase: string;
+  /**
+   * `fees` / `taxes` in base ccy, each transaction converted at its own date.
+   * Same definition as the native fields — including the standalone
+   * FEES/TAXES fallback, the refund subtraction, and the `preTax` gate on
+   * `taxesBase` — so the currency toggle swaps units, never meaning.
+   */
+  feesBase: string;
+  taxesBase: string;
   /**
    * Dividends in base ccy: the booked deposit-currency cash converted at each
    * dividend's RECEIPT-date FX rate (`sumAmountInBaseByType`), i.e. the cash
@@ -1167,9 +1242,15 @@ export interface PortfolioCalcResult {
   // SecurityPerfResult (Task 7). These use per-tx trade-date FX (strict PP
   // convention via per-lot acquisition rates), NOT the period-end-uniform
   // rate the legacy `capitalGains.realized` / `capitalGains.unrealized`
-  // aggregates use. The two intentionally do NOT sum to the same number —
-  // see the SecurityPerfResult.unrealizedBase / realizedBase comments for
-  // the rationale (preserves visible UI numbers).
+  // aggregates use. The two intentionally do NOT sum to the same number: the
+  // calculation panel is an additive bridge (initialValue + capitalGains +
+  // earnings − fees − taxes + cashCurrencyGains + PNT = finalValue) whose terms
+  // are all period-end-uniform, so switching one term to trade-date FX would
+  // break the reconciliation. The per-security wire field
+  // `SecurityPerfResult.unrealizedBase` DOES use the per-leg shape — it is read
+  // alongside marketValueBase/costBase on the security surfaces, where the
+  // uniform projection visibly failed to reconcile. Aligning the rollup is a
+  // separate exercise that has to move every bridge term at once.
   //
   // Defaults to '0' when no per-security decomposition is computable (every
   // security same-ccy as base, or coverage gap on every FX rate).
@@ -1925,7 +2006,7 @@ function computeSecurityFifoInBase(
     });
   }
 
-  const result = computeFIFO(costTxs, undefined, undefined, rateMap ? { rateMap } : undefined);
+  const result = computeFIFO(costTxs, undefined, rateMap ? { rateMap } : undefined);
 
   // Coverage check (cross-ccy only — same-ccy skips rateMap and never populates this).
   if (result.unresolvedBuyDates && result.unresolvedBuyDates.length > 0) return null;
@@ -2847,9 +2928,20 @@ export function getSecurityPerformanceList(
       secTxs, TransactionType.DIVIDEND, period, rateMaps, baseCurrency,
     ).toString();
 
+    // Fees / taxes are booked in the deposit (cash-leg) currency. Convert each
+    // transaction at its own date and mirror the native fields exactly — same
+    // helper semantics, same preTax gate — because the UI presents the pair
+    // behind a currency toggle.
+    const feesBase = sumUnitTypeInBase(secTxs, 'FEE', period, rateMaps, baseCurrency).toString();
+    const taxesBase = preTax
+      ? '0'
+      : sumUnitTypeInBase(secTxs, 'TAX', period, rateMaps, baseCurrency).toString();
+
     // *Base fields: same-currency → native value; cross-currency → FX projection.
-    // costBase uses per-tx trade-date FX (strict upstream); other *Base fields use
-    // period-end FX (statement-date snapshot), matching the getPortfolioCalc rollup.
+    // marketValueBase uses period-end FX (statement-date snapshot); costBase uses
+    // per-lot trade-date FX; unrealizedBase is their difference (per-leg
+    // conversion). realizedBase stays on the period-end-uniform projection —
+    // see the SecurityPerfResult field docs for why the two diverge.
     let marketValueBase: string;
     let costBase: string;
     let unrealizedBase: string;
@@ -2885,7 +2977,8 @@ export function getSecurityPerformanceList(
       if (decomp !== null && mveBase !== null) {
         marketValueBase = mveBase.toString();
         costBase = decomp.fifo.costBase.toString();
-        unrealizedBase = (toBaseAtDate(sr.unrealizedGain, nativeCurrency, baseCurrency, rateMaps, period.end) ?? new Decimal(0)).toString();
+        // Per-leg: subtract AFTER converting each side at its own date.
+        unrealizedBase = mveBase.minus(decomp.fifo.costBase).toString();
         realizedBase = (toBaseAtDate(sr.realizedGain, nativeCurrency, baseCurrency, rateMaps, period.end) ?? new Decimal(0)).toString();
         realizedCapitalBase   = decomp.realizedCapitalBase.toString();
         realizedFxBase        = decomp.realizedFxBase.toString();
@@ -2936,6 +3029,8 @@ export function getSecurityPerformanceList(
       unrealizedBase,
       realizedBase,
       dividendsBase,
+      feesBase,
+      taxesBase,
       realizedCapitalBase,
       realizedFxBase,
       unrealizedCapitalBase,

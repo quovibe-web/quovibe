@@ -226,15 +226,6 @@ describe('GROUP A — FIFO lot trace (regression)', () => {
     });
   });
 
-  // ── R1.4 — Stock split (no split in fixture, verify pass-through) ────────
-
-  test('R1.4 — No splits in fixture: results identical with empty splitEvents', () => {
-    const withoutSplits = computeFIFO(OVNI_TXS_FULL);
-    const withSplits = computeFIFO(OVNI_TXS_FULL, undefined, []);
-    expect(withSplits.realizedGain.eq(withoutSplits.realizedGain)).toBe(true);
-    expect(withSplits.purchaseValue.eq(withoutSplits.purchaseValue)).toBe(true);
-  });
-
   // ── R1.5 — FIFO + Moving Average invariant ──────────────────────────────
 
   test('R1.5 — Total gain (realized + unrealized) identical for FIFO and MA (VANECK)', () => {
@@ -365,12 +356,4 @@ describe('GROUP B — Moving Average trace (regression)', () => {
     });
   });
 
-  // ── R2.4b — No splits in fixture: verify pass-through ────────────────────
-
-  test('R2.4b — No splits: results identical with empty splitEvents', () => {
-    const without = computeMovingAverage(OVNI_TXS_FULL);
-    const with_ = computeMovingAverage(OVNI_TXS_FULL, undefined, []);
-    expect(with_.realizedGain.eq(without.realizedGain)).toBe(true);
-    expect(with_.purchaseValue.eq(without.purchaseValue)).toBe(true);
-  });
 });

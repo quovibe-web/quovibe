@@ -19,7 +19,9 @@ import { CurrencyDisplayWithToggle } from '@/components/shared/CurrencyDisplayWi
 import { ForexViewChip } from '@/components/shared/ForexViewChip';
 import { useSecurityDrawerData } from '@/hooks/useSecurityDrawerData';
 import { usePrivacy } from '@/context/privacy-context';
+import { useForexView } from '@/context/forex-view-context';
 import { usePortfolio } from '@/context/PortfolioContext';
+import { resolveUnrealizedGainPct } from '@/lib/unrealized-gain-pct';
 import { formatPercentage, formatDate, formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { SecurityPerfResponse, StatementSecurityEntry } from '@/api/types';
@@ -58,13 +60,20 @@ export function SecurityDrawer({
 
   const logoUrl = securityId ? logoMap.get(securityId) : undefined;
 
-  // Compute unrealized gain percentage
+  // Unrealized gain percentage, in whichever currency the amount above it shows.
+  const { view: forexView } = useForexView('securityDrawer');
   const unrealizedGainPct = useMemo(() => {
     if (!perf) return null;
-    const purchaseVal = parseFloat(perf.purchaseValue);
-    if (purchaseVal === 0) return null;
-    return parseFloat(perf.unrealizedGain) / purchaseVal;
-  }, [perf]);
+    return resolveUnrealizedGainPct({
+      view: forexView,
+      unrealizedBase: perf.unrealizedBase,
+      costBase: perf.costBase,
+      unrealizedNative: perf.unrealizedGain,
+      purchaseValueNative: perf.purchaseValue,
+      baseCurrency: perf.baseCurrency,
+      nativeCurrency: perf.currency,
+    });
+  }, [perf, forexView]);
 
   return (
     <Sheet open={!!securityId} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -164,7 +173,7 @@ export function SecurityDrawer({
                       {unrealizedGainPct !== null && (
                         <span className={cn(
                           'text-xs tabular-nums',
-                          parseFloat(perf.unrealizedBase) >= 0 ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]'
+                          unrealizedGainPct >= 0 ? 'text-[var(--qv-positive)]' : 'text-[var(--qv-negative)]'
                         )}>
                           {isPrivate ? '••••' : formatPercentage(unrealizedGainPct)}
                         </span>

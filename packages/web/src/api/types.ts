@@ -27,9 +27,12 @@ export interface SecurityPerfResponse {
   baseCurrency: string;
   marketValueBase: string;
   costBase: string;
+  /** marketValueBase − costBase (each leg converted at its own date). */
   unrealizedBase: string;
   realizedBase: string;
   dividendsBase: string;
+  feesBase: string;
+  taxesBase: string;
 
   // Phase 3 — capital / FX decomposition (base ccy). '0' on same-ccy / unresolved.
   realizedCapitalBase: string;

@@ -12,6 +12,8 @@ import { dateColumnMeta, textColumnMeta, currencyColumnMeta, sharesColumnMeta } 
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { CurrencyDisplayWithToggle } from '@/components/shared/CurrencyDisplayWithToggle';
 import { ForexViewChip } from '@/components/shared/ForexViewChip';
+import { useForexView } from '@/context/forex-view-context';
+import { resolveUnrealizedGainPct } from '@/lib/unrealized-gain-pct';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { useSecurityDetail, useFetchPrices } from '@/api/use-securities';
 import { SecurityEditor, type EditorSection } from '@/components/domain/SecurityEditor';
@@ -31,6 +33,8 @@ import { TypeBadge } from '@/components/shared/TypeBadge';
 import { SignedPercent } from '@/components/shared/SignedPercent';
 import { SecurityAvatar } from '@/components/shared/SecurityAvatar';
 import { PriceHistorySection } from '@/components/domain/PriceHistorySection';
+import { SecurityEventsSection } from '@/components/domain/SecurityEventsSection';
+import { useSecurityEvents } from '@/api/use-security-events';
 
 function SharesCell({ value }: { value: string | null }) {
   const { isPrivate } = usePrivacy();
@@ -104,7 +108,7 @@ function PerfMetric({ label, value, type, currency, isPrivate, converged, notCon
 }
 
 export default function SecurityDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { id, portfolioId } = useParams<{ id: string; portfolioId: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation('securities');
   const { t: tCommon } = useTranslation('common');
@@ -130,6 +134,20 @@ export default function SecurityDetail() {
     if (!perfData || !id) return null;
     return perfData.find(p => p.securityId === id) ?? null;
   }, [perfData, id]);
+
+  // Hero percentage follows the currency the hero amount is rendered in.
+  const { view: forexView } = useForexView('securityDetail');
+  const unrealizedGainPct = perf
+    ? resolveUnrealizedGainPct({
+        view: forexView,
+        unrealizedBase: perf.unrealizedBase,
+        costBase: perf.costBase,
+        unrealizedNative: perf.unrealizedGain,
+        purchaseValueNative: perf.purchaseValue,
+        baseCurrency: perf.baseCurrency,
+        nativeCurrency: perf.currency,
+      })
+    : null;
 
   const txColumns = useMemo<ColumnDef<TransactionListItem>[]>(() => [
     { accessorKey: 'date', ...dateColumnMeta(), header: tTx('columns.date'), cell: ({ getValue }) => formatDate(getValue<string>()) },
@@ -184,6 +202,13 @@ export default function SecurityDetail() {
       return true;
     });
   }, [security?.prices, periodStart, periodEnd]);
+
+  const { data: rawEvents = [] } = useSecurityEvents(id ?? '');
+  const securityEvents = rawEvents.map(e => ({
+    date: e.date.slice(0, 10),
+    type: e.type,
+    details: e.details,
+  }));
 
   const txMarkers = (transactions as TransactionListItem[])
     .filter(tx => MARKER_TYPES.has(tx.type))
@@ -260,6 +285,14 @@ export default function SecurityDetail() {
             <RefreshCw className={cn('h-4 w-4', fetchPrices.isPending && 'animate-spin')} />
             {fetchPrices.isPending ? t('actions.refreshing') : t('actions.refreshQuote')}
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!id}
+            onClick={() => navigate(`/p/${portfolioId}/securities/split?securityId=${id}`)}
+          >
+            {t('split.action')}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => openEditor()}>{tCommon('edit')}</Button>
         </div>
       </div>
@@ -302,12 +335,9 @@ export default function SecurityDetail() {
                   colorize
                   className="qv-numeric text-2xl font-medium"
                 />
-                {parseFloat(perf.purchaseValue) > 0 && (
+                {unrealizedGainPct !== null && (
                   <p className="mt-1 flex items-center gap-1.5 text-xs">
-                    <SignedPercent
-                      value={parseFloat(perf.unrealizedGain) / parseFloat(perf.purchaseValue)}
-                      className="text-xs"
-                    />
+                    <SignedPercent value={unrealizedGainPct} className="text-xs" />
                     <span className="text-muted-foreground">{t('detail.fromPurchase')}</span>
                   </p>
                 )}
@@ -338,8 +368,8 @@ export default function SecurityDetail() {
               <PerfMetric label={t('detail.perfMetrics.irr')} value={perf.irr} type="pct" isPrivate={isPrivate} converged={perf.irrConverged} notConvergedLabel={t('detail.perfMetrics.notConverged')} />
               <PerfMetric label={t('detail.perfMetrics.realizedGain')} value={perf.realizedGain} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.realizedBase} baseCurrency={perf.baseCurrency} />
               <PerfMetric label={t('detail.perfMetrics.dividends')} value={perf.dividends} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.dividendsBase} baseCurrency={perf.baseCurrency} />
-              <PerfMetric label={t('detail.perfMetrics.fees')} value={perf.fees} type="currency" currency={security.currency} isPrivate={isPrivate} />
-              <PerfMetric label={t('detail.perfMetrics.taxes')} value={perf.taxes} type="currency" currency={security.currency} isPrivate={isPrivate} />
+              <PerfMetric label={t('detail.perfMetrics.fees')} value={perf.fees} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.feesBase} baseCurrency={perf.baseCurrency} />
+              <PerfMetric label={t('detail.perfMetrics.taxes')} value={perf.taxes} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.taxesBase} baseCurrency={perf.baseCurrency} />
               <PerfMetric label={t('detail.perfMetrics.purchaseValue')} value={perf.purchaseValue} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.costBase} baseCurrency={perf.baseCurrency} />
               <PerfMetric label={t('detail.perfMetrics.mve')} value={perf.mve} type="currency" currency={security.currency} isPrivate={isPrivate} baseValue={perf.marketValueBase} baseCurrency={perf.baseCurrency} />
             </div>
@@ -356,7 +386,7 @@ export default function SecurityDetail() {
         </CardHeader>
         <CardContent>
           {allPrices.length > 0 ? (
-            <PriceChart prices={allPrices} transactions={txMarkers} toolbarPortalId="price-chart-toolbar" />
+            <PriceChart prices={allPrices} transactions={txMarkers} events={securityEvents} toolbarPortalId="price-chart-toolbar" />
           ) : (
             <div>
               <EmptyState icon={TrendingUp} title={t('detail.noPrices')} />
@@ -379,6 +409,14 @@ export default function SecurityDetail() {
         <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '210ms' }}>
           <CardContent className="pt-6">
             <PriceHistorySection securityId={id} currency={security.currency} />
+          </CardContent>
+        </Card>
+      )}
+
+      {id && security && (
+        <Card style={{ animation: 'qv-stagger-in 0.4s ease-out both', animationDelay: '225ms' }}>
+          <CardContent className="pt-6">
+            <SecurityEventsSection securityId={id} />
           </CardContent>
         </Card>
       )}

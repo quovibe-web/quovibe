@@ -286,3 +286,268 @@ describe('getSecurityPerformanceList — base currency fields', () => {
     }
   });
 });
+
+// ─── Per-leg conversion + fee/tax base fields ────────────────────────────────
+//
+// Fixture shape shared by the blocks below: EUR base, USD security, ONE in-period
+// BUY, and an FX rate that MOVES between the trade date (0.95) and period end
+// (0.88). The FX swing is what discriminates the two candidate conventions:
+//
+//   per-leg   → mveBase − costBase          (each side converted at its own date)
+//   diff-then-convert → nativeGain × endRate (the old, wrong shape)
+//
+// Values are chosen so the two disagree in SIGN, not just magnitude.
+
+function seedFxSwingFixture(
+  db: Database.Database,
+  opts: { feesUsd?: number; taxesUsd?: number } = {},
+): void {
+  const feesUsd = opts.feesUsd ?? 0;
+  const taxesUsd = opts.taxesUsd ?? 0;
+  applyBootstrap(db);
+
+  db.prepare(
+    `INSERT OR REPLACE INTO vf_portfolio_meta (key, value) VALUES ('baseCurrency', 'EUR')`,
+  ).run();
+  db.prepare(
+    `INSERT INTO account (_id, uuid, name, currency, type, referenceAccount, updatedAt, _xmlid, _order)
+     VALUES (1, 'acc-dep', 'Cash EUR', 'EUR', 'account', NULL, '2026-01-01T00:00:00Z', 1, 0)`,
+  ).run();
+  db.prepare(
+    `INSERT INTO account (_id, uuid, name, currency, type, referenceAccount, updatedAt, _xmlid, _order)
+     VALUES (2, 'acc-sec', 'Broker', 'EUR', 'portfolio', 'acc-dep', '2026-01-01T00:00:00Z', 2, 1)`,
+  ).run();
+  db.prepare(
+    `INSERT INTO security (_id, uuid, name, currency, isin, isRetired, updatedAt)
+     VALUES (1, 's-usd', 'Tech USD Inc', 'USD', 'US1111111111', 0, '2026-01-01T00:00:00Z')`,
+  ).run();
+
+  // 10 shares bought at 100 USD; quote at period end 105 USD.
+  db.prepare(
+    `INSERT INTO price (security, tstamp, value) VALUES ('s-usd', '2026-02-02', ?)`,
+  ).run(Math.round(100 * 1e8));
+  db.prepare(
+    `INSERT INTO latest_price (security, tstamp, value) VALUES ('s-usd', '2026-06-20', ?)`,
+  ).run(Math.round(105 * 1e8));
+
+  const fx = db.prepare(
+    `INSERT INTO vf_exchange_rate (date, from_currency, to_currency, rate)
+     VALUES (?, 'USD', 'EUR', ?)`,
+  );
+  fx.run('2026-01-01', '0.95');
+  fx.run('2026-02-02', '0.95'); // trade date
+  fx.run('2026-06-30', '0.88'); // period end — USD weakened vs EUR
+
+  // BUY: xact.amount is the total outflow (gross + fees + taxes) per ppxml2db.
+  const totalUsd = 1000 + feesUsd + taxesUsd;
+  db.prepare(
+    `INSERT INTO xact (uuid, account, type, date, amount, shares, security, currency,
+                       acctype, updatedAt, _xmlid, _order, fees, taxes)
+     VALUES ('b1-sec', 'acc-sec', 'BUY', '2026-02-02', ?, 1000000000, 's-usd', 'USD',
+             'portfolio', '2026-02-02T00:00:00Z', 1, 0, 0, 0)`,
+  ).run(Math.round(totalUsd * 100));
+  db.prepare(
+    `INSERT INTO xact (uuid, account, type, date, amount, shares, security, currency,
+                       acctype, updatedAt, _xmlid, _order, fees, taxes)
+     VALUES ('b1-cas', 'acc-dep', 'BUY', '2026-02-02', ?, 0, 's-usd', 'USD',
+             'account', '2026-02-02T00:00:00Z', 2, 1, 0, 0)`,
+  ).run(Math.round(totalUsd * 100));
+  db.prepare(
+    `INSERT INTO xact_cross_entry (from_xact, from_acc, to_xact, to_acc, type)
+     VALUES ('b1-sec', 'acc-sec', 'b1-cas', 'acc-dep', 'buysell')`,
+  ).run();
+
+  // Units live on the securities-side row only — the shape the write path emits.
+  const unit = db.prepare(
+    `INSERT INTO xact_unit (xact, type, amount, currency) VALUES (?, ?, ?, 'USD')`,
+  );
+  if (feesUsd > 0) unit.run('b1-sec', 'FEE', Math.round(feesUsd * 100));
+  if (taxesUsd > 0) unit.run('b1-sec', 'TAX', Math.round(taxesUsd * 100));
+}
+
+const SWING_PERIOD = { start: '2026-01-01', end: '2026-06-30' };
+
+describe('getSecurityPerformanceList — unrealizedBase per-leg conversion', () => {
+  it('converts each leg at its own date instead of converting the native difference', () => {
+    const db = new Database(':memory:');
+    try {
+      seedFxSwingFixture(db);
+      const results = getSecurityPerformanceList(db, SWING_PERIOD, CostMethod.MOVING_AVERAGE, true);
+      const sec = results.find((r) => r.securityId === 's-usd')!;
+
+      // costBase:        1000 USD × 0.95 = 950.00 EUR (trade-date rate)
+      // marketValueBase: 1050 USD × 0.88 = 924.00 EUR (period-end rate)
+      expect(parseFloat(sec.costBase)).toBeCloseTo(950.0, 1);
+      expect(parseFloat(sec.marketValueBase)).toBeCloseTo(924.0, 1);
+
+      // Per-leg: 924.00 − 950.00 = −26.00 EUR. The position gained in USD but the
+      // EUR investor lost, because USD weakened more than the quote rose.
+      expect(parseFloat(sec.unrealizedBase)).toBeCloseTo(-26.0, 1);
+
+      // The native figure is a gain, and the old diff-then-convert shape would
+      // have emitted +44.00 EUR (50 USD × 0.88) — opposite sign.
+      expect(parseFloat(sec.unrealizedGain)).toBeCloseTo(50.0, 1);
+      expect(parseFloat(sec.unrealizedBase)).toBeLessThan(0);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('reconciles with the fields rendered beside it: unrealizedBase = marketValueBase − costBase', () => {
+    const db = new Database(':memory:');
+    try {
+      seedFxSwingFixture(db);
+      const results = getSecurityPerformanceList(db, SWING_PERIOD, CostMethod.MOVING_AVERAGE, true);
+      const sec = results.find((r) => r.securityId === 's-usd')!;
+
+      expect(parseFloat(sec.unrealizedBase)).toBeCloseTo(
+        parseFloat(sec.marketValueBase) - parseFloat(sec.costBase),
+        6,
+      );
+    } finally {
+      db.close();
+    }
+  });
+
+  it('matches the capital + FX decomposition it is displayed alongside', () => {
+    const db = new Database(':memory:');
+    try {
+      seedFxSwingFixture(db);
+      const results = getSecurityPerformanceList(db, SWING_PERIOD, CostMethod.MOVING_AVERAGE, true);
+      const sec = results.find((r) => r.securityId === 's-usd')!;
+
+      expect(parseFloat(sec.unrealizedBase)).toBeCloseTo(
+        parseFloat(sec.unrealizedCapitalBase) + parseFloat(sec.unrealizedFxBase),
+        6,
+      );
+    } finally {
+      db.close();
+    }
+  });
+
+  it('same-currency securities keep the native unrealized gain untouched', () => {
+    const db = new Database(':memory:');
+    try {
+      applyBootstrap(db);
+      db.prepare(
+        `INSERT OR REPLACE INTO vf_portfolio_meta (key, value) VALUES ('baseCurrency', 'EUR')`,
+      ).run();
+      db.prepare(
+        `INSERT INTO account (_id, uuid, name, currency, type, referenceAccount, updatedAt, _xmlid, _order)
+         VALUES (1, 'acc-dep', 'Cash', 'EUR', 'account', NULL, '2026-01-01T00:00:00Z', 1, 0)`,
+      ).run();
+      db.prepare(
+        `INSERT INTO account (_id, uuid, name, currency, type, referenceAccount, updatedAt, _xmlid, _order)
+         VALUES (2, 'acc-sec', 'Broker', 'EUR', 'portfolio', 'acc-dep', '2026-01-01T00:00:00Z', 2, 1)`,
+      ).run();
+      db.prepare(
+        `INSERT INTO security (_id, uuid, name, currency, isin, isRetired, updatedAt)
+         VALUES (1, 's-eur', 'Acme EUR', 'EUR', 'IT0000000002', 0, '2026-01-01T00:00:00Z')`,
+      ).run();
+      db.prepare(
+        `INSERT INTO latest_price (security, tstamp, value) VALUES ('s-eur', '2026-06-20', ?)`,
+      ).run(Math.round(105 * 1e8));
+      db.prepare(
+        `INSERT INTO xact (uuid, account, type, date, amount, shares, security, currency,
+                           acctype, updatedAt, _xmlid, _order, fees, taxes)
+         VALUES ('e1-sec', 'acc-sec', 'BUY', '2026-02-02', ?, 1000000000, 's-eur', 'EUR',
+                 'portfolio', '2026-02-02T00:00:00Z', 1, 0, 0, 0)`,
+      ).run(Math.round(1000 * 100));
+      db.prepare(
+        `INSERT INTO xact (uuid, account, type, date, amount, shares, security, currency,
+                           acctype, updatedAt, _xmlid, _order, fees, taxes)
+         VALUES ('e1-cas', 'acc-dep', 'BUY', '2026-02-02', ?, 0, 's-eur', 'EUR',
+                 'account', '2026-02-02T00:00:00Z', 2, 1, 0, 0)`,
+      ).run(Math.round(1000 * 100));
+      db.prepare(
+        `INSERT INTO xact_cross_entry (from_xact, from_acc, to_xact, to_acc, type)
+         VALUES ('e1-sec', 'acc-sec', 'e1-cas', 'acc-dep', 'buysell')`,
+      ).run();
+
+      const results = getSecurityPerformanceList(db, SWING_PERIOD, CostMethod.MOVING_AVERAGE, true);
+      const sec = results.find((r) => r.securityId === 's-eur')!;
+      expect(sec.unrealizedBase).toBe(sec.unrealizedGain);
+    } finally {
+      db.close();
+    }
+  });
+});
+
+describe('getSecurityPerformanceList — feesBase / taxesBase', () => {
+  it('emits fees and taxes in base currency at trade-date FX', () => {
+    const db = new Database(':memory:');
+    try {
+      seedFxSwingFixture(db, { feesUsd: 20, taxesUsd: 10 });
+      const results = getSecurityPerformanceList(db, SWING_PERIOD, CostMethod.MOVING_AVERAGE, false);
+      const sec = results.find((r) => r.securityId === 's-usd')!;
+
+      // Native: the USD unit amounts as booked.
+      expect(parseFloat(sec.fees)).toBeCloseTo(20.0, 2);
+      expect(parseFloat(sec.taxes)).toBeCloseTo(10.0, 2);
+
+      // Base: converted at the 2026-02-02 rate (0.95), NOT the period-end 0.88.
+      expect(parseFloat(sec.feesBase)).toBeCloseTo(19.0, 2);
+      expect(parseFloat(sec.taxesBase)).toBeCloseTo(9.5, 2);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('mirrors the preTax gate on taxesBase', () => {
+    const db = new Database(':memory:');
+    try {
+      seedFxSwingFixture(db, { feesUsd: 20, taxesUsd: 10 });
+      const results = getSecurityPerformanceList(db, SWING_PERIOD, CostMethod.MOVING_AVERAGE, true);
+      const sec = results.find((r) => r.securityId === 's-usd')!;
+
+      // preTax=true zeroes the native taxes line; the base field must follow it
+      // or the currency toggle would flip a 0 into a non-zero figure.
+      expect(parseFloat(sec.taxes)).toBe(0);
+      expect(parseFloat(sec.taxesBase)).toBe(0);
+      expect(parseFloat(sec.feesBase)).toBeCloseTo(19.0, 2);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('same-currency securities emit feesBase equal to the native fees', () => {
+    const db = new Database(':memory:');
+    try {
+      applyBootstrap(db);
+      db.prepare(
+        `INSERT OR REPLACE INTO vf_portfolio_meta (key, value) VALUES ('baseCurrency', 'EUR')`,
+      ).run();
+      db.prepare(
+        `INSERT INTO account (_id, uuid, name, currency, type, referenceAccount, updatedAt, _xmlid, _order)
+         VALUES (1, 'acc-dep', 'Cash', 'EUR', 'account', NULL, '2026-01-01T00:00:00Z', 1, 0)`,
+      ).run();
+      db.prepare(
+        `INSERT INTO account (_id, uuid, name, currency, type, referenceAccount, updatedAt, _xmlid, _order)
+         VALUES (2, 'acc-sec', 'Broker', 'EUR', 'portfolio', 'acc-dep', '2026-01-01T00:00:00Z', 2, 1)`,
+      ).run();
+      db.prepare(
+        `INSERT INTO security (_id, uuid, name, currency, isin, isRetired, updatedAt)
+         VALUES (1, 's-eur', 'Acme EUR', 'EUR', 'IT0000000003', 0, '2026-01-01T00:00:00Z')`,
+      ).run();
+      db.prepare(
+        `INSERT INTO latest_price (security, tstamp, value) VALUES ('s-eur', '2026-06-20', ?)`,
+      ).run(Math.round(105 * 1e8));
+      db.prepare(
+        `INSERT INTO xact (uuid, account, type, date, amount, shares, security, currency,
+                           acctype, updatedAt, _xmlid, _order, fees, taxes)
+         VALUES ('e1-sec', 'acc-sec', 'BUY', '2026-02-02', ?, 1000000000, 's-eur', 'EUR',
+                 'portfolio', '2026-02-02T00:00:00Z', 1, 0, 0, 0)`,
+      ).run(Math.round(1007 * 100));
+      db.prepare(
+        `INSERT INTO xact_unit (xact, type, amount, currency) VALUES ('e1-sec', 'FEE', ?, 'EUR')`,
+      ).run(Math.round(7 * 100));
+
+      const results = getSecurityPerformanceList(db, SWING_PERIOD, CostMethod.MOVING_AVERAGE, true);
+      const sec = results.find((r) => r.securityId === 's-eur')!;
+      expect(parseFloat(sec.fees)).toBeCloseTo(7.0, 2);
+      expect(sec.feesBase).toBe(sec.fees);
+    } finally {
+      db.close();
+    }
+  });
+});

@@ -156,6 +156,77 @@ function cleanupCsvConfigsCrossAccount(db: BetterSqlite3.Database): void {
 }
 
 /**
+ * Ingests user-defined exchange-rate series into `vf_exchange_rate`.
+ *
+ * A security carrying a non-null `targetCurrency` is not an investment — it is
+ * an exchange-rate instrument, and its `price` series is a rate history. This
+ * is the only source for pairs the ECB reference feed does not publish (AED,
+ * RSD, HRK, …) and the only way a user-curated series (e.g. a national bank's
+ * official rate) can beat the auto-fetched one.
+ *
+ * Direction: `rate = targetCurrency units per 1 currency unit`, so the series
+ * maps to `from_currency = security.currency`, `to_currency =
+ * security.targetCurrency` — the same multiply convention `getRate()` uses.
+ * This mirrors the `XXX/YYY` quote notation the instrument is named after.
+ *
+ * Precedence: overwrites `ECB` rows (the user's own series is authoritative
+ * over an auto-fetch) but never `MANUAL` ones. Rows this helper wrote are
+ * tagged `IMPORT`, which the ECB writer also refuses to clobber — otherwise
+ * the eager fetch on the next pool open would silently undo the ingestion.
+ *
+ * Idempotent: the second pass sees `source='IMPORT'` on every row it would
+ * write and the DO UPDATE branch filters itself out. Runs before
+ * `backfillCrossCurrencyGrossUnits` so a freshly imported portfolio decorates
+ * its cross-currency trades in the same bootstrap pass — otherwise the
+ * backfill always runs against an empty rate cache on a new import.
+ */
+function ingestCustomExchangeRateSeries(db: BetterSqlite3.Database): void {
+  const sentinel = db
+    .prepare(
+      "SELECT 1 FROM sqlite_master WHERE type='table' AND name IN ('security','price','vf_exchange_rate')",
+    )
+    .all() as unknown[];
+  if (sentinel.length < 3) return;
+
+  // `MAX(p.tstamp)` makes `p.value` a bare column resolved from the max row —
+  // deterministic last-quote-of-day when a series carries an intraday tail.
+  const res = db
+    .prepare(
+      `INSERT INTO vf_exchange_rate (date, from_currency, to_currency, rate, source)
+       SELECT d, f, t, printf('%.8f', v / 100000000.0), 'IMPORT'
+         FROM (
+           SELECT substr(p.tstamp, 1, 10) AS d,
+                  s.currency              AS f,
+                  s.targetCurrency        AS t,
+                  MAX(p.tstamp)           AS mt,
+                  p.value                 AS v
+             FROM security s
+             JOIN price p ON p.security = s.uuid
+            WHERE s.targetCurrency IS NOT NULL
+              AND s.currency IS NOT NULL
+              AND s.targetCurrency <> s.currency
+              AND p.value > 0
+            GROUP BY d, f, t
+         )
+        -- WHERE true is load-bearing: without it SQLite cannot tell where an
+        -- INSERT...SELECT ends and the upsert clause begins (near DO: syntax error).
+        WHERE true
+       ON CONFLICT(date, from_currency, to_currency) DO UPDATE SET
+         rate   = excluded.rate,
+         source = 'IMPORT'
+        WHERE vf_exchange_rate.source NOT IN ('MANUAL', 'IMPORT')`,
+    )
+    .run();
+
+  if (res.changes > 0) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[multi-currency] ingested ${res.changes} rate(s) from user-defined exchange-rate series`,
+    );
+  }
+}
+
+/**
  * Backfills synthetic `xact_unit` GROSS_VALUE rows for cross-currency
  * BUY/SELL/DIVIDENDS/DELIVERY_INBOUND/DELIVERY_OUTBOUND trades that lack
  * any FX-decorated unit (older PP-XML imports, pre-fix manual entries).
@@ -183,7 +254,7 @@ function cleanupCsvConfigsCrossAccount(db: BetterSqlite3.Database): void {
  * cross-currency trades and the WHERE clause filters out the ones that
  * already have any FX-decorated unit.
  */
-function backfillCrossCurrencyGrossUnits(db: BetterSqlite3.Database): void {
+export function backfillCrossCurrencyGrossUnits(db: BetterSqlite3.Database): void {
   // Pre-condition: xact + xact_unit + security all exist on the schema.
   // Skip silently if not (the bootstrap step would have errored first
   // anyway, but a tablecheck keeps the helper independently safe).
@@ -397,15 +468,18 @@ function seedPortfolioBaseCurrency(db: BetterSqlite3.Database): void {
  *   3. cleanupCsvDuplicates — collapses byte-identical CSV duplicates
  *   4. ensureCsvDedupeIndex — installs the partial unique index
  *   5. cleanupCsvConfigsCrossAccount — drops legacy CSV-config key
- *   6. backfillCrossCurrencyGrossUnits — synthesises GROSS_VALUE FOREX
+ *   6. ingestCustomExchangeRateSeries — copies user-defined exchange-rate
+ *      securities (non-null targetCurrency) into vf_exchange_rate. MUST run
+ *      before step 7, which reads that cache.
+ *   7. backfillCrossCurrencyGrossUnits — synthesises GROSS_VALUE FOREX
  *      units for pre-existing cross-currency trades that lack them
- *   7. seedPortfolioBaseCurrency — writes/corrects vf_portfolio_meta.baseCurrency.
+ *   8. seedPortfolioBaseCurrency — writes/corrects vf_portfolio_meta.baseCurrency.
  *      Priority: property.baseCurrency (PP-declared) > account > security > EUR.
  *      Migrates portfolios whose meta was seeded from account.currency before
  *      property.baseCurrency was consulted. Uses INSERT OR IGNORE + UPDATE so
  *      it is safe on any DB state.
  *
- * Steps 3–7 are all no-ops on a fresh DB after first run (property, meta, and
+ * Steps 3–8 are all no-ops on a fresh DB after first run (property, meta, and
  * account agree, so the currency step returns early).
  */
 export function applyBootstrap(db: BetterSqlite3.Database): void {
@@ -414,6 +488,7 @@ export function applyBootstrap(db: BetterSqlite3.Database): void {
   cleanupCsvDuplicates(db);
   ensureCsvDedupeIndex(db);
   cleanupCsvConfigsCrossAccount(db);
+  ingestCustomExchangeRateSeries(db);
   backfillCrossCurrencyGrossUnits(db);
   seedPortfolioBaseCurrency(db);
 }

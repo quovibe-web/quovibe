@@ -241,12 +241,70 @@ The migration runs on every boot but the SELECT is fast (indexed on
 cross-currency upstream XML trade exists without a FOREX unit. Steady-state
 cost is O(0).
 
+### Ordering: rate sources must land before the backfill
+
+On a freshly imported portfolio the bootstrap pass always runs against an
+**empty** `vf_exchange_rate`: the DB has never been opened through the pool,
+and the pool's open hook is what arms the FX scheduler. Two mechanisms close
+that window, and both are load-bearing:
+
+1. `ingestCustomExchangeRateSeries(db)` runs immediately before the backfill
+   inside `applyBootstrap` (step 6 of 8), so a portfolio that carries its own
+   rate series decorates its trades in the very first pass.
+2. `fx-scheduler.service.ts > refreshRatesThenBackfill` re-runs
+   `backfillCrossCurrencyGrossUnits` after every successful
+   `fetchAllExchangeRates` — eager fetch and cadence tick alike. Without it, a
+   portfolio relying on the ECB feed stays undecorated until the DB is
+   reopened (process restart or pool eviction).
+
+### User-defined exchange-rate series (`security.targetCurrency`)
+
+A `security` row carrying a non-null `targetCurrency` is not an investment —
+it is an exchange-rate instrument, and its `price` series is a rate history.
+`ppxml2db.py > handle_security` already imports both columns; before this
+change nothing read them, so the series was inert and pairs the ECB feed does
+not publish (AED, RSD, HRK, …) were unresolvable no matter what the source
+file contained.
+
+`applyBootstrap > ingestCustomExchangeRateSeries` copies them into
+`vf_exchange_rate`:
+
+| Aspect | Rule |
+|---|---|
+| Direction | `from_currency = security.currency`, `to_currency = security.targetCurrency`; the price is target-units per 1 currency-unit — the same multiply convention `getRate()` uses, and the `XXX/YYY` quote notation the instrument is named after. |
+| Scale | `price.value / 1e8`, rendered at 8 dp (the storage precision of `price`). |
+| Date | `substr(tstamp, 1, 10)`; on a same-day collision the max-`tstamp` row wins. |
+| Tag | `source = 'IMPORT'`. |
+
+**Write precedence on `vf_exchange_rate.source`** — user-supplied data
+outranks the feed:
+
+| source | Written by | Overwritable by auto-fetch? |
+|---|---|---|
+| `ECB` | `fx-fetcher.service > saveRates` (ECB XML / Yahoo fallback) | yes |
+| `IMPORT` | uploaded ECB CSV (`fx-rates.service`) **and** ingested PP series | **no** |
+| `MANUAL` | the rate editor | **no** |
+
+The `IMPORT` guard in `saveRates` is load-bearing: the eager fetch fires
+seconds after an imported portfolio is first opened, so without it every
+overlapping date of a user's curated series (e.g. a national bank's official
+rate) would be silently replaced by ECB reference rates.
+
+Conversely, `ingestCustomExchangeRateSeries` **does** overwrite `ECB` rows —
+the user's own series wins over an auto-fetch — but never `MANUAL` ones. It is
+idempotent because the second pass sees `source='IMPORT'` on every row it
+would write and the `DO UPDATE` branch filters itself out.
+
 ### Out-of-scope migration cases
 
 - **Pre-2024 vf_exchange_rate gap** — if the user's portfolio contains
   trades older than the earliest cached ECB rate, the backfill logs and
   skips. The UI surface for resolving these is the follow-up "manual
   rate entry" feature.
+- **Exchange-rate instruments in the securities list** — an FX series is a
+  `security` row, so it still appears in the securities table and taxonomy
+  rollups as a zero-holding entry. Filtering `targetCurrency IS NOT NULL` out
+  of those read paths is a separate change.
 - **CSV imports without `Exchange Rate` column** — BUG-121 already
   enforces `FX_RATE_REQUIRED` at preview time, so cross-currency CSV
   trades already carry a `GROSS_VALUE` unit. No backfill needed.
@@ -277,11 +335,22 @@ pins three scenarios:
    normalized to GBP × 100 in storage; cost/MV/unrealized all in GBP
    units, never 100× inflated.
 
+Three API suites lock the rate-source contract:
+
+- `packages/api/src/db/__tests__/pp-custom-fx-series.test.ts` — direction,
+  scale, same-day collapse, MANUAL/ECB precedence, idempotence, and the
+  ingest-before-backfill ordering inside a single `applyBootstrap` pass.
+- `packages/api/src/services/__tests__/fx-fetcher-save-rates.test.ts` — the
+  `saveRates` guard: overwrites `ECB`, refuses `MANUAL` and `IMPORT`.
+- `packages/api/src/services/__tests__/fx-scheduler-backfill.test.ts` — the
+  post-fetch backfill re-run, including the no-rates and failed-fetch paths.
+
 Any regression that drops FOREX-unit awareness from `getSecurityCurrencyGross`,
 reverts `toCostTransactions` to deposit-currency, drops the
-`backfillCrossCurrencyGrossUnits` helper, or stops `resolveSecurityCashflows`
-from consuming security-currency cashflows must make one of these suites
-go red first.
+`backfillCrossCurrencyGrossUnits` helper, stops `resolveSecurityCashflows`
+from consuming security-currency cashflows, narrows the `saveRates` guard back
+to `source != 'MANUAL'`, or removes the post-fetch backfill re-run must make
+one of these suites go red first.
 
 ## Follow-up: per-request rate caching
 
@@ -390,3 +459,66 @@ can later override via Portfolio Settings UI (Branch B).
 - Forex-view toggle to swap base ↔ native default per surface.
 - Multi-deposit-currency UI polish (currency picker on portfolio
   creation, native-ccy badges per deposit account row).
+
+## Per-security base fields — conversion convention (2026-07-29)
+
+The per-security wire row (`SecurityPerfResult` /
+`SecurityPerfResponse`) carries both a native and a base value for each
+money field, and the security surfaces render them as one number behind
+the forex-view toggle. Which conversion each base field uses is
+therefore load-bearing, not cosmetic.
+
+| Field | Convention |
+|---|---|
+| `marketValueBase` | period-end rate on `mve` |
+| `costBase` | per-lot FIFO, each lot at its acquisition-date rate |
+| `unrealizedBase` | **per-leg**: `marketValueBase − costBase` |
+| `realizedBase` | period-end rate on the native `realizedGain` |
+| `dividendsBase` | booked deposit cash at each receipt-date rate |
+| `feesBase` / `taxesBase` | each transaction at its own date |
+
+### Why `unrealizedBase` subtracts after converting
+
+Converting the native difference at one rate
+(`unrealizedGain × endRate`) and converting each leg at its own date
+give different answers whenever FX moved between acquisition and the
+reporting date — different enough to flip the sign on a position whose
+quote rose while its currency fell. The upstream reference computes the
+foreign-currency capital gain the second way (cost at its own date,
+valuation at the reporting date, subtract in term currency), and it is
+the only shape under which the three fields rendered together on the
+security detail card reconcile.
+
+Consequence: `unrealizedBase ≡ unrealizedCapitalBase + unrealizedFxBase`
+now holds by construction. It is computed from `mveBase`/`costBase`
+rather than by summing the decomposition so it stays defined when the
+decomposition guards bail (missing period-end rate, zero end position).
+
+Two inherited caveats, both from `costBase` rather than from this rule:
+
+- `costBase` always runs FIFO, while native `purchaseValue` /
+  `unrealizedGain` honour the requested `costMethod`. Cross-currency
+  positions with partial sells differ by cost method as well as by FX.
+- `costBase` is fee-inclusive and since-inception; the native
+  `unrealizedGain` is fee-free and rebased to the period start. On a
+  fee-carrying or pre-period position the toggle therefore moves more
+  than the exchange rate. Making the two axes agree means giving the
+  base side a period-rebased, fee-free cost pass — a separate exercise.
+
+### Why `realizedBase` was left on the uniform projection
+
+Realized gain has no companion cost field on the wire to reconcile
+against, so the visible-inconsistency argument does not apply, and its
+native value is rebased to the period start (proceeds − value at period
+start) while `realizedCapitalBase + realizedFxBase` uses
+since-inception lot cost. Switching it would change the number without
+making anything on screen add up.
+
+### Why the portfolio rollup was left alone
+
+`getPortfolioCalc` projects `unrealizedGain` / `realizedGain` at the
+period-end rate for its own accumulators. The calculation panel is an
+additive bridge — `initialValue + capitalGains + earnings − fees −
+taxes + cashCurrencyGains + PNT = finalValue` — whose terms are all
+period-end-uniform. Moving one term to trade-date FX breaks the
+reconciliation, so aligning the rollup means moving every term at once.
