@@ -241,12 +241,70 @@ The migration runs on every boot but the SELECT is fast (indexed on
 cross-currency upstream XML trade exists without a FOREX unit. Steady-state
 cost is O(0).
 
+### Ordering: rate sources must land before the backfill
+
+On a freshly imported portfolio the bootstrap pass always runs against an
+**empty** `vf_exchange_rate`: the DB has never been opened through the pool,
+and the pool's open hook is what arms the FX scheduler. Two mechanisms close
+that window, and both are load-bearing:
+
+1. `ingestCustomExchangeRateSeries(db)` runs immediately before the backfill
+   inside `applyBootstrap` (step 6 of 8), so a portfolio that carries its own
+   rate series decorates its trades in the very first pass.
+2. `fx-scheduler.service.ts > refreshRatesThenBackfill` re-runs
+   `backfillCrossCurrencyGrossUnits` after every successful
+   `fetchAllExchangeRates` — eager fetch and cadence tick alike. Without it, a
+   portfolio relying on the ECB feed stays undecorated until the DB is
+   reopened (process restart or pool eviction).
+
+### User-defined exchange-rate series (`security.targetCurrency`)
+
+A `security` row carrying a non-null `targetCurrency` is not an investment —
+it is an exchange-rate instrument, and its `price` series is a rate history.
+`ppxml2db.py > handle_security` already imports both columns; before this
+change nothing read them, so the series was inert and pairs the ECB feed does
+not publish (AED, RSD, HRK, …) were unresolvable no matter what the source
+file contained.
+
+`applyBootstrap > ingestCustomExchangeRateSeries` copies them into
+`vf_exchange_rate`:
+
+| Aspect | Rule |
+|---|---|
+| Direction | `from_currency = security.currency`, `to_currency = security.targetCurrency`; the price is target-units per 1 currency-unit — the same multiply convention `getRate()` uses, and the `XXX/YYY` quote notation the instrument is named after. |
+| Scale | `price.value / 1e8`, rendered at 8 dp (the storage precision of `price`). |
+| Date | `substr(tstamp, 1, 10)`; on a same-day collision the max-`tstamp` row wins. |
+| Tag | `source = 'IMPORT'`. |
+
+**Write precedence on `vf_exchange_rate.source`** — user-supplied data
+outranks the feed:
+
+| source | Written by | Overwritable by auto-fetch? |
+|---|---|---|
+| `ECB` | `fx-fetcher.service > saveRates` (ECB XML / Yahoo fallback) | yes |
+| `IMPORT` | uploaded ECB CSV (`fx-rates.service`) **and** ingested PP series | **no** |
+| `MANUAL` | the rate editor | **no** |
+
+The `IMPORT` guard in `saveRates` is load-bearing: the eager fetch fires
+seconds after an imported portfolio is first opened, so without it every
+overlapping date of a user's curated series (e.g. a national bank's official
+rate) would be silently replaced by ECB reference rates.
+
+Conversely, `ingestCustomExchangeRateSeries` **does** overwrite `ECB` rows —
+the user's own series wins over an auto-fetch — but never `MANUAL` ones. It is
+idempotent because the second pass sees `source='IMPORT'` on every row it
+would write and the `DO UPDATE` branch filters itself out.
+
 ### Out-of-scope migration cases
 
 - **Pre-2024 vf_exchange_rate gap** — if the user's portfolio contains
   trades older than the earliest cached ECB rate, the backfill logs and
   skips. The UI surface for resolving these is the follow-up "manual
   rate entry" feature.
+- **Exchange-rate instruments in the securities list** — an FX series is a
+  `security` row, so it still appears in the securities table and taxonomy
+  rollups as a zero-holding entry. Filtering `targetCurrency IS NOT NULL` out
+  of those read paths is a separate change.
 - **CSV imports without `Exchange Rate` column** — BUG-121 already
   enforces `FX_RATE_REQUIRED` at preview time, so cross-currency CSV
   trades already carry a `GROSS_VALUE` unit. No backfill needed.
@@ -277,11 +335,22 @@ pins three scenarios:
    normalized to GBP × 100 in storage; cost/MV/unrealized all in GBP
    units, never 100× inflated.
 
+Three API suites lock the rate-source contract:
+
+- `packages/api/src/db/__tests__/pp-custom-fx-series.test.ts` — direction,
+  scale, same-day collapse, MANUAL/ECB precedence, idempotence, and the
+  ingest-before-backfill ordering inside a single `applyBootstrap` pass.
+- `packages/api/src/services/__tests__/fx-fetcher-save-rates.test.ts` — the
+  `saveRates` guard: overwrites `ECB`, refuses `MANUAL` and `IMPORT`.
+- `packages/api/src/services/__tests__/fx-scheduler-backfill.test.ts` — the
+  post-fetch backfill re-run, including the no-rates and failed-fetch paths.
+
 Any regression that drops FOREX-unit awareness from `getSecurityCurrencyGross`,
 reverts `toCostTransactions` to deposit-currency, drops the
-`backfillCrossCurrencyGrossUnits` helper, or stops `resolveSecurityCashflows`
-from consuming security-currency cashflows must make one of these suites
-go red first.
+`backfillCrossCurrencyGrossUnits` helper, stops `resolveSecurityCashflows`
+from consuming security-currency cashflows, narrows the `saveRates` guard back
+to `source != 'MANUAL'`, or removes the post-fetch backfill re-run must make
+one of these suites go red first.
 
 ## Follow-up: per-request rate caching
 

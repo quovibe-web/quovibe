@@ -24,6 +24,12 @@ globs: packages/api/src/db/**
 - Table names are **singular** (ppxml2db convention): `xact`, `security`, `account`, `price`, `latest_price` — not plural.
 - `vf_*` tables (quovibe-owned, per-portfolio DB, ADR-014 + ADR-015 §3):
   - `vf_exchange_rate` — live FX cache, PK `(date, from_currency, to_currency)`.
+    `source` (runtime column patch) ranks the writers: `ECB` = auto-fetch,
+    freely overwritable; `IMPORT` = uploaded ECB CSV **or** an exchange-rate
+    series ingested from a PP-XML `security.targetCurrency`; `MANUAL` = the
+    rate editor. `fx-fetcher.service > saveRates` must never overwrite
+    `IMPORT` or `MANUAL` — see `docs/architecture/multi-currency.md`
+    "User-defined exchange-rate series".
   - `vf_portfolio_meta` — portable per-portfolio metadata (key/value).
     Allowlisted keys: `name`, `createdAt`, `source`, `schemaVersion`,
     `baseCurrency` (ISO-4217, auto-seeded from primary deposit at bootstrap;

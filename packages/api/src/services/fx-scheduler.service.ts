@@ -2,8 +2,38 @@ import type BetterSqlite3 from 'better-sqlite3';
 import { fetchAllExchangeRates } from './fx-fetcher.service';
 import { getPortfolioEntry } from './portfolio-registry';
 import { setOnOpened, setOnEvicted } from './portfolio-db-pool';
+import { backfillCrossCurrencyGrossUnits } from '../db/apply-bootstrap';
 
 export const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * Fetch rates, then re-run the cross-currency GROSS_VALUE backfill.
+ *
+ * The backfill also runs inside `applyBootstrap`, but on a freshly imported
+ * portfolio that pass is guaranteed to find an empty rate cache: bootstrap
+ * completes before this portfolio has ever been opened through the pool, which
+ * is what triggers the first fetch. Without a second pass the trades stay
+ * undecorated until the DB is reopened — process restart or pool eviction.
+ *
+ * Failures are swallowed by design: FX refresh is best-effort background work
+ * and must never take down the tick or reject into the pool's open hook.
+ */
+async function refreshRatesThenBackfill(
+  id: string,
+  sqlite: BetterSqlite3.Database,
+): Promise<void> {
+  try {
+    await fetchAllExchangeRates(sqlite);
+  } catch (err) {
+    console.warn('[quovibe] fx fetch failed', { id, err: (err as Error).message });
+    return;
+  }
+  try {
+    backfillCrossCurrencyGrossUnits(sqlite);
+  } catch (err) {
+    console.warn('[quovibe] fx post-fetch backfill failed', { id, err: (err as Error).message });
+  }
+}
 
 /**
  * Milliseconds until the next refresh tick. Mirrors the upstream
@@ -46,7 +76,7 @@ const eagerFiredInProcess = new Set<string>();
  * prior timer. Demo portfolios are skipped (live fetches would create a
  * discontinuity at the seeded simulation seam — same posture as auto-fetch).
  *
- * Fires `fetchAllExchangeRates` eagerly once per portfolio per process, then
+ * Fires `refreshRatesThenBackfill` eagerly once per portfolio per process, then
  * arms the cadence tick. Mirrors the upstream startup-then-schedule order
  * (`provider.update` runs before `Job.schedule(delay)`). Subsequent re-acquires
  * (after pool eviction + reopen) skip the eager fetch — the scheduled tick
@@ -58,17 +88,13 @@ export function startFxScheduler(id: string, sqlite: BetterSqlite3.Database): vo
 
   if (!eagerFiredInProcess.has(id)) {
     eagerFiredInProcess.add(id);
-    Promise.resolve()
-      .then(() => fetchAllExchangeRates(sqlite))
-      .catch(err => console.warn('[quovibe] fx scheduler eager fetch failed', { id, err: (err as Error).message }));
+    void refreshRatesThenBackfill(id, sqlite);
   }
 
   let self: NodeJS.Timeout;
 
   const tick = (): void => {
-    Promise.resolve()
-      .then(() => fetchAllExchangeRates(sqlite))
-      .catch(err => console.warn('[quovibe] fx scheduler fetch failed', { id, err: (err as Error).message }))
+    refreshRatesThenBackfill(id, sqlite)
       .finally(() => {
         // Re-arm only if THIS tick is still the current owner of the slot
         // (a stop+start pair during the in-flight fetch would replace `self`).

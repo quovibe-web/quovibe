@@ -97,24 +97,30 @@ async function fetchFromYahoo(
 
 // ─── Save to DB ───────────────────────────────────────────────────────────────
 
-function saveRates(
+export function saveRates(
   sqlite: BetterSqlite3.Database,
   from: string,
   to: string,
   rates: { date: string; rate: Decimal }[],
 ): void {
-  // UPSERT with MANUAL-row guard. ECB-fetched rates may freely overwrite
-  // existing ECB/IMPORT rows on the same (date, from, to) PK, but rows that
-  // a user has explicitly set with source='MANUAL' are preserved. The WHERE
-  // clause on the DO UPDATE branch skips the assignment when the existing
-  // row's source is MANUAL — SQLite UPSERT semantics keep the original row.
+  // UPSERT with a user-data guard. Auto-fetched rates may freely overwrite
+  // rows this same fetcher wrote (source='ECB'), but never rows the user
+  // supplied: 'MANUAL' (typed into the rate editor) or 'IMPORT' (an uploaded
+  // ECB CSV, or an exchange-rate series carried in a PP-XML file). The WHERE
+  // clause on the DO UPDATE branch skips the assignment for those — SQLite
+  // UPSERT semantics keep the original row.
+  //
+  // IMPORT is load-bearing here: the eager fetch fires seconds after a PP-XML
+  // import opens its portfolio, so without this guard it would silently
+  // replace a user's curated series (e.g. a national bank's official rate)
+  // with ECB reference rates on every date the two overlap.
   const insert = sqlite.prepare(`
     INSERT INTO vf_exchange_rate (date, from_currency, to_currency, rate, source)
     VALUES (?, ?, ?, ?, 'ECB')
     ON CONFLICT(date, from_currency, to_currency) DO UPDATE SET
       rate = excluded.rate,
       source = excluded.source
-    WHERE source != 'MANUAL'
+    WHERE source NOT IN ('MANUAL', 'IMPORT')
   `);
 
   const tx = sqlite.transaction(() => {
