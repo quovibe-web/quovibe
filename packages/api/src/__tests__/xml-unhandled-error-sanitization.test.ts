@@ -15,6 +15,7 @@ import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import request from 'supertest';
 import Database from 'better-sqlite3';
+import { pollImportJob } from './_helpers/poll-import-job';
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'qv-xml-unhandled-'));
 process.env.QUOVIBE_DATA_DIR = tmp;
@@ -71,11 +72,16 @@ describe('POST /api/import/xml outer-catch sanitization (BUG-94 / BUG-96)', () =
         contentType: 'application/xml',
       });
 
-    expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).toBe(500);
-    expect(res.body).toEqual({ error: 'CONVERSION_FAILED' });
-    expect(res.body.details, 'uploadXml outer-catch must not carry details (BUG-96)').toBeUndefined();
+    // The catch-all now lives in the job's error mapper; same posture, same
+    // would-be status, delivered on the job body instead of the upload response.
+    expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).toBe(202);
+    const job = await pollImportJob(app, res.body.jobId);
 
-    const haystack = JSON.stringify(res.body) + (res.text ?? '');
+    expect(job.state, JSON.stringify(job)).toBe('error');
+    expect(job.error).toEqual({ code: 'CONVERSION_FAILED', status: 500 });
+    expect(job.error?.details, 'the catch-all must not carry details (BUG-96)').toBeUndefined();
+
+    const haystack = JSON.stringify(job);
     const leakPatterns: readonly RegExp[] = [
       /leak-this/,
       /ENOENT/,

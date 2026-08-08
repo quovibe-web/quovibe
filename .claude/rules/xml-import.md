@@ -2,6 +2,97 @@ globs: packages/api/src/routes/import.ts,packages/api/src/services/import.servic
 ---
 # XML Import Rules
 
+## Asynchronous conversion — the upload does NOT carry the outcome
+
+`POST /api/import/xml` responds **202 `{ jobId }`** as soon as the upload has
+cleared every check that can be made without running the converter. The
+conversion runs detached; the client polls
+`GET /api/import/jobs/:jobId` until the job settles.
+
+**Why this shape is load-bearing.** A large PP export (hundreds of securities,
+hundreds of thousands of price rows) takes minutes end-to-end: ppxml2db, then
+`atomicCopy`, then `applyBootstrap` on the destination DB. Every hop between
+browser and process has its own idle-read timeout — a reverse proxy's is
+commonly 60 s, Cloudflare's 100 s, and this route's own socket timeout was
+120 s. When one of them cuts the connection the server keeps working and
+completes the import against a socket nobody reads: the log says
+`Import completed. New portfolio created: …` while the user is told the import
+failed. Making the request short is the only fix that holds regardless of which
+hop is the one that cuts. Do NOT reintroduce a synchronous 201.
+
+### Which layer reports what
+
+| Failure class | Reported by |
+|---|---|
+| multer (extension, size), `NO_FILE`, `IMPORT_IN_PROGRESS` | POST, with its documented status |
+| `validateXmlFormat` — `INVALID_XML`, `ENCRYPTED_FORMAT`, `INVALID_FORMAT` | POST, with its documented status |
+| Anything needing the converter — `CONVERSION_FAILED`, the ppxml2db user-input classifier's `INVALID_FORMAT`, `DUPLICATE_NAME` | job body |
+
+The structural validators run inline **before** the 202 on purpose: their codes
+are documented 400s on this route and they are cheap. `runImport` therefore
+takes `{ skipFormatValidation: true }` from the route so a multi-megabyte export
+is not cheerio-parsed twice. A caller that passes that flag without having
+validated gets no structural check at all.
+
+### Job contract
+
+`packages/api/src/services/import-job.service.ts` owns an in-process registry.
+
+- `GET /api/import/jobs/:jobId` → **200** for any known job regardless of state;
+  the HTTP status describes the poll, not the import. **404 `JOB_NOT_FOUND`**
+  when the id is unknown or its 30-minute retention window closed.
+- Body: `{ id, state: 'running'|'done'|'error', startedAt, finishedAt, result?, error? }`.
+- `result` is the same `{entry, summary}` envelope the 201 used to carry
+  (`importResponseSchema`).
+- `error` is `{ code, status, details? }`. **`status` is the HTTP status the
+  synchronous route would have returned for that code** — that is what lets the
+  client rebuild an identical `ApiError` and keeps every downstream code→message
+  mapping unchanged. `details` carries sanitized extras only (`maxMb`, the
+  colliding `name`, a user-actionable validation string); the BUG-96
+  info-disclosure posture applies verbatim, so `CONVERSION_FAILED` never carries
+  `details`.
+- **Single active job.** The slot is claimed synchronously inside
+  `startImportJob`, before the 202 is written, so a second POST in the same tick
+  sees `hasActiveImportJob() === true` and gets 409. The file lock in
+  `import.service.ts` remains the cross-process guard; the registry is the
+  in-process one. Both are checked.
+
+### Socket timeouts on the upload route
+
+The 120 s `req/res.setTimeout` now bounds the **upload only** — it is a transfer
+budget, not a conversion budget. The explicit `'timeout'` listeners are
+mandatory: Node's `socketOnTimeout` destroys a timed-out socket only when
+nothing listens for the event, so listener-less `setTimeout` calls killed
+connections with **zero server-side trace**, making a Node-side cut
+indistinguishable from a proxy-side one. The route also logs
+`res.on('close')` when `!res.writableEnded`. Removing either listener removes
+the only evidence a future report can be diagnosed from.
+
+### Client
+
+`awaitImportJob` in `packages/web/src/api/import-job.ts` turns the job back into
+the promise `useCreatePortfolio`'s `mutationFn` used to return — including
+rethrowing the job's failure as the same `ApiError`. Poll interval 1.5 s,
+deadline 30 min (`IMPORT_TIMEOUT`), up to 10 consecutive transport failures
+tolerated (the server blocks its event loop while SQLite works, so individual
+polls can stall without the import being in trouble). A 404 is terminal — a job
+the server forgot cannot be recovered by retrying.
+
+`IMPORT_TIMEOUT` and `JOB_NOT_FOUND` both map to the `importInterrupted` inline
+alert in `ImportHub`. Neither means the portfolio was NOT created, so the
+message sends the user to check rather than asserting failure.
+
+### Tests that lock this contract
+
+- `packages/api/src/__tests__/xml-import-job.test.ts` — 202 shape, job settles
+  to the `{entry, summary}` envelope, 409 on a second upload, structural
+  validation still rejecting on the POST, 404 `JOB_NOT_FOUND`, and the
+  sanitization posture on the job's error body.
+- `packages/web/src/api/__tests__/import-job.test.ts` — poll loop, error
+  reconstruction, transient-failure tolerance, 404 short-circuit, deadline.
+- `packages/api/src/__tests__/_helpers/poll-import-job.ts` — shared helper the
+  pre-existing XML suites use to assert on the settled job.
+
 ## Boundary hardening (BUG-09)
 
 Uploads to `POST /api/import/xml` must surface structural failures as
@@ -14,6 +105,12 @@ All handled errors flow through `handleError` in
 `packages/api/src/routes/import.ts`. Only `ImportError` instances reach the
 wire; anything else becomes 500 `CONVERSION_FAILED`.
 
+The status column below is the contract for the **code**, not for the POST: the
+converter-dependent codes now arrive as the job's `error.status` rather than as
+the upload's HTTP status (see "Which layer reports what" above). `toJobFailure`
+in `routes/import.ts` mirrors `handleError` exactly so the two stay identical —
+any change to one must change the other.
+
 | Code                 | Status | Meaning                                                                          |
 |----------------------|--------|----------------------------------------------------------------------------------|
 | `NO_FILE`            | 400    | Request reached the handler with no `file` field                                 |
@@ -22,7 +119,9 @@ wire; anything else becomes 500 `CONVERSION_FAILED`.
 | `INVALID_XML`        | 400    | `validateXmlFormat` could not read/parse the uploaded file                       |
 | `INVALID_FORMAT`     | 400    | XML parsed but root element ≠ `<client>` or no `id` attributes present           |
 | `ENCRYPTED_FORMAT`   | 400    | File content does not start with `<` (encrypted export or binary)                |
-| `IMPORT_IN_PROGRESS` | 409    | Another import holds the cross-process lock file                                 |
+| `IMPORT_IN_PROGRESS` | 409    | Another import holds the in-process job slot or the cross-process lock file      |
+| `JOB_NOT_FOUND`      | 404    | `GET /api/import/jobs/:id` — unknown id, or its retention window closed          |
+| `UPLOAD_TIMEOUT`     | 408    | The upload socket sat idle for 120 s; the transfer was abandoned                 |
 | `DUPLICATE_NAME`     | 409    | Derived portfolio name collides with an existing registry entry (BUG-92). Raised by `PortfolioManagerError`, not `ImportError`; the route catch-block at `import.ts` maps it symmetrically with `POST /api/portfolios`. Client: `ImportHub` translates via `errors.portfolio.duplicateName`. |
 | `CONVERSION_FAILED`  | 500    | ppxml2db subprocess crashed, timed out, or produced no `.db`                     |
 
@@ -149,15 +248,15 @@ the two layers from drifting apart.
   `IMPORT_IN_PROGRESS`, no path/ENOENT/`.xml.xml` leak in either body).
 - `packages/api/src/__tests__/xml-conversion-failed-sanitization.test.ts`
   — `vi.mock('child_process')` forces ppxml2db's execFile to reject with
-  a traceback-shaped Error; asserts the wire body is exactly
-  `{error:'CONVERSION_FAILED'}` with no `details` and no fragments of the
-  Python traceback, absolute paths, or internal SQLite error text
+  a traceback-shaped Error; asserts the settled job's error is exactly
+  `{code:'CONVERSION_FAILED', status:500}` with no `details` and no fragments
+  of the Python traceback, absolute paths, or internal SQLite error text
   (BUG-96).
 - `packages/api/src/__tests__/xml-unhandled-error-sanitization.test.ts`
   — `vi.mock('../services/import.service')` forces `runImport` to throw
-  a non-`ImportError` carrying a Windows-style absolute path; asserts the
-  uploadXml outer-catch responds bare `{error:'CONVERSION_FAILED'}` with
-  no path leak (BUG-94 class).
+  a non-`ImportError` carrying a Windows-style absolute path; asserts
+  `toJobFailure`'s catch-all yields a bare
+  `{code:'CONVERSION_FAILED', status:500}` with no path leak (BUG-94 class).
 - `packages/shared/src/xml/xml-sniff.test.ts` — unit cases for each reason
   plus positive cases (BOM, leading whitespace, bare root, full prolog).
 
@@ -168,7 +267,9 @@ red first.
 
 ## Server response shape — success
 
-`POST /api/import/xml` returns 201 with the envelope:
+The import's success envelope now arrives as the settled job's `result` (see
+"Asynchronous conversion" above); `POST /api/import/xml` itself answers
+202 `{ jobId }`. The envelope's shape is unchanged:
 
 ```json
 {

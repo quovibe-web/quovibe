@@ -1,7 +1,8 @@
-// POST /api/import/xml 201 must be {entry, summary} envelope, not the
-// legacy flat {status, id, accounts, securities}. runImport is mocked so
-// the route's portfolio-creation + summary-collection path is exercised
-// end-to-end without Python in CI.
+// The PP-XML import result must be an {entry, summary} envelope, not the
+// legacy flat {status, id, accounts, securities}. Conversion is detached from
+// the upload request, so the envelope arrives on the job rather than in the
+// POST body. runImport is mocked so the route's portfolio-creation +
+// summary-collection path is exercised end-to-end without Python in CI.
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import path from 'path';
 import { mkdtempSync } from 'fs';
@@ -9,6 +10,7 @@ import { tmpdir } from 'os';
 import request from 'supertest';
 import Database from 'better-sqlite3';
 import { importSummarySchema } from '@quovibe/shared';
+import { pollImportJob } from './_helpers/poll-import-job';
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'qv-xml-shape-'));
 process.env.QUOVIBE_DATA_DIR = tmp;
@@ -80,8 +82,13 @@ describe('POST /api/import/xml — response shape', () => {
         contentType: 'application/xml',
       });
 
-    expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).toBe(201);
-    expect(res.body).toMatchObject({
+    // The upload only acknowledges acceptance; the envelope lands on the job.
+    expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).toBe(202);
+    const job = await pollImportJob(app, res.body.jobId);
+    expect(job.state, JSON.stringify(job)).toBe('done');
+
+    const result = job.result as Record<string, unknown>;
+    expect(result).toMatchObject({
       entry: {
         id: expect.stringMatching(/^[0-9a-f-]{36}$/),
         name: expect.any(String),
@@ -93,13 +100,13 @@ describe('POST /api/import/xml — response shape', () => {
     });
 
     // Summary parses cleanly through the shared Zod schema.
-    expect(() => importSummarySchema.parse(res.body.summary)).not.toThrow();
+    expect(() => importSummarySchema.parse(result.summary)).not.toThrow();
 
     // No legacy flat fields left over.
-    expect(res.body.id, 'legacy flat id must be absent').toBeUndefined();
-    expect(res.body.status, 'legacy flat status must be absent').toBeUndefined();
-    expect(res.body.accounts, 'legacy flat accounts must be absent').toBeUndefined();
-    expect(res.body.securities, 'legacy flat securities must be absent').toBeUndefined();
-    expect(res.body.name, 'legacy flat name must be absent').toBeUndefined();
+    expect(result.id, 'legacy flat id must be absent').toBeUndefined();
+    expect(result.status, 'legacy flat status must be absent').toBeUndefined();
+    expect(result.accounts, 'legacy flat accounts must be absent').toBeUndefined();
+    expect(result.securities, 'legacy flat securities must be absent').toBeUndefined();
+    expect(result.name, 'legacy flat name must be absent').toBeUndefined();
   });
 });

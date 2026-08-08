@@ -12,6 +12,7 @@ import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import request from 'supertest';
 import Database from 'better-sqlite3';
+import { pollImportJob } from './_helpers/poll-import-job';
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'qv-xml-utf8-'));
 process.env.QUOVIBE_DATA_DIR = tmp;
@@ -71,10 +72,13 @@ describe('POST /api/import/xml UTF-8 filename preservation (BUG-176)', () => {
         contentType: 'application/xml',
       });
 
-    // Mocked runImport throws CONVERSION_FAILED — that's expected and
-    // unrelated to the filename assertion below.
-    expect(res.status).toBe(500);
-    expect(res.body.error).toBe('CONVERSION_FAILED');
+    // The upload is accepted and converted by a detached job; the mocked
+    // runImport fails it, which is expected and unrelated to the filename
+    // assertion below.
+    expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).toBe(202);
+    const job = await pollImportJob(app, res.body.jobId);
+    expect(job.state).toBe('error');
+    expect(job.error?.code).toBe('CONVERSION_FAILED');
 
     // The saved filename must round-trip the original UTF-8 bytes. With
     // defParamCharset='utf8' on multer, busboy decodes correctly and the

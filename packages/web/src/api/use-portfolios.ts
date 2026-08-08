@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationOptions, QueryClient } from '@tanstack/react-query';
 import type { FreshPortfolioInput, ImportSummary } from '@quovibe/shared';
 import { apiFetch, toApiError } from './fetch';
+import { awaitImportJob } from './import-job';
 
 // useCreatePortfolio accepts these four shapes; only the JSON ones go through
 // apiFetch — the file branches use FormData against POST /api/portfolios or
@@ -65,7 +66,13 @@ export function useCreatePortfolio() {
         if (body.name) fd.append('name', body.name);
         const r = await fetch('/api/import/xml', { method: 'POST', body: fd });
         if (!r.ok) throw await toApiError(r);
-        return r.json();
+        // 202 { jobId }: the conversion is detached from this request so no
+        // idle-read timeout between the browser and the API can cut it while
+        // the server is busy. Poll it back into the promise the caller expects
+        // — awaitImportJob rethrows the job's failure as the same ApiError the
+        // synchronous route used to produce.
+        const { jobId } = (await r.json()) as { jobId: string };
+        return awaitImportJob<CreatePortfolioResult>(jobId);
       }
       // body is FreshPortfolioInput or { source: 'demo' } — JSON pass-through.
       return apiFetch<CreatePortfolioResult>(
