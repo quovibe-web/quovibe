@@ -88,7 +88,8 @@
       "invalidFormat": "L'XML non è un'esportazione di Portfolio Performance (manca l'elemento radice <client> o gli attributi ID). Riesporta con gli ID abilitati.",
       "encrypted": "Il file sembra criptato. Riesporta da Portfolio Performance scegliendo il formato XML con attributi ID.",
       "importInProgress": "Un'altra importazione è già in corso. Attendi il completamento e riprova.",
-      "conversionFailed": "Conversione fallita. I portafogli esistenti non sono stati modificati."
+      "conversionFailed": "Conversione fallita. I portafogli esistenti non sono stati modificati.",
+      "importInterrupted": "Stato dell'importazione perso: potrebbe essere ancora in corso. Ricarica la pagina per verificare se il portafoglio è stato creato prima di importare di nuovo."
     },
     "importing": "Importazione…",
     "importSuccess": {

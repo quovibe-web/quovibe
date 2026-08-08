@@ -162,6 +162,18 @@ export interface ImportResult {
   tempDbPath: string;
 }
 
+export interface RunImportOptions {
+  /**
+   * Skip step 1 because the caller already ran `validateXmlFormat` on this
+   * path. The route does, so that INVALID_XML / ENCRYPTED_FORMAT /
+   * INVALID_FORMAT keep their documented 400 status on the upload response
+   * instead of surfacing through the job; re-parsing a multi-megabyte export
+   * with cheerio a second time is pure waste. Callers that pass `true` without
+   * having validated get no structural check at all.
+   */
+  skipFormatValidation?: boolean;
+}
+
 /**
  * Run the full import pipeline:
  * 1. Validate XML format
@@ -175,7 +187,10 @@ export interface ImportResult {
  * The caller (route handler) is responsible for the DB lifecycle:
  * close live DB, backup, swap files — via reloadApp() in index.ts.
  */
-export async function runImport(xmlPath: string): Promise<ImportResult> {
+export async function runImport(
+  xmlPath: string,
+  options: RunImportOptions = {},
+): Promise<ImportResult> {
   const uuid = uuidv4();
   const tempDbPath = path.join(DATA_DIR, 'tmp', `import-${uuid}.db`);
   const tempXmlPath = xmlPath; // already saved by multer
@@ -191,7 +206,7 @@ export async function runImport(xmlPath: string): Promise<ImportResult> {
 
   try {
     // Step 3: Validate XML format (fast, no Python)
-    validateXmlFormat(tempXmlPath);
+    if (!options.skipFormatValidation) validateXmlFormat(tempXmlPath);
 
     // Step 4: Run ppxml2db conversion
     // ppxml2db.py requires explicit output db path: ppxml2db.py <xml_file> <db>

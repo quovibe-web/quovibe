@@ -12,6 +12,7 @@ import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import request from 'supertest';
 import Database from 'better-sqlite3';
+import { pollImportJob } from './_helpers/poll-import-job';
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'qv-xml-userconv-'));
 process.env.QUOVIBE_DATA_DIR = tmp;
@@ -77,15 +78,21 @@ describe('POST /api/import/xml user-XML conversion failures (BUG-PRE14-02)', () 
         contentType: 'application/xml',
       });
 
-    expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).toBe(400);
-    expect(res.body.error).toBe('INVALID_FORMAT');
+    // This classifier only fires once ppxml2db has run, so it surfaces on the
+    // job rather than the upload response — carrying the same 400 it always did.
+    expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).toBe(202);
+    const job = await pollImportJob(app, res.body.jobId);
+
+    expect(job.state, JSON.stringify(job)).toBe('error');
+    expect(job.error?.code).toBe('INVALID_FORMAT');
+    expect(job.error?.status).toBe(400);
     // The user-facing details string is a static English message — does NOT
     // include the matched substring or any subprocess output.
-    expect(typeof res.body.details).toBe('string');
-    expect(res.body.details).toMatch(/Re-export from the source application/);
+    expect(typeof job.error?.details?.details).toBe('string');
+    expect(job.error?.details?.details).toMatch(/Re-export from the source application/);
 
     // Even at 400, the BUG-96 leak patterns must stay absent.
-    const haystack = JSON.stringify(res.body) + (res.text ?? '');
+    const haystack = JSON.stringify(job);
     const leakPatterns: readonly RegExp[] = [
       /Traceback/,
       /ppxml2db\.py/,

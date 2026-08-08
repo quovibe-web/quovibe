@@ -14,6 +14,7 @@ import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import request from 'supertest';
 import Database from 'better-sqlite3';
+import { pollImportJob } from './_helpers/poll-import-job';
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'qv-xml-conv-'));
 process.env.QUOVIBE_DATA_DIR = tmp;
@@ -86,14 +87,20 @@ describe('POST /api/import/xml CONVERSION_FAILED sanitization (BUG-96)', () => {
         contentType: 'application/xml',
       });
 
-    expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).toBe(500);
-    expect(res.body.error).toBe('CONVERSION_FAILED');
-    expect(res.body.details, 'CONVERSION_FAILED must not carry details (BUG-96 posture)').toBeUndefined();
+    // Conversion is detached from the upload request; the failure arrives on
+    // the job, carrying the status the synchronous response used to return.
+    expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).toBe(202);
+    const job = await pollImportJob(app, res.body.jobId);
+
+    expect(job.state, JSON.stringify(job)).toBe('error');
+    expect(job.error?.code).toBe('CONVERSION_FAILED');
+    expect(job.error?.status).toBe(500);
+    expect(job.error?.details, 'CONVERSION_FAILED must not carry details (BUG-96 posture)').toBeUndefined();
 
     // Full response text must not contain any fragment of the raw subprocess
     // error. If a future regression re-adds `details: err.message` in the
     // service or the route fallback, one of these will go red.
-    const haystack = JSON.stringify(res.body) + (res.text ?? '');
+    const haystack = JSON.stringify(job);
     const leakPatterns: readonly RegExp[] = [
       /Traceback/,
       /ppxml2db\.py/,

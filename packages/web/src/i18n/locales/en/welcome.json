@@ -87,7 +87,8 @@
       "invalidFormat": "The XML is not a Portfolio Performance export (missing <client> root or ID attributes). Re-export with IDs enabled.",
       "encrypted": "The file appears to be encrypted. Re-export from Portfolio Performance choosing XML format with ID attributes.",
       "importInProgress": "Another import is already running. Wait for it to finish and try again.",
-      "conversionFailed": "Conversion failed. Your existing portfolios are untouched."
+      "conversionFailed": "Conversion failed. Your existing portfolios are untouched.",
+      "importInterrupted": "Lost track of the import — it may still be running. Reload the page to check whether the portfolio was created before importing again."
     },
     "importing": "Importing…",
     "importSuccess": {

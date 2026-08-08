@@ -33,6 +33,7 @@ export type PpUploadError =
   | 'importInProgress'
   | 'conversionFailed'
   | 'duplicateName'
+  | 'importInterrupted'
   | null;
 
 export type DbUploadError = 'duplicateName' | 'tooLarge' | null;
@@ -72,6 +73,13 @@ export function mapServerError(code: string): PpUploadError {
       return 'conversionFailed';
     case 'DUPLICATE_NAME':
       return 'duplicateName';
+    // Conversion runs detached from the upload request, so the client can lose
+    // the thread without the import having failed: the poll deadline elapses,
+    // or the server restarted and dropped the job. Neither says the portfolio
+    // was NOT created — the message has to send the user to check.
+    case 'IMPORT_TIMEOUT':
+    case 'JOB_NOT_FOUND':
+      return 'importInterrupted';
     default:
       return null;
   }
