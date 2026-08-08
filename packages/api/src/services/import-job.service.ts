@@ -95,6 +95,16 @@ export function hasActiveImportJob(): boolean {
   return activeJobId !== null;
 }
 
+/**
+ * Id of the running job, if any. Exposed on `GET /api/import/status` so a
+ * client that lost its 202 — the upload response itself was cut, after the
+ * server had already accepted the file — can re-attach to the import instead of
+ * reporting a failure the server disagrees with.
+ */
+export function getActiveImportJobId(): string | null {
+  return activeJobId;
+}
+
 export function getImportJob(id: string): ImportJob | undefined {
   sweep();
   return jobs.get(id);

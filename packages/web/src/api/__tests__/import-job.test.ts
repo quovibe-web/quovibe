@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { awaitImportJob, type ImportJobBody } from '../import-job';
+import { awaitImportJob, findRunningImportJob, type ImportJobBody } from '../import-job';
 import { ApiError } from '../fetch';
 
 // The conversion is detached from the upload request precisely so that a slow
@@ -94,6 +94,22 @@ describe('awaitImportJob', () => {
     expect(fetchJob).toHaveBeenCalledTimes(1);
   });
 
+  it('does not treat a job with no error payload as a silent success', async () => {
+    const fetchJob = vi.fn(() =>
+      Promise.resolve<ImportJobBody>({
+        id: 'j1',
+        state: 'error',
+        startedAt: '2026-08-08T00:00:00Z',
+        finishedAt: '2026-08-08T00:01:00Z',
+      }),
+    );
+
+    const err = await awaitImportJob('j1', { fetchJob, sleep: noSleep }).catch((e: unknown) => e);
+
+    expect((err as ApiError).code).toBe('CONVERSION_FAILED');
+    expect((err as ApiError).status).toBe(500);
+  });
+
   it('surfaces IMPORT_TIMEOUT when the job outlives the deadline', async () => {
     let clock = 0;
     const fetchJob = vi.fn(() => Promise.resolve(running()));
@@ -107,5 +123,35 @@ describe('awaitImportJob', () => {
 
     expect((err as ApiError).code).toBe('IMPORT_TIMEOUT');
     expect((err as ApiError).status).toBe(504);
+  });
+});
+
+describe('findRunningImportJob', () => {
+  it('returns the running job id so a lost 202 can be picked back up', async () => {
+    const jobId = await findRunningImportJob(() =>
+      Promise.resolve({ inProgress: true, activeJobId: 'j7' }),
+    );
+    expect(jobId).toBe('j7');
+  });
+
+  it('returns null when nothing is running', async () => {
+    const jobId = await findRunningImportJob(() =>
+      Promise.resolve({ inProgress: false, activeJobId: null }),
+    );
+    expect(jobId).toBeNull();
+  });
+
+  it('returns null when the file lock is held but no job id is known', async () => {
+    // A restart can leave the cross-process lock claimed with no in-process
+    // job behind it. Re-attaching to nothing would hang the caller.
+    const jobId = await findRunningImportJob(() =>
+      Promise.resolve({ inProgress: true, activeJobId: null }),
+    );
+    expect(jobId).toBeNull();
+  });
+
+  it('returns null when the status call itself fails', async () => {
+    const jobId = await findRunningImportJob(() => Promise.reject(new Error('offline')));
+    expect(jobId).toBeNull();
   });
 });

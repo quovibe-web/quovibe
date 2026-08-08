@@ -10,6 +10,7 @@ import {
   startImportJob,
   getImportJob,
   hasActiveImportJob,
+  getActiveImportJobId,
   type ImportJobFailure,
   type ImportJobResult,
 } from '../services/import-job.service';
@@ -168,6 +169,10 @@ const uploadXml: RequestHandler = (req, res) => {
   // In-process guard first (claimed synchronously by startImportJob below),
   // then the cross-process file lock that survives a restart mid-import.
   if (hasActiveImportJob() || isImportInProgress()) {
+    // multer has already streamed the upload to disk by the time this handler
+    // runs, and the loser of the race never reaches runImport's cleanup — so
+    // reap its temp file here or it sits until the next boot sweep.
+    if (req.file) { try { fs.unlinkSync(req.file.path); } catch { /* ok */ } }
     res.status(409).json({ error: 'IMPORT_IN_PROGRESS' });
     return;
   }
@@ -231,10 +236,20 @@ const getJob: RequestHandler = (req, res) => {
   });
 };
 
-// GET /api/import/status — thin wrapper around the in-process mutex + last-import time
+// GET /api/import/status — both import guards + last-import time.
+//
+// `inProgress` must consult the in-process job registry as well as the
+// cross-process file lock, otherwise it under-reports for the entire window
+// between the 202 and ppxml2db claiming the lock. `activeJobId` is the
+// re-attach handle for a client whose 202 never arrived.
 const getStatus: RequestHandler = (_req, res) => {
   const lastImport = getSettings().app.lastImport;
-  res.json({ ready: true, inProgress: isImportInProgress(), lastImport });
+  res.json({
+    ready: true,
+    inProgress: hasActiveImportJob() || isImportInProgress(),
+    activeJobId: getActiveImportJobId(),
+    lastImport,
+  });
 };
 
 // Socket idle timeout for the upload route. It now bounds the UPLOAD only —

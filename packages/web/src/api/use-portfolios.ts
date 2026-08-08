@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationOptions, QueryClient } from '@tanstack/react-query';
 import type { FreshPortfolioInput, ImportSummary } from '@quovibe/shared';
 import { apiFetch, toApiError } from './fetch';
-import { awaitImportJob } from './import-job';
+import { awaitImportJob, findRunningImportJob } from './import-job';
 
 // useCreatePortfolio accepts these four shapes; only the JSON ones go through
 // apiFetch — the file branches use FormData against POST /api/portfolios or
@@ -64,13 +64,33 @@ export function useCreatePortfolio() {
         const fd = new FormData();
         fd.append('file', body.file);
         if (body.name) fd.append('name', body.name);
-        const r = await fetch('/api/import/xml', { method: 'POST', body: fd });
-        if (!r.ok) throw await toApiError(r);
-        // 202 { jobId }: the conversion is detached from this request so no
-        // idle-read timeout between the browser and the API can cut it while
-        // the server is busy. Poll it back into the promise the caller expects
-        // — awaitImportJob rethrows the job's failure as the same ApiError the
-        // synchronous route used to produce.
+        // The conversion is detached from this request so no idle-read timeout
+        // between the browser and the API can cut it while the server is busy;
+        // the response is 202 { jobId }. awaitImportJob polls it back into the
+        // promise the caller expects, rethrowing the job's failure as the same
+        // ApiError the synchronous route used to produce.
+        //
+        // The upload response is the one thing still on the wire long enough to
+        // be cut. If it is, the server may already be converting — re-attach to
+        // the running job rather than reporting a failure it disagrees with.
+        let r: Response;
+        try {
+          r = await fetch('/api/import/xml', { method: 'POST', body: fd });
+        } catch (err) {
+          const running = await findRunningImportJob();
+          if (running) return awaitImportJob<CreatePortfolioResult>(running);
+          throw err;
+        }
+        if (!r.ok) {
+          const apiError = await toApiError(r);
+          // A code the API never emits means the body came from something in
+          // between (a proxy's 502/504 page), not from us — same re-attach case.
+          if (apiError.code.startsWith('HTTP_')) {
+            const running = await findRunningImportJob();
+            if (running) return awaitImportJob<CreatePortfolioResult>(running);
+          }
+          throw apiError;
+        }
         const { jobId } = (await r.json()) as { jobId: string };
         return awaitImportJob<CreatePortfolioResult>(jobId);
       }

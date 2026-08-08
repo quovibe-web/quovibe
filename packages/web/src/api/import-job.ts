@@ -65,6 +65,37 @@ async function defaultFetchJob(jobId: string): Promise<ImportJobBody> {
 const defaultSleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
+export interface ImportStatusBody {
+  inProgress: boolean;
+  activeJobId: string | null;
+}
+
+/**
+ * Re-attach handle for the one gap the 202 does not close: the upload response
+ * itself being cut after the server had already accepted the file and started
+ * the job. The client is then holding a network error for an import that is
+ * running fine. `GET /api/import/status` reports the running job's id, so the
+ * caller can pick the thread back up instead of reporting a failure the server
+ * disagrees with.
+ *
+ * Returns null on any doubt — no running job, or the status call itself failed.
+ * A wrong re-attach would be worse than surfacing the original error.
+ */
+export async function findRunningImportJob(
+  fetchStatus: () => Promise<ImportStatusBody> = async () => {
+    const res = await fetch('/api/import/status');
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    return (await res.json()) as ImportStatusBody;
+  },
+): Promise<string | null> {
+  try {
+    const status = await fetchStatus();
+    return status.inProgress && status.activeJobId ? status.activeJobId : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Polls until the job settles. Resolves with the job's result on success;
  * throws an `ApiError` carrying the job's own code and would-be status on

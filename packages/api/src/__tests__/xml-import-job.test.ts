@@ -9,7 +9,7 @@
 // collected by polling. These tests pin that contract.
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import path from 'path';
-import { mkdtempSync } from 'fs';
+import { mkdtempSync, readdirSync } from 'fs';
 import { tmpdir } from 'os';
 import request from 'supertest';
 import type { Express } from 'express';
@@ -153,12 +153,43 @@ describe('POST /api/import/xml — accepts and returns a job', () => {
     const first = await upload(app, 'first.xml');
     expect(first.status).toBe(202);
 
+    const uploadDirBefore = readdirSync(path.join(tmp, 'tmp')).length;
+
     const second = await upload(app, 'second.xml');
     expect(second.status, `got ${second.status} ${JSON.stringify(second.body)}`).toBe(409);
     expect(second.body.error).toBe('IMPORT_IN_PROGRESS');
 
+    // multer wrote the loser's upload to disk before the handler ran; the 409
+    // branch has to reap it or it sits there until the next boot sweep.
+    expect(
+      readdirSync(path.join(tmp, 'tmp')).length,
+      `rejected upload left a temp file behind: ${JSON.stringify(readdirSync(path.join(tmp, 'tmp')))}`,
+    ).toBe(uploadDirBefore);
+
     release!();
     await pollUntilSettled(app, first.body.jobId);
+  });
+
+  it('reports the running job on /api/import/status so a lost 202 can re-attach', async () => {
+    let release: (() => void) | null = null;
+    control.impl = () =>
+      new Promise((resolve) => {
+        release = () => resolve({ tempDbPath: buildConvertedDb() });
+      });
+    const app = freshApp();
+
+    const started = await upload(app, 'reattach.xml');
+    const status = await request(app).get('/api/import/status');
+
+    expect(status.body.inProgress).toBe(true);
+    expect(status.body.activeJobId).toBe(started.body.jobId);
+
+    release!();
+    await pollUntilSettled(app, started.body.jobId);
+
+    const after = await request(app).get('/api/import/status');
+    expect(after.body.inProgress).toBe(false);
+    expect(after.body.activeJobId).toBeNull();
   });
 
   it('structural validation still rejects on the upload response, not via the job', async () => {

@@ -55,7 +55,26 @@ validated gets no structural check at all.
   `startImportJob`, before the 202 is written, so a second POST in the same tick
   sees `hasActiveImportJob() === true` and gets 409. The file lock in
   `import.service.ts` remains the cross-process guard; the registry is the
-  in-process one. Both are checked.
+  in-process one. Both are checked — by `uploadXml` AND by
+  `GET /api/import/status`, which otherwise under-reports for the whole window
+  between the 202 and ppxml2db claiming the lock.
+- **The 409 branch must unlink `req.file.path`.** multer has already streamed
+  the upload to disk by the time the handler runs, and the loser of the race
+  never reaches `runImport`'s cleanup. Without the unlink the file sits until
+  the next boot sweep.
+
+### The one gap the 202 does not close, and how it is covered
+
+The upload response is still on the wire long enough to be cut. If it is cut
+after the server accepted the file, the job is already running and the client
+holds a network error for an import that is fine. `GET /api/import/status`
+therefore reports `activeJobId`, and `findRunningImportJob` in
+`packages/web/src/api/import-job.ts` re-attaches on two conditions: the POST
+threw (transport failure), or it answered non-ok with a code the API never
+emits (`HTTP_*` — an unparseable body means a proxy error page, not us). It
+returns null on any doubt, including `inProgress` with no `activeJobId`, which
+is what a restart with a stale file lock looks like; re-attaching to nothing
+would hang the caller.
 
 ### Socket timeouts on the upload route
 
@@ -85,11 +104,13 @@ message sends the user to check rather than asserting failure.
 ### Tests that lock this contract
 
 - `packages/api/src/__tests__/xml-import-job.test.ts` — 202 shape, job settles
-  to the `{entry, summary}` envelope, 409 on a second upload, structural
-  validation still rejecting on the POST, 404 `JOB_NOT_FOUND`, and the
-  sanitization posture on the job's error body.
+  to the `{entry, summary}` envelope, 409 on a second upload (with the temp-file
+  reap assertion), structural validation still rejecting on the POST, 404
+  `JOB_NOT_FOUND`, `activeJobId` on `/api/import/status` while running and null
+  after, and the sanitization posture on the job's error body.
 - `packages/web/src/api/__tests__/import-job.test.ts` — poll loop, error
-  reconstruction, transient-failure tolerance, 404 short-circuit, deadline.
+  reconstruction, transient-failure tolerance, 404 short-circuit, deadline,
+  and the `findRunningImportJob` re-attach conditions.
 - `packages/api/src/__tests__/_helpers/poll-import-job.ts` — shared helper the
   pre-existing XML suites use to assert on the settled job.
 
