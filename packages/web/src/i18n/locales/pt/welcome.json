@@ -87,7 +87,8 @@
       "invalidFormat": "O XML não é uma exportação de Portfolio Performance (falta o elemento raiz <client> ou os atributos ID). Reexporta com os IDs ativados.",
       "encrypted": "O ficheiro parece encriptado. Reexporta do Portfolio Performance escolhendo o formato XML com atributos ID.",
       "importInProgress": "Outra importação já está em curso. Aguarda a conclusão e tenta novamente.",
-      "conversionFailed": "Conversão falhou. As tuas carteiras existentes não foram alteradas."
+      "conversionFailed": "Conversão falhou. As tuas carteiras existentes não foram alteradas.",
+      "importInterrupted": "Perdeu-se o rasto da importação — pode ainda estar a decorrer. Recarrega a página para verificar se a carteira foi criada antes de importares de novo."
     },
     "importing": "A importar…",
     "importSuccess": {

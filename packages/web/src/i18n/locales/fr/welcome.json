@@ -87,7 +87,8 @@
       "invalidFormat": "Le XML n'est pas un export Portfolio Performance (élément racine <client> ou attributs ID manquants). Réexportez avec les IDs activés.",
       "encrypted": "Le fichier semble chiffré. Réexportez depuis Portfolio Performance en choisissant le format XML avec attributs ID.",
       "importInProgress": "Un autre import est déjà en cours. Attendez la fin et réessayez.",
-      "conversionFailed": "Échec de la conversion. Vos portefeuilles existants sont intacts."
+      "conversionFailed": "Échec de la conversion. Vos portefeuilles existants sont intacts.",
+      "importInterrupted": "Suivi de l'importation perdu — elle est peut-être encore en cours. Rechargez la page pour vérifier si le portefeuille a été créé avant de réimporter."
     },
     "importing": "Importation…",
     "importSuccess": {

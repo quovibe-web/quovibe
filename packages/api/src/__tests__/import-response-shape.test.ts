@@ -1,6 +1,7 @@
-// Wire-contract governance: BOTH import routes' 201 bodies must conform to
-// the shared importResponseSchema (which uses importSummarySchema for the
-// summary leaf). If either route drifts in structure, this test catches it.
+// Wire-contract governance: both import paths must deliver the same
+// importResponseSchema envelope (which uses importSummarySchema for the summary
+// leaf) — the `.db` restore in its 201 body, the PP-XML flow in its job result.
+// If either drifts in structure, this test catches it.
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import path from 'path';
 import { mkdtempSync } from 'fs';
@@ -10,6 +11,7 @@ import Database from 'better-sqlite3';
 import { z } from 'zod';
 import { importSummarySchema } from '@quovibe/shared';
 import { buildQuovibeBackupDb } from '../services/__tests__/_helpers/build-backup-db';
+import { pollImportJob } from './_helpers/poll-import-job';
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'qv-import-shape-'));
 process.env.QUOVIBE_DATA_DIR = tmp;
@@ -80,13 +82,13 @@ beforeAll(async () => {
 });
 
 describe('Import response envelope — governance', () => {
-  it('POST /api/import/xml conforms to {entry, summary}', async () => {
+  it("the XML import job's result conforms to {entry, summary}", async () => {
     loadSettings();
     recoverFromInterruptedSwap();
     const app = createApp();
 
-    // Content passes multer's fileFilter; the mocked runImport fires before
-    // ppxml2db would be invoked, so the XML doesn't need to be real.
+    // Content passes multer's fileFilter and validateXmlFormat; the mocked
+    // runImport stands in for ppxml2db, so the XML doesn't need to be real.
     const res = await request(app)
       .post('/api/import/xml')
       .attach('file', Buffer.from('<?xml version="1.0"?><client><account id="a1"/></client>'), {
@@ -94,8 +96,12 @@ describe('Import response envelope — governance', () => {
         contentType: 'application/xml',
       });
 
-    expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).toBe(201);
-    expect(() => importResponseSchema.parse(res.body)).not.toThrow();
+    // The upload is accepted immediately; the envelope lands on the job.
+    expect(res.status, `got ${res.status} ${JSON.stringify(res.body)}`).toBe(202);
+    const job = await pollImportJob(app, res.body.jobId);
+
+    expect(job.state, JSON.stringify(job)).toBe('done');
+    expect(() => importResponseSchema.parse(job.result)).not.toThrow();
   });
 
   it('POST /api/portfolios .db branch conforms to {entry, summary, alreadyExisted?}', async () => {
