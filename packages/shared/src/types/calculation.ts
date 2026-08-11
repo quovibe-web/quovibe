@@ -1,12 +1,21 @@
 // Per-item types
+//
+// EVERY monetary field on every item type below is in the response's
+// `baseCurrency`, never the security's own currency. The calculation panel
+// renders items as the decomposition of the row total above them and labels
+// them with the base currency, so a native-currency item both mislabels the
+// number and breaks Σ items === total on any cross-currency position.
 
 export interface CapitalGainItem {
   securityId: string;
   name: string;
   isin?: string;
+  /** Base ccy. Σ over items === capitalGains.unrealized. */
   unrealizedGain: string;
   foreignCurrencyGains: string;
+  /** Base ccy: MVB converted at the period-start rate. */
   initialValue: string;
+  /** Base ccy: MVE converted at the period-end rate. */
   finalValue: string;
 }
 
@@ -14,8 +23,11 @@ export interface RealizedGainItem {
   securityId: string;
   name: string;
   isin?: string;
+  /** Base ccy. Σ over items === realizedGains.total. */
   realizedGain: string;
+  /** Base ccy: gross sale cash, each sale converted at its own trade date. */
   proceeds: string;
+  /** Base ccy, derived as `proceeds − realizedGain` so the item closes. */
   costAtPeriodStart: string;
 }
 

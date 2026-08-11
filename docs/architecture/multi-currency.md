@@ -522,3 +522,61 @@ additive bridge — `initialValue + capitalGains + earnings − fees −
 taxes + cashCurrencyGains + PNT = finalValue` — whose terms are all
 period-end-uniform. Moving one term to trade-date FX breaks the
 reconciliation, so aligning the rollup means moving every term at once.
+
+## Calculation-panel items are base currency (2026-08-11)
+
+Every per-security item the calculation panel expands — `capitalGains.items`,
+`realizedGains.items`, `earnings.dividendItems` — is emitted in the response's
+`baseCurrency`, never in the security's own currency. The panel labels items
+with the base currency and treats them as the decomposition of the row total
+above them, so a native-currency item is simultaneously a mislabeled number and
+a broken sum.
+
+The invariant is enforced structurally, not by a parallel conversion:
+`getPortfolioCalc`'s item builders read the same `mvbBase` / `mveBase` /
+`unrealizedBase` / `realizedBase` locals (× the scope weight `sw`) that the
+`totalMVB` / `totalMVE` / `totalUnrealized` / `totalRealized` accumulators are
+built from, so `Σ items === row total` holds by construction. Re-deriving a
+conversion inside the item builder is the regression vector — it drifts the
+moment either side changes convention.
+
+Zero-guards deliberately stay on the *native* values (`sr.mve`,
+`sr.unrealizedGain`, `sr.realizedGain`): whether a security belongs in the list
+is an economic question, and an unresolved FX rate coalesces its base value to
+0 without meaning nothing happened. The totals coalesce identically, so the sum
+identity survives that case too.
+
+Item-level `proceeds` is the gross sale cash converted at each sale's own trade
+date — the figure the user can tie back to the transaction list.
+`costAtPeriodStart` is derived as `proceeds − realizedGain` so the item closes
+inside one currency; it is a plug, not an independently-computed cost, because
+`realizedGain` is the period-end-uniform projection (see "Why `realizedBase`
+was left on the uniform projection" above) while `proceeds` is trade-date cash.
+
+Consequence for the securities table: the Investments fees / taxes columns read
+`feesBase` / `taxesBase` with the native value behind the forex toggle, like
+every neighbouring money column. `perf.fees` with `currency={perf.currency}` is
+the shape that leaked USD into a EUR-labeled table.
+
+### Known gap: taxonomy / allocation slices aggregate native currencies
+
+`taxonomy-performance.service.ts` sums `mvb`, `mve`, `fees`, `taxes`,
+`dividends`, `interest`, `realizedGain`, `unrealizedGain` and `dailyMV` across
+the securities of a slice with only the classification weight applied. Those
+are per-security **native** values, so a EUR-base portfolio holding USD and GBP
+securities adds three currencies into one Decimal — and the native `dailyMV`
+feeds the slice's TTWROR. Single-currency portfolios are unaffected, which is
+why it has stayed invisible.
+
+Fixing it means converting each contribution to base at the appropriate
+boundary with the `buildFxContext` / `toBaseAtDate` machinery `getPortfolioCalc`
+already uses, plus a decision on unresolved-FX securities (skip-and-report, as
+the calc rollup does, vs. degrade to zero). Not attempted alongside the
+calculation-panel item fix: different surface, different reconciliation.
+
+### Scoped-query note
+
+Calculation-panel items are weighted by the account-scope weight `sw`, matching
+the totals. They previously ignored it, so an account-scoped Analysis view
+showed each security's full gain in the item list while the row total above
+showed the scoped fraction.

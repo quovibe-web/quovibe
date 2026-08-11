@@ -517,11 +517,11 @@ export function useInvestmentsColumns({
         enableSorting: true,
       },
 
-      // ── Fees ──
+      // ── Fees (base ccy) ──
       {
         id: 'fees',
         accessorFn: (row) => {
-          const val = perfMap.get(row.id)?.fees;
+          const val = perfMap.get(row.id)?.feesBase;
           return val != null ? parseFloat(val) : null;
         },
         ...currencyColumnMeta({ priority: 'low' }),
@@ -531,17 +531,28 @@ export function useInvestmentsColumns({
         header: t('columns.fees'),
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
-          if (!perf?.fees) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.fees)} currency={perf.currency} className="qv-numeric text-sm" /></div>;
+          if (!perf?.feesBase) return <div className="text-right text-muted-foreground">—</div>;
+          return (
+            <div className="text-right">
+              <CurrencyDisplayWithToggle
+                value={parseFloat(perf.feesBase)}
+                currency={perf.baseCurrency}
+                nativeValue={parseFloat(perf.fees)}
+                nativeCurrency={perf.currency}
+                forexSurface="investments"
+                className="qv-numeric text-sm"
+              />
+            </div>
+          );
         },
         enableSorting: true,
       },
 
-      // ── Taxes ──
+      // ── Taxes (base ccy) ──
       {
         id: 'taxes',
         accessorFn: (row) => {
-          const val = perfMap.get(row.id)?.taxes;
+          const val = perfMap.get(row.id)?.taxesBase;
           return val != null ? parseFloat(val) : null;
         },
         ...currencyColumnMeta({ priority: 'low' }),
@@ -551,8 +562,19 @@ export function useInvestmentsColumns({
         header: t('columns.taxes'),
         cell: ({ row }) => {
           const perf = perfMap.get(row.original.id);
-          if (!perf?.taxes) return <div className="text-right text-muted-foreground">—</div>;
-          return <div className="text-right"><CurrencyDisplay value={parseFloat(perf.taxes)} currency={perf.currency} className="qv-numeric text-sm" /></div>;
+          if (!perf?.taxesBase) return <div className="text-right text-muted-foreground">—</div>;
+          return (
+            <div className="text-right">
+              <CurrencyDisplayWithToggle
+                value={parseFloat(perf.taxesBase)}
+                currency={perf.baseCurrency}
+                nativeValue={parseFloat(perf.taxes)}
+                nativeCurrency={perf.currency}
+                forexSurface="investments"
+                className="qv-numeric text-sm"
+              />
+            </div>
+          );
         },
         enableSorting: true,
       },

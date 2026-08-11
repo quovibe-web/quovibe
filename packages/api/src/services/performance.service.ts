@@ -2330,6 +2330,20 @@ export function getPortfolioCalc(
       const secInfo = data.securityInfoMap.get(sr.securityId);
       const secName = secInfo?.name ?? sr.securityId;
       const secIsin = secInfo?.isin;
+      // Every per-security item is emitted in BASE currency, weighted the same
+      // way as the totals above. The panel labels each expandable row with the
+      // portfolio's base currency and treats the items as the decomposition of
+      // that row's total, so an item in the security's native currency is both
+      // mislabeled and unable to sum. Reusing the very locals the totals are
+      // built from (`unrealizedBase`, `realizedBase`, `mvbBase`, `mveBase`,
+      // each × `sw`) keeps Σ items === total by construction rather than by a
+      // second conversion that has to be kept in sync.
+      //
+      // The zero-guards stay on the native values: whether a security belongs
+      // in the list is an economic question, and an unresolved FX rate
+      // coalesces its base value to 0 without meaning "nothing happened".
+      // Totals coalesce identically, so the sum identity survives either way.
+
       // Capital gain item (unrealized gains per security).
       // Exclude fully-sold securities (mve=0 and no unrealized gain) — they belong
       // only in realizedGains.items.
@@ -2338,10 +2352,11 @@ export function getPortfolioCalc(
           securityId: sr.securityId,
           name: secName,
           isin: secIsin,
-          unrealizedGain: sr.unrealizedGain.toString(),
-          foreignCurrencyGains: sr.foreignCurrencyGains.toString(),
-          initialValue: sr.mvb.toString(),
-          finalValue: sr.mve.toString(),
+          unrealizedGain: unrealizedBase.times(sw).toString(),
+          // Already base ccy — computeCurrencyGains returns nativeCost × Δrate.
+          foreignCurrencyGains: sr.foreignCurrencyGains.times(sw).toString(),
+          initialValue: mvbBase.times(sw).toString(),
+          finalValue: mveBase.times(sw).toString(),
         });
       }
 
@@ -2353,13 +2368,24 @@ export function getPortfolioCalc(
             (tx.type === TransactionType.SELL || tx.type === TransactionType.DELIVERY_OUTBOUND) &&
             tx.shares != null && tx.shares > 0,
         );
-        const proceeds = sellTxs.reduce((sum, tx) => sum.plus(getGrossAmount(tx)), new Decimal(0));
-        const costAtPeriodStart = proceeds.minus(sr.realizedGain);
+        // Proceeds are the cash the deposit leg actually received, converted at
+        // each sale's own date — the number the user can tie back to the
+        // transaction list. `realizedGainBase` is the period-end-uniform
+        // projection the row total uses, so `costAtPeriodStart` stays a derived
+        // plug that closes `proceeds − cost = gain` within one currency.
+        const proceeds = sellTxs.reduce((sum, tx) => {
+          const converted = txAmountToBase(
+            getGrossAmount(tx), tx.currencyCode ?? baseCurrency, baseCurrency, rateMaps, tx.date,
+          );
+          return converted != null ? sum.plus(converted) : sum;
+        }, new Decimal(0)).times(sw);
+        const realizedGainBase = realizedBase.times(sw);
+        const costAtPeriodStart = proceeds.minus(realizedGainBase);
         realizedGainItems.push({
           securityId: sr.securityId,
           name: secName,
           isin: secIsin,
-          realizedGain: sr.realizedGain.toString(),
+          realizedGain: realizedGainBase.toString(),
           proceeds: proceeds.toString(),
           costAtPeriodStart: costAtPeriodStart.toString(),
         });
